@@ -3,6 +3,48 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-23 - Window chrome and the icon pipsignee come from keel
+
+**Decided.** Tend depends on `keel` (`file:../keel`) for two things it had its
+own copy of: the three title-bar IPC handlers and the icon generator.
+
+**Why Tend went second.** Jot proved the package inside a bundler and a
+TypeScript codebase. Tend is the opposite case on both counts - plain DOM, JS
+with JSDoc, no build step - and if a shared layer only works in one of those, it
+is not a shared layer. Two things came out of doing it that would not have shown
+up in Jot:
+
+- **keel has to be a real `dependency` here.** Jot bundles, so its copy is
+  inlined at build time and a devDependency is enough. Tend ships `src/**`
+  unbuilt, so `import { windowControlsBridge } from "keel/window"` is still an
+  import when the app runs, out of an asar archive. It packs correctly - npm
+  symlinks a `file:` dependency and electron-builder dereferences it - but that
+  is a fact worth having verified rather than assumed, which is why
+  `test:app -- --packaged` now clicks the maximise button and checks the window
+  actually resized.
+- **The renderer's type for the bridge is derived, not written.** `ui.js`
+  annotates the preload global, and the window-control half of that annotation is
+  `ReturnType<typeof import("keel/window").windowControlsBridge>`. Spelling the
+  three functions out again would have recreated, one level out, exactly the
+  problem keel's generated declarations exist to prevent.
+
+**The window buttons left `OPERATIONS`.** They were entries in the same
+whitelist as `logPromise` and `attention`, which was a category error: window
+chrome is not an operation on Tend's data. They also reached for
+`BrowserWindow.getFocusedWindow()` - the window that happens to have focus rather
+than the one that sent the message. Invisible with one window; wrong the moment
+there are two, or when the click arrives from the test harness while focus sits
+elsewhere. keel uses `fromWebContents(event.sender)`.
+
+**The icon changed slightly, and deliberately.** The old generator supersampled a
+hard in-or-out test 4x4 per pixel; keel's is a distance field, so coverage is
+computed rather than sampled. Same geometry, same colours - 1.5% of pixels moved,
+all of them on an outline, none inside a flat area, mean delta 0.18/255. It is
+marginally crisper and sixteen times less arithmetic. Two helpers went into keel
+to make Tend's drawing expressible: `distSegmentAt`, which also returns how far
+along a segment the nearest point is (the pen taper needs it), and
+`distRoundedRect`, which is signed because a plate is filled rather than stroked.
+
 ## 2026-08-23 - The packaged app ships source, not a bundle
 
 **Decided.** electron-builder packs `src/**` directly. No electron-vite, no
@@ -11,7 +53,7 @@ and why this won.
 **What it costs.** The packaged app resolves the preload and the renderer from
 inside an asar archive, where a path that works in development can fail with
 nothing but a blank window and no error in main. So `npm run test:app --
---packaged` exists and runs the same eleven checks against
+--packaged` exists and runs the whole walkthrough against
 `dist/win-unpacked/Tend.exe`. A packaged build is not considered working until
 that passes.
 

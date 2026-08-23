@@ -31,7 +31,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "keel": "file:../keel"
   },
   "main": "src/main/index.js"
 }

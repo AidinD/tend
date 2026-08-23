@@ -644,6 +644,45 @@ try {
     }
   });
 
+  /* ---------------------------------------------------- window chrome -- */
+
+  step("The title bar buttons");
+
+  // Worth its own step even though it is three lines of product. These come
+  // from keel rather than from Tend's own operation whitelist, which means the
+  // preload has to resolve a bare specifier out of node_modules - and in the
+  // packaged app, out of an asar archive. A resolution failure there is silent
+  // from the outside: the buttons simply stop doing anything.
+  const bridge = await page.evaluate(
+    "JSON.stringify(['minimizeWindow','toggleMaximizeWindow','closeWindow'].filter((k) => typeof window.tend[k] !== 'function'))"
+  );
+  check("the window controls reached the renderer from keel", () => {
+    const missing = JSON.parse(String(bridge));
+    if (missing.length > 0) {
+      throw new Error(`the preload did not expose: ${missing.join(", ")}`);
+    }
+  });
+
+  // Maximise is the one of the three a renderer can observe, so it is the one
+  // that proves the whole path: click, preload send, main handler, window. Then
+  // click again to put the window back where it was.
+  const before = await page.evaluate("window.outerWidth");
+  await page.click('[data-window="maximize"]');
+  await sleep(400);
+  const maximised = await page.evaluate("window.outerWidth");
+  await page.click('[data-window="maximize"]');
+  await sleep(400);
+  const restored = await page.evaluate("window.outerWidth");
+
+  check("clicking maximise actually resizes the window, and again restores it", () => {
+    if (!(Number(maximised) > Number(before))) {
+      throw new Error(`width went ${before} -> ${maximised}; the click did not reach the main process`);
+    }
+    if (Number(restored) !== Number(before)) {
+      throw new Error(`width came back as ${restored}, not ${before}`);
+    }
+  });
+
   /* ------------------------------------------------------------- exit -- */
 
   step("Finishing up");

@@ -102,11 +102,20 @@ document.querySelectorAll(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => go(String(/** @type {HTMLElement} */ (btn).dataset.view)));
 });
 
-// The window is frameless, so these three are the title bar's job.
+// The window is frameless, so these three are the title bar's job. They come
+// from keel rather than through `tend.invoke`: window chrome is not an
+// operation on Tend's data, and every app in the suite answers these same
+// three messages.
+const WINDOW_BUTTONS = {
+  minimize: () => tend.minimizeWindow(),
+  maximize: () => tend.toggleMaximizeWindow(),
+  close: () => tend.closeWindow()
+};
+
 document.querySelectorAll("[data-window]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const which = String(/** @type {HTMLElement} */ (btn).dataset.window);
-    tend.invoke(which === "minimize" ? "minimizeWindow" : which === "maximize" ? "toggleMaximizeWindow" : "closeWindow");
+    /** @type {Record<string, () => void>} */ (WINDOW_BUTTONS)[which]?.();
   });
 });
 

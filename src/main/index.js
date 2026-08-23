@@ -11,6 +11,8 @@ import { BrowserWindow, app, ipcMain, shell } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { registerWindowControls } from "keel/window";
+
 // electron-updater is CommonJS, so a named ESM import does not work - the
 // default import is the whole module object.
 import electronUpdater from "electron-updater";
@@ -100,28 +102,10 @@ const OPERATIONS = {
     return { checking: true };
   },
 
-  minimizeWindow: () => {
-    BrowserWindow.getFocusedWindow()?.minimize();
-    return { ok: true };
-  },
-
-  toggleMaximizeWindow: () => {
-    const w = BrowserWindow.getFocusedWindow();
-    if (!w) {
-      return { ok: false };
-    }
-    if (w.isMaximized()) {
-      w.unmaximize();
-    } else {
-      w.maximize();
-    }
-    return { maximized: w.isMaximized() };
-  },
-
-  closeWindow: () => {
-    BrowserWindow.getFocusedWindow()?.close();
-    return { ok: true };
-  },
+  // The three window buttons used to live here, in this whitelist, and they
+  // reached for BrowserWindow.getFocusedWindow() - the window that happens to
+  // have focus rather than the one that asked. keel/window answers them on
+  // their own channels and acts on event.sender instead. See DECISIONS.md.
 
   status: () => ({
     dataDir: dir,
@@ -144,6 +128,11 @@ ipcMain.handle("tend:invoke", (_event, name, args) => {
     return { error: `${name} failed: ${err instanceof Error ? err.message : String(err)}` };
   }
 });
+
+// Minimize, maximize and close for the frameless header. Electron is passed in
+// rather than imported by keel, which is what keeps that package free of an
+// electron dependency of its own.
+registerWindowControls({ ipcMain, BrowserWindow });
 
 function createWindow() {
   const window = new BrowserWindow({

@@ -58,6 +58,27 @@ Wire the MCP server into Claude Code and it works today, app or no app. See
 
 ## Development
 
+Tend depends on [**keel**](https://github.com/AidinD/keel), the shared layer
+under the suite, linked from the filesystem - so it has to be checked out
+**next to** this repo before `npm install` will work:
+
+```
+Tools/
+├── tend/
+└── keel/
+```
+
+```bash
+git clone https://github.com/AidinD/keel ../keel
+npm install
+npm run dev
+```
+
+Without the sibling checkout `npm install` fails on `file:../keel`. Unlike in
+Jot, keel is a real dependency here and ships inside the app: Tend has no
+bundler, so `keel/window` is still an import at runtime and electron-builder has
+to pack it.
+
 ```bash
 npm test
 ```

@@ -8,7 +8,16 @@
  * to enter something stays a five-line change and every form behaves the same.
  */
 
-/** @type {{ invoke: (name: string, args?: Record<string, any>) => Promise<any> }} */
+/**
+ * The preload bridge.
+ *
+ * The window-control half is not spelled out here - it is read back off keel's
+ * own declaration, so this cannot drift from what the preload actually exposes.
+ * Writing that shape out a second time is how you get a compiler that lies.
+ *
+ * @type {{ invoke: (name: string, args?: Record<string, any>) => Promise<any> }
+ *   & ReturnType<typeof import("keel/window").windowControlsBridge>}
+ */
 export const tend = /** @type {any} */ (window).tend;
 
 /**

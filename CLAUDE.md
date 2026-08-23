@@ -18,6 +18,33 @@ Jot (`D:\Repo\Tools\jot`) and Nib (`D:\Repo\Tools\nib`), not inside either.
 
 Keep PLAN.md and DECISIONS.md current as work happens, not batched at the end.
 
+## keel
+
+Tend depends on **keel** (`github.com/AidinD/keel`), the suite's shared layer,
+linked as `file:../keel` - so it must be checked out at `D:\Repo\Tools\keel` or
+`npm install` fails.
+
+It is a real `dependency` here, not a devDependency as in Jot. Jot bundles, so
+its copy of keel is inlined at build time; Tend ships its source unbuilt, so the
+import survives into the packaged app and electron-builder has to pack keel into
+the asar. `npm run test:app -- --packaged` is what proves it did - the window
+buttons are the visible symptom of a preload that failed to resolve it, and they
+fail silently.
+
+Two things come from it:
+
+- `keel/window` - the three title-bar handlers and the preload bridge. These are
+  deliberately *not* in `OPERATIONS`: window chrome is not an operation on Tend's
+  data, and routing it through `tend.invoke` made "minimize the window" look like
+  a peer of "log a promise". The renderer's type for the bridge is read back off
+  keel's own declaration in `src/renderer/ui.js` rather than written out again.
+- `keel/icon` - the PNG writer, the ICO writer and the distance-field helpers.
+  `scripts/generate-icon.mjs` is now only Tend's geometry.
+
+Editing keel changes Tend immediately, with no rebuild step. It also means a
+change there can break the other siblings, so run `npm test` in keel and
+regenerate the icon here before assuming it is fine.
+
 ## Rules that are easy to get wrong here
 
 **Nib owns the notes.** Tend reads them and keeps its own structured layer
