@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
+    />
+    <title>Tend</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <!-- The window is frameless, so this row is both the wordmark and the drag
+         handle, and carries the window buttons. Same arrangement as Jot and Nib. -->
+    <header class="app-header">
+      <div class="brand">
+        <!-- The mark, drawn inline rather than loaded from resources/icon.png: it
+             sits at 20px next to 17px text, where a downscaled 512px bitmap is
+             soft exactly where the eye is most critical.
+
+             This is the icon's SMALL drawing - three marks, not four. At 20px the
+             full four are one-pixel lines a pixel apart and average into a smear,
+             which is the same reason scripts/generate-icon.mjs drops a stroke
+             below 32. The taper is left out; at this size it is not visible. -->
+        <svg class="brand-mark" width="20" height="20" viewBox="0 0 100 100" aria-hidden="true">
+          <rect x="6" y="6" width="88" height="88" rx="20" fill="#1b1c1f" />
+          <g stroke-linecap="round" fill="none">
+            <path d="M33 25 L35 60" stroke="#6f9cff" stroke-width="10.7" />
+            <path d="M50 24 L48.5 62" stroke="#6f9cff" stroke-width="10.2" />
+            <path d="M68 24.5 L67 86" stroke="#e0705e" stroke-width="11" />
+          </g>
+        </svg>
+        <span class="wordmark">Tend</span>
+        <span class="version" id="version"></span>
+      </div>
+      <div class="header-right">
+        <div class="window-controls">
+          <button type="button" data-window="minimize" title="Minimise">–</button>
+          <button type="button" data-window="maximize" title="Maximise">□</button>
+          <button type="button" data-window="close" class="danger" title="Close">×</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="app">
+      <nav class="rail">
+        <div class="nav">
+          <button class="nav-btn" data-view="now" aria-current="true">
+            Now <span class="nav-count" id="count-now"></span>
+          </button>
+          <button class="nav-btn" data-view="focus">
+            Focus <span class="nav-count" id="count-focus"></span>
+          </button>
+          <button class="nav-btn" data-view="people">
+            People <span class="nav-count" id="count-people"></span>
+          </button>
+          <button class="nav-btn" data-view="work">Work</button>
+          <button class="nav-btn" data-view="role">
+            Role map <span class="nav-count" id="count-role"></span>
+          </button>
+        </div>
+
+        <div class="nav nav-foot">
+          <button class="nav-btn" data-view="settings">Settings</button>
+        </div>
+      </nav>
+
+      <main id="main">
+        <div class="loading">Reading the log…</div>
+      </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,397 @@
+/**
+ * Tests for the three decisions made on 2026-08-23: two separate duties for
+ * feedback and record-keeping, three monthly questions, and a delegation level
+ * that sits on a piece of work with an owner.
+ *
+ * Plus the Nib binding, which is how notes reach any of it.
+ */
+
+import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
+
+import * as api from "../src/service/api.js";
+import * as nibService from "../src/service/nib.js";
+import { openStore } from "../src/storage/store.js";
+import { DEFAULT_SIGNALS, SIGNAL_CADENCE_DAYS, signalsDue } from "../src/domain/signals.js";
+import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../src/domain/workstreams.js";
+import { DAY_MS } from "../src/domain/time.js";
+import { failed, ok } from "./helpers.mjs";
+
+const NOW = 1_800_000_000_000;
+/** @param {number} n */
+const daysAgo = (n) => NOW - n * DAY_MS;
+
+/** @type {string} */
+let dir;
+/** @type {string} */
+let nibDir;
+/** @type {import("../src/storage/store.js").TendStore} */
+let store;
+
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), "tend-sw-"));
+  nibDir = mkdtempSync(join(tmpdir(), "tend-nib-"));
+  let t = NOW - 1_000_000;
+  store = openStore({ dataDir: dir, role: "app", host: "test", now: () => t++ });
+
+  for (const s of DEFAULT_SIGNALS) {
+    store.create("signals", { ...s, status: "active", cadenceDays: SIGNAL_CADENCE_DAYS });
+  }
+  store.create("duties", {
+    id: "d-1to1",
+    name: "1-1",
+    subjectKind: "person",
+    cadenceDays: 14,
+    evidenceKinds: ["one-to-one"],
+    relations: ["lead-and-manage", "manage-remotely"],
+    guarded: true,
+    status: "active"
+  });
+  store.create("people", { id: "nadia", name: "Nadia Ohlsson", relation: "lead-and-manage", since: daysAgo(200) });
+  store.create("projects", { id: "tidepool", name: "Tidepool", since: daysAgo(200) });
+});
+
+afterEach(() => {
+  rmSync(dir, { recursive: true, force: true });
+  rmSync(nibDir, { recursive: true, force: true });
+});
+
+/** Write a Nib index.json in the shape Nib itself writes. */
+function writeNib(/** @type {any[]} */ categories) {
+  writeFileSync(join(nibDir, "index.json"), JSON.stringify({ version: 1, categories }), "utf8");
+}
+
+describe("the monthly questions", () => {
+  it("is three questions, not six", () => {
+    assert.equal(DEFAULT_SIGNALS.length, 3, "three get answered; six get skipped");
+  });
+
+  it("covers one person withdrawing, the team going quiet, and his own blind spot", () => {
+    const ids = DEFAULT_SIGNALS.map((s) => s.id);
+    assert.deepEqual(ids.sort(), ["signal-pushback", "signal-quiet-retro", "signal-unseen-work"]);
+  });
+
+  it("every question explains why it is worth asking", () => {
+    for (const s of DEFAULT_SIGNALS) {
+      assert.ok(s.why.length > 80, `${s.id} needs a reason a person would accept`);
+    }
+  });
+
+  it("asks a never-answered question straight away", () => {
+    const due = signalsDue(store.rows("signals"), [], NOW, daysAgo(60));
+    assert.equal(due.length, 3);
+    assert.ok(due.every((s) => !s.everAnswered));
+    assert.ok(due.every((s) => s.severity !== "ok"));
+  });
+
+  it("goes quiet for a month after a no", () => {
+    api.answerSignal(store, { signal: "signal-pushback", answer: "no", now: NOW });
+    const asked = api.signals(store, NOW).find((s) => s.id === "signal-pushback");
+    assert.equal(asked?.due, false);
+    assert.equal(asked?.lastAnswer, "no");
+  });
+
+  it("comes back in a week after a yes, not a month", () => {
+    store.create("signalAnswers", {
+      signal: "signal-pushback",
+      answer: "yes",
+      note: "Sofia stopped arguing in design review",
+      at: daysAgo(9)
+    });
+    const due = signalsDue(store.rows("signals"), store.rows("signalAnswers"), NOW);
+    const pushback = due.find((s) => s.id === "signal-pushback");
+    assert.notEqual(pushback?.severity, "ok", "a flagged problem should not wait a full cycle");
+  });
+
+  it("refuses a bare yes, because a yes with no note is useless later", () => {
+    const r = api.answerSignal(store, { signal: "signal-pushback", answer: "yes", now: NOW });
+    assert.match(String(r.error), /needs a note/);
+  });
+
+  it("accepts a yes with a note", () => {
+    const r = api.answerSignal(store, {
+      signal: "signal-quiet-retro",
+      answer: "yes",
+      note: "Retro ended in nine minutes and nobody raised the release",
+      now: NOW
+    });
+    assert.equal(r.nextAskedIn, "7 days");
+  });
+
+  it("rejects an answer that is neither yes nor no", () => {
+    assert.ok(api.answerSignal(store, { signal: "signal-pushback", answer: /** @type {any} */ ("maybe"), now: NOW }).error);
+  });
+
+  it("surfaces a due question in the Now view", () => {
+    const a = api.attention(store, NOW);
+    const question = [...a.needsYou, ...a.nudges].find((/** @type {any} */ i) => /pushing back/.test(i.what));
+    assert.ok(question, "the monthly question should appear like anything else that needs him");
+  });
+});
+
+describe("delegation levels", () => {
+  it("has three, and each one says how often you look", () => {
+    assert.deepEqual(Object.keys(LEVELS), ["doing", "close", "theirs"]);
+    for (const key of Object.keys(LEVELS)) {
+      assert.ok(LEVELS[/** @type {keyof typeof LEVELS} */ (key)].review > 0, `${key} needs a review interval`);
+    }
+  });
+
+  it("looks more often the less you have handed over", () => {
+    assert.ok(LEVELS.doing.review < LEVELS.close.review);
+    assert.ok(LEVELS.close.review < LEVELS.theirs.review);
+  });
+
+  it("sits on the work and its owner together", () => {
+    const r = api.addWorkstream(store, {
+      name: "Tidepool rendering",
+      owner: "nadia",
+      project: "tidepool",
+      level: "close",
+      now: NOW
+    });
+    assert.ok(!r.error);
+    const [w] = api.workstreams(store, NOW);
+    assert.equal(w.owner, "Nadia Ohlsson");
+    assert.equal(w.project, "Tidepool");
+    assert.equal(w.reviewEvery, "14 days");
+  });
+
+  it("errs towards looking too often when the level is unknown", () => {
+    assert.equal(reviewInterval("nonsense"), LEVELS.doing.review);
+    assert.equal(reviewInterval(undefined), LEVELS.doing.review);
+  });
+
+  it("treats a missing level as a finding, not as missing data", () => {
+    api.addWorkstream(store, { name: "Tidepool physics", owner: "nadia", now: NOW });
+    const a = api.attention(store, NOW);
+    const item = [...a.needsYou, ...a.nudges].find((/** @type {any} */ i) => /No delegation level/.test(i.what));
+    assert.ok(item, "unstated delegation is the failure Grove names, so it must surface");
+    assert.match(String(item.why), /responsibility has moved and the information has not/);
+  });
+
+  it("stops flagging it once a level is set", () => {
+    const { id } = api.addWorkstream(store, { name: "Tidepool physics", owner: "nadia", now: NOW });
+    api.setDelegationLevel(store, String(id), "theirs");
+    const a = api.attention(store, NOW);
+    assert.equal(
+      [...a.needsYou, ...a.nudges].some((/** @type {any} */ i) => /No delegation level/.test(i.what)),
+      false
+    );
+    assert.equal(isUnspecified(store.rows("workstreams")[0]), false);
+  });
+
+  it("refuses an invented level", () => {
+    assert.match(String(api.addWorkstream(store, { name: "x", level: "vibes", now: NOW }).error), /Unknown level/);
+    assert.equal(isLevel("vibes"), false);
+  });
+
+  it("refuses an owner who is not on the roster", () => {
+    assert.ok(api.addWorkstream(store, { name: "x", owner: "Ghost", level: "close", now: NOW }).error);
+  });
+});
+
+describe("binding Nib folders to people", () => {
+  beforeEach(() => {
+    writeNib([
+      {
+        id: "cat-1to1",
+        name: "1-1",
+        subs: [
+          { id: "sub-nadia", name: "Nadia" },
+          { id: "sub-johan", name: "Johan" }
+        ],
+        notes: [
+          {
+            id: "note-a",
+            categoryId: "cat-1to1",
+            subId: "sub-nadia",
+            title: "1-1 14 aug",
+            created: daysAgo(13),
+            edited: daysAgo(13),
+            alerts: [{ id: "al-1", text: "Kolla med Nina om GDC-delegationen", done: false }],
+            flag: ""
+          },
+          {
+            id: "note-b",
+            categoryId: "cat-1to1",
+            subId: "sub-nadia",
+            title: "1-1 30 juli",
+            created: daysAgo(38),
+            edited: daysAgo(38),
+            alerts: [{ id: "al-2", text: "Svara om render pass", done: true }],
+            flag: ""
+          },
+          { id: "note-loose", categoryId: "cat-1to1", subId: null, title: "Losa tankar", created: daysAgo(5), edited: daysAgo(5), alerts: [], flag: "" }
+        ]
+      }
+    ]);
+  });
+
+  it("lists the folders available to bind, with note counts", () => {
+    const r = nibService.listNibFolders(nibDir);
+    assert.equal(r.available, true);
+    const labels = r.folders.map((f) => `${f.label}:${f.notes}`);
+    assert.deepEqual(labels, ["1-1:1", "1-1 / Nadia:2", "1-1 / Johan:0"]);
+  });
+
+  it("says so rather than throwing when Nib has never been opened", () => {
+    const r = nibService.listNibFolders(join(nibDir, "nothing-here"));
+    assert.equal(r.available, false);
+    assert.match(r.why, /No Nib data/);
+  });
+
+  it("binds a folder to a person as a kind of contact", () => {
+    const r = api.bindSource(store, {
+      person: "nadia",
+      categoryId: "cat-1to1",
+      subId: "sub-nadia",
+      kind: "one-to-one",
+      label: "1-1 / Nadia"
+    });
+    assert.ok(!r.error);
+    assert.equal(ok(api.sources(store)).length, 1);
+  });
+
+  it("refuses to bind one folder to two people", () => {
+    api.bindSource(store, { person: "nadia", categoryId: "cat-1to1", subId: "sub-nadia", kind: "one-to-one" });
+    api.addPerson(store, { name: "Johan Lind", relation: "manage-remotely", now: NOW });
+    const r = api.bindSource(store, { person: "Johan", categoryId: "cat-1to1", subId: "sub-nadia", kind: "one-to-one" });
+    assert.match(String(r.error), /already bound to Nadia Ohlsson/);
+  });
+
+  it("insists on a contact kind, since that is what decides which cadence is met", () => {
+    const r = api.bindSource(store, { person: "nadia", categoryId: "cat-1to1", subId: "sub-nadia", kind: "" });
+    assert.match(String(r.error), /needs a contact kind/);
+  });
+
+  it("a category binding covers only its loose notes, not its sub-categories", () => {
+    const notes = nibService.notesIn(
+      /** @type {any} */ (nibService.readNibIndex(nibDir)).categories,
+      "cat-1to1",
+      null
+    );
+    assert.deepEqual(notes.map((n) => n.id), ["note-loose"]);
+  });
+});
+
+describe("indexing Nib", () => {
+  beforeEach(() => {
+    writeNib([
+      {
+        id: "cat-1to1",
+        name: "1-1",
+        subs: [{ id: "sub-nadia", name: "Nadia" }],
+        notes: [
+          {
+            id: "note-a",
+            categoryId: "cat-1to1",
+            subId: "sub-nadia",
+            title: "1-1 14 aug",
+            created: daysAgo(13),
+            edited: daysAgo(13),
+            alerts: [{ id: "al-1", text: "Kolla med Nina om GDC-delegationen", done: false }],
+            flag: ""
+          },
+          {
+            id: "note-b",
+            categoryId: "cat-1to1",
+            subId: "sub-nadia",
+            title: "1-1 30 juli",
+            created: daysAgo(38),
+            edited: daysAgo(38),
+            alerts: [{ id: "al-2", text: "Svara om render pass", done: false }],
+            flag: ""
+          }
+        ]
+      }
+    ]);
+    api.bindSource(store, {
+      person: "nadia",
+      categoryId: "cat-1to1",
+      subId: "sub-nadia",
+      kind: "one-to-one",
+      label: "1-1 / Nadia"
+    });
+  });
+
+  it("turns notes into contact and flagged blocks into promises", () => {
+    const r = ok(nibService.indexNib(store, { dir: nibDir }));
+    assert.equal(r.contacts, 2);
+    assert.equal(r.promises, 2);
+  });
+
+  it("dates a contact when the note was written, not when it was indexed", () => {
+    nibService.indexNib(store, { dir: nibDir });
+    const p = ok(api.person(store, "nadia", NOW));
+    assert.match(String(p.cadences[0]?.lastHappened ?? ""), /13 days ago/);
+  });
+
+  it("keeps Swedish text intact", () => {
+    nibService.indexNib(store, { dir: nibDir });
+    assert.ok(
+      api.promises(store, NOW).some((x) => x.text === "Kolla med Nina om GDC-delegationen"),
+      "å, ä and ö survive the round trip"
+    );
+  });
+
+  it("is safe to run again and again", () => {
+    nibService.indexNib(store, { dir: nibDir });
+    const second = ok(nibService.indexNib(store, { dir: nibDir }));
+    assert.equal(second.contacts, 0);
+    assert.equal(second.promises, 0);
+    assert.equal(store.rows("touches").length, 2);
+    assert.equal(store.rows("promises").length, 2);
+  });
+
+  it("closes a promise when its action point is ticked off in Nib", () => {
+    nibService.indexNib(store, { dir: nibDir });
+    assert.equal(api.promises(store, NOW).length, 2);
+
+    // He ticks one off in Nib.
+    writeNib([
+      {
+        id: "cat-1to1",
+        name: "1-1",
+        subs: [{ id: "sub-nadia", name: "Nadia" }],
+        notes: [
+          {
+            id: "note-a",
+            categoryId: "cat-1to1",
+            subId: "sub-nadia",
+            title: "1-1 14 aug",
+            created: daysAgo(13),
+            edited: daysAgo(1),
+            alerts: [{ id: "al-1", text: "Kolla med Nina om GDC-delegationen", done: true }],
+            flag: ""
+          }
+        ]
+      }
+    ]);
+
+    const r = ok(nibService.indexNib(store, { dir: nibDir }));
+    assert.equal(r.resolved, 1);
+    assert.equal(api.promises(store, NOW).length, 1, "he should never have to say it twice");
+  });
+
+  it("reports rather than writes on a dry run", () => {
+    const r = ok(nibService.indexNib(store, { dir: nibDir, dry: true }));
+    assert.equal(r.contacts, 2);
+    assert.equal(store.rows("touches").length, 0);
+  });
+
+  it("explains itself when nothing is bound", () => {
+    const empty = openStore({ dataDir: mkdtempSync(join(tmpdir(), "tend-nb-")), role: "app", host: "t" });
+    assert.match(failed(nibService.indexNib(empty, { dir: nibDir })), /nothing to index/);
+  });
+
+  it("never writes to Nib", () => {
+    const path = join(nibDir, "index.json");
+    const before = readFileSync(path, "utf8");
+    nibService.indexNib(store, { dir: nibDir });
+    assert.equal(readFileSync(path, "utf8"), before, "Nib's file must come back byte-identical");
+  });
+});

@@ -1,0 +1,151 @@
+# Tend - project notes
+
+Tend is a desktop tool for the leadership half of an engineering job. It sits **beside**
+Jot (`D:\Repo\Tools\jot`) and Nib (`D:\Repo\Tools\nib`), not inside either.
+
+## Read these first
+
+- [PLAN.md](PLAN.md) - current status, the views, architecture, next steps,
+  open questions.
+- [DECISIONS.md](DECISIONS.md) - what was decided and why, with the alternatives
+  that lost. Newest first.
+- [docs/storage.md](docs/storage.md) - the concurrency design. Read before
+  touching anything in `src/storage/`.
+- [docs/mcp.md](docs/mcp.md) - the tool surface and the write boundary. Read
+  before adding a tool.
+- [docs/role-map-research.md](docs/role-map-research.md) - candidate duties and
+  where they came from.
+
+Keep PLAN.md and DECISIONS.md current as work happens, not batched at the end.
+
+## Rules that are easy to get wrong here
+
+**Nib owns the notes.** Tend reads them and keeps its own structured layer
+beside them. Never write prose into Tend's store that belongs in a note.
+
+**The app must work with the model switched off.** Drift, cadences, promises and
+the focus budget are deterministic code. If you find yourself asking a model to
+compute something on that list, that is the bug.
+
+**Agents create, they do not restructure.** An agent with write access may add
+promises, check-ins and evidence. Changes to the role map, cadences or focus are
+*proposals* the user accepts in the UI. Otherwise an agent can quietly rewrite
+what the user believes the job is.
+
+The rule is enforced in `src/service/api.js`, not in the MCP tool definitions,
+so a second client cannot route around it. If you add a capability, add it to
+the service layer and decide deliberately whether MCP gets it.
+
+**One implementation, two clients.** The app and the MCP server both call
+`src/service/api.js`. Never query the store directly from the app - that is how
+the two grow slightly different answers to the same question.
+
+**Contact kinds are not interchangeable.** A `second-hand` report must never
+satisfy the `one-to-one` cadence. If it did, the blind spot the tool exists to
+catch would close itself on paper. There is a test; do not "simplify" it away.
+
+**Label everything a model produced** with its source and model, and make it
+rejectable in one click.
+
+**Never write out a management job title** in anything Tend generates. Describe
+the role as lead, coaching, or responsibility. Generated text gets pasted into
+real places, and a title can carry a claim the user has not made.
+
+**Swedish keeps its å, ä and ö**, including inside code, fixtures and quoted
+notes. Deliverables are otherwise in English.
+
+## Verifying a change in the running app
+
+```bash
+npm run test:app
+```
+
+Launches its own Electron instance with `--remote-debugging-port`, drives the
+renderer over the Chrome DevTools Protocol, and reads the DOM back. Add `--keep`
+to leave it running.
+
+Do **not** verify by moving the pointer and clicking. It fights whoever is using
+the machine, steals focus, and every coordinate is a guess that goes stale the
+moment a layout shifts.
+
+Two rules that come with it:
+
+- **Never kill processes by name.** Other Electron apps are often running. Kill only the PID you started, as the harness does.
+- **Always point `TEND_DATA_DIR` at a scratch folder** for a test run. The real
+  directory holds notes about real colleagues.
+
+A check that asserts nothing is worse than no check. Three of the first ones
+here passed while testing nothing; if a `check()` body is empty, it is a bug.
+
+## Releases
+
+Versioning follows the sibling apps: **bump the patch on every commit** so any
+build traces to an exact commit. Minor and major are deliberate calls - ask
+first, never bump them automatically.
+
+A release is: bump, commit, then publish.
+
+```bash
+npm run release
+```
+
+The script refuses to run on a dirty working tree, refuses a version already on
+GitHub, runs tests and the type check, stops any Tend running out of `dist/`,
+clears `dist/`, and uploads through electron-builder's own publisher.
+
+That last part is not optional. `latest.yml` references the installer by its
+dashed name (`Tend-Setup-0.0.7.exe`) while the file on disk has spaces
+(`Tend Setup 0.0.7.exe`); electron-builder renames it on upload. A hand-rolled
+`gh release create` uploads the spaced name, and electron-updater then 404s on
+an asset in a release that looks perfectly published.
+
+To build without publishing:
+
+```bash
+npm run package
+```
+
+**Verify a packaged build before releasing it.** Tend ships its source unbuilt,
+so the packaged app resolves the preload and renderer from inside an asar
+archive, and a path that works in development can fail there with nothing but a
+blank window:
+
+```bash
+npm run test:app -- --packaged
+```
+
+**Never kill Electron by name.** `scripts/stop-running-build.mjs` matches on the
+executable path so only a Tend from this `dist/` is stopped. Other Electron apps
+are often running, and a broad kill closes whatever someone is working in.
+
+## Storage
+
+Append-only event log, one file per `<machine>-<role>` writer, under
+`<dataDir>/events/`. Two writers never touch the same bytes, so there is no lost
+update and Dropbox never produces a conflicted copy.
+
+Every claim in `docs/storage.md` has a test in `test/storage.test.mjs`. If you
+add a guarantee to that document, add the test that earns it.
+
+```bash
+npm test
+```
+
+Do **not** add compaction. It is the only operation that would destroy data, and
+the log stays under a megabyte a year. See DECISIONS.md.
+
+## Data directory
+
+`userData` by default, relocated with the `TEND_DATA_DIR` environment variable,
+exactly as Jot and Nib do. Always point it at a scratch folder for a test run so
+a test never writes into real data.
+
+The directory holds assessments of named colleagues. It stays local and private
+and is never committed or pushed.
+
+## Style
+
+Plain JavaScript with JSDoc types, checked with `npm run typecheck`. No build
+step for `src/storage/` - the MCP server imports it directly.
+
+Braces and separate lines for every `if`, no one-liners. No em dashes.

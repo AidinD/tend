@@ -1,0 +1,32 @@
+appId: io.github.aidind.tend
+productName: Tend
+directories:
+  buildResources: resources
+
+# Tend has no build step, so the packaged app ships src/ directly rather than a
+# compiled out/. See DECISIONS.md - the storage, domain and service layers stay
+# buildless because the MCP server imports them with no compile in between.
+files:
+  - src/**
+  - resources/**
+  - package.json
+  - "!src/**/*.test.mjs"
+
+win:
+  target:
+    - nsis
+  # The generated multi-size .ico, not the PNG: electron-builder would
+  # downscale one 512px bitmap to 16px, which is what the simplified small
+  # drawing in scripts/generate-icon.mjs exists to avoid.
+  icon: resources/icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+publish:
+  provider: github
+  owner: AidinD
+  repo: tend
+  releaseType: release

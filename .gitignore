@@ -1,0 +1,28 @@
+node_modules/
+out/
+dist/
+.vite/
+
+# Tend's own data. Holds notes and assessments about named people and never
+# belongs in a repository, even a private one.
+data/
+*.jsonl
+
+npm-debug.log*
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
+# Test output: the harness writes a screenshot here each run.
+docs/now-view.png
+
+dist/
+resources/*.tmp
+
+# Screenshot and capture output. Never committed - a screenshot of your own app
+# shows whatever was on screen. Helm had seven of these in a public repo before
+# anyone noticed; see keel/hooks/no-leaky-assets.mjs.
+screenshots/
+**/screenshots/
+captures/
+**/captures/

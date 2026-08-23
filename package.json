@@ -1,0 +1,37 @@
+{
+  "name": "tend",
+  "version": "0.1.2",
+  "description": "A desktop tool for the leadership half of an engineering job",
+  "author": "Aidin",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AidinD/tend.git"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "test:e2e": "node scripts/e2e-mcp.mjs",
+    "typecheck": "tsc --noEmit -p jsconfig.json && tsc --noEmit -p jsconfig.renderer.json",
+    "mcp": "node src/mcp/server.js",
+    "seed": "node scripts/seed-role-map.mjs",
+    "dev": "electron .",
+    "test:app": "node scripts/e2e-app.mjs",
+    "icon": "node scripts/generate-icon.mjs",
+    "package": "node scripts/package.mjs",
+    "release": "node scripts/release.mjs",
+    "prepare": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "electron-updater": "^6.8.9"
+  },
+  "main": "src/main/index.js"
+}
