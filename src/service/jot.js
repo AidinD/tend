@@ -31,13 +31,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { stripBom } from "keel/storage";
 
 /** @typedef {{ id: string, name: string, domain?: string, repoPath?: string }} JotCategory */
 /** @typedef {{ id: string, text: string, status: string, categoryId: string, priority?: number, parentId?: string | null }} JotTodo */
 /** @typedef {{ text: string, category: string, status: string, priority: number, found: "owner" | "named" }} Relevant */
-
-/** @param {string} text */
-const stripBom = (text) => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
 
 /**
  * Where Jot keeps its board.
