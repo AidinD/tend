@@ -134,7 +134,7 @@ export const actions = {
       title: "Add a workstream",
       intro: "A piece of work with an owner. Leaving the level unset is itself flagged, because unstated delegation is the failure rather than missing data.",
       fields: [
-        { name: "name", label: "What the work is", required: true, placeholder: "Tidepool rendering" },
+        { name: "name", label: "What the work is", required: true, placeholder: "Renderer rewrite" },
         {
           name: "owner",
           label: "Who owns it",

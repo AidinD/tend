@@ -113,7 +113,7 @@ export const actions = {
       title: "Start a focus",
       intro: "Tend captures how far behind things are right now, so it can tell you later what this cost.",
       fields: [
-        { name: "name", label: "What has to come first", required: true, placeholder: "Get Skiff running" },
+        { name: "name", label: "What has to come first", required: true, placeholder: "Ship the new onboarding" },
         {
           name: "endsAt",
           label: "Until when",
