@@ -239,7 +239,11 @@ export const actions = {
 
     const values = await form({
       title: "Bind a Nib folder",
-      intro: "Notes in this folder will count as contact with this person, of the kind you choose. The kind matters: a folder bound as second-hand satisfies only the cadence for hearing about someone, not the one for having spoken to them.",
+      intro:
+        "Notes in this folder count as contact with this person. The kind you pick here is " +
+        "the DEFAULT - a tag on a note overrides it, which is what lets one folder hold every " +
+        "sort of note about somebody without a second-hand note resetting the clock on having " +
+        "spoken to them. Pick what most notes there are; the tags come next.",
       fields: [
         {
           name: "folder",
@@ -269,13 +273,23 @@ export const actions = {
       (/** @type {any} */ f) => f.categoryId === categoryId && (f.subId ?? "") === subId
     )?.label;
 
-    const ok = await act(
+    const bound = await act(
       "bindSource",
       { person: values.person, categoryId, subId: subId || undefined, kind: values.kind, label },
       "Bound."
     );
-    if (ok) {
-      refresh();
+    if (!bound) {
+      return;
+    }
+    refresh();
+
+    // Straight on to the tags rather than leaving a button to be found later.
+    // The moment somebody is deciding what a folder counts as is the moment the
+    // exceptions are in their head; asking a screen later is asking too late.
+    // Only when Nib actually has tags - otherwise this is a dialog about nothing.
+    const catalog = await tend.invoke("nibTags");
+    if (catalog?.available && catalog.tags.length > 0) {
+      await actions.rules({ id: String(bound.id), name: String(label ?? "this folder") });
     }
   },
 

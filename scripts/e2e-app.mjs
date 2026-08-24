@@ -790,9 +790,38 @@ try {
     person: personOption?.value ?? "",
     kind: "one-to-one"
   });
+  // Binding now runs straight on into the tag mapping, because the moment
+  // somebody decides what a folder counts as is the moment the exceptions are
+  // in their head. Asserted rather than merely dismissed: leaving the mapping
+  // to be discovered on a row afterwards is the thing that was wrong.
+  await page.waitFor("document.querySelector('.dialog') !== null", "the tag mapping");
+  const mappingIntro = await page.text(".dialog-intro");
+  check("binding goes straight on to what the tags mean", () => {
+    if (!/tag on a note overrides/i.test(mappingIntro)) {
+      throw new Error(`the dialog after binding said: "${mappingIntro}"`);
+    }
+  });
+
+  await page.fillDialog({ "tag:tag-second-hand": "second-hand", "tag:tag-one-to-one": "" });
   await page.waitFor("document.body.textContent.includes('one-to-one')", "the binding");
   check("a folder can be bound to a person without leaving the app", () => {});
 
+  // Counted before and after the import, because the walkthrough logs contact
+  // by hand earlier in the run. What matters is what the IMPORT added.
+  const driver = page;
+  const kindCounts = () =>
+    driver
+      .evaluate(
+        "window.tend.invoke('person', { person: 'Testperson' }).then((p) => JSON.stringify(p.recentContact.map((t) => t.kind)))"
+      )
+      .then((raw) =>
+        JSON.parse(String(raw)).reduce((/** @type {any} */ tally, /** @type {string} */ kind) => {
+          tally[kind] = (tally[kind] ?? 0) + 1;
+          return tally;
+        }, {})
+      );
+
+  const kindsBefore = await kindCounts();
   await page.click('[data-act="index"]');
   await page.waitFor("document.querySelector('.dialog') !== null", "the import result");
   const importResult = await page.text(".dialog-intro");
@@ -802,6 +831,22 @@ try {
     }
   });
   await page.dismissDialog();
+
+  // The failure this whole feature fixes: the fixture note is tagged
+  // second-hand, and the folder's default is 1-1. Counting it as a 1-1 would
+  // reset the clock on having spoken to them and nothing would look wrong.
+  const kindsAfter = await kindCounts();
+  check("a tagged note counts as its tag, not as the folder's default", () => {
+    const added = (/** @type {string} */ kind) => (kindsAfter[kind] ?? 0) - (kindsBefore[kind] ?? 0);
+    if (added("second-hand") !== 1) {
+      throw new Error(
+        `the import added ${added("second-hand")} second-hand contacts; ${JSON.stringify({ kindsBefore, kindsAfter })}`
+      );
+    }
+    if (added("one-to-one") !== 0) {
+      throw new Error(`a tagged note still reset the 1-1 clock; ${JSON.stringify({ kindsBefore, kindsAfter })}`);
+    }
+  });
 
   await page.click('.nav-btn[data-view="now"]');
   await page.waitFor("document.querySelector('.view-title') !== null", "Now");
@@ -835,44 +880,7 @@ try {
 
   await page.fillDialog({ "tag:tag-second-hand": "second-hand", "tag:tag-one-to-one": "" });
   await page.waitFor("document.body.textContent.includes('tag rule')", "the saved rule");
-  check("a tag can be mapped onto a contact kind without leaving the window", () => {});
-
-  // Measured as a DELTA, because the walkthrough already logged contact by hand
-  // earlier in the run. What matters is what the IMPORT added, not the total.
-  // Captured locally: `page` is nullable at the top of the file, and a closure
-  // is where TypeScript stops being able to see that it has been checked.
-  const driver = page;
-  const kindCounts = () =>
-    driver
-      .evaluate(
-        "window.tend.invoke('person', { person: 'Testperson' }).then((p) => JSON.stringify(p.recentContact.map((t) => t.kind)))"
-      )
-      .then((raw) =>
-        JSON.parse(String(raw)).reduce((/** @type {any} */ tally, /** @type {string} */ kind) => {
-          tally[kind] = (tally[kind] ?? 0) + 1;
-          return tally;
-        }, {})
-      );
-
-  const kindsBefore = await kindCounts();
-  await page.click('[data-act="index"]');
-  await page.waitFor("document.querySelector('.dialog') !== null", "the import result");
-  await page.dismissDialog();
-  const kindsAfter = await kindCounts();
-
-  check("and the tagged note counts as that kind, not as the folder's default", () => {
-    const added = (/** @type {string} */ kind) => (kindsAfter[kind] ?? 0) - (kindsBefore[kind] ?? 0);
-    if (added("second-hand") !== 1) {
-      throw new Error(
-        `the import added ${added("second-hand")} second-hand contacts; ${JSON.stringify({ kindsBefore, kindsAfter })}`
-      );
-    }
-    if (added("one-to-one") !== 0) {
-      throw new Error(
-        `a tagged note still reset the 1-1 clock; ${JSON.stringify({ kindsBefore, kindsAfter })}`
-      );
-    }
-  });
+  check("the mapping can also be reopened and changed from the binding's row", () => {});
 
   /* ------------------------------------------------------------ model -- */
 
