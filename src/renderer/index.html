@@ -18,22 +18,12 @@
          handle, and carries the window buttons. Same arrangement as Jot and Nib. -->
     <header class="app-header">
       <div class="brand">
-        <!-- The mark, drawn inline rather than loaded from resources/icon.png: it
-             sits at 20px next to 17px text, where a downscaled 512px bitmap is
-             soft exactly where the eye is most critical.
-
-             This is the icon's SMALL drawing - three marks, not four. At 20px the
-             full four are one-pixel lines a pixel apart and average into a smear,
-             which is the same reason scripts/generate-icon.mjs drops a stroke
-             below 32. The taper is left out; at this size it is not visible. -->
-        <svg class="brand-mark" width="20" height="20" viewBox="0 0 100 100" aria-hidden="true">
-          <rect x="6" y="6" width="88" height="88" rx="20" fill="#1b1c1f" />
-          <g stroke-linecap="round" fill="none">
-            <path d="M33 25 L35 60" stroke="#6f9cff" stroke-width="10.7" />
-            <path d="M50 24 L48.5 62" stroke="#6f9cff" stroke-width="10.2" />
-            <path d="M68 24.5 L67 86" stroke="#e0705e" stroke-width="11" />
-          </g>
-        </svg>
+        <!-- The same artwork the icon is built from, so the mark beside the
+             wordmark and the mark in the taskbar are one picture rather than two
+             drawings that can drift. Helm does it this way for the same reason.
+             The file is large on purpose - it is the source the .ico frames are
+             resampled from - and the browser scales it down for this row. -->
+        <img class="brand-mark" src="assets/tend-logo.png" alt="" width="22" height="22" />
         <span class="wordmark">Tend</span>
         <span class="version" id="version"></span>
       </div>

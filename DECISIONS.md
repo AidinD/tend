@@ -3,6 +3,44 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-24 - The mark is a picture, and 16px is dense on purpose
+
+**Decided.** Tend's mark is an open hand with a flame rising out of it, supplied
+as artwork at `src/renderer/assets/tend-logo.png`. The generator only resamples
+it into the .ico ladder. The same file is the header mark, so there is one
+picture rather than two drawings that can drift.
+
+**What it replaces.** Four tally strokes inside a rounded square. The square was
+the error: every other app in the suite is one object on nothing, and a
+container made this the only one wearing a frame.
+
+**Geometry was tried first and failed, which is worth recording because it will
+be tempting to try again.** Around forty drawings, all as distance fields. Every
+one hit the same wall: a solid shape sitting inside a curved one reads as an
+object in a vessel - a cupcake, an ice cream, a cake, a hat - and a hand drawn
+well enough to escape that becomes a comb below 24px. The rule underneath it is
+that at icon size only ONE object survives, which is exactly why the family's
+marks are single objects. What the geometry could produce was a *gesture*
+suggesting a hand, and a gesture was not the mark that was wanted.
+
+**The trade is permanent and was accepted knowingly.** The hand has fingers and
+the flame has a counter inside it, and below about 32px those close up. A mark
+held as geometry can drop its own detail for the small frames - Nib drops its
+vent hole, Jot widens its ring's gap - and a bitmap cannot. So 16px stays dense.
+Helm made the same trade for its wheel and its generator says so too.
+
+**What the pipsignee still fixes.** Pointing `build.win.icon` at a 512px PNG lets
+Windows scale one bitmap to whatever it needs. Each frame is instead resampled
+from the source at its own size, always from the source rather than from an
+already-shrunk frame, and the ladder carries 20 and 24 - the sizes the taskbar
+asks for at 125% and 150% display scaling.
+
+**The artwork arrived as a JPEG on a drawn checkerboard**, so its alpha had to
+be recovered rather than kept. The mark is one flat colour on a neutral ground,
+which makes that exact instead of a guess: red minus blue is zero on any grey
+pixel and its full spread wherever the mark is opaque, so the ratio is the
+coverage, anti-aliased edges included.
+
 ## 2026-08-24 - Ctrl+K captures before it navigates, and refuses before it guesses
 
 **Decided.** Capture, commands, questions, in that order. `Nina: look at the

@@ -1026,6 +1026,19 @@ try {
     )
   );
 
+  // The mark is an <img>, and an <img> that cannot be found renders as nothing
+  // at all - no console error, no exception, just a gap where the logo was.
+  // In the packaged app it has to resolve out of the asar, which is precisely
+  // where that goes wrong. naturalWidth is the only honest answer.
+  const markWidth = Number(
+    await page.evaluate("(document.querySelector('.brand-mark') || {}).naturalWidth || 0")
+  );
+  check("the wordmark's logo actually decoded", () => {
+    if (!(markWidth > 0)) {
+      throw new Error("the brand mark did not load; in a packaged build this means the asar path is wrong");
+    }
+  });
+
   check("keel's shell stylesheet actually loaded", () => {
     // A <link> into node_modules resolves in development and is the thing that
     // can fail silently in the packaged app, where it has to come out of the
