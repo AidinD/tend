@@ -43,6 +43,7 @@
 
 import { ask, resolveClaudeBinary } from "keel/claude";
 
+import { attention, focus, people, promises } from "./api.js";
 import { prep } from "./prep.js";
 import { noteBody, notesIn, readNibIndex } from "./nib.js";
 import { resolvePerson } from "./resolve.js";
@@ -493,4 +494,88 @@ function slug(text) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 40);
+}
+
+/* ------------------------------------------------------------ questions -- */
+
+const ANSWER_SCHEMA = {
+  type: "object",
+  properties: {
+    answer: { type: "string", description: "The answer, in one or two sentences." },
+    from: {
+      type: "array",
+      description: "The specific facts from the material that the answer rests on.",
+      items: { type: "string" }
+    }
+  },
+  required: ["answer", "from"]
+};
+
+/**
+ * The palette's last resort.
+ *
+ * Every question the palette can answer from the data it answers itself, with
+ * no call and no wait. This is only what fell through that list, and it is
+ * offered rather than triggered - the palette shows a row that says it will
+ * cost a few seconds, and nothing happens until it is chosen.
+ *
+ * The material is the same summary the Now view is built from, so the answer
+ * can only ever be a rephrasing of what the app already knows. That is the
+ * point: a question answered from somewhere else would be a second, unverified
+ * source of truth about colleagues.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.question
+ * @param {number} args.now
+ * @param {typeof ask} [args.askImpl] Test seam.
+ * @returns {Promise<{ error: string } | {
+ *   answer: string, from: string[], model: string, costUsd: number | null
+ * }>}
+ */
+export async function answerQuestion(store, { question, now, askImpl = ask }) {
+  if (String(question ?? "").trim() === "") {
+    return { error: "There was no question." };
+  }
+
+  const status = modelStatus();
+  if (!status.available) {
+    return { error: String(status.why) };
+  }
+
+  const material = {
+    attention: attention(store, now),
+    people: people(store, now),
+    openPromises: promises(store, now),
+    focus: focus(store, now)
+  };
+
+  const answer = await askImpl({
+    prompt: [
+      "Here is everything the tool currently knows.",
+      "",
+      JSON.stringify(material, null, 2),
+      "",
+      `Question: ${question}`
+    ].join("\n"),
+    model: TIERS.extract,
+    schema: ANSWER_SCHEMA,
+    system:
+      "You answer a question about somebody's own leadership work using only the " +
+      "material given. If the material does not contain the answer, say so plainly " +
+      "rather than reasoning towards a likely one - a confident guess about a " +
+      "colleague is worse than no answer. " +
+      HOUSE_RULES
+  });
+
+  if (!answer.ok) {
+    return { error: answer.reason };
+  }
+
+  return {
+    answer: String(answer.value?.answer ?? "").trim(),
+    from: (Array.isArray(answer.value?.from) ? answer.value.from : []).map((/** @type {any} */ f) => String(f)),
+    model: answer.model,
+    costUsd: answer.costUsd
+  };
 }

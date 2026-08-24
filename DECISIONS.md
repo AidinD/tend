@@ -3,6 +3,41 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-24 - Ctrl+K captures before it navigates, and refuses before it guesses
+
+**Decided.** Capture, commands, questions, in that order. `Nina: look at the
+render pass` logs a promise with no dialog and no view change.
+
+**Why capture is first.** The time this saves is the four seconds between
+somebody saying "can you look at the render pass" and the moment you have moved
+on. Every one of those seconds spent navigating is a promise that does not get
+written down, so the fastest path in the app is the one that records something.
+
+**Only an explicit colon counts as addressing somebody.** Taking the first word
+of any sentence that begins with a name turns "Nina said the build is slow" into
+a promise to Nina - a note about her recorded as a commitment to her. That
+mistake is invisible until the day it is read back to the person.
+
+**Two people with the same first name is a refusal, not a coin toss.** The
+roster of anyone leading a team is exactly where two people share a name, and
+the failure mode is a promise silently attached to the wrong colleague. A full
+name typed out still resolves.
+
+**The parsing is in `src/domain/parse.js`, not in the overlay.** Everything else
+in the palette is arrangement; this is the part with a consequence, so it lives
+where it can be tested without a window. Most of those tests assert a refusal.
+
+**Command matching is substring, not fuzzy.** Fuzzy finds "settings" from
+"sett", which is the good case, and also finds half the list on every keystroke,
+which makes the arrow keys the only way to use it - slower than the rail it
+replaced.
+
+**Questions answer locally or offer a model, never call one on their own.** The
+ones Tend can answer from its own data are matched against a short list and
+answered instantly. Only what falls through appears as a row that says it will
+cost a few seconds, and nothing happens until it is chosen. A palette that
+paused on a keystroke would be abandoned in a week.
+
 ## 2026-08-24 - The model drafts, and the MCP surface has no model on it
 
 **Decided.** Three model jobs, all in `src/service/model.js`, each behind a

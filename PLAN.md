@@ -95,8 +95,19 @@ Tend event log <──┤
    The app is fully usable with Claude Code absent - the three buttons say why
    they are off and nothing else changes. **Exercised against fixtures and one
    real call; not yet against real notes.**
-6. **Ctrl+K palette**: capture first, commands second, questions third. Local
-   matches resolve with no model call.
+6. ~~**Ctrl+K palette**~~ built. `Nina: look at the render pass` logs a promise
+   without leaving the page; commands are the rail plus the handful of things
+   that would otherwise mean finding a view first; questions are answered from
+   Tend's own data, and only what falls through that list is *offered* to a
+   model. The parsing lives in `src/domain/parse.js` rather than in the overlay,
+   because that is the part where a bug attaches a promise to the wrong person.
+
+## Not built, and why
+
+**The Knowledge view.** Principles and lived cases, searched by situation. The
+lived-cases half needs notes and there are none yet. The principles half could
+be built today and would be a search box over eight rows, which the Role map
+already lists better. It waits for there to be something to search.
 
 ## Open questions
 

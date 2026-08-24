@@ -13,8 +13,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Test output: the harness writes a screenshot here each run.
+# Test output: the harness writes these each run.
 docs/now-view.png
+docs/palette.png
 
 dist/
 resources/*.tmp

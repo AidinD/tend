@@ -22,6 +22,10 @@ So Tend works differently in three ways:
   Nib is the evidence that the conversation happened. No confirmations.
 - **It shows only deviations.** When everything is in step the main view is
   nearly empty. That is the design, not a gap.
+- **Capture beats navigation.** `Ctrl+K`, then `Nina: look at the render pass`,
+  and the promise is logged from wherever you were standing. The seconds spent
+  finding the right view are the seconds in which a promise stops getting
+  written down at all.
 
 ## Status
 

@@ -90,6 +90,7 @@ const OPERATIONS = {
   draftBrief: (/** @type {any} */ a) => model.draftBrief(store, { ...a, now: a.now ?? Date.now() }),
   extractPromises: (/** @type {any} */ a) => model.extractPromises(store, a),
   detectThemes: (/** @type {any} */ a) => model.detectThemes(store, { ...a, now: a.now ?? Date.now() }),
+  answerQuestion: (/** @type {any} */ a) => model.answerQuestion(store, { ...a, now: a.now ?? Date.now() }),
 
   nibFolders: () => nib.listNibFolders(),
   bindSource: (/** @type {any} */ a) => api.bindSource(store, a),

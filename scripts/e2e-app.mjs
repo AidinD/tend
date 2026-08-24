@@ -868,6 +868,101 @@ try {
     }
   });
 
+  /* ---------------------------------------------------------- palette -- */
+
+  step("Ctrl+K");
+
+  // The one thing in the app that is meant to work from anywhere, so it is
+  // opened from wherever the walkthrough happens to have left off rather than
+  // from a known page.
+  await page.evaluate(
+    "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))"
+  );
+  await page.waitFor("document.querySelector('.palette-input') !== null", "the palette");
+  check("Ctrl+K opens it from wherever you are", () => {});
+
+  await page.evaluate(`(() => {
+    const input = document.querySelector('.palette-input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
+      input, 'Testperson: kolla renderingen'
+    );
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await sleep(150);
+
+  const topRow = await page.text(".palette-row");
+  check("a name, a colon and the thing becomes a promise, top of the list", () => {
+    if (!/Promise to Testperson Ström/.test(topRow)) {
+      throw new Error(`the first row said: "${topRow}"`);
+    }
+    if (!/kolla renderingen/.test(topRow)) {
+      throw new Error("the Swedish text did not survive the parse");
+    }
+  });
+
+  await page.evaluate(`(() => {
+    document.querySelector('.palette-input').dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    );
+  })()`);
+  await page.waitFor("document.querySelector('.palette-input') === null", "the palette to close");
+  await sleep(400);
+
+  // Asked of the data rather than of the screen. A promise logged a second ago
+  // is not late, and Now shows only what has drifted - so reading the page here
+  // would test the Now view's filtering and call it a capture failure.
+  const logged = String(
+    await page.evaluate("window.tend.invoke('promises').then((p) => JSON.stringify(p))")
+  );
+  check("and it is logged without having gone anywhere to do it", () => {
+    const promise = JSON.parse(logged).find((/** @type {any} */ p) => /kolla renderingen/.test(p.text));
+    if (!promise) {
+      throw new Error(`the promise never reached the log; found ${logged}`);
+    }
+    if (promise.to !== "Testperson Ström") {
+      throw new Error(`it was logged against "${promise.to}"`);
+    }
+  });
+
+  // A sentence that merely mentions somebody is a note about them, not a
+  // commitment to them. Getting this wrong is invisible until the day it is
+  // read back to the person.
+  await page.evaluate(
+    "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))"
+  );
+  await page.waitFor("document.querySelector('.palette-input') !== null", "the palette");
+  await page.evaluate(`(() => {
+    const input = document.querySelector('.palette-input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
+      input, 'Testperson said the build is slow'
+    );
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await sleep(150);
+
+  const looseRow = await page.text(".palette-row");
+  check("a sentence about somebody is not offered as a promise to them", () => {
+    if (/^Promise to/.test(looseRow.trim())) {
+      throw new Error(`the first row said: "${looseRow}"`);
+    }
+  });
+
+  // Kept as a picture as well as a set of assertions. The DOM being right and
+  // the overlay being legible are different questions, and only one of them a
+  // selector can answer.
+  await page.screenshot(join(root, "docs", "palette.png"));
+
+  await page.evaluate(
+    "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"
+  );
+  await sleep(200);
+  const gone = await page.evaluate("document.querySelector('.palette-input') === null");
+  check("Escape closes it", () => {
+    if (!gone) {
+      throw new Error("the palette is still open");
+    }
+  });
+
   /* ---------------------------------------------------- window chrome -- */
 
   step("The title bar buttons");

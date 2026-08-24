@@ -12,6 +12,7 @@
  */
 
 import { esc, tend, toast } from "./ui.js";
+import { installPalette } from "./palette.js";
 import * as now from "./views/now.js";
 import * as prep from "./views/prep.js";
 import * as decisions from "./views/decisions.js";
@@ -114,6 +115,10 @@ async function updateCounts() {
 document.querySelectorAll(".nav-btn").forEach((btn) => {
   btn.addEventListener("click", () => go(String(/** @type {HTMLElement} */ (btn).dataset.view)));
 });
+
+// Ctrl+K. Bound on the window rather than owned by a view, because the point of
+// it is that a promise can be logged from wherever you happen to be standing.
+installPalette();
 
 // The window is frameless, so these three are the title bar's job. They come
 // from keel rather than through `tend.invoke`: window chrome is not an
