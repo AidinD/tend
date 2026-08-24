@@ -1,0 +1,227 @@
+/**
+ * Prep: one card per person you should actually talk to.
+ *
+ * Who they are and when you last spoke (here), what you promised them (here),
+ * what they own and how long since you checked in (here), what is open in their
+ * area (Jot), and the last thing you wrote about them (Nib). Four sources, one
+ * card, no new typing.
+ *
+ * The pain a manager actually has before a conversation is not laziness. It is
+ * that the preparation is spread across three windows, so it does not happen.
+ *
+ * ## Why drift and not the calendar
+ *
+ * The original idea was a card per meeting tomorrow, which needs a calendar -
+ * either a secret iCal feed whose attendee lines are unreliable, or an OAuth app
+ * with a consent screen that expires refresh tokens every seven days while it
+ * sits in Testing. Both are real work and neither is Tend.
+ *
+ * Drift is already here. "Who am I behind with" is a question Tend can answer
+ * from what it already models, and it is arguably the better question: a meeting
+ * that is already booked will happen anyway, whereas the conversation you are
+ * quietly six weeks behind on is the one that does not.
+ *
+ * A calendar becomes an *input* to this view later - a different way of choosing
+ * whose cards to show - rather than its precondition. That is what makes it
+ * cheap to add: the join is the expensive half and it is done.
+ *
+ * ## The limit is the feature
+ *
+ * Six cards, worst drift first. A list of everyone is a roster, and Tend already
+ * has one of those. This is meant to be read before a day starts and then be
+ * finished, which is the same discipline Brief keeps and for the same reason: a
+ * queue nobody reaches the end of is a queue nobody reads the top of either.
+ */
+
+import { expandCadences } from "../domain/attention.js";
+import { RELATIONS, isRelation } from "../domain/cadence.js";
+import { openPromises } from "../domain/promises.js";
+import { driftBadge, humanDays } from "../domain/time.js";
+import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
+import { jotDataDir, readBoard, workFor } from "./jot.js";
+import { notesIn, readNibIndex } from "./nib.js";
+
+/** How many cards. Not a page size - a limit. */
+export const PREP_CARDS = 6;
+
+/**
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ * @param {object} [where]
+ * @param {string} [where.jotDir]
+ * @param {string} [where.nibDir]
+ */
+export function prep(store, now, { jotDir, nibDir } = {}) {
+  const state = store.state();
+  const people = store.rows("people");
+  const cadences = expandCadences(state, now);
+  const promises = openPromises(store.rows("promises"), now);
+  const touches = store.rows("touches");
+  const workstreams = store.rows("workstreams");
+  const projects = new Map(store.rows("projects").map((p) => [String(p.id), String(p.name ?? "")]));
+  const bindings = store.rows("sources");
+
+  const board = readBoard(jotDir ?? jotDataDir());
+  const nib = safeNib(nibDir);
+
+  /** @type {any[]} */
+  const cards = [];
+
+  for (const person of people) {
+    const id = String(person.id);
+    const theirs = cadences.filter((c) => c.subject.id === id);
+
+    // The worst-drifting duty decides whether they belong on the page at all,
+    // and how far up. Somebody in step needs no preparation from you today.
+    const worst = theirs.sort((a, b) => b.drift.driftDays - a.drift.driftDays)[0];
+    const drift = worst ? worst.drift.driftDays : 0;
+    const theirPromises = promises.filter((x) => x.person === id);
+
+    if (drift <= 0 && theirPromises.length === 0) {
+      continue;
+    }
+
+    const owned = workstreams.filter((w) => String(w.owner ?? "") === id);
+    // Both the project and the workstream's own name.
+    //
+    // Only projects at first, which missed every case where the workstream is
+    // the specific thing and the project is a bucket above it. "Renderingen"
+    // owned inside a project called something broader is exactly how people
+    // name these, and it produced a card with no open work while the matching
+    // Jot category sat right there.
+    const areas = owned
+      .flatMap((w) => [w.project ? (projects.get(String(w.project)) ?? "") : "", String(w.name ?? "")])
+      .filter((name) => name !== "");
+
+    const relation = String(person.relation ?? "");
+    const lastTouch = touches
+      .filter((t) => t.subject === id)
+      .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))[0];
+
+    cards.push({
+      person: String(person.name ?? ""),
+      relation: person.relation ?? null,
+      relationMeans: isRelation(relation) ? RELATIONS[relation].note : null,
+
+      // Why this card is here at all, in words. Every list in this app says why.
+      //
+      // Read off what actually put them on the page, not off whichever field
+      // happens to be populated: somebody can have a cadence that is perfectly
+      // on time and still be here because of a promise, and saying "1-1 is on
+      // time" as the reason for their being listed is worse than saying nothing.
+      // Words here, the compact badge in `behindBy`. "1-1 is +5d" is a badge
+      // wearing a sentence's clothes; a reason is read once and has to parse.
+      why:
+        drift > 0 && worst
+          ? `${worst.duty.name} is ${humanDays(worst.drift.driftDays)} behind`
+          : `${theirPromises.length} open promise${theirPromises.length === 1 ? "" : "s"}`,
+      behindBy: worst ? driftBadge(worst.drift.driftDays) : null,
+      lastSpoke: since(lastTouch === undefined ? null : Number(lastTouch.at ?? now), now),
+
+      youPromised: theirPromises.map((x) => ({
+        text: x.text,
+        openFor: humanDays(x.status.ageDays),
+        urgency: x.status.severity
+      })),
+
+      theyOwn: owned.map((w) => {
+        const level = String(w.level ?? "");
+        const reviewed = touches
+          .filter((t) => t.subject === w.id && t.kind === "delegation-review")
+          .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))[0];
+        return {
+          name: String(w.name ?? ""),
+          mandate: isLevel(level) ? LEVELS[level].means : "not stated",
+          reviewEvery: `${reviewInterval(w.level)} days`,
+          lastReviewed: reviewed
+            ? `${humanDays(Math.max(0, Math.floor((now - Number(reviewed.at)) / 86_400_000)))} ago`
+            : "never"
+        };
+      }),
+
+      // null, not [], when Jot could not be read. "Nothing is open" and "I could
+      // not find the board" are different facts and the card says which.
+      openWork: board === null ? null : workFor({ board, name: String(person.name ?? ""), areas }),
+
+      lastWrote: lastNote(nib, bindings, id),
+      driftDays: drift
+    });
+  }
+
+  cards.sort((a, b) => b.driftDays - a.driftDays);
+
+  return {
+    cards: cards.slice(0, PREP_CARDS),
+    dropped: Math.max(0, cards.length - PREP_CARDS),
+    jotFound: board !== null,
+    nibFound: nib !== null
+  };
+}
+
+/**
+ * How long ago, as something you can read aloud.
+ *
+ * `humanDays` returns "today" for nought, so appending "ago" to it produced
+ * "Last spoke today ago" on every card of somebody contacted this morning. The
+ * words are not interchangeable and the suffix has to know that.
+ *
+ * @param {number | null} at
+ * @param {number} now
+ */
+function since(at, now) {
+  if (at === null) {
+    return "never";
+  }
+  const words = humanDays(Math.max(0, Math.floor((now - at) / 86_400_000)));
+  return words === "today" ? "today" : `${words} ago`;
+}
+
+/**
+ * Nib's index, or null.
+ *
+ * `readNibIndex` returns a discriminated union rather than throwing, so the
+ * `available` flag is the thing to read - checking for a categories array
+ * happens to work and stops being true the moment that shape changes.
+ *
+ * @param {string} [dir]
+ * @returns {{ categories: any[] } | null}
+ */
+function safeNib(dir) {
+  try {
+    const index = readNibIndex(dir);
+    return index.available ? { categories: index.categories } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The most recent note in any Nib folder bound to this person.
+ *
+ * The title and the date only. What you wrote is in Nib, and copying prose in
+ * here would be a second place for it to go stale - the card's job is to remind
+ * you that it exists and roughly when.
+ *
+ * @param {any} nib
+ * @param {any[]} bindings
+ * @param {string} personId
+ */
+function lastNote(nib, bindings, personId) {
+  if (nib === null) {
+    return null;
+  }
+  const theirs = bindings.filter((b) => String(b.person ?? "") === personId);
+  /** @type {any} */
+  let newest = null;
+  for (const binding of theirs) {
+    for (const note of notesIn(nib.categories, String(binding.categoryId), binding.subId ?? null)) {
+      if (newest === null || note.edited > newest.edited) {
+        newest = note;
+      }
+    }
+  }
+  if (newest === null) {
+    return null;
+  }
+  return { title: newest.title, edited: newest.edited };
+}

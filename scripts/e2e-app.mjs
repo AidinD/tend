@@ -44,6 +44,7 @@ const keep = process.argv.includes("--keep");
 const packaged = process.argv.includes("--packaged");
 const scratch = mkdtempSync(join(tmpdir(), "tend-app-"));
 const nibScratch = mkdtempSync(join(tmpdir(), "tend-app-nib-"));
+const jotScratch = mkdtempSync(join(tmpdir(), "tend-app-jot-"));
 
 let failures = 0;
 let checks = 0;
@@ -247,6 +248,26 @@ async function connect(url) {
 }
 
 /** A Nib index in the shape Nib itself writes, so the binding has something real. */
+/** A board shaped like Jot's, so Prep has open work to join against. */
+function writeJotFixture() {
+  writeFileSync(
+    join(jotScratch, "todos.json"),
+    JSON.stringify({
+      categories: [{ id: "c-render", name: "Renderingen", domain: "work" }],
+      todos: [
+        {
+          id: "j-1",
+          text: "Byt ut rasteriseraren",
+          status: "in-progress",
+          categoryId: "c-render",
+          priority: 0
+        }
+      ]
+    }),
+    "utf8"
+  );
+}
+
 function writeNibFixture() {
   const day = 86_400_000;
   const now = Date.now();
@@ -289,6 +310,7 @@ function writeNibFixture() {
 console.log(`Scratch data: ${scratch}`);
 console.log(`Scratch Nib:  ${nibScratch}\n`);
 writeNibFixture();
+writeJotFixture();
 
 const devElectron =
   process.platform === "win32"
@@ -311,6 +333,12 @@ const child = spawn(exe, args, {
     ...process.env,
     TEND_DATA_DIR: scratch,
     NIB_DATA_DIR: nibScratch,
+    // Prep reads Jot's board, so the board has to be a fixture too. Without
+    // this the run reads the real one: harmless in that it only reads, and
+    // still wrong - the test would depend on whatever is on the board today,
+    // and the same default-to-real habit is what put a real book title in a
+    // Brief fixture earlier today.
+    JOT_DATA_DIR: jotScratch,
     ELECTRON_ENABLE_LOGGING: "0"
   },
   stdio: ["ignore", "pipe", "pipe"]
@@ -553,6 +581,66 @@ try {
     }
   });
 
+  /* ------------------------------------------------------------- prep -- */
+
+  step("Preparing for a conversation");
+
+  await page.click('.nav-btn[data-view="prep"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the prep view");
+
+  const prepText = await page.text("#main");
+  check("the card pulls the person, the promise and what they own into one place", () => {
+    // The whole claim of this view: four sources without leaving the window.
+    for (const wanted of ["Testperson", "Renderingen"]) {
+      if (!prepText.includes(wanted)) {
+        throw new Error(`"${wanted}" is not on the card: ${prepText.slice(0, 300)}`);
+      }
+    }
+  });
+
+  check("and says why the card is there rather than just listing them", () => {
+    if (!/Last spoke/.test(prepText)) {
+      throw new Error("the card does not say when they last spoke");
+    }
+    if (!/behind|promise/i.test(prepText)) {
+      throw new Error("the card does not say why it is showing this person");
+    }
+  });
+
+  const prepMandate = await page.texts(".prep-list .src");
+  check("the delegation mandate reaches the card, since it is the useful field", () => {
+    if (!prepMandate.some((t) => /own the outcome|stay close|Still mine/i.test(String(t)))) {
+      throw new Error(`no mandate on the card: ${prepMandate.join(" | ")}`);
+    }
+  });
+
+  const prepHeads = await page.texts(".prep-head");
+  check("open work from the Jot board reaches the card", () => {
+    if (!prepHeads.some((h) => /Open on the board/.test(String(h)))) {
+      throw new Error(`no board section: ${prepHeads.join(" | ")}`);
+    }
+    if (!prepText.includes("Byt ut rasteriseraren")) {
+      throw new Error("the board fixture's task is not on the card");
+    }
+  });
+
+  check("and the card does not say \"today ago\"", () => {
+    if (/today ago/.test(prepText)) {
+      throw new Error("humanDays returns \"today\", so the suffix has to know that");
+    }
+  });
+
+  const prepMissing = (await page.texts(".prep-missing")).length;
+  check("and it says when a source could not be read, rather than looking calm", () => {
+    // The harness binds a scratch Nib and points JOT_DATA_DIR at a scratch board,
+    // so both should be readable here. If this fires, an integration is silently
+    // returning nothing - which is the failure that sits unnoticed for weeks.
+    if (prepMissing !== 0) {
+      const why = prepText.match(/Could not read[^.]*\./)?.[0] ?? "unknown";
+      throw new Error(`a source was unreadable: ${why}`);
+    }
+  });
+
   /* ------------------------------------------------------------ focus -- */
 
   step("Running a focus");
@@ -711,6 +799,7 @@ try {
     await sleep(400);
     rmSync(scratch, { recursive: true, force: true });
     rmSync(nibScratch, { recursive: true, force: true });
+    rmSync(jotScratch, { recursive: true, force: true });
   } else {
     console.log(`\nLeft running (pid ${child.pid}), data in ${scratch}`);
   }

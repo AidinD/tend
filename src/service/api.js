@@ -17,6 +17,9 @@ import { openPromises } from "../domain/promises.js";
 import { signalsDue } from "../domain/signals.js";
 import { driftBadge, humanDays } from "../domain/time.js";
 import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../domain/workstreams.js";
+import { PREP_CARDS, prep } from "./prep.js";
+
+export { PREP_CARDS, prep };
 
 /** Collections an agent may add rows to. Structure is not on this list. */
 export const AGENT_WRITABLE = /** @type {const} */ (["promises", "touches", "evidence"]);

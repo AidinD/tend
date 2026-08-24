@@ -105,6 +105,18 @@ export const TOOLS = [
     run: (store, _args, now) => api.roleMap(store, now)
   },
   {
+    name: "tend_prep",
+    description:
+      "One card per person worth talking to, worst drift first: when you last spoke, what " +
+      "you promised them, what they own and how long since you reviewed it, what is open in " +
+      "their area on the Jot board, and the last note you wrote about them. Read this before " +
+      "a one-to-one, or when asked who needs a conversation. Capped at six on purpose - a " +
+      "list of everyone is the roster, which is tend_people. `openWork` is null rather than " +
+      "empty when the Jot board could not be read, which is a different fact.",
+    inputSchema: NO_ARGS,
+    run: (store, _args, now) => api.prep(store, now)
+  },
+  {
     name: "tend_focus",
     description:
       "The current focus: what it is, how long is left, how much of the week it is " +

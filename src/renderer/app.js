@@ -13,6 +13,7 @@
 
 import { esc, tend, toast } from "./ui.js";
 import * as now from "./views/now.js";
+import * as prep from "./views/prep.js";
 import * as people from "./views/people.js";
 import * as work from "./views/work.js";
 import * as role from "./views/role.js";
@@ -25,7 +26,7 @@ const errors = [];
 window.addEventListener("error", (e) => errors.push(String(e.message)));
 window.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
 
-const VIEWS = { now, people, work, role, focus, settings };
+const VIEWS = { now, prep, people, work, role, focus, settings };
 
 const main = /** @type {HTMLElement} */ (document.getElementById("main"));
 
@@ -73,11 +74,12 @@ async function draw() {
  * being read, so anything at zero shows nothing at all.
  */
 async function updateCounts() {
-  const [attention, roster, map, current] = await Promise.all([
+  const [attention, roster, map, current, cards] = await Promise.all([
     tend.invoke("attention"),
     tend.invoke("people"),
     tend.invoke("roleMap"),
-    tend.invoke("focus")
+    tend.invoke("focus"),
+    tend.invoke("prep")
   ]);
 
   /** @param {string} id @param {string} text @param {string} [tone] */
@@ -96,6 +98,7 @@ async function updateCounts() {
   set("count-people", Array.isArray(roster) && roster.length ? String(roster.length) : "");
   set("count-role", map?.proposed?.length ? `${map.proposed.length} new` : "", map?.proposed?.length ? "new" : "");
   set("count-focus", current?.active ? (current.overrun ? "over" : "on") : "", current?.overrun ? "urgent" : "");
+  set("count-prep", cards?.cards?.length ? String(cards.cards.length) : "");
 }
 
 document.querySelectorAll(".nav-btn").forEach((btn) => {

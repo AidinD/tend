@@ -63,6 +63,15 @@ The rule is enforced in `src/service/api.js`, not in the MCP tool definitions,
 so a second client cannot route around it. If you add a capability, add it to
 the service layer and decide deliberately whether MCP gets it.
 
+**Tend reads Jot now, read-only.** `src/service/jot.js` reads `todos.json` so a
+Prep card can show what is open in somebody's area. It is a documented contract
+(Jot's INTEGRATION.md) so there is no API. Two consequences that are easy to
+miss: a test run must point `JOT_DATA_DIR` at a scratch board like it already
+does for Tend and Nib, and `openWork` is **null and not empty** when the board
+cannot be read - "nothing is open" and "I could not find Jot" are different
+facts, and rendering them identically is the way a broken integration hides for
+weeks.
+
 **One implementation, two clients.** The app and the MCP server both call
 `src/service/api.js`. Never query the store directly from the app - that is how
 the two grow slightly different answers to the same question.

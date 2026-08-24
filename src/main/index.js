@@ -58,6 +58,7 @@ const OPERATIONS = {
   people: (/** @type {any} */ a) => api.people(store, a.now ?? Date.now(), a.relation),
   promises: (/** @type {any} */ a) => api.promises(store, a.now ?? Date.now()),
   roleMap: (/** @type {any} */ a) => api.roleMap(store, a.now ?? Date.now()),
+  prep: (/** @type {any} */ a) => api.prep(store, a.now ?? Date.now()),
   focus: (/** @type {any} */ a) => api.focus(store, a.now ?? Date.now()),
   projects: (/** @type {any} */ a) => api.projects(store, a.now ?? Date.now()),
 

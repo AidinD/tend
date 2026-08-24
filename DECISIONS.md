@@ -3,6 +3,57 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-24 - Prep reads drift, not a calendar
+
+**Decided.** Prep is a view in Tend: one card per person worth talking to, with
+what you promised them, what they own, what is open on the Jot board and the last
+note you wrote. Chosen by cadence drift and open promises. No calendar.
+
+**The calendar was the plan and it is not the blocker it looked like.** Two
+routes, both real work and neither of them Tend: a secret iCal feed, whose
+attendee lines are the one field Prep would need and are unreliable, or a
+Calendar API app whose consent screen expires the refresh token every seven days
+while it sits in Testing. Both are still open as a *later input* - a different
+way of choosing whose cards to show.
+
+**Drift is the better question anyway.** A meeting that is booked will happen
+whether or not you prepared. The conversation you are quietly six weeks behind on
+is the one that does not happen at all, and Tend already models exactly that.
+Building the join first also makes the calendar cheap later: swapping who gets
+listed is a small change once the card exists.
+
+**Tend reads Jot now, and that is the new thing here.** `todos.json` is a
+documented contract, so there is no API and nothing to keep in sync. Two routes
+from a person to a task, and the card says which one found it, because a join
+whose reasoning you cannot see is one you stop trusting the first time it is
+wrong:
+
+- **owner** - they own a workstream, and a Jot category is named after the
+  workstream or its project. The principled route: it goes through a delegation
+  somebody actually recorded.
+- **named** - their first name appears in the task text, on a word boundary, and
+  only when the name is at least three characters. Fragile by construction and
+  labelled as such. It catches the case nobody remembered to model.
+
+Matching on the project alone was the first version and it missed the common
+shape: the project is a bucket and the workstream is the specific thing, so a
+card came back with no open work while the matching category sat right there.
+
+**`openWork` is null and not empty when the board cannot be read.** "Nothing is
+open" and "I could not find Jot" are different facts, and a card that renders
+them identically lies quietly - the failure mode a missing integration always
+has. The view says which sources it could not reach, in the warning colour.
+
+**Six cards, and the cap is the feature.** A list of everyone is the roster, and
+`people` is already that. This is meant to be read before a day starts and then
+be finished, the same discipline Brief keeps.
+
+**The harness now isolates the Jot board too.** It already pointed
+`TEND_DATA_DIR` and `NIB_DATA_DIR` at scratch folders; the moment Tend read Jot,
+a test run started reading the real board. Read-only, so nothing could be
+corrupted - and still wrong, because the test would depend on whatever is on the
+board today.
+
 ## 2026-08-23 - Window chrome and the icon pipsignee come from keel
 
 **Decided.** Tend depends on `keel` (`file:../keel`) for two things it had its
