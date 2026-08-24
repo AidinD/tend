@@ -829,6 +829,56 @@ try {
     }
   });
 
+  /* --------------------------------------------------------- scrolling -- */
+
+  step("Scrolling");
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "a long view");
+
+  const scrolled = JSON.parse(
+    String(
+      await page.evaluate(`(() => {
+        const box = document.querySelector('main');
+        box.scrollTop = box.scrollHeight;
+        const header = document.querySelector('.app-header').getBoundingClientRect();
+        const rail = document.querySelector('.rail').getBoundingClientRect();
+        return JSON.stringify({
+          headerTop: Math.round(header.top),
+          railTop: Math.round(rail.top),
+          bodyOverflows: document.body.scrollHeight > document.body.clientHeight + 1,
+          shellLoaded: getComputedStyle(document.body).display === 'flex'
+        });
+      })()`)
+    )
+  );
+
+  check("keel's shell stylesheet actually loaded", () => {
+    // A <link> into node_modules resolves in development and is the thing that
+    // can fail silently in the packaged app, where it has to come out of the
+    // asar. If this is false, nothing below means anything.
+    if (scrolled.shellLoaded !== true) {
+      throw new Error("body is not a flex column, so keel/shell.css did not load");
+    }
+  });
+
+  check("the window never scrolls, so the header cannot leave", () => {
+    // The open P0 this closes. In a frameless window that row is the drag
+    // handle and the only close button.
+    if (scrolled.bodyOverflows) {
+      throw new Error("the document itself overflows, which is what took the header with it");
+    }
+    if (scrolled.headerTop !== 0) {
+      throw new Error(`the header moved to ${scrolled.headerTop}px`);
+    }
+  });
+
+  check("and the rail stays too, since only the right column scrolls", () => {
+    if (scrolled.railTop < 0) {
+      throw new Error(`the rail scrolled to ${scrolled.railTop}px; seven buttons need not leave`);
+    }
+  });
+
   /* ------------------------------------------------------------- exit -- */
 
   step("Finishing up");

@@ -40,10 +40,11 @@
   box-sizing: border-box;
 }
 
+/*
+ * Margin, background, colour and the flex column come from keel/shell.css.
+ * What is left here is how Tend reads, which is Tend's own.
+ */
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
@@ -65,19 +66,12 @@ button {
 
 /* The window is frameless, so this row is the wordmark and the drag handle -
    the same arrangement as Jot and Nib. */
+/* Proportions and the hairline. The layout is keel's. */
 .app-header {
-  display: flex;
-  align-items: center;
   gap: 12px;
   padding: 9px 14px 9px 18px;
   background: #191a1d;
   border-bottom: 1px solid var(--line-soft);
-  -webkit-app-region: drag;
-}
-
-.app-header button,
-.app-header input {
-  -webkit-app-region: no-drag;
 }
 
 .brand {
@@ -112,37 +106,21 @@ button {
   margin-left: auto;
 }
 
-.window-controls {
-  display: flex;
-  gap: 2px;
-}
+/* The window buttons come from keel/shell.css, colours and all. */
 
-.window-controls button {
-  width: 28px;
-  height: 24px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1;
-  transition: background 120ms ease, color 120ms ease;
-}
-
-.window-controls button:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-.window-controls button.danger:hover {
-  background: var(--critical);
-  color: #1b1c1f;
-}
-
+/*
+ * A flex child that can shrink, rather than `min-height: calc(100vh - 43px)`.
+ *
+ * That 43px was the header's height, written down in a second place and kept in
+ * sync by hand - and it was why the whole document scrolled, taking the header
+ * and its close button off the top. With keel's column the number does not need
+ * to exist.
+ */
 .app {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 200px minmax(0, 1fr);
-  min-height: calc(100vh - 43px);
 }
 
 /* ---------------------------------------------------------------- rail -- */
@@ -207,9 +185,14 @@ button {
 
 /* ---------------------------------------------------------------- main -- */
 
+/*
+ * The right column scrolls, not the window and not the rail. Seven nav buttons
+ * do not need to leave the screen because a list below them is long.
+ */
 main {
   padding: 26px 30px 60px;
   min-width: 0;
+  overflow-y: auto;
 }
 
 .loading,

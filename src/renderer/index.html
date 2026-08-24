@@ -7,6 +7,10 @@
       content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
     />
     <title>Tend</title>
+    <!-- keel first, so anything below can override it. It provides only the
+         frameless shell: body as a fixed flex column, the header pinned, the
+         window buttons. Everything about how Tend looks stays in app.css. -->
+    <link rel="stylesheet" href="../../node_modules/keel/src/shell/shell.css" />
     <link rel="stylesheet" href="app.css" />
   </head>
   <body>
