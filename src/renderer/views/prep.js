@@ -11,9 +11,19 @@
 
 import { esc, tend } from "../ui.js";
 import { go } from "../app.js";
+import {
+  briefHtml,
+  candidatesHtml,
+  isRunning,
+  modelActions,
+  modelStatus,
+  resultFor,
+  run
+} from "../model.js";
 
 export async function render() {
   const result = await tend.invoke("prep");
+  const model = await modelStatus();
 
   if (result.error) {
     return `<div class="card sev-critical"><div class="card-top">
@@ -43,7 +53,7 @@ export async function render() {
   }
 
   return `${head}
-    ${cards.map(card).join("")}
+    ${cards.map((/** @type {any} */ c) => card(c, model)).join("")}
     ${result.dropped > 0 ? `<p class="prep-dropped">${result.dropped} more further behind than nobody, held back so this page ends.</p>` : ""}
     ${sources(result)}`;
 }
@@ -75,8 +85,11 @@ function sources(result) {
   </p>`;
 }
 
-/** @param {any} c */
-function card(c) {
+/**
+ * @param {any} c
+ * @param {{ available: boolean, why: string | null }} model
+ */
+function card(c, model) {
   return `
     <div class="card prep-card">
       <div class="card-top">
@@ -108,9 +121,14 @@ function card(c) {
           : ""
       }
 
+      ${draft(c, model)}
+
       <div class="card-foot">
         <span class="src">Everything here is already in Tend, Jot or Nib.</span>
-        <button class="act" data-act="openPerson" data-person="${esc(c.person)}">Open ${esc(c.person)}</button>
+        <span class="foot-actions">
+          ${modelButtons(c, model)}
+          <button class="act" data-act="openPerson" data-person="${esc(c.person)}">Open ${esc(c.person)}</button>
+        </span>
       </div>
     </div>`;
 }
@@ -136,8 +154,73 @@ function section(title, items, line) {
     </div>`;
 }
 
+/**
+ * The two model buttons, or a disabled pair that says why.
+ *
+ * A feature that is simply missing when Claude Code is not installed reads as a
+ * broken build. One that says what would turn it on is a setup instruction in
+ * the only place anybody would look for it.
+ *
+ * @param {any} c
+ * @param {{ available: boolean, why: string | null }} model
+ */
+function modelButtons(c, model) {
+  if (!model.available) {
+    return `<span class="src" title="${esc(model.why ?? "")}">Drafting is off - no Claude Code on this machine.</span>`;
+  }
+
+  const briefKey = `brief:${c.person}`;
+  const noteKey = c.lastWrote ? `note:${c.lastWrote.id}` : null;
+
+  const brief = isRunning(briefKey)
+    ? `<button class="act" disabled>Drafting…</button>`
+    : `<button class="act" data-act="draftBrief" data-person="${esc(c.person)}">Draft a brief</button>`;
+
+  // Only where there is a note to read. Nothing here invents a reason to spend
+  // a model call.
+  const note =
+    noteKey === null
+      ? ""
+      : isRunning(noteKey)
+        ? `<button class="act" disabled>Reading…</button>`
+        : `<button class="act" data-act="readNote" data-note="${esc(c.lastWrote.id)}" data-person="${esc(c.person)}">Read that note</button>`;
+
+  return `${note}${brief}`;
+}
+
+/**
+ * Whatever a model produced for this card, if anything.
+ *
+ * @param {any} c
+ * @param {{ available: boolean }} model
+ */
+function draft(c, model) {
+  if (!model.available) {
+    return "";
+  }
+
+  const briefKey = `brief:${c.person}`;
+  const noteKey = c.lastWrote ? `note:${c.lastWrote.id}` : null;
+
+  const brief = resultFor(briefKey);
+  const candidates = noteKey === null ? null : resultFor(noteKey);
+
+  return [
+    brief === null ? "" : briefHtml(briefKey, brief),
+    candidates === null || noteKey === null ? "" : candidatesHtml(noteKey, candidates, c.person)
+  ].join("");
+}
+
 export const actions = {
   /** @param {Record<string, string>} d */
   openPerson: (d) => go("people", { person: d.person }),
-  openSettings: () => go("settings")
+  openSettings: () => go("settings"),
+
+  /** @param {Record<string, string>} d */
+  draftBrief: (d) => run(`brief:${d.person}`, "draftBrief", { person: d.person }),
+
+  /** @param {Record<string, string>} d */
+  readNote: (d) => run(`note:${d.note}`, "extractPromises", { noteId: d.note }),
+
+  ...modelActions()
 };

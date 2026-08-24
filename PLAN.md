@@ -87,8 +87,14 @@ Tend event log <──┤
    contact and flagged action points into promises, and resolves a promise when
    its action point is ticked off in Nib. Nib is only ever read.
    **Not yet exercised against real notes** - his Nib is empty.
-5. **Model layer**: promise extraction, theme detection, 1-1 briefs. Runs on
-   write or on schedule, never on app open.
+5. ~~**Model layer**~~ built. Three jobs, each behind a button: a brief before a
+   conversation, one note read for a commitment written in prose, and what
+   recurs across several notes about one person. Nothing runs on app open and a
+   test enforces it. Briefs are shown and thrown away, extracted promises are
+   candidates until kept, and themes are the only thing a model may write.
+   The app is fully usable with Claude Code absent - the three buttons say why
+   they are off and nothing else changes. **Exercised against fixtures and one
+   real call; not yet against real notes.**
 6. **Ctrl+K palette**: capture first, commands second, questions third. Local
    matches resolve with no model call.
 

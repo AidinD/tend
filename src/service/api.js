@@ -128,6 +128,23 @@ export function person(store, query, now) {
     .slice(0, 20)
     .map((e) => ({ text: e.text, at: e.at, by: e._by }));
 
+  // Themes are the one thing here a model wrote rather than a person, so they
+  // carry where they came from all the way to the screen. Newest first: a
+  // scheduled pass refreshes a row in place, so the date is when it was last
+  // seen rather than when it was first noticed.
+  const themes = store
+    .rows("themes")
+    .filter((t) => t.person === p.id)
+    .sort((a, b) => Number(b.seenAt ?? 0) - Number(a.seenAt ?? 0))
+    .map((t) => ({
+      id: t.id,
+      name: t.name,
+      evidence: t.evidence ?? "",
+      times: Number(t.times ?? 0),
+      source: t.source ?? null,
+      seenAt: t.seenAt ?? null
+    }));
+
   const relation = String(p.relation ?? "");
 
   return {
@@ -138,7 +155,8 @@ export function person(store, query, now) {
     cadences,
     openPromises: promises,
     recentContact: history,
-    observations: evidence
+    observations: evidence,
+    themes
   };
 }
 
@@ -342,9 +360,10 @@ export function addProject(store, { name, since, now }) {
  * @param {string} args.text
  * @param {number} [args.due]
  * @param {number} [args.madeAt]
+ * @param {string} [args.source] Where the wording came from, e.g. `model:<id>`.
  * @param {number} args.now
  */
-export function logPromise(store, { person: who, text, due, madeAt, now }) {
+export function logPromise(store, { person: who, text, due, madeAt, source, now }) {
   const found = resolvePerson(store, who);
   if (!found.ok) {
     return { error: found.error };
@@ -357,7 +376,12 @@ export function logPromise(store, { person: who, text, due, madeAt, now }) {
     text: String(text).trim(),
     due: typeof due === "number" ? due : null,
     madeAt: typeof madeAt === "number" ? madeAt : now,
-    state: "open"
+    state: "open",
+    // Where the wording came from, which is not the same question as which
+    // process wrote the row. A promise a model suggested and a person accepted
+    // is written by the app and would otherwise be indistinguishable from one
+    // typed out by hand.
+    source: typeof source === "string" && source.trim() !== "" ? source.trim() : null
   });
   return { id, logged: `Promise to ${found.person.name}: ${text}` };
 }

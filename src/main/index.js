@@ -21,6 +21,7 @@ const { autoUpdater } = electronUpdater;
 
 import { resolveDataDir } from "../domain/paths.js";
 import * as api from "../service/api.js";
+import * as model from "../service/model.js";
 import * as nib from "../service/nib.js";
 import { seedRoleMap } from "../service/seed.js";
 import { openStore } from "../storage/store.js";
@@ -82,6 +83,13 @@ const OPERATIONS = {
   workstreams: (/** @type {any} */ a) => api.workstreams(store, a.now ?? Date.now()),
   addWorkstream: (/** @type {any} */ a) => api.addWorkstream(store, { ...a, now: a.now ?? Date.now() }),
   setDelegationLevel: (/** @type {any} */ a) => api.setDelegationLevel(store, a.id, a.level),
+
+  // The model layer. Every entry here is reached by a button somebody pressed
+  // or by a scheduled job - never from startup. See src/service/model.js.
+  modelStatus: () => model.modelStatus(),
+  draftBrief: (/** @type {any} */ a) => model.draftBrief(store, { ...a, now: a.now ?? Date.now() }),
+  extractPromises: (/** @type {any} */ a) => model.extractPromises(store, a),
+  detectThemes: (/** @type {any} */ a) => model.detectThemes(store, { ...a, now: a.now ?? Date.now() }),
 
   nibFolders: () => nib.listNibFolders(),
   bindSource: (/** @type {any} */ a) => api.bindSource(store, a),

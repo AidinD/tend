@@ -9,13 +9,15 @@
 
 import { act, ask, CONTACT_KINDS, esc, form, tend } from "../ui.js";
 import { refresh } from "../app.js";
+import { modelStatus } from "../model.js";
 
 export async function render() {
-  const [status, folders, bindings, roster] = await Promise.all([
+  const [status, folders, bindings, roster, model] = await Promise.all([
     tend.invoke("status"),
     tend.invoke("nibFolders"),
     tend.invoke("sources"),
-    tend.invoke("people")
+    tend.invoke("people"),
+    modelStatus()
   ]);
 
   return `
@@ -25,6 +27,7 @@ export async function render() {
     </div>
 
     ${nibSection(folders, bindings, roster)}
+    ${modelSection(model)}
     ${dataSection(status)}
     ${aboutSection(status)}
   `;
@@ -104,6 +107,38 @@ function dataSection(status) {
       <div class="card-foot">
         <span class="src">This folder holds notes about named colleagues. It stays on your machine.</span>
         <button class="act" data-act="openData">Open the folder</button>
+      </div>
+    </article>
+  </div>`;
+}
+
+/**
+ * What the model layer is for and whether it can run.
+ *
+ * Says what it will never do as prominently as what it does. "An app that reads
+ * my notes about colleagues" is a sentence worth being unambiguous about, and
+ * the boundary is the reassuring half: the radar is arithmetic, the model only
+ * ever drafts, and the drafts are not kept.
+ *
+ * @param {{ available: boolean, why: string | null, binary: string }} model
+ */
+function modelSection(model) {
+  return `<div class="group">
+    <div class="group-head"><span class="group-title">Drafting</span><span class="group-rule"></span></div>
+    <article class="card${model.available ? "" : " sev-warn"}">
+      <div class="card-top">
+        <h2 class="card-title">${model.available ? "Available" : "Off"}</h2>
+        <span class="pill plain">${model.available ? "signed in through Claude Code" : "not set up"}</span>
+      </div>
+      ${
+        model.available
+          ? `<p class="card-why">Three buttons use a model: a brief before a conversation, reading one of your notes for a commitment you wrote in passing, and naming what recurs across several notes about the same person. Each one is a button. Nothing runs on a timer and nothing runs when this window opens.</p>
+             <p class="card-why dim">It borrows the sign-in Claude Code already has on this machine, so there is no key to store. A note only ever leaves this machine when you press one of those buttons.</p>`
+          : `<p class="card-why">${esc(model.why ?? "")}</p>
+             <p class="card-why dim">Everything else works exactly as it does with it on. Drift, cadences, promises and the focus budget are ordinary arithmetic - a model never decides what needs your attention.</p>`
+      }
+      <div class="card-foot">
+        <span class="src">Drafts are shown and thrown away. The only thing a model may write is a theme, and only on a scheduled pass.</span>
       </div>
     </article>
   </div>`;

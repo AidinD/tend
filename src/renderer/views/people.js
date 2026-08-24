@@ -18,6 +18,7 @@ import {
   tend
 } from "../ui.js";
 import { go, refresh } from "../app.js";
+import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 
 const GROUPS = [
   ["lead-and-manage", "Lead and manage"],
@@ -124,6 +125,23 @@ async function personPage(id) {
     )
     .join("");
 
+  const model = await modelStatus();
+  const themesKey = `themes:${p.id}`;
+
+  // Themes already written by a scheduled pass, listed as themes rather than as
+  // observations: an observation is something the user saw, and a theme is
+  // something a model claimed. Merging the two would let the second quietly
+  // acquire the authority of the first.
+  const themes = (p.themes ?? [])
+    .map(
+      (/** @type {any} */ t) => `<div class="line">
+        <span class="line-when">${esc(t.times)}×</span>
+        <span class="line-text">${esc(t.name)}${t.evidence ? ` — ${esc(t.evidence)}` : ""}</span>
+        <span class="line-right"><span class="pill plain">${esc(t.source ?? "model")}</span></span>
+      </div>`
+    )
+    .join("");
+
   const observations = p.observations
     .map(
       (/** @type {any} */ e) => `<div class="line">
@@ -151,8 +169,18 @@ async function personPage(id) {
         <button class="act primary" data-act="logContact" data-person="${esc(p.id)}">Log contact</button>
         <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
         <button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>
+        ${
+          model.available
+            ? isRunning(themesKey)
+              ? `<button class="act" disabled>Reading notes…</button>`
+              : `<button class="act" data-act="findThemes" data-person="${esc(p.id)}">What keeps coming up</button>`
+            : ""
+        }
       </div>
 
+      ${resultFor(themesKey) === null ? "" : themesHtml(themesKey, resultFor(themesKey))}
+
+      ${themes ? list("Themes", themes, "") : ""}
       ${list("Cadences", cadences, "No duty in the role map applies to this relationship type.")}
       ${list("Open promises", promises, "Nothing outstanding.")}
       ${list("Recent contact", contact, "No contact recorded yet.")}
@@ -197,6 +225,20 @@ export const actions = {
   /** @param {Record<string, string>} d */
   open: (d) => go("people", { person: d.person }),
   back: () => go("people"),
+
+  /**
+   * Read across their notes and name what recurs.
+   *
+   * Deliberately not applied: this is the button, and a button produces a draft
+   * to look at. Writing themes into the record is the scheduled path's job, and
+   * a button that quietly persisted its own output would make every idle click
+   * a permanent claim about a colleague.
+   *
+   * @param {Record<string, string>} d
+   */
+  findThemes: (d) => run(`themes:${d.person}`, "detectThemes", { person: d.person }),
+
+  ...modelActions(),
 
   addPerson: async () => {
     if (await addPersonDialog()) {

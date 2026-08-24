@@ -14,6 +14,15 @@
  *   Writing may add, never restructure. An agent can log a promise, a contact
  *   or an observation. It can *propose* a duty. It cannot decide what the job
  *   is - `decideDuty` is not on this list, deliberately.
+ *
+ * The app's model layer is deliberately absent here, and that is not an
+ * oversight. A caller on this surface already *is* a model: handing it a tool
+ * that spawns a second one to read a note would pay twice for a worse answer,
+ * since the nested call sees only the note and the caller sees the whole
+ * conversation. So the surface offers the note text (`tend_note_text`) and the
+ * same guarded write path everything else uses, and the caller does its own
+ * reading. The window needs `src/service/model.js` for the same reason it needs
+ * a window: there is no agent in it.
  */
 
 import * as api from "../service/api.js";
@@ -205,7 +214,8 @@ export const TOOLS = [
         person: { type: "string", description: "Who it was made to." },
         text: { type: "string", description: "What was promised, in his words where possible." },
         due: { type: "number", description: "Optional deadline, ms since epoch." },
-        madeAt: { type: "number", description: "When it was said, ms since epoch. Defaults to now - set it when extracting from a dated note." }
+        madeAt: { type: "number", description: "When it was said, ms since epoch. Defaults to now - set it when extracting from a dated note." },
+        source: { type: "string", description: "Where the wording came from when it was not typed by hand, e.g. \"model:claude-haiku-4-5\" or \"nib\". Set it when you read this out of prose rather than being told it." }
       },
       required: ["person", "text"],
       additionalProperties: false
@@ -349,6 +359,22 @@ export const TOOLS = [
       "this to find the folder to bind to a person.",
     inputSchema: NO_ARGS,
     run: () => nib.listNibFolders()
+  },
+  {
+    name: "tend_note_text",
+    description:
+      "The plain text of one Nib note. Use it to read what was actually written when the " +
+      "structured record is not enough - to find a commitment made in prose and never " +
+      "flagged, or to see what keeps coming up across several conversations. Get note ids " +
+      "from tend_person. Anything you find should be written back with tend_log_promise, " +
+      "with source set, rather than only reported. Tend never writes to Nib.",
+    inputSchema: {
+      type: "object",
+      properties: { noteId: { type: "string", description: "A Nib note id." } },
+      required: ["noteId"],
+      additionalProperties: false
+    },
+    run: (_store, args) => nib.noteBody(args.noteId)
   },
   {
     name: "tend_bind_source",

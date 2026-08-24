@@ -44,6 +44,13 @@ promises and budgets are ordinary deterministic code - a radar that is
 reads prose and writes drafts, and everything it produces is labelled and can be
 rejected in one click.
 
+Three buttons use one: a brief before a conversation, reading one of your notes
+for a commitment you wrote in passing, and naming what recurs across several
+notes about the same person. Each is a button - nothing runs on a timer and
+nothing runs when the window opens. It borrows the sign-in Claude Code already
+has on the machine, so there is no key to store, and with Claude Code absent the
+three buttons say so and everything else is unchanged.
+
 ## Storage
 
 Data is an append-only event log with one file per writer, which lets the app,

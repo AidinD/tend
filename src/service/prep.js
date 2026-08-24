@@ -223,5 +223,7 @@ function lastNote(nib, bindings, personId) {
   if (newest === null) {
     return null;
   }
-  return { title: newest.title, edited: newest.edited };
+  // The id as well as the title: it is what a model pass over the note's own
+  // text needs, and it is the only handle on a note that Tend ever holds.
+  return { id: newest.id, title: newest.title, edited: newest.edited };
 }

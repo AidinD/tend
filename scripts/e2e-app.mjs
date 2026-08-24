@@ -32,7 +32,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -271,6 +271,21 @@ function writeJotFixture() {
 function writeNibFixture() {
   const day = 86_400_000;
   const now = Date.now();
+
+  // Nib keeps metadata in index.json and every body in its own file. Both
+  // halves, because reading only the first is exactly the mistake the model
+  // layer would make invisibly - it would simply find nothing to read.
+  mkdirSync(join(nibScratch, "notes"), { recursive: true });
+  writeFileSync(
+    join(nibScratch, "notes", "note-1.json"),
+    JSON.stringify({
+      id: "note-1",
+      title: "1-1, senaste",
+      html: "<p>Vi pratade om renderingen. Jag sa att jag skulle kolla med Nina om konferensen.</p>"
+    }),
+    "utf8"
+  );
+
   writeFileSync(
     join(nibScratch, "index.json"),
     JSON.stringify({
@@ -787,6 +802,69 @@ try {
   check("and the promise from Nib keeps its Swedish text", () => {
     if (!/Kolla med Nina om konferensen/.test(String(afterImport))) {
       throw new Error("the imported promise is missing or mangled");
+    }
+  });
+
+  /* ------------------------------------------------------------ model -- */
+
+  step("Drafting");
+
+  // Nothing here presses a model button. A real call costs money and seconds
+  // and would make the suite depend on being signed in - so what is checked is
+  // everything around it: that the app can tell whether drafting is possible,
+  // that it says so either way, and that the buttons follow that answer rather
+  // than appearing and then failing.
+  // A returned promise, not a top-level await: Runtime.evaluate compiles the
+  // expression as an ordinary one and resolves whatever it yields, so `await`
+  // written directly in it is a syntax error rather than a wait.
+  const modelState = String(
+    await page.evaluate("window.tend.invoke('modelStatus').then((s) => JSON.stringify(s))")
+  );
+  const model = JSON.parse(modelState);
+  check("the app can tell whether a model is reachable at all", () => {
+    if (typeof model.available !== "boolean") {
+      throw new Error(`modelStatus answered: ${modelState}`);
+    }
+    if (!model.available && !model.why) {
+      throw new Error("drafting is off and the app cannot say why, which reads as a broken build");
+    }
+  });
+
+  await page.click('.nav-btn[data-view="settings"]');
+  await page.waitFor("document.body.textContent.includes('Drafting')", "the drafting section");
+  const draftingText = String(await page.evaluate("document.body.textContent"));
+  check("settings says what a model may and may not do here", () => {
+    if (!/only thing a model may write is a theme/i.test(draftingText)) {
+      throw new Error("the boundary is not stated where somebody would look for it");
+    }
+  });
+
+  await page.click('.nav-btn[data-view="prep"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "Prep");
+  const prepButtons = String(
+    await page.evaluate(
+      "JSON.stringify(Array.from(document.querySelectorAll('.prep-card [data-act]')).map((b) => b.dataset.act))"
+    )
+  );
+  const draftingCards = String(await page.evaluate("document.body.textContent"));
+  check("a card offers drafting, or says why it cannot", () => {
+    if (model.available) {
+      if (!prepButtons.includes("draftBrief")) {
+        throw new Error(`no draft button on any card; found ${prepButtons}`);
+      }
+      return;
+    }
+    if (!/Drafting is off/.test(draftingCards)) {
+      throw new Error("drafting is off and no card says so");
+    }
+  });
+
+  check("the note behind a card is reachable, so it can be read for promises", () => {
+    if (!model.available) {
+      return;
+    }
+    if (!prepButtons.includes("readNote")) {
+      throw new Error(`the bound note did not reach the card; buttons were ${prepButtons}`);
     }
   });
 

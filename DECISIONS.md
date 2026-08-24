@@ -3,6 +3,60 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-24 - The model drafts, and the MCP surface has no model on it
+
+**Decided.** Three model jobs, all in `src/service/model.js`, each behind a
+button: a brief before a conversation, one note read for a commitment written in
+prose, and what recurs across several notes about one person. Nothing else.
+
+**A brief is not stored.** It is built from the prep card, shown, and thrown
+away. Storing one makes a second copy of facts that change daily, which is the
+same trap `prep.js` already avoids by showing a note's title rather than its
+prose. The discard button is the whole lifecycle.
+
+**Extraction returns candidates and writes nothing.** Nib already models a
+flagged block as an action point with a done state, and indexing turns those
+into promises with no model at all. The model is only ever the second pass over
+the half that was written as ordinary prose and never flagged - so the reliable
+path stays deterministic and the uncertain one needs a click. A candidate that
+is kept records `source: model:<id>`, because the store's `_by` records which
+*process* wrote a row and that is a different question: a suggestion a person
+accepted is written by the app and would otherwise be indistinguishable from one
+typed out by hand.
+
+**Themes are the only thing a model may write**, and only on a scheduled pass;
+the button drafts. Two notes minimum, enforced in code and again after the
+answer comes back - one note called a pattern is how a tool starts saying untrue
+things about people. Structure - the role map, cadences, relationships, focus -
+is never written by a model at any confidence.
+
+**Nothing runs on app open.** `test/model.test.mjs` reads `src/main/index.js`
+and fails if a model call appears after `app.whenReady()`. The rule was already
+written in three comments, which is exactly the kind of rule that survives until
+somebody warms a cache and nobody notices the window now costs money to open.
+
+**The MCP surface deliberately has no model tool on it.** Every caller there
+already *is* a model, so a tool that spawned a second one would pay twice for a
+worse answer - the nested call sees one note, the caller sees the conversation.
+It gets `tend_note_text` and the same guarded write path instead. The window
+needs a model layer for the same reason it needs a window: there is no agent in
+it.
+
+**Rejected: the Agent SDK.** The earlier entry below said the Agent SDK on
+Claude Code's login. What shipped is the `claude` executable itself, spawned per
+call - same authentication, same absence of an API key, one fewer dependency,
+and it works with the app closed, which a library inside Electron does not. It
+lives in `keel/claude` so the next app in the suite does not rediscover that
+`--bare` forces API-key auth and that a shell on Windows eats everything in a
+prompt after the first space.
+
+**Measured rather than assumed.** A brief costs about 29 cents on the writing
+tier and 7 on the cheap one, and the expensive one is better enough to keep for
+something read before a real conversation. Running the call from inside a
+repository rather than a neutral directory tripled the price of an extraction,
+because Claude Code loads the CLAUDE.md files above its working directory - so
+keel now defaults to somewhere with no project in it.
+
 ## 2026-08-24 - Attention signals measure me, and the line is in the code
 
 **Decided.** `src/domain/myattention.js` derives three patterns from touches: who

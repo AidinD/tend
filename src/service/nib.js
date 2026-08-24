@@ -1,10 +1,15 @@
 /**
  * Reading Nib.
  *
- * Nib owns the notes; Tend reads them and never writes a byte back. Only
- * `index.json` is read, which carries every note's metadata without any note
- * bodies - so indexing costs one small file read and never opens a note about
- * a colleague.
+ * Nib owns the notes; Tend reads them and never writes a byte back. Indexing
+ * reads only `index.json`, which carries every note's metadata without any note
+ * bodies - so the routine path costs one small file read and never opens a note
+ * about a colleague.
+ *
+ * `noteBody` at the bottom is the single exception and the only function here
+ * that reads what you actually wrote. Nothing automatic calls it: it exists for
+ * a model call the user asked for by name, and the boundary is worth keeping
+ * that sharp, because "Tend read my 1-1 notes" should never be a surprise.
  *
  * Which notes belong to whom is not guessed from names or enforced by a naming
  * convention. A Nib category or sub-category is bound to a person here in Tend,
@@ -281,4 +286,74 @@ export function indexNib(store, { dir, dry = false } = {}) {
   }
 
   return { contacts, promises, resolved, bindings: bindings.length, skipped };
+}
+
+/* ------------------------------------------------------- reading a body -- */
+
+/**
+ * The text of one note.
+ *
+ * This is the one thing in this file that opens a note about a colleague, and
+ * it is deliberately not on any automatic path: indexing never calls it, the
+ * app never calls it while drawing a view, and nothing calls it on a timer. It
+ * exists so that a model call the user asked for by name has something to read.
+ *
+ * Nib stores a body as sanitised HTML in `notes/<id>.json`. What comes back
+ * here is plain text, because a model needs the words and not the markup, and
+ * because the fewer characters that leave this machine the better.
+ *
+ * @param {string} noteId
+ * @param {string} [dir] Nib data directory.
+ * @returns {{ available: true, text: string } | { available: false, why: string }}
+ */
+export function noteBody(noteId, dir = nibDataDir()) {
+  const path = join(dir, "notes", `${noteId}.json`);
+  /** @type {string} */
+  let raw;
+  try {
+    raw = readFileSync(path, "utf8");
+  } catch (err) {
+    const code = /** @type {NodeJS.ErrnoException} */ (err).code;
+    return {
+      available: false,
+      why: code === "ENOENT" ? `Nib has no note file for ${noteId}.` : `Could not read ${path}: ${String(err)}`
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return { available: true, text: htmlToText(String(parsed?.html ?? "")) };
+  } catch {
+    return { available: false, why: `The note file for ${noteId} could not be parsed.` };
+  }
+}
+
+/**
+ * Sanitised HTML to something a model can read.
+ *
+ * Not a parser and not trying to be. Nib writes a small, known set of tags, and
+ * the only jobs here are keeping the line breaks that carry meaning - a list is
+ * a list because of them - and not leaving `&amp;` in the middle of a sentence.
+ *
+ * @param {string} html
+ * @returns {string}
+ */
+export function htmlToText(html) {
+  return html
+    .replace(/<\s*(br|\/p|\/div|\/li|\/h[1-6])\s*\/?>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Last, so an escaped ampersand in the source cannot become the start of
+    // another entity once the ones above have been replaced.
+    .replace(/&amp;/g, "&")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .trim();
 }

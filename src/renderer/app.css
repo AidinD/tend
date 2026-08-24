@@ -1059,3 +1059,102 @@ button.row:hover {
 .mine-text {
   color: var(--text-dim);
 }
+
+/* -------------------------------------------------------------- drafts -- */
+
+/*
+ * Anything a model wrote sits inside one of these, and it is styled to look
+ * borrowed rather than native: a dashed edge, the book accent that is already
+ * reserved for "this came from somewhere other than you", and a footer naming
+ * the model. A draft rendered in the same skin as the rest of a card acquires
+ * the authority of the arithmetic around it, which is exactly the failure this
+ * app is otherwise built to avoid.
+ */
+.draft {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px dashed var(--book);
+  border-radius: var(--r);
+  background: var(--book-soft);
+}
+
+.draft-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.draft-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--book);
+  margin-right: auto;
+}
+
+.draft-head-small {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.draft-opening {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.draft-list {
+  margin: 0;
+  padding-left: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+/* The reason a line is there, under it rather than beside it: a point and its
+   evidence read as one thought, and side by side they read as two columns. */
+.draft-list .src {
+  display: block;
+  margin-top: 2px;
+}
+
+.draft-list .src::before {
+  display: none;
+}
+
+.draft-candidate {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.draft-candidate > span {
+  flex: 1;
+}
+
+.draft-watch {
+  margin: 10px 0 0;
+  color: var(--warn);
+  line-height: 1.5;
+}
+
+.draft-foot {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+
+/* Keeps the model buttons with the one that was already there, so a card's
+   controls stay one group at the right rather than drifting apart. */
+.foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
