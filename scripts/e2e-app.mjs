@@ -608,9 +608,12 @@ try {
   });
 
   const prepMandate = await page.texts(".prep-list .src");
-  check("the delegation mandate reaches the card, since it is the useful field", () => {
-    if (!prepMandate.some((t) => /own the outcome|stay close|Still mine/i.test(String(t)))) {
-      throw new Error(`no mandate on the card: ${prepMandate.join(" | ")}`);
+  check("the mandate on the card says who DECIDES, not how closely you follow", () => {
+    // The distinction the whole field rests on. Follow-up closeness implies
+    // authority without stating it, which is how "you own this" ends up meaning
+    // two different things to the two people in the conversation.
+    if (!prepMandate.some((t) => /You decide|Ask me before|I decide/i.test(String(t)))) {
+      throw new Error(`the mandate does not say who decides: ${prepMandate.join(" | ")}`);
     }
   });
 

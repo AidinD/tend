@@ -13,11 +13,12 @@ import { act, ask, CONTACT_KINDS, esc, form, tend } from "../ui.js";
 import { go, refresh } from "../app.js";
 
 export async function render() {
-  const [attention, questions, roster, ledger] = await Promise.all([
+  const [attention, questions, roster, ledger, mine] = await Promise.all([
     tend.invoke("attention"),
     tend.invoke("signals"),
     tend.invoke("people"),
-    tend.invoke("decisions")
+    tend.invoke("decisions"),
+    tend.invoke("myAttention")
   ]);
 
   if (attention.error) {
@@ -74,7 +75,26 @@ export async function render() {
     )
     .join("");
 
-  if (attention.allInStep && due.length === 0 && revisits.length === 0) {
+  /*
+   * Patterns in my own month, at the bottom rather than the top.
+   *
+   * They are not deviations from a duty and nothing is late because of them, so
+   * they must not compete with what is. But they are the things that are
+   * invisible while they happen and obvious afterwards, which is worth one
+   * paragraph on the page you open daily.
+   */
+  const signals = Array.isArray(mine) ? mine : [];
+  const signalRows = signals
+    .map(
+      (/** @type {any} */ s) => `
+        <div class="mine-row">
+          <span class="mine-text">${esc(s.text)}</span>
+          ${s.detail ? `<span class="src">${esc(s.detail)}</span>` : ""}
+        </div>`
+    )
+    .join("");
+
+  if (attention.allInStep && due.length === 0 && revisits.length === 0 && signals.length === 0) {
     return `
       <div class="view-head">
         <h1 class="view-title">Nothing needs you</h1>
@@ -104,6 +124,15 @@ export async function render() {
             : ""),
       attention.nudges.length
     )}
+    ${
+      signals.length === 0
+        ? ""
+        : `<div class="mine">
+             <h2 class="mine-head">My month</h2>
+             <p class="mine-sub">About me, not about them. Nothing here is late.</p>
+             ${signalRows}
+           </div>`
+    }
   `;
 }
 

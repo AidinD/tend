@@ -397,6 +397,18 @@ export const TOOLS = [
     run: (store, args) => nib.indexNib(store, { dry: Boolean(args.dry) })
   },
   {
+    name: "tend_my_attention",
+    description:
+      "Patterns in how he spent the last month: who he has not spoken to, whether his " +
+      "contact is concentrated on a few people, and who he has only heard about " +
+      "second-hand. Signals about HIM, never measurements of the team - there is " +
+      "deliberately nothing here about review latency, response times or who is quiet in " +
+      "a retro, and that is a line in the code rather than a preference. Silent on a " +
+      "month where everyone was seen first-hand.",
+    inputSchema: NO_ARGS,
+    run: (store, _args, now) => api.myAttentionSignals(store, now)
+  },
+  {
     name: "tend_decisions",
     description:
       "The decision log: what was decided about the organisation, why, what was rejected, " +

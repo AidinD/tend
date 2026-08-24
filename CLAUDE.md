@@ -79,6 +79,14 @@ those names do not exist. Recording starts the revisit clock, and something that
 could both propose and accept would be writing the decision log with nobody able
 to tell. Same boundary as the role map.
 
+**Attention signals are about the user, never measurements of the team.**
+`src/domain/myattention.js` has the reasoning; the short version is that the
+obvious version of that feature - review latency, who reviews whom, who is quiet
+in a retro - is surveillance, and it is easier to build and looks like more
+value. Every signal has a first-person subject and a test asserts it, because a
+rule in a document does not survive a session that reads "attention signals" and
+reaches for the easier thing.
+
 **One implementation, two clients.** The app and the MCP server both call
 `src/service/api.js`. Never query the store directly from the app - that is how
 the two grow slightly different answers to the same question.

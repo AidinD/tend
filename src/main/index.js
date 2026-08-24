@@ -60,6 +60,7 @@ const OPERATIONS = {
   roleMap: (/** @type {any} */ a) => api.roleMap(store, a.now ?? Date.now()),
   prep: (/** @type {any} */ a) => api.prep(store, a.now ?? Date.now()),
   decisions: (/** @type {any} */ a) => api.decisions(store, a.now ?? Date.now(), a.status),
+  myAttention: (/** @type {any} */ a) => api.myAttentionSignals(store, a.now ?? Date.now()),
   focus: (/** @type {any} */ a) => api.focus(store, a.now ?? Date.now()),
   projects: (/** @type {any} */ a) => api.projects(store, a.now ?? Date.now()),
 

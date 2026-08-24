@@ -1028,3 +1028,51 @@ button.row:hover {
   font-size: 12.5px;
   line-height: 1.5;
 }
+
+/* --------------------------------------------------------- my attention -- */
+
+/*
+ * At the bottom, and quieter than everything above it.
+ *
+ * Nothing here is late, so it must not compete with what is. But these are the
+ * patterns that are invisible while they happen and obvious afterwards, which
+ * earns them a paragraph on the page opened daily.
+ */
+.mine {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.mine-head {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.mine-sub {
+  margin: 3px 0 12px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.mine-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: bassignee;
+  gap: 4px 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line-soft);
+  line-height: 1.5;
+}
+
+.mine-row:first-of-type {
+  border-top: 0;
+}
+
+.mine-text {
+  color: var(--text-dim);
+}

@@ -11,6 +11,7 @@
  */
 
 import { buildAttention, expandCadences, meanDrift } from "../domain/attention.js";
+import { myAttention } from "../domain/myattention.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 import { openPromises } from "../domain/promises.js";
@@ -48,6 +49,25 @@ export function attention(store, now) {
       ? { summary: a.focus.summary, overrun: a.focus.overrun, cost: a.focus.cost.summary }
       : null
   };
+}
+
+/**
+ * Signals about the user's own attention.
+ *
+ * Separate from `attention`, which is about drift against a duty. These are
+ * patterns in how the user spent the month, and every one of them has a
+ * first-person subject on purpose - see the header of myattention.js for why
+ * that constraint is in the code rather than only in a document.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ */
+export function myAttentionSignals(store, now) {
+  return myAttention({
+    people: /** @type {any[]} */ (store.rows("people")),
+    touches: /** @type {any[]} */ (store.rows("touches")),
+    now
+  });
 }
 
 /** @param {import("../domain/attention.js").AttentionItem} i */
@@ -493,6 +513,9 @@ export function workstreams(store, now) {
       owner: w.owner ? (names.get(String(w.owner)) ?? null) : null,
       level: w.level ?? null,
       levelMeans: isLevel(level) ? LEVELS[level].means : "Not stated.",
+      // Who decides, as opposed to how closely you follow. The sentence you
+      // should be able to read to them.
+      mandate: isLevel(level) ? LEVELS[level].authority : "Nobody has said who decides.",
       reviewEvery: `${reviewInterval(w.level)} days`,
       lastReviewed: last ? humanDays(Math.max(0, daysSinceMs(Number(last.at), now))) + " ago" : "never",
       unspecified: isUnspecified(w)

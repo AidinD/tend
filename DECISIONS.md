@@ -3,6 +3,71 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-24 - Attention signals measure me, and the line is in the code
+
+**Decided.** `src/domain/myattention.js` derives three patterns from touches: who
+I have not spoken to this month, whether my contact is concentrated on a few
+people, and who I have only heard about second-hand. Shown at the bottom of Now,
+below everything that is actually late.
+
+**The line, and why it is not only in a document.** The obvious version of this
+measures the team - review latency, who reviews whom, who is quiet in a retro,
+response times. That version is surveillance: it measures people who did not
+agree to be measured, using proxies that are wrong, and it turns a tool for
+noticing into a tool for evidence-gathering.
+
+It is also easier to build and looks like more value, which is exactly why the
+refusal has to be mechanical. **Every signal has a first-person subject, and a
+test asserts every signal's text begins that way.** A second test greps the
+module for the specific field names the surveillance version would need. A prose
+rule in a document does not survive a future session reading "attention signals"
+and reaching for the easier thing; a failing test does.
+
+**No model, and this is not frugality.** It is arithmetic on dates. A script is
+the same answer every time and cannot hallucinate a neglected colleague who does
+not exist - which matters more than usual here, because a false "you are
+neglecting Nina" is a thing somebody might act on.
+
+**Quiet on thin data.** Three touches across four people is not a pattern, and
+calling it one is how a signal loses its credibility in its first week. Also
+silent on a roster of one, where "I have not spoken to 1 of 1 people" is a
+tautology rather than a signal.
+
+**Named, not aggregated.** "Your attention is concentrated" is not actionable;
+"it all went to these two" is. Naming them is not a judgement about them - the
+pattern belongs to me.
+
+## 2026-08-24 - The delegation trail already existed; the mandate did not say who decides
+
+**Found rather than built.** The idea note asked for a delegation trail - what I
+gave away, to whom, with what mandate, and when I check in. That is `workstreams`,
+which has existed for weeks: owner, level, a review interval derived from the
+level, entries in `attention` so an overdue review surfaces in Now, and a
+separate flag for a workstream whose level was never stated at all.
+
+Building a second entity for it would have been a parallel reinvention of a
+feature already shipped, which is the failure the idea notes themselves warn
+about elsewhere.
+
+**What was genuinely missing was one sentence per level.** The levels described
+how closely I follow - "theirs to drive, mine to stay close to" - and said
+nothing about who *decides*. Those are different axes: somebody can own an
+outcome and still be expected to ask before a call that is expensive to undo, and
+"you own this" means different things to the person saying it and the person
+hearing it. The idea note called that the most common silent misunderstanding
+between a manager and a senior, and it was right.
+
+So each level now carries an `authority` line, written in the second person
+because it is a sentence you should be able to read to them: "You decide, and
+tell me afterwards. I will not be checking first." A level with none says
+"nobody has said who decides" rather than "not stated", which names the gap
+instead of the missing field.
+
+Considered and rejected: a second axis, authority separate from follow-up
+closeness. Two fields per workstream is more bookkeeping than the distinction
+earns, and the three existing levels already map onto the three authority
+answers cleanly. What was wrong was that the mapping was implicit.
+
 ## 2026-08-24 - Ledger: decisions with a date they come back on
 
 **Decided.** A `decisions` collection in Tend, with its own view. What was
