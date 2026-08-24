@@ -74,7 +74,8 @@ npm install
 npm run dev
 ```
 
-Without the sibling checkout `npm install` fails on `file:../keel`. Unlike in
+Without the sibling checkout `npm install` still exits 0, linking `file:../keel`
+to a dangling symlink — the app then fails at its first import instead. Unlike in
 Jot, keel is a real dependency here and ships inside the app: Tend has no
 bundler, so `keel/window` is still an import at runtime and electron-builder has
 to pack it.

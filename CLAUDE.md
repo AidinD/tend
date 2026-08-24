@@ -21,8 +21,13 @@ Keep PLAN.md and DECISIONS.md current as work happens, not batched at the end.
 ## keel
 
 Tend depends on **keel** (`github.com/AidinD/keel`), the suite's shared layer,
-linked as `file:../keel` - so it must be checked out at `D:\Repo\Tools\keel` or
-`npm install` fails.
+linked as `file:../keel` - so it must be checked out at `D:\Repo\Tools\keel`.
+
+`npm install` does **not** fail when it is missing - npm 11 links a missing
+`file:` dependency to a dangling symlink and exits 0. Here that matters more than
+in Jot: keel is imported at runtime, so a missing sibling means a preload that
+throws `ERR_MODULE_NOT_FOUND` and window buttons that quietly do nothing. A green
+install proves nothing.
 
 It is a real `dependency` here, not a devDependency as in Jot. Jot bundles, so
 its copy of keel is inlined at build time; Tend ships its source unbuilt, so the
