@@ -786,33 +786,44 @@ try {
   const folder = folderOptions.find((o) => /1-1 \/ Testperson/.test(o.label));
   const personOption = (await page.dialogOptions("person"))[0];
 
-  // The tags are in THIS dialog, not in one after it. That is the whole point:
-  // a mapping offered only once the binding exists is invisible to anybody who
-  // opens the dialog, reads it, and cancels - which is exactly what happened.
-  const bindTagOptions = await page.dialogOptions("tag:tag-second-hand");
-  check("the bind dialog itself offers what each tag means", () => {
-    if (!bindTagOptions.some((o) => /second-hand/i.test(o.label))) {
-      throw new Error(`offered: ${JSON.stringify(bindTagOptions.map((o) => o.label))}`);
+  // The rows are Tend's OWN kinds, answered with a Nib tag - not Nib's tags
+  // asked what they mean. The other way round put the notebook's vocabulary in
+  // charge of the question, so a folder of conversations with a colleague got
+  // asked about a book tag.
+  const kindRow = await page.dialogOptions("kind:second-hand");
+  check("the dialog asks Tend's kinds and offers Nib's tags as answers", () => {
+    if (!kindRow.some((o) => /Second-hand/.test(o.label))) {
+      throw new Error(`offered: ${JSON.stringify(kindRow.map((o) => o.label))}`);
     }
-    if (!bindTagOptions.some((o) => o.value === "")) {
-      throw new Error("there is no way to say a tag means nothing here");
+    if (!kindRow.some((o) => o.value === "")) {
+      throw new Error("there is no way to leave a kind unmapped");
+    }
+  });
+
+  const noSurvey = await page.evaluate(
+    "document.querySelector('[name=\"kind:survey\"]') === null"
+  );
+  check("and it does not ask about kinds a note can never be evidence of", () => {
+    if (noSurvey !== true) {
+      throw new Error("a survey round is a form going out, not something a note carries");
     }
   });
 
   await page.fillDialog({
     folder: folder?.value ?? "",
     person: personOption?.value ?? "",
-    kind: "one-to-one",
-    "tag:tag-second-hand": "second-hand",
-    "tag:tag-one-to-one": ""
+    "kind:second-hand": "tag-second-hand",
+    "kind:one-to-one": ""
   });
-  await page.waitFor("document.body.textContent.includes('one-to-one')", "the binding");
+  // The row reads "as second-hand", not "as one-to-one": the folder no longer
+  // has a kind of its own, so what it counts as IS the mapping on it.
+  await page.waitFor("document.body.textContent.includes('second-hand')", "the binding");
   check("a folder can be bound to a person without leaving the app", () => {});
 
   const boundRow = String(await page.evaluate("document.body.textContent"));
-  check("and its tag rule was saved with it, in one step", () => {
-    if (!/tag rule/.test(boundRow)) {
-      throw new Error("the binding shows no tag rule, so the mapping did not save with it");
+  check("and the row says what it counts as, which is now the mapping itself", () => {
+    if (!/as second-hand/.test(boundRow)) {
+      throw new Error("the binding does not report the mapping saved with it");
     }
   });
 
@@ -884,17 +895,14 @@ try {
   await page.waitFor("document.querySelector('[data-act=\"rules\"]') !== null", "the tag button");
 
   await page.click('[data-act="rules"]');
-  const tagOptions = await page.dialogOptions("tag:tag-second-hand");
-  check("Nib's own tags are offered, read from its catalog", () => {
-    if (!tagOptions.some((o) => /second-hand/i.test(o.label))) {
+  const tagOptions = await page.dialogOptions("kind:second-hand");
+  check("Nib's own tags are offered as the answers, read from its catalog", () => {
+    if (!tagOptions.some((o) => /Second-hand/.test(o.label))) {
       throw new Error(`offered: ${JSON.stringify(tagOptions.map((o) => o.label))}`);
-    }
-    if (!tagOptions.some((o) => o.value === "")) {
-      throw new Error("there is no way to say a tag means nothing here");
     }
   });
 
-  await page.fillDialog({ "tag:tag-second-hand": "second-hand", "tag:tag-one-to-one": "" });
+  await page.fillDialog({ "kind:second-hand": "tag-second-hand", "kind:one-to-one": "" });
   await page.waitFor("document.body.textContent.includes('tag rule')", "the saved rule");
   check("the mapping can also be reopened and changed from the binding's row", () => {});
 

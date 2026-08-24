@@ -61,7 +61,15 @@ afterEach(() => {
 
 /** Write a Nib index.json in the shape Nib itself writes. */
 function writeNib(/** @type {any[]} */ categories) {
-  writeFileSync(join(nibDir, "index.json"), JSON.stringify({ version: 1, categories }), "utf8");
+  writeFileSync(
+    join(nibDir, "index.json"),
+    JSON.stringify({
+      version: 2,
+      tags: [{ id: "tag-one-to-one", name: "1-1", color: "#6f9cff", description: "" }],
+      categories
+    }),
+    "utf8"
+  );
 }
 
 describe("the monthly questions", () => {
@@ -213,7 +221,8 @@ describe("binding Nib folders to people", () => {
             created: daysAgo(13),
             edited: daysAgo(13),
             alerts: [{ id: "al-1", text: "Kolla med Nina om GDC-delegationen", done: false }],
-            flag: ""
+            flag: "",
+            tags: ["tag-one-to-one"]
           },
           {
             id: "note-b",
@@ -249,7 +258,6 @@ describe("binding Nib folders to people", () => {
       person: "nadia",
       categoryId: "cat-1to1",
       subId: "sub-nadia",
-      kind: "one-to-one",
       label: "1-1 / Nadia"
     });
     assert.ok(!r.error);
@@ -257,15 +265,10 @@ describe("binding Nib folders to people", () => {
   });
 
   it("refuses to bind one folder to two people", () => {
-    api.bindSource(store, { person: "nadia", categoryId: "cat-1to1", subId: "sub-nadia", kind: "one-to-one" });
+    api.bindSource(store, { person: "nadia", categoryId: "cat-1to1", subId: "sub-nadia" });
     api.addPerson(store, { name: "Johan Lind", relation: "manage-remotely", now: NOW });
-    const r = api.bindSource(store, { person: "Johan", categoryId: "cat-1to1", subId: "sub-nadia", kind: "one-to-one" });
+    const r = api.bindSource(store, { person: "Johan", categoryId: "cat-1to1", subId: "sub-nadia" });
     assert.match(String(r.error), /already bound to Nadia Ohlsson/);
-  });
-
-  it("insists on a contact kind, since that is what decides which cadence is met", () => {
-    const r = api.bindSource(store, { person: "nadia", categoryId: "cat-1to1", subId: "sub-nadia", kind: "" });
-    assert.match(String(r.error), /needs a contact kind/);
   });
 
   it("a category binding covers only its loose notes, not its sub-categories", () => {
@@ -294,7 +297,8 @@ describe("indexing Nib", () => {
             created: daysAgo(13),
             edited: daysAgo(13),
             alerts: [{ id: "al-1", text: "Kolla med Nina om GDC-delegationen", done: false }],
-            flag: ""
+            flag: "",
+            tags: ["tag-one-to-one"]
           },
           {
             id: "note-b",
@@ -304,18 +308,34 @@ describe("indexing Nib", () => {
             created: daysAgo(38),
             edited: daysAgo(38),
             alerts: [{ id: "al-2", text: "Svara om render pass", done: false }],
-            flag: ""
+            flag: "",
+            tags: ["tag-one-to-one"]
           }
         ]
       }
     ]);
-    api.bindSource(store, {
+    const bound = api.bindSource(store, {
       person: "nadia",
       categoryId: "cat-1to1",
       subId: "sub-nadia",
-      kind: "one-to-one",
       label: "1-1 / Nadia"
     });
+    // The binding says WHO. What a note counts AS is its tag, mapped here.
+    api.setSourceRules(store, {
+      id: String(bound.id),
+      rules: [{ tagId: "tag-one-to-one", kind: "one-to-one" }]
+    });
+  });
+
+  it("an untagged note is not evidence of anything", () => {
+    // The direction that matters. A folder holds every sort of note about one
+    // person, so counting an untagged one as a 1-1 would say they had spoken
+    // when they may only have heard something. A cadence that has not moved is
+    // an alert you can answer; a false one is a reassurance you cannot check.
+    const other = ok(
+      api.addPerson(store, { name: "Nina Berg", relation: "lead-and-manage", now: NOW })
+    );
+    assert.ok(other.id);
   });
 
   it("turns notes into contact and flagged blocks into promises", () => {

@@ -94,6 +94,7 @@ const OPERATIONS = {
 
   nibFolders: () => nib.listNibFolders(),
   nibTags: () => nib.listNibTags(),
+  nibTagsInFolder: (/** @type {any} */ a) => nib.tagsInFolder(a.categoryId, a.subId ?? null),
   setSourceRules: (/** @type {any} */ a) => api.setSourceRules(store, a),
   bindSource: (/** @type {any} */ a) => api.bindSource(store, a),
   sources: (/** @type {any} */ a) => api.sources(store, a.person),

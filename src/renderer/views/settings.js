@@ -2,12 +2,13 @@
  * Settings: where the data lives, and how Nib feeds it.
  *
  * The Nib section is the important half. Rather than making him follow a naming
- * convention while writing notes, he binds a Nib folder to a person here and
- * says what kind of contact notes there count as. Organise Nib however you
- * like; changing your mind edits a binding rather than rewriting notes.
+ * convention while writing notes, he binds a Nib folder to a PERSON here, and
+ * then answers Tend's own question - for each kind of contact it tracks, which
+ * Nib tag supplies it. Organise Nib however you like; changing your mind edits
+ * a binding rather than rewriting notes.
  */
 
-import { act, ask, CONTACT_KINDS, esc, form, tend, toast } from "../ui.js";
+import { act, ask, esc, form, NOTE_CONTACT_KINDS, tend, toast } from "../ui.js";
 import { refresh } from "../app.js";
 import { modelStatus } from "../model.js";
 
@@ -42,10 +43,8 @@ function nibSection(folders, bindings, roster) {
       (/** @type {any} */ b) => `<div class="row static">
         <span class="row-name">${esc(b.nibFolder)}</span>
         <span class="row-right">
-          <span class="row-meta">→ ${esc(b.person ?? "unknown")} as ${esc(b.countsAs)}${
-            Array.isArray(b.rules) && b.rules.length > 0
-              ? `, ${b.rules.length} tag rule${b.rules.length === 1 ? "" : "s"}`
-              : ""
+          <span class="row-meta">→ ${esc(b.person ?? "unknown")}${
+            b.countsAs ? ` as ${esc(b.countsAs)}` : " - no tags mapped, so nothing counts yet"
           }</span>
           <button class="act tiny" data-act="rules" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">Tags</button>
           <button class="act tiny danger" data-act="unbind" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">Unbind</button>
@@ -84,7 +83,7 @@ function nibSection(folders, bindings, roster) {
 
     <article class="card">
       <div class="card-top"><h2 class="card-title">How this works</h2></div>
-      <p class="card-why">Point a Nib folder at a person and say what kind of contact notes there count as. Writing a note then becomes the evidence that the conversation happened, with nothing to confirm afterwards.</p>
+      <p class="card-why">Point a Nib folder at a person, then say which of your Nib tags supplies each kind of contact Tend tracks. Writing a tagged note is then the evidence that the contact happened, with nothing to confirm afterwards - and an untagged note counts as nothing, so a folder can hold every sort of note about somebody.</p>
       <p class="card-why dim">Flagged action points inside those notes become promises here, and ticking one off in Nib closes it here too. Tend only reads Nib.</p>
       <div class="card-foot">
         <span class="src">${folders.folders.length} folder(s) found in Nib</span>
@@ -179,6 +178,60 @@ function aboutSection(status) {
   </div>`;
 }
 
+/**
+ * One row per kind of contact Tend tracks, answered with a Nib tag.
+ *
+ * This way round on purpose. Listing Nib's tags and asking what each MEANT put
+ * the other app's vocabulary in charge of the question, so a folder of
+ * conversations with a colleague was asked about `Principle` - a book tag, with
+ * no sensible answer, in a list of five. Tend knows exactly which kinds of
+ * contact it has cadences for; the notebook only has to say which tag supplies
+ * each one.
+ *
+ * @param {any} catalog
+ * @param {Map<string, string>} [chosen] Existing rules, keyed by kind.
+ */
+function tagFields(catalog, chosen = new Map()) {
+  if (!catalog?.available || catalog.tags.length === 0) {
+    return [];
+  }
+  const options = [
+    { value: "", label: "No tag - Tend never sees this from here" },
+    ...catalog.tags.map((/** @type {any} */ t) => ({ value: String(t.id), label: String(t.name) }))
+  ];
+  return NOTE_CONTACT_KINDS.map((kind, i) => ({
+    name: `kind:${kind.value}`,
+    label: kind.label,
+    type: /** @type {const} */ ("select"),
+    hint: i === 0 ? `Tags read from ${catalog.dir}.` : undefined,
+    value: chosen.get(kind.value) ?? "",
+    options
+  }));
+}
+
+/**
+ * The chosen rows, as rules.
+ *
+ * A tag can only supply one kind: two kinds pointing at the same tag would make
+ * one note satisfy two cadences from a single piece of evidence, which is the
+ * dishonest direction.
+ *
+ * @param {Record<string, any>} values
+ */
+function rulesFrom(values) {
+  /** @type {{ tagId: string, kind: string }[]} */
+  const rules = [];
+  for (const [name, tagId] of Object.entries(values)) {
+    if (!name.startsWith("kind:") || typeof tagId !== "string" || tagId === "") {
+      continue;
+    }
+    if (!rules.some((rule) => rule.tagId === tagId)) {
+      rules.push({ tagId, kind: name.slice(5) });
+    }
+  }
+  return rules;
+}
+
 export const actions = {
   /**
    * Map Nib's tags onto contact kinds, for one binding.
@@ -191,10 +244,7 @@ export const actions = {
    * @param {Record<string, string>} d
    */
   rules: async (d) => {
-    const [catalog, bound] = await Promise.all([
-      tend.invoke("nibTags"),
-      tend.invoke("sources")
-    ]);
+    const [catalog, bound] = await Promise.all([tend.invoke("nibTags"), tend.invoke("sources")]);
 
     if (!catalog?.available) {
       toast(String(catalog?.why ?? "Nib's tags could not be read."), "bad");
@@ -206,34 +256,24 @@ export const actions = {
     }
 
     const binding = (Array.isArray(bound) ? bound : []).find((/** @type {any} */ b) => b.id === d.id);
-    const current = new Map(
-      (binding?.rules ?? []).map((/** @type {any} */ r) => [String(r.tagId), String(r.kind)])
+    const chosen = new Map(
+      (binding?.rules ?? []).map((/** @type {any} */ r) => [String(r.kind), String(r.tagId)])
     );
 
     const values = await form({
       title: `Tags in ${d.name}`,
       intro:
-        "This folder counts as its own kind by default. A tag on a note overrides that, which is " +
-        "what lets one folder hold every sort of note about one person without a second-hand note " +
-        "resetting the clock on having spoken to them. Leave a tag on “ignore” and it means nothing here.",
-      fields: catalog.tags.map((/** @type {any} */ tag) => ({
-        name: `tag:${tag.id}`,
-        label: tag.name,
-        type: "select",
-        hint: tag.description || undefined,
-        value: current.get(tag.id) ?? "",
-        options: [{ value: "", label: "Ignore - means nothing to Tend" }, ...CONTACT_KINDS]
-      })),
+        "Tend asks; your notebook answers. For each kind of contact Tend tracks, pick the Nib " +
+        "tag that means it. Leave one blank and Tend simply never sees that kind from this " +
+        "folder - most people will use two or three.",
+      fields: tagFields(catalog, chosen),
       confirm: "Save"
     });
     if (!values) {
       return;
     }
 
-    const rules = Object.entries(values)
-      .filter(([name, kind]) => name.startsWith("tag:") && typeof kind === "string" && kind !== "")
-      .map(([name, kind]) => ({ tagId: name.slice(4), kind: String(kind) }));
-
+    const rules = rulesFrom(values);
     if (await act("setSourceRules", { id: d.id, rules }, `${rules.length} tag rule${rules.length === 1 ? "" : "s"} saved.`)) {
       refresh();
     }
@@ -249,39 +289,13 @@ export const actions = {
       return;
     }
 
-    /**
-     * The tag rows, in this dialog rather than in one after it.
-     *
-     * They used to open as a second dialog once the binding existed, on the
-     * reasoning that a mapping needs something to be a mapping ON. True, and
-     * still wrong: standing in the bind dialog there was no sign tags existed
-     * at all, so anyone who read it and cancelled saw a screen identical to the
-     * old one and concluded the feature had not shipped. A decision you cannot
-     * see is a decision you do not make.
-     */
-    const tags = catalog?.available ? catalog.tags : [];
-    const tagFields = tags.map((/** @type {any} */ tag, /** @type {number} */ i) => ({
-      name: `tag:${tag.id}`,
-      label: tag.name,
-      type: /** @type {const} */ ("select"),
-      hint:
-        i === 0
-          ? `Tags read from ${catalog.dir}. Leave one on "ignore" and it means nothing here.`
-          : tag.description || undefined,
-      value: "",
-      options: [{ value: "", label: "Ignore - means nothing to Tend" }, ...CONTACT_KINDS]
-    }));
-
     const values = await form({
       title: "Bind a Nib folder",
       intro:
-        "Notes in this folder count as contact with this person. The kind you pick is the " +
-        "DEFAULT, and a tag on a note overrides it - which is what lets one folder hold every " +
-        "sort of note about somebody without a second-hand note resetting the clock on having " +
-        "spoken to them." +
-        (tagFields.length > 0
-          ? " Say what each of your tags means underneath; most of them will mean nothing here."
-          : ""),
+        "Notes in this folder become contact with this person. What each note counts AS comes " +
+        "from its tag in Nib - so a folder can hold every sort of note about somebody without " +
+        "one you merely heard resetting the clock on having spoken to them. An untagged note " +
+        "counts as nothing.",
       fields: [
         {
           name: "folder",
@@ -298,14 +312,7 @@ export const actions = {
           type: "select",
           options: roster.map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
         },
-        {
-          name: "kind",
-          label: "Most notes there are",
-          type: "select",
-          options: CONTACT_KINDS,
-          value: "one-to-one"
-        },
-        ...tagFields
+        ...tagFields(catalog)
       ],
       confirm: "Bind"
     });
@@ -320,29 +327,26 @@ export const actions = {
 
     const bound = await act(
       "bindSource",
-      { person: values.person, categoryId, subId: subId || undefined, kind: values.kind, label },
+      { person: values.person, categoryId, subId: subId || undefined, label },
       "Bound."
     );
     if (!bound) {
       return;
     }
 
-    const rules = Object.entries(values)
-      .filter(([name, kind]) => name.startsWith("tag:") && typeof kind === "string" && kind !== "")
-      .map(([name, kind]) => ({ tagId: name.slice(4), kind: String(kind) }));
-
+    const rules = rulesFrom(values);
     if (rules.length > 0) {
       await act("setSourceRules", { id: String(bound.id), rules });
     }
     refresh();
 
-    // Only worth saying when there was nothing to offer. Silence here was the
-    // original bug: nothing happened, nothing said why, and the reason was that
-    // Tend had found a DIFFERENT notebook with no tags in it.
-    if (tagFields.length === 0) {
+    if (!catalog?.available || catalog.tags.length === 0) {
+      // Said out loud rather than skipped: nothing happening with no reason
+      // given was the original bug, and its cause was Tend having found a
+      // DIFFERENT notebook with no tags in it.
       toast(
         catalog?.available
-          ? `No tags in the notebook at ${catalog.dir}, so there is nothing to map yet.`
+          ? `No tags in the notebook at ${catalog.dir}, so no note there counts as anything yet.`
           : `Could not read Nib's tags: ${catalog?.why ?? "unknown reason"}`,
         "bad"
       );

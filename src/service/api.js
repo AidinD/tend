@@ -633,32 +633,30 @@ export function setDelegationLevel(store, id, level) {
  * organised however suits and the mapping lives here, so changing his
  * mind means editing one binding rather than rewriting notes.
  *
- * The binding carries the contact kind, which is what keeps the model honest.
- * One folder can be "1-1 notes about Nadia" and another "what Nova's lead told
- * me about Johan", and they satisfy different cadences exactly as they should.
+ * The binding says WHO, and nothing else. What a note counts AS comes from its
+ * tags, mapped by `setSourceRules`.
  *
- * That kind is a DEFAULT, not a verdict. A folder is usually one person rather
- * than one kind - everything about somebody in one place - so `setSourceRules`
- * maps Nib's own tags onto kinds for the notes there that are the exception.
+ * There was a folder-level kind here and it was removed. A folder is one person,
+ * not one kind: everything about somebody lives in it, so a folder-wide "these
+ * are 1-1s" made a note about something you merely heard reset the clock on
+ * having spoken to them. An untagged note now counts as nothing, which shows up
+ * as a cadence that has not advanced - an alert you can answer, rather than a
+ * reassurance you cannot check.
  *
  * @param {import("../storage/store.js").TendStore} store
  * @param {object} args
  * @param {string} args.person
  * @param {string} args.categoryId Nib category id.
  * @param {string} [args.subId] Nib sub-category id. Omit for the whole category.
- * @param {string} args.kind Contact kind the notes there count as.
  * @param {string} [args.label] Human-readable name of the Nib folder, for the UI.
  */
-export function bindSource(store, { person: who, categoryId, subId, kind, label }) {
+export function bindSource(store, { person: who, categoryId, subId, label }) {
   const found = resolvePerson(store, who);
   if (!found.ok) {
     return { error: found.error };
   }
   if (!String(categoryId ?? "").trim()) {
     return { error: "A binding needs a Nib category id." };
-  }
-  if (!String(kind ?? "").trim()) {
-    return { error: "A binding needs a contact kind, so notes there satisfy the right cadence." };
   }
 
   const clash = store
@@ -668,7 +666,7 @@ export function bindSource(store, { person: who, categoryId, subId, kind, label 
     return {
       error: `That Nib folder is already bound to ${
         store.rows("people").find((p) => p.id === clash.person)?.name ?? "someone"
-      } as "${clash.kind}". Unbind it first.`
+      }. Unbind it first.`
     };
   }
 
@@ -676,11 +674,10 @@ export function bindSource(store, { person: who, categoryId, subId, kind, label 
     person: found.person.id,
     categoryId,
     subId: subId ?? null,
-    kind: String(kind).trim(),
     label: label ?? null,
     rules: []
   });
-  return { id, bound: `${label ?? categoryId} → ${found.person.name} as ${kind}` };
+  return { id, bound: `${label ?? categoryId} → ${found.person.name}` };
 }
 
 /**
@@ -751,7 +748,9 @@ export function sources(store, person) {
     categoryId: s.categoryId,
     subId: s.subId,
     rules: Array.isArray(s.rules) ? s.rules : [],
-    countsAs: s.kind
+    // Derived rather than stored: there is no folder-level kind any more, so
+    // what a folder counts as IS the list of rules on it.
+    countsAs: (Array.isArray(s.rules) ? s.rules : []).map((/** @type {any} */ r) => r.kind).join(", ")
   }));
 }
 

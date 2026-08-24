@@ -293,6 +293,18 @@ export const CONTACT_KINDS = [
   { value: "check-in", label: "Check-in - you looked at a project" }
 ];
 
+/**
+ * The contact kinds a NOTE can be evidence of.
+ *
+ * A subset of CONTACT_KINDS, and the subset is the point: a survey round is a
+ * form going out and a project check-in is about a project, so neither is ever
+ * something a note about a person carries. Offering them in the mapping would
+ * be asking a question with no answer, seven times.
+ */
+export const NOTE_CONTACT_KINDS = CONTACT_KINDS.filter((k) =>
+  ["one-to-one", "second-hand", "sideways", "feedback", "observation"].includes(k.value)
+);
+
 export const LEVEL_OPTIONS = [
   { value: "doing", label: "Doing it myself - still mine, reviewed weekly" },
   { value: "close", label: "Delegated, close follow-up - theirs to drive, reviewed fortnightly" },

@@ -80,7 +80,6 @@ function bind() {
       person: "Rasmus",
       categoryId: "cat-team",
       subId: "sub-c",
-      kind: "one-to-one",
       label: "Team / Rasmus"
     })
   ).id;
@@ -107,11 +106,16 @@ afterEach(() => {
 });
 
 describe("which cadence a note satisfies", () => {
-  it("uses the folder's kind when the note carries no mapped tag", () => {
-    writeNib([{ id: "n1", title: "1-1", tags: [] }]);
+  it("counts an untagged note as nothing at all", () => {
+    // There is no folder-level default any more, and this is the reason. A
+    // folder holds every sort of note about one person, so a default made a
+    // note about something you HEARD reset the clock on having SPOKEN to them
+    // and the app then said the two were in step. A cadence that has not
+    // advanced is an alert you can answer; a false one cannot be checked.
+    writeNib([{ id: "n1", title: "Nagot om Rasmus", tags: [] }]);
     bind();
     ok(indexNib(store, { dir: nibDir }));
-    assert.deepEqual(kindsOf(), ["one-to-one"]);
+    assert.deepEqual(kindsOf(), []);
   });
 
   it("lets a tag override it, which is the whole point", () => {
@@ -141,12 +145,13 @@ describe("which cadence a note satisfies", () => {
   });
 
   it("ignores a tag it has no rule for rather than guessing", () => {
-    // Most of Nib's tags will mean nothing here. Silence is the right answer.
+    // Most of Nib's tags mean nothing here - Principle is a book tag and will
+    // never be a kind of contact. Silence is the right answer, not a fallback.
     writeNib([{ id: "n1", title: "Princip 1", tags: ["tag-principle"] }]);
     const id = bind();
     ok(setSourceRules(store, { id, rules: [{ tagId: "tag-second-hand", kind: "second-hand" }] }));
     ok(indexNib(store, { dir: nibDir }));
-    assert.deepEqual(kindsOf(), ["one-to-one"], "it falls back to the folder's default");
+    assert.deepEqual(kindsOf(), []);
   });
 
   it("stays idempotent across runs, per kind", () => {
@@ -338,12 +343,12 @@ describe("finding Nib at all", () => {
 });
 
 describe("kindsFor on its own", () => {
-  it("falls back to the default when there are no rules at all", () => {
-    assert.deepEqual(kindsFor({ tags: ["tag-x"] }, { kind: "one-to-one" }, []), ["one-to-one"]);
+  it("returns nothing when there are no rules at all", () => {
+    assert.deepEqual(kindsFor({ tags: ["tag-x"] }, {}, []), []);
   });
 
   it("does not repeat a kind two tags both map to", () => {
-    const kinds = kindsFor({ tags: ["tag-a", "tag-b"] }, { kind: "one-to-one" }, [
+    const kinds = kindsFor({ tags: ["tag-a", "tag-b"] }, {}, [
       { tagId: "tag-a", kind: "feedback" },
       { tagId: "tag-b", kind: "feedback" }
     ]);

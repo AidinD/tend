@@ -219,6 +219,46 @@ export function listNibTags(dir) {
 }
 
 /**
+ * The tags actually used on notes in one folder, with how many carry each.
+ *
+ * The mapping screen asks what a tag means HERE, and the honest scope of that
+ * question is the folder in front of you. Offering the whole catalog made it
+ * ask about `Principle` for a folder of conversations with a colleague, which
+ * is a question with no sensible answer and five of them in a row.
+ *
+ * @param {string} categoryId
+ * @param {string | null} subId
+ * @param {string} [dir]
+ * @returns {{ available: false, why: string } | { available: true, dir: string, tags: { id: string, name: string, color: string, description: string, notes: number }[] }}
+ */
+export function tagsInFolder(categoryId, subId, dir) {
+  const catalog = listNibTags(dir);
+  if (!catalog.available) {
+    return catalog;
+  }
+  const index = readNibIndex(dir);
+  if (!index.available) {
+    return { available: false, why: index.why };
+  }
+
+  /** @type {Map<string, number>} */
+  const counts = new Map();
+  for (const note of notesIn(index.categories, categoryId, subId ?? null)) {
+    for (const id of note.tags) {
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+  }
+
+  return {
+    available: true,
+    dir: catalog.dir,
+    tags: catalog.tags
+      .filter((tag) => counts.has(tag.id))
+      .map((tag) => ({ ...tag, notes: counts.get(tag.id) ?? 0 }))
+  };
+}
+
+/**
  * Notes inside one bound folder.
  *
  * A binding on a whole category deliberately covers only the notes sitting
@@ -263,19 +303,24 @@ export function notesIn(categories, categoryId, subId) {
 /**
  * What kinds of contact one note counts as.
  *
- * The binding's own kind is the DEFAULT, and a tag on the note is the
- * exception. That order matters: requiring a tag before a note counted would
- * put the friction on the common path, and the common path is a folder full of
- * 1-1 notes.
+ * Its tags, mapped. Nothing else - there is no default, and an untagged note
+ * produces no contact at all.
  *
- * Why this exists at all: a folder is one PERSON, not one kind. Everything about
- * Rasmus goes in `Team / Rasmus` - the conversations, what somebody else
- * said about him, what you saw him do. Counting a second-hand note as a 1-1
- * would reset the 1-1 clock and tell you that you had spoken to him when you had
- * not, which is the one failure this whole app exists to prevent.
+ * That is the whole model, and the earlier version had a folder-level default
+ * underneath it which was wrong in the direction that matters. A folder is one
+ * PERSON, not one kind: everything about somebody lives in it, the
+ * conversations and what a colleague mentioned and what you watched them do. A
+ * default meant an untagged note of any of those counted as whichever kind the
+ * folder was set to - so a note about something you HEARD reset the clock on
+ * having SPOKEN to them, and the app said the two were in step.
  *
- * A tag Tend has no rule for is ignored rather than guessed at. Nib's tags are
- * Nib's, and most of them will mean nothing here.
+ * Erring the other way costs a cadence that does not advance until a note is
+ * tagged, which shows up as an alert you can answer. The app's rule throughout
+ * is to flag in doubt and never suppress: a missing nudge is invisible, and an
+ * extra one takes a moment to dismiss.
+ *
+ * A tag with no rule is ignored rather than guessed at. Most of Nib's tags mean
+ * nothing here and should.
  *
  * @param {Pick<NibNote, "tags">} note Only the tag ids are read, so a caller
  *   with something note-shaped does not have to build a whole one.
@@ -290,7 +335,7 @@ export function kindsFor(note, binding, rules) {
       mapped.add(String(rule.kind));
     }
   }
-  return mapped.size > 0 ? [...mapped] : [String(binding.kind)];
+  return [...mapped];
 }
 
 /**
@@ -354,7 +399,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
       // Feedback is honestly both, and satisfies both cadences; the id carries
       // the kind so the two never collide and a re-run still writes nothing new.
       for (const kind of kindsFor(note, binding, rules)) {
-        const touchId = kind === binding.kind ? `nib:${note.id}` : `nib:${note.id}:${kind}`;
+        const touchId = `nib:${note.id}:${kind}`;
         if (existingTouches.has(touchId)) {
           continue;
         }
