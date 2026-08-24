@@ -2,38 +2,30 @@
 /**
  * Publish a release: check, clean, package, upload.
  *
- * A script rather than a chain of npm scripts, because four things have gone
- * wrong in the sibling apps and each one is guarded here.
+ * The guards live in `keel/release` now. They are the whole value of having a
+ * release script rather than a chain of npm scripts - each one is a thing that
+ * went wrong in one of the sibling apps - and keeping four private copies meant
+ * Nib was missing two of them and found out by publishing a release that did
+ * nothing and said "Published".
  *
- *  - `dist/` MUST be cleared first, and it cannot be cleared while a packaged
- *    Tend is running. The app test harness starts one, so a release straight
- *    after a test run fails on a locked file.
- *  - Only processes running THIS build are stopped, matched on their executable
- *    path. Never by name: other Electron apps are open, and a broad kill closes
- *    whatever someone is working in.
- *  - The upload has to be electron-builder's own publisher. It names the
- *    installer in the dashed form `latest.yml` references; a hand-rolled
- *    `gh release create` produces a name with spaces, and electron-updater then
- *    404s on an asset in a release that looks perfectly published.
- *  - The token comes from the gh CLI at release time, so no long-lived GH_TOKEN
- *    sits in a shell profile or a file.
+ * What stays here is the middle: which guards Tend wants, and how Tend builds.
  *
  *   node scripts/release.mjs [--skip-tests]
  */
 
-import { execFileSync, execSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { stopRunningBuild } from "./stop-running-build.mjs";
+import { appMeta, clean, ghToken, nodeExec, preflight, stopRunningBuild } from "keel/release";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const dist = join(root, "dist");
 const skipTests = process.argv.includes("--skip-tests");
 
-const { version, name } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const exec = nodeExec(root);
+const { name, version, tag } = appMeta(root);
 
 /** @param {string} command @param {string[]} args @param {NodeJS.ProcessEnv} [env] */
 function run(command, args, env = process.env) {
@@ -50,29 +42,12 @@ console.log(`Releasing ${name} ${version}\n`);
 
 /* ------------------------------------------------------- sanity checks -- */
 
-const dirty = execSync("git status --porcelain", { cwd: root, encoding: "utf8" }).trim();
-if (dirty) {
-  fail(
-    "The working tree has uncommitted changes. Release what is committed, or the\n" +
-      "published build will not match any commit:\n\n" +
-      dirty
-  );
-}
-
-try {
-  const existing = execSync(`gh release view v${version} --json tagName`, {
-    cwd: root,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"]
-  });
-  if (existing.trim()) {
-    fail(
-      `v${version} is already released on GitHub. Bump the version in package.json,\n` +
-        "commit, and run this again."
-    );
-  }
-} catch {
-  // No such release, which is what we want.
+// Tend publishes from here, so there is no tag to guard - electron-builder
+// creates it. The two that matter are a tree that matches what gets built, and a
+// version that is not already up.
+const failures = preflight(exec, { tag, checks: ["cleanTree", "notAlreadyReleased"] });
+if (failures.length > 0) {
+  fail(failures.map((failure) => failure.message).join("\n\n"));
 }
 
 if (!skipTests) {
@@ -84,42 +59,33 @@ if (!skipTests) {
 
 /* ---------------------------------------- stop only this build's processes -- */
 
+// `dist/` cannot be cleared while a packaged Tend holds a file in it, and
+// `npm run test:app -- --keep` leaves exactly such a process. Matched on the
+// executable path, so an installed Tend and every other Electron app are left
+// alone.
 stopRunningBuild(dist);
 
 /* --------------------------------------------------------------- clean -- */
 
-// Old installers are deleted rather than left to pile up: a folder holding three
-// versions makes it far too easy to hand someone the wrong one.
-if (existsSync(dist)) {
-  const stale = readdirSync(dist).filter((f) => /\.(exe|blockmap|yml)$/.test(f));
-  if (stale.length) {
-    console.log(`Removing ${stale.length} file(s) from a previous build.`);
-  }
-}
-
 try {
-  rmSync(dist, { recursive: true, force: true });
-} catch (err) {
-  fail(
-    `Could not clear ${dist}: ${err instanceof Error ? err.message : String(err)}\n\n` +
-      "Something still holds a file there. A packaged Tend left running by\n" +
-      "`npm run test:app -- --keep` is the usual cause."
-  );
+  clean(root, ["dist"]);
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
 }
-console.log("Cleaned dist/\n");
+console.log("");
 
 /* ------------------------------------------------------------- publish -- */
 
 let token;
 try {
-  token = execSync("gh auth token", { cwd: root, encoding: "utf8" }).trim();
-} catch {
-  fail("Could not get a token from `gh auth token` - is the gh CLI logged in?");
-}
-if (!token) {
-  fail("`gh auth token` returned nothing.");
+  token = ghToken(exec);
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
 }
 
+// electron-builder's own publisher, not `gh release create`: it names the
+// installer in the dashed form `latest.yml` references, and a hand-rolled upload
+// produces a name with spaces that electron-updater then 404s on.
 run("npx", ["electron-builder", "--win", "--publish", "always"], { ...process.env, GH_TOKEN: token });
 
 console.log(`\nPublished ${version}. An installed copy picks it up on its next launch.`);

@@ -14,7 +14,7 @@ import { readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { stopRunningBuild } from "./stop-running-build.mjs";
+import { stopRunningBuild } from "keel/release";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
