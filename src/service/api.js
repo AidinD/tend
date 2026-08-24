@@ -637,6 +637,10 @@ export function setDelegationLevel(store, id, level) {
  * One folder can be "1-1 notes about Nadia" and another "what Nova's lead told
  * me about Johan", and they satisfy different cadences exactly as they should.
  *
+ * That kind is a DEFAULT, not a verdict. A folder is usually one person rather
+ * than one kind - everything about somebody in one place - so `setSourceRules`
+ * maps Nib's own tags onto kinds for the notes there that are the exception.
+ *
  * @param {import("../storage/store.js").TendStore} store
  * @param {object} args
  * @param {string} args.person
@@ -673,9 +677,57 @@ export function bindSource(store, { person: who, categoryId, subId, kind, label 
     categoryId,
     subId: subId ?? null,
     kind: String(kind).trim(),
-    label: label ?? null
+    label: label ?? null,
+    rules: []
   });
   return { id, bound: `${label ?? categoryId} → ${found.person.name} as ${kind}` };
+}
+
+/**
+ * Map Nib's tags onto contact kinds, for one binding.
+ *
+ * Stored on the binding rather than in Nib, and keyed on the tag's ID rather
+ * than its name. Both halves matter. In Nib a tag is just a tag - what it MEANS
+ * for a cadence is Tend's opinion, and putting that opinion in the other app
+ * would make Nib a satellite of this one. And on the id, because a tag renamed
+ * in Nib must go on counting; matching on the word is a naming convention with
+ * extra steps, which is the thing this design refused from the start.
+ *
+ * Replaces the whole list rather than merging: a mapping screen where removing a
+ * row needs a different call than adding one is a screen that gets one of the
+ * two wrong.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.id Binding id.
+ * @param {{ tagId: string, kind: string }[]} args.rules
+ */
+export function setSourceRules(store, { id, rules }) {
+  const binding = store.rows("sources").find((s) => s.id === id);
+  if (!binding) {
+    return { error: `No binding with id "${id}".` };
+  }
+  if (!Array.isArray(rules)) {
+    return { error: "Rules must be a list of { tagId, kind }." };
+  }
+
+  /** @type {{ tagId: string, kind: string }[]} */
+  const clean = [];
+  for (const rule of rules) {
+    const tagId = String(rule?.tagId ?? "").trim();
+    const kind = String(rule?.kind ?? "").trim();
+    if (tagId === "" || kind === "") {
+      continue;
+    }
+    // One kind per tag. Two rules for the same tag would write two contacts
+    // from one note and quietly satisfy a cadence twice.
+    if (!clean.some((existing) => existing.tagId === tagId)) {
+      clean.push({ tagId, kind });
+    }
+  }
+
+  store.update("sources", id, { rules: clean });
+  return { id, rules: clean.length };
 }
 
 /**
@@ -698,6 +750,7 @@ export function sources(store, person) {
     nibFolder: s.label ?? s.categoryId,
     categoryId: s.categoryId,
     subId: s.subId,
+    rules: Array.isArray(s.rules) ? s.rules : [],
     countsAs: s.kind
   }));
 }

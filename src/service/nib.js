@@ -60,6 +60,7 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
  * @property {number} edited
  * @property {{ id: string, text: string, done: boolean }[]} alerts
  * @property {string} flag
+ * @property {string[]} tags Tag ids from Nib's own catalog.
  */
 
 /**
@@ -78,7 +79,7 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
  * from working.
  *
  * @param {string} [dir]
- * @returns {{ available: true, categories: any[] } | { available: false, why: string }}
+ * @returns {{ available: true, categories: any[], tags?: any[] } | { available: false, why: string }}
  */
 export function readNibIndex(dir = nibDataDir()) {
   const path = join(dir, "index.json");
@@ -99,7 +100,7 @@ export function readNibIndex(dir = nibDataDir()) {
     if (!Array.isArray(parsed?.categories)) {
       return { available: false, why: `${path} does not look like a Nib index.` };
     }
-    return { available: true, categories: parsed.categories };
+    return { available: true, categories: parsed.categories, tags: parsed.tags };
   } catch {
     // Nib writes atomically, so a torn read here is unlikely rather than
     // routine. Still worth not crashing over.
@@ -145,6 +146,33 @@ export function listNibFolders(dir) {
 }
 
 /**
+ * Nib's whole tag catalog.
+ *
+ * Read so the mapping can be built by picking a tag rather than typing an id.
+ * The names are Nib's and stay Nib's - Tend shows them and stores the id, so
+ * renaming a tag over there changes what this screen says and nothing else.
+ *
+ * @param {string} [dir]
+ * @returns {{ available: false, why: string } | { available: true, tags: { id: string, name: string, color: string, description: string }[] }}
+ */
+export function listNibTags(dir) {
+  const index = readNibIndex(dir);
+  if (!index.available) {
+    return index;
+  }
+  const raw = /** @type {any} */ (index).tags;
+  return {
+    available: true,
+    tags: (Array.isArray(raw) ? raw : []).map((/** @type {any} */ t) => ({
+      id: String(t?.id ?? ""),
+      name: String(t?.name ?? ""),
+      color: String(t?.color ?? "#9a9da3"),
+      description: String(t?.description ?? "")
+    })).filter((t) => t.id !== "" && t.name !== "")
+  };
+}
+
+/**
  * Notes inside one bound folder.
  *
  * A binding on a whole category deliberately covers only the notes sitting
@@ -179,8 +207,44 @@ export function notesIn(categories, categoryId, subId) {
             done: Boolean(a.done)
           }))
         : [],
-      flag: String(n.flag ?? "")
+      flag: String(n.flag ?? ""),
+      // Ids only. What they MEAN is Tend's business and lives in the binding,
+      // never in Nib - the same reason the folder does not carry the person.
+      tags: Array.isArray(n.tags) ? n.tags.map((/** @type {any} */ t) => String(t)) : []
     }));
+}
+
+/**
+ * What kinds of contact one note counts as.
+ *
+ * The binding's own kind is the DEFAULT, and a tag on the note is the
+ * exception. That order matters: requiring a tag before a note counted would
+ * put the friction on the common path, and the common path is a folder full of
+ * 1-1 notes.
+ *
+ * Why this exists at all: a folder is one PERSON, not one kind. Everything about
+ * Rasmus goes in `Team / Rasmus` - the conversations, what somebody else
+ * said about him, what you saw him do. Counting a second-hand note as a 1-1
+ * would reset the 1-1 clock and tell you that you had spoken to him when you had
+ * not, which is the one failure this whole app exists to prevent.
+ *
+ * A tag Tend has no rule for is ignored rather than guessed at. Nib's tags are
+ * Nib's, and most of them will mean nothing here.
+ *
+ * @param {Pick<NibNote, "tags">} note Only the tag ids are read, so a caller
+ *   with something note-shaped does not have to build a whole one.
+ * @param {any} binding
+ * @param {{ tagId: string, kind: string }[]} rules
+ * @returns {string[]}
+ */
+export function kindsFor(note, binding, rules) {
+  const mapped = new Set();
+  for (const rule of rules) {
+    if (note.tags.includes(String(rule.tagId)) && String(rule.kind ?? "") !== "") {
+      mapped.add(String(rule.kind));
+    }
+  }
+  return mapped.size > 0 ? [...mapped] : [String(binding.kind)];
 }
 
 /**
@@ -234,17 +298,26 @@ export function indexNib(store, { dir, dry = false } = {}) {
       continue;
     }
 
+    const rules = Array.isArray(binding.rules) ? binding.rules : [];
+
     for (const note of notes) {
       // A note is evidence that contact happened, dated when it was written
       // rather than when it was indexed.
-      const touchId = `nib:${note.id}`;
-      if (!existingTouches.has(touchId)) {
+      //
+      // One touch per KIND, not one per note. A note tagged both 1-1 and
+      // Feedback is honestly both, and satisfies both cadences; the id carries
+      // the kind so the two never collide and a re-run still writes nothing new.
+      for (const kind of kindsFor(note, binding, rules)) {
+        const touchId = kind === binding.kind ? `nib:${note.id}` : `nib:${note.id}:${kind}`;
+        if (existingTouches.has(touchId)) {
+          continue;
+        }
         contacts += 1;
         if (!dry) {
           store.create("touches", {
             id: touchId,
             subject: binding.person,
-            kind: binding.kind,
+            kind,
             note: note.title || null,
             at: note.created || Date.now(),
             from: "nib"

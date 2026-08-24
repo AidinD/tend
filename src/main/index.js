@@ -93,6 +93,8 @@ const OPERATIONS = {
   answerQuestion: (/** @type {any} */ a) => model.answerQuestion(store, { ...a, now: a.now ?? Date.now() }),
 
   nibFolders: () => nib.listNibFolders(),
+  nibTags: () => nib.listNibTags(),
+  setSourceRules: (/** @type {any} */ a) => api.setSourceRules(store, a),
   bindSource: (/** @type {any} */ a) => api.bindSource(store, a),
   sources: (/** @type {any} */ a) => api.sources(store, a.person),
   unbindSource: (/** @type {any} */ a) => api.unbindSource(store, a.id),

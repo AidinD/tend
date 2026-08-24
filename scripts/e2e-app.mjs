@@ -290,6 +290,12 @@ function writeNibFixture() {
     join(nibScratch, "index.json"),
     JSON.stringify({
       version: 1,
+      // Nib's own tag catalog, in the shape Nib seeds it. Tend maps these onto
+      // contact kinds; the names stay Nib's and the ids are what get stored.
+      tags: [
+        { id: "tag-one-to-one", name: "1-1", color: "#6f9cff", description: "" },
+        { id: "tag-second-hand", name: "Second-hand", color: "#b98cff", description: "" }
+      ],
       categories: [
         {
           id: "cat-1to1",
@@ -311,6 +317,7 @@ function writeNibFixture() {
               tint: "",
               alerts: [{ id: "al-1", text: "Kolla med Nina om konferensen", done: false }],
               flag: "",
+              tags: ["tag-second-hand"],
               hasImage: false,
               hasDrawing: false
             }
@@ -802,6 +809,68 @@ try {
   check("and the promise from Nib keeps its Swedish text", () => {
     if (!/Kolla med Nina om konferensen/.test(String(afterImport))) {
       throw new Error("the imported promise is missing or mangled");
+    }
+  });
+
+  /* ------------------------------------------------------------- tags -- */
+
+  step("Tags decide what a note counts as");
+
+  // The failure this fixes is invisible: a folder holds every sort of note
+  // about ONE PERSON, so a note about what somebody else said sat with the 1-1
+  // notes and reset the 1-1 clock. The app then said they were in step.
+  await page.click('.nav-btn[data-view="settings"]');
+  await page.waitFor("document.querySelector('[data-act=\"rules\"]') !== null", "the tag button");
+
+  await page.click('[data-act="rules"]');
+  const tagOptions = await page.dialogOptions("tag:tag-second-hand");
+  check("Nib's own tags are offered, read from its catalog", () => {
+    if (!tagOptions.some((o) => /second-hand/i.test(o.label))) {
+      throw new Error(`offered: ${JSON.stringify(tagOptions.map((o) => o.label))}`);
+    }
+    if (!tagOptions.some((o) => o.value === "")) {
+      throw new Error("there is no way to say a tag means nothing here");
+    }
+  });
+
+  await page.fillDialog({ "tag:tag-second-hand": "second-hand", "tag:tag-one-to-one": "" });
+  await page.waitFor("document.body.textContent.includes('tag rule')", "the saved rule");
+  check("a tag can be mapped onto a contact kind without leaving the window", () => {});
+
+  // Measured as a DELTA, because the walkthrough already logged contact by hand
+  // earlier in the run. What matters is what the IMPORT added, not the total.
+  // Captured locally: `page` is nullable at the top of the file, and a closure
+  // is where TypeScript stops being able to see that it has been checked.
+  const driver = page;
+  const kindCounts = () =>
+    driver
+      .evaluate(
+        "window.tend.invoke('person', { person: 'Testperson' }).then((p) => JSON.stringify(p.recentContact.map((t) => t.kind)))"
+      )
+      .then((raw) =>
+        JSON.parse(String(raw)).reduce((/** @type {any} */ tally, /** @type {string} */ kind) => {
+          tally[kind] = (tally[kind] ?? 0) + 1;
+          return tally;
+        }, {})
+      );
+
+  const kindsBefore = await kindCounts();
+  await page.click('[data-act="index"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the import result");
+  await page.dismissDialog();
+  const kindsAfter = await kindCounts();
+
+  check("and the tagged note counts as that kind, not as the folder's default", () => {
+    const added = (/** @type {string} */ kind) => (kindsAfter[kind] ?? 0) - (kindsBefore[kind] ?? 0);
+    if (added("second-hand") !== 1) {
+      throw new Error(
+        `the import added ${added("second-hand")} second-hand contacts; ${JSON.stringify({ kindsBefore, kindsAfter })}`
+      );
+    }
+    if (added("one-to-one") !== 0) {
+      throw new Error(
+        `a tagged note still reset the 1-1 clock; ${JSON.stringify({ kindsBefore, kindsAfter })}`
+      );
     }
   });
 

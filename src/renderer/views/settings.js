@@ -7,7 +7,7 @@
  * like; changing your mind edits a binding rather than rewriting notes.
  */
 
-import { act, ask, CONTACT_KINDS, esc, form, tend } from "../ui.js";
+import { act, ask, CONTACT_KINDS, esc, form, tend, toast } from "../ui.js";
 import { refresh } from "../app.js";
 import { modelStatus } from "../model.js";
 
@@ -42,7 +42,12 @@ function nibSection(folders, bindings, roster) {
       (/** @type {any} */ b) => `<div class="row static">
         <span class="row-name">${esc(b.nibFolder)}</span>
         <span class="row-right">
-          <span class="row-meta">→ ${esc(b.person ?? "unknown")} as ${esc(b.countsAs)}</span>
+          <span class="row-meta">→ ${esc(b.person ?? "unknown")} as ${esc(b.countsAs)}${
+            Array.isArray(b.rules) && b.rules.length > 0
+              ? `, ${b.rules.length} tag rule${b.rules.length === 1 ? "" : "s"}`
+              : ""
+          }</span>
+          <button class="act tiny" data-act="rules" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">Tags</button>
           <button class="act tiny danger" data-act="unbind" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">Unbind</button>
         </span>
       </div>`
@@ -167,6 +172,65 @@ function aboutSection(status) {
 }
 
 export const actions = {
+  /**
+   * Map Nib's tags onto contact kinds, for one binding.
+   *
+   * One row per tag Nib has, each choosing a kind or "ignore". Presented as the
+   * whole list rather than as rows you add and remove, because the question is
+   * "what does each of my tags mean here" and the honest answer for most of them
+   * is nothing.
+   *
+   * @param {Record<string, string>} d
+   */
+  rules: async (d) => {
+    const [catalog, bound] = await Promise.all([
+      tend.invoke("nibTags"),
+      tend.invoke("sources")
+    ]);
+
+    if (!catalog?.available) {
+      toast(String(catalog?.why ?? "Nib's tags could not be read."), "bad");
+      return;
+    }
+    if (catalog.tags.length === 0) {
+      toast("Nib has no tags yet. Make one there first, then map it here.", "bad");
+      return;
+    }
+
+    const binding = (Array.isArray(bound) ? bound : []).find((/** @type {any} */ b) => b.id === d.id);
+    const current = new Map(
+      (binding?.rules ?? []).map((/** @type {any} */ r) => [String(r.tagId), String(r.kind)])
+    );
+
+    const values = await form({
+      title: `Tags in ${d.name}`,
+      intro:
+        "This folder counts as its own kind by default. A tag on a note overrides that, which is " +
+        "what lets one folder hold every sort of note about one person without a second-hand note " +
+        "resetting the clock on having spoken to them. Leave a tag on “ignore” and it means nothing here.",
+      fields: catalog.tags.map((/** @type {any} */ tag) => ({
+        name: `tag:${tag.id}`,
+        label: tag.name,
+        type: "select",
+        hint: tag.description || undefined,
+        value: current.get(tag.id) ?? "",
+        options: [{ value: "", label: "Ignore - means nothing to Tend" }, ...CONTACT_KINDS]
+      })),
+      confirm: "Save"
+    });
+    if (!values) {
+      return;
+    }
+
+    const rules = Object.entries(values)
+      .filter(([name, kind]) => name.startsWith("tag:") && typeof kind === "string" && kind !== "")
+      .map(([name, kind]) => ({ tagId: name.slice(4), kind: String(kind) }));
+
+    if (await act("setSourceRules", { id: d.id, rules }, `${rules.length} tag rule${rules.length === 1 ? "" : "s"} saved.`)) {
+      refresh();
+    }
+  },
+
   bind: async () => {
     const [folders, roster] = await Promise.all([tend.invoke("nibFolders"), tend.invoke("people")]);
     if (!folders?.available) {
