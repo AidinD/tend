@@ -31,7 +31,16 @@ export const COLLECTIONS = /** @type {const} */ ([
   "signals",
   "signalAnswers",
   /** Which Nib categories feed which person, and as what kind of contact. */
-  "sources"
+  "sources",
+  /**
+   * Decisions about the organisation, with a date to revisit them.
+   *
+   * Not promises. A promise is given TO a person; a decision is ABOUT the
+   * organisation, and it is the thing that has no commit history and therefore
+   * gets renegotiated every three months by people who have forgotten why -
+   * yourself included.
+   */
+  "decisions"
 ]);
 
 /**

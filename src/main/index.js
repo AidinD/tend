@@ -59,6 +59,7 @@ const OPERATIONS = {
   promises: (/** @type {any} */ a) => api.promises(store, a.now ?? Date.now()),
   roleMap: (/** @type {any} */ a) => api.roleMap(store, a.now ?? Date.now()),
   prep: (/** @type {any} */ a) => api.prep(store, a.now ?? Date.now()),
+  decisions: (/** @type {any} */ a) => api.decisions(store, a.now ?? Date.now(), a.status),
   focus: (/** @type {any} */ a) => api.focus(store, a.now ?? Date.now()),
   projects: (/** @type {any} */ a) => api.projects(store, a.now ?? Date.now()),
 
@@ -71,6 +72,9 @@ const OPERATIONS = {
   logEvidence: (/** @type {any} */ a) => api.logEvidence(store, { ...a, now: a.now ?? Date.now() }),
   proposeDuty: (/** @type {any} */ a) => api.proposeDuty(store, a),
   decideDuty: (/** @type {any} */ a) => api.decideDuty(store, a.id, a.status, a.overrides),
+  logDecision: (/** @type {any} */ a) => api.logDecision(store, { ...a, now: a.now ?? Date.now() }),
+  decideDecision: (/** @type {any} */ a) => api.decideDecision(store, a.id, a.fields ?? {}, a.now ?? Date.now()),
+  stillHolds: (/** @type {any} */ a) => api.stillHolds(store, a.id, a.now ?? Date.now(), a.days),
 
   signals: (/** @type {any} */ a) => api.signals(store, a.now ?? Date.now()),
   answerSignal: (/** @type {any} */ a) => api.answerSignal(store, { ...a, now: a.now ?? Date.now() }),

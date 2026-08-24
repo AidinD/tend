@@ -14,6 +14,7 @@
 import { esc, tend, toast } from "./ui.js";
 import * as now from "./views/now.js";
 import * as prep from "./views/prep.js";
+import * as decisions from "./views/decisions.js";
 import * as people from "./views/people.js";
 import * as work from "./views/work.js";
 import * as role from "./views/role.js";
@@ -26,7 +27,7 @@ const errors = [];
 window.addEventListener("error", (e) => errors.push(String(e.message)));
 window.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
 
-const VIEWS = { now, prep, people, work, role, focus, settings };
+const VIEWS = { now, prep, people, work, role, decisions, focus, settings };
 
 const main = /** @type {HTMLElement} */ (document.getElementById("main"));
 
@@ -74,12 +75,13 @@ async function draw() {
  * being read, so anything at zero shows nothing at all.
  */
 async function updateCounts() {
-  const [attention, roster, map, current, cards] = await Promise.all([
+  const [attention, roster, map, current, cards, ledger] = await Promise.all([
     tend.invoke("attention"),
     tend.invoke("people"),
     tend.invoke("roleMap"),
     tend.invoke("focus"),
-    tend.invoke("prep")
+    tend.invoke("prep"),
+    tend.invoke("decisions")
   ]);
 
   /** @param {string} id @param {string} text @param {string} [tone] */
@@ -99,6 +101,14 @@ async function updateCounts() {
   set("count-role", map?.proposed?.length ? `${map.proposed.length} new` : "", map?.proposed?.length ? "new" : "");
   set("count-focus", current?.active ? (current.overrun ? "over" : "on") : "", current?.overrun ? "urgent" : "");
   set("count-prep", cards?.cards?.length ? String(cards.cards.length) : "");
+
+  // Proposals and overdue revisits, together. Both are "this needs a decision
+  // from you"; a count that only showed one of them would be a count you learn
+  // to distrust.
+  const waiting = Array.isArray(ledger)
+    ? ledger.filter((/** @type {any} */ d) => d.status === "proposed" || d.revisitDue).length
+    : 0;
+  set("count-decisions", waiting > 0 ? String(waiting) : "", waiting > 0 ? "new" : "");
 }
 
 document.querySelectorAll(".nav-btn").forEach((btn) => {

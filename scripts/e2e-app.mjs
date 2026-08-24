@@ -641,6 +641,61 @@ try {
     }
   });
 
+  /* -------------------------------------------------------- decisions -- */
+
+  step("Recording a decision");
+
+  await page.click('.nav-btn[data-view="decisions"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the decisions view");
+
+  const ledgerEmpty = await page.text("#main");
+  check("an empty log says which decisions are worth recording", () => {
+    if (!/renegotiated/.test(ledgerEmpty)) {
+      throw new Error("the empty state does not say what belongs here");
+    }
+  });
+
+  await page.click('[data-act="add"]');
+  await page.fillDialog({
+    what: "Renderingen bemannas inte om",
+    because: "Teamet klarar den med två, och en tredje skulle betala för sig först nästa kvartal",
+    rejected: "Låna in någon från plattformsteamet i sex veckor",
+    consulted: "Testperson",
+    revisitDays: "60"
+  });
+  await page.waitFor("document.body.textContent.includes('bemannas inte om')", "the decision");
+
+  const ledgerText = await page.text("#main");
+  check("the decision keeps its reasoning and what was rejected", () => {
+    // The two fields people skip, and the only ones that make the record
+    // readable by somebody who was not there.
+    if (!/klarar den med två/.test(ledgerText)) {
+      throw new Error("the reasoning is missing from the card");
+    }
+    if (!/plattformsteamet/.test(ledgerText)) {
+      throw new Error("what was rejected is missing from the card");
+    }
+  });
+
+  check("and resolves who was consulted against the roster", () => {
+    if (!/Consulted: Testperson/.test(ledgerText)) {
+      throw new Error(`consulted was not resolved: ${ledgerText.slice(0, 200)}`);
+    }
+  });
+
+  check("and says when it comes back, which is what makes it a tool", () => {
+    if (!/back on \d{4}-\d{2}-\d{2}/.test(ledgerText)) {
+      throw new Error("no revisit date on the card");
+    }
+  });
+
+  const ledgerMissing = await page.texts(".card-why.warn-text");
+  check("a complete record is not nagged about", () => {
+    if (ledgerMissing.length > 0) {
+      throw new Error(`told off for a complete decision: ${ledgerMissing.join(" | ")}`);
+    }
+  });
+
   /* ------------------------------------------------------------ focus -- */
 
   step("Running a focus");

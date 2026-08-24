@@ -13,10 +13,11 @@ import { act, ask, CONTACT_KINDS, esc, form, tend } from "../ui.js";
 import { go, refresh } from "../app.js";
 
 export async function render() {
-  const [attention, questions, roster] = await Promise.all([
+  const [attention, questions, roster, ledger] = await Promise.all([
     tend.invoke("attention"),
     tend.invoke("signals"),
-    tend.invoke("people")
+    tend.invoke("people"),
+    tend.invoke("decisions")
   ]);
 
   if (attention.error) {
@@ -45,7 +46,35 @@ export async function render() {
 
   const due = (questions ?? []).filter((/** @type {any} */ q) => q.due);
 
-  if (attention.allInStep && due.length === 0) {
+  /*
+   * Decisions asking to be looked at again.
+   *
+   * They belong on this page and not only on their own, because "nothing needs
+   * you" has to be true. A revisit date you set months ago and a cadence that
+   * has drifted are the same kind of thing: something you decided to be
+   * reminded of, arriving.
+   */
+  const revisits = (Array.isArray(ledger) ? ledger : []).filter((/** @type {any} */ d) => d.revisitDue);
+
+  const revisitCards = revisits
+    .map(
+      (/** @type {any} */ d) => `
+        <div class="card sev-critical">
+          <div class="card-top">
+            <h2 class="card-title">${esc(d.what)}</h2>
+            <span class="badge">decision due ${esc(d.revisitOverdueBy ?? "now")}</span>
+          </div>
+          ${d.because ? `<p class="card-why">${esc(d.because)}</p>` : ""}
+          <div class="card-foot">
+            <span class="src">You set this date when you decided it.</span>
+            <button class="act" data-act="holds" data-id="${esc(d.id)}">It still holds</button>
+            <button class="act" data-act="openDecisions">Open the log</button>
+          </div>
+        </div>`
+    )
+    .join("");
+
+  if (attention.allInStep && due.length === 0 && revisits.length === 0) {
     return `
       <div class="view-head">
         <h1 class="view-title">Nothing needs you</h1>
@@ -63,6 +92,7 @@ export async function render() {
     </div>
     ${focus}
     ${group("Needs you", attention.needsYou.map(card).join(""), attention.needsYou.length)}
+    ${group("Decisions to look at again", revisitCards, revisits.length)}
     ${group("Questions", due.map(question).join(""), due.length)}
     ${group(
       "Nudge",
@@ -179,6 +209,17 @@ export const actions = {
   openPerson: (d) => go("people", { person: d.person }),
   openFocus: () => go("focus"),
   openRole: () => go("role"),
+  openDecisions: () => go("decisions"),
+
+  /**
+   * "It still holds" from here, so the common answer never needs a second view.
+   *
+   * @param {Record<string, string>} d
+   */
+  holds: async (d) => {
+    await act("stillHolds", { id: d.id, days: 90 });
+    refresh();
+  },
 
   addPerson: async () => {
     const { addPersonDialog } = await import("./people.js");

@@ -397,6 +397,52 @@ export const TOOLS = [
     run: (store, args) => nib.indexNib(store, { dry: Boolean(args.dry) })
   },
   {
+    name: "tend_decisions",
+    description:
+      "The decision log: what was decided about the organisation, why, what was rejected, " +
+      "who was consulted, and when it comes back to be looked at again. Pass status " +
+      "'proposed' to see what has been suggested and not yet recorded. `missing` says " +
+      "what each entry lacks - a decision with no 'why' is the one that gets " +
+      "renegotiated in three months.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["proposed", "recorded", "revisited", "reversed"] }
+      },
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.decisions(store, now, args.status)
+  },
+  {
+    name: "tend_propose_decision",
+    description:
+      "Suggest a decision you read out of a note or a conversation - 'this looks like a " +
+      "decision, is it?'. It lands as a PROPOSAL and never as a record: an agent may " +
+      "notice a decision, only he makes one, and something that could write his decision " +
+      "log directly could quietly rewrite what he believes he decided. Say where you read " +
+      "it in `source` so the claim is checkable against the note. Recording it is what " +
+      "starts the revisit clock, and that happens in the app.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        what: { type: "string", description: "What was decided, in one sentence." },
+        because: { type: "string", description: "The reasoning. In a year this is the only field that matters." },
+        rejected: { type: "string", description: "What was considered and not chosen." },
+        consulted: {
+          type: "array",
+          items: { type: "string" },
+          description: "Who was involved. Names as written; they are resolved against the roster."
+        },
+        source: { type: "string", description: "Where you read it, e.g. 'Nib: 1-1 with Nina, 12 Aug'." }
+      },
+      required: ["what", "source"],
+      additionalProperties: false
+    },
+    // Forced to a proposal here rather than trusting the caller: the boundary is
+    // the point of the tool, and a status argument would be a way around it.
+    run: (store, args, now) => api.logDecision(store, { ...args, status: "proposed", now })
+  },
+  {
     name: "tend_propose_duty",
     description:
       "Suggest a responsibility for the role map, for example after reading a management " +

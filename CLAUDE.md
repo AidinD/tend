@@ -72,6 +72,13 @@ cannot be read - "nothing is open" and "I could not find Jot" are different
 facts, and rendering them identically is the way a broken integration hides for
 weeks.
 
+**Agents propose decisions; they never record one.** `tend_propose_decision`
+forces `status: "proposed"` inside the tool rather than trusting the caller, and
+there is deliberately no MCP tool that records or accepts one - a test asserts
+those names do not exist. Recording starts the revisit clock, and something that
+could both propose and accept would be writing the decision log with nobody able
+to tell. Same boundary as the role map.
+
 **One implementation, two clients.** The app and the MCP server both call
 `src/service/api.js`. Never query the store directly from the app - that is how
 the two grow slightly different answers to the same question.

@@ -3,6 +3,57 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-24 - Ledger: decisions with a date they come back on
+
+**Decided.** A `decisions` collection in Tend, with its own view. What was
+decided, why, what was rejected, who was consulted, and when to look at it again.
+
+**The revisit date is the design, not a field.** An archive is where decisions go
+to be forgotten politely. What makes this a tool is that it returns: you do not
+have to remember to reconsider the staffing call in November, because in November
+it appears - in the Now view, beside the cadences, because "nothing needs you"
+has to be true and a revisit you set months ago is exactly a thing you asked to
+be reminded of.
+
+It also makes deciding cheaper. A decision with a revisit date is not permanent,
+and knowing that is what lets you make it today instead of gathering information
+you will not use.
+
+**"It still holds" is its own action.** That is the common answer and it has to
+cost one click. Without it the honest move is to clear the date, and then the
+decision quietly stops coming back at all - which is how a log becomes an
+archive without anybody deciding that it should.
+
+**An agent may propose; only the user records.** Same boundary as the role map.
+`tend_propose_decision` forces `status: "proposed"` in the tool rather than
+trusting a caller-supplied status, because the boundary is the point of the tool
+and an argument would be a way around it. There is deliberately no MCP tool that
+records or accepts one, and a test asserts those names do not exist. Recording is
+what starts the revisit clock, so an agent that could both propose and accept
+would be an agent writing the decision log - and there would be no way to tell.
+
+A proposal carries `source`. "This looks like a decision" is only checkable
+against the note it was read out of.
+
+**`thin()` advises and never refuses.** A decision recorded with only its text
+still beats one nobody wrote down. But the three fields people skip - why, what
+was rejected, who was consulted - are the ones that make the record survive being
+read in a year by somebody who was not there, so every card says which are
+missing rather than only the form at the moment of writing.
+
+**Resolving `consulted` refuses the whole call on one bad name.** Dropping the
+unknown one would record "consulted two people" when three were named, and that
+is a wrong record nobody will ever notice.
+
+**Not promises, and the distinction is load-bearing.** A promise is given TO a
+person; a decision is ABOUT the organisation. They overlap and are not the same,
+and `consulted` pointing at people is precisely why this belongs in Tend rather
+than in a new app.
+
+**`resolvePerson` moved to `src/service/resolve.js`.** `ledger.js` needs it and
+importing `api.js` would have made a cycle. `api.js` re-exports both resolvers,
+so nothing that already called them changed.
+
 ## 2026-08-24 - Prep reads drift, not a calendar
 
 **Decided.** Prep is a view in Tend: one card per person worth talking to, with

@@ -1000,3 +1000,31 @@ button.row:hover {
 .prep-missing {
   color: var(--warn);
 }
+
+/* ----------------------------------------------------------- decisions -- */
+
+/*
+ * A band above each group, because this view has three of them and they need
+ * you in a different way: something to record, something to look at again, and
+ * the log. Without the labels it reads as one long list where the urgent items
+ * happen to be at the top.
+ */
+.ledger-band {
+  margin: 26px 0 10px;
+}
+
+.ledger-band-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.ledger-band-note {
+  margin: 4px 0 0;
+  color: var(--text-faint);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
