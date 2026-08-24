@@ -1306,3 +1306,41 @@ kbd {
   align-items: center;
   gap: 4px;
 }
+
+/* ----------------------------------------------------------- knowledge -- */
+
+/*
+ * The one field in the app you type a sentence into rather than a value, so it
+ * is sized like a sentence: full width, and larger than a form field. Everything
+ * else here reuses the card, group and draft vocabulary.
+ */
+.ask-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ask-field {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.ask-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.ask-field::placeholder {
+  color: var(--text-faint);
+}
+
+/* The group's own footer, since the shortlist is a group rather than a card. */
+.ask-foot {
+  margin-top: 4px;
+}

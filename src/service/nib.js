@@ -105,6 +105,7 @@ function userEnvironment(name, platform) {
  * @property {number} edited
  * @property {{ id: string, text: string, done: boolean }[]} alerts
  * @property {string} flag
+ * @property {string} preview The opening lines, as Nib derives them.
  * @property {string[]} tags Tag ids from Nib's own catalog.
  */
 
@@ -188,6 +189,37 @@ export function listNibFolders(dir) {
   }
 
   return { available: true, folders, dir: dir ?? nibDataDir() };
+}
+
+/**
+ * Every note in the notebook, with where it lives.
+ *
+ * Metadata only - titles, previews, tags, the folder trail. No bodies: the
+ * search narrows on this and only then opens the handful of notes that survive,
+ * which keeps "what have I read about this" from meaning "read everything I
+ * ever wrote about my colleagues".
+ *
+ * @param {string} [dir]
+ * @returns {{ available: false, why: string } | { available: true, dir: string, notes: (NibNote & { trail: string })[] }}
+ */
+export function allNibNotes(dir) {
+  const index = readNibIndex(dir);
+  if (!index.available) {
+    return index;
+  }
+
+  /** @type {(NibNote & { trail: string })[]} */
+  const notes = [];
+  for (const category of index.categories) {
+    for (const sub of [null, ...(category.subs ?? [])]) {
+      const subId = sub === null ? null : String(sub.id);
+      const trail = sub === null ? String(category.name) : `${category.name} / ${sub.name}`;
+      for (const note of notesIn(index.categories, String(category.id), subId)) {
+        notes.push({ ...note, trail });
+      }
+    }
+  }
+  return { available: true, dir: dir ?? nibDataDir(), notes };
 }
 
 /**
@@ -294,6 +326,9 @@ export function notesIn(categories, categoryId, subId) {
           }))
         : [],
       flag: String(n.flag ?? ""),
+      // The opening lines, which Nib derives on every save. Enough to search on
+      // without opening a single note file.
+      preview: String(n.preview ?? ""),
       // Ids only. What they MEAN is Tend's business and lives in the binding,
       // never in Nib - the same reason the folder does not carry the person.
       tags: Array.isArray(n.tags) ? n.tags.map((/** @type {any} */ t) => String(t)) : []

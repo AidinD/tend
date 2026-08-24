@@ -22,6 +22,7 @@ const { autoUpdater } = electronUpdater;
 import { resolveDataDir } from "../domain/paths.js";
 import * as api from "../service/api.js";
 import * as model from "../service/model.js";
+import * as knowledge from "../service/knowledge.js";
 import * as nib from "../service/nib.js";
 import { seedRoleMap } from "../service/seed.js";
 import { openStore } from "../storage/store.js";
@@ -91,6 +92,9 @@ const OPERATIONS = {
   extractPromises: (/** @type {any} */ a) => model.extractPromises(store, a),
   detectThemes: (/** @type {any} */ a) => model.detectThemes(store, { ...a, now: a.now ?? Date.now() }),
   answerQuestion: (/** @type {any} */ a) => model.answerQuestion(store, { ...a, now: a.now ?? Date.now() }),
+
+  searchKnowledge: (/** @type {any} */ a) => knowledge.search(a.situation),
+  considerKnowledge: (/** @type {any} */ a) => knowledge.consider(a),
 
   nibFolders: () => nib.listNibFolders(),
   nibTags: () => nib.listNibTags(),

@@ -298,6 +298,39 @@ function writeNibFixture() {
       ],
       categories: [
         {
+          // Principles, so the Knowledge view has something to search that is
+          // not a note about a person - which is the whole point of it.
+          id: "cat-books",
+          name: "Books",
+          subs: [{ id: "sub-htwf", name: "HTWF" }],
+          notes: [
+            {
+              id: "note-p1",
+              categoryId: "cat-books",
+              subId: "sub-htwf",
+              title: "1.1 · Kritisera inte - fråga i stället",
+              preview: "Kritik får folk att försvara sig.",
+              created: 1,
+              edited: 1,
+              alerts: [],
+              flag: "",
+              tags: []
+            },
+            {
+              id: "note-p2",
+              categoryId: "cat-books",
+              subId: "sub-htwf",
+              title: "2.4 · Lyssna längre än det är bekvämt",
+              preview: "Tystnaden efter frågan är där svaret kommer.",
+              created: 1,
+              edited: 1,
+              alerts: [],
+              flag: "",
+              tags: []
+            }
+          ]
+        },
+        {
           id: "cat-1to1",
           name: "1-1",
           color: "#6f9cff",
@@ -966,6 +999,46 @@ try {
     }
     if (!prepButtons.includes("readNote")) {
       throw new Error(`the bound note did not reach the card; buttons were ${prepButtons}`);
+    }
+  });
+
+  /* -------------------------------------------------------- knowledge -- */
+
+  step("Asking about a situation");
+
+  await page.click('.nav-btn[data-view="knowledge"]');
+  await page.waitFor("document.getElementById('situation') !== null", "the knowledge view");
+
+  const opensEmpty = await page.evaluate("document.querySelectorAll('.row.static').length");
+  check("it opens waiting rather than showing something", () => {
+    if (Number(opensEmpty) !== 0) {
+      throw new Error("the view listed notes before being asked anything");
+    }
+  });
+
+  await page.evaluate(`(() => {
+    const field = document.getElementById('situation');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
+      field, 'han lyssnar men säger aldrig emot'
+    );
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await page.click('[data-act="search"]');
+  await sleep(400);
+
+  const shortlist = String(await page.evaluate("document.body.textContent"));
+  check("a situation finds the principle, not the note that shares a person", () => {
+    if (!/Lyssna längre/.test(shortlist)) {
+      throw new Error("the inflected form was not reached; the reading pass would never see it");
+    }
+    if (/Kritisera inte/.test(shortlist)) {
+      throw new Error("it matched a principle that shares no wording with the situation");
+    }
+  });
+
+  check("and it offers to read them properly rather than doing it unasked", () => {
+    if (!/Read them properly|Reading is off/.test(shortlist)) {
+      throw new Error("no way to go from the word match to an actual answer");
     }
   });
 

@@ -15,11 +15,22 @@ import { daysBetween } from "./time.js";
 /**
  * Past this age a promise escalates no matter what else is going on. Guarded:
  * a focus cannot dampen it.
+ *
+ * Was fourteen days, and shortened on 2026-08-24 after a week of real use. A
+ * fortnight is long enough that the other person has already concluded you
+ * forgot - the leak this exists to catch has happened by then.
  */
-export const PROMISE_GUARD_DAYS = 14;
+export const PROMISE_GUARD_DAYS = 7;
 
-/** Age at which an undated promise starts to be worth surfacing. */
-export const PROMISE_WATCH_DAYS = 7;
+/**
+ * Age at which an undated promise starts to be worth surfacing.
+ *
+ * Moved down with the guard, to keep the two stages apart. Collapsed onto the
+ * same number a promise would go straight from silent to critical, and the soft
+ * tier exists precisely so that the critical one stays rare enough to mean
+ * something.
+ */
+export const PROMISE_WATCH_DAYS = 3;
 
 /** Grace period after a stated due date before it reads as critical. */
 export const PROMISE_DUE_GRACE_DAYS = 3;

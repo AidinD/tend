@@ -174,9 +174,13 @@ describe("promises", () => {
     assert.equal(promiseStatus({ id: "x", madeAt: daysAgo(6), due: daysAgo(5) }, NOW).severity, "critical");
   });
 
-  it("surfaces an undated promise once it has been sitting a week", () => {
-    assert.equal(promiseStatus({ id: "x", madeAt: daysAgo(6) }, NOW).severity, "ok");
-    assert.equal(promiseStatus({ id: "x", madeAt: daysAgo(8) }, NOW).severity, "warn");
+  it("surfaces an undated promise after a few days, and escalates it after a week", () => {
+    // Shortened from a fortnight on 2026-08-24 after real use: by two weeks the
+    // other person has already concluded you forgot, which is the exact leak
+    // this exists to catch.
+    assert.equal(promiseStatus({ id: "x", madeAt: daysAgo(2) }, NOW).severity, "ok");
+    assert.equal(promiseStatus({ id: "x", madeAt: daysAgo(5) }, NOW).severity, "warn");
+    assert.equal(promiseStatus({ id: "x", madeAt: daysAgo(9) }, NOW).severity, "critical");
   });
 
   it("lists open ones oldest first and leaves resolved ones out", () => {

@@ -20,6 +20,7 @@ import * as people from "./views/people.js";
 import * as work from "./views/work.js";
 import * as role from "./views/role.js";
 import * as focus from "./views/focus.js";
+import * as knowledge from "./views/knowledge.js";
 import * as settings from "./views/settings.js";
 
 /** @type {string[]} */
@@ -28,7 +29,7 @@ const errors = [];
 window.addEventListener("error", (e) => errors.push(String(e.message)));
 window.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
 
-const VIEWS = { now, prep, people, work, role, decisions, focus, settings };
+const VIEWS = { now, prep, people, work, role, decisions, focus, knowledge, settings };
 
 const main = /** @type {HTMLElement} */ (document.getElementById("main"));
 
