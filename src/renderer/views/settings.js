@@ -74,6 +74,14 @@ function nibSection(folders, bindings, roster) {
       <span class="group-meta">${bound.length} bound</span>
     </div>
 
+    <!--
+      Which notebook, said out loud whether or not anything is wrong.
+      There is more than one on a machine that has ever moved its data, and the
+      old one still parses and still lists folders - so reading the wrong one
+      looks exactly like reading the right one.
+    -->
+    <p class="card-why dim mono-text">Reading ${esc(folders.dir ?? "an unknown folder")}</p>
+
     <article class="card">
       <div class="card-top"><h2 class="card-title">How this works</h2></div>
       <p class="card-why">Point a Nib folder at a person and say what kind of contact notes there count as. Writing a note then becomes the evidence that the conversation happened, with nothing to confirm afterwards.</p>
@@ -193,7 +201,7 @@ export const actions = {
       return;
     }
     if (catalog.tags.length === 0) {
-      toast("Nib has no tags yet. Make one there first, then map it here.", "bad");
+      toast(`No tags in the notebook at ${catalog.dir}. Make one in Nib first.`, "bad");
       return;
     }
 
@@ -290,7 +298,17 @@ export const actions = {
     const catalog = await tend.invoke("nibTags");
     if (catalog?.available && catalog.tags.length > 0) {
       await actions.rules({ id: String(bound.id), name: String(label ?? "this folder") });
+      return;
     }
+    // Skipping in silence was the bug: nothing happened, nothing said why, and
+    // the reason was that Tend had found a DIFFERENT notebook with no tags in
+    // it. A step that does not run has to say so.
+    toast(
+      catalog?.available
+        ? `No tags in the notebook at ${catalog.dir}, so there is nothing to map yet.`
+        : `Could not read Nib's tags: ${catalog?.why ?? "unknown reason"}`,
+      "bad"
+    );
   },
 
   /** @param {Record<string, string>} d */

@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
-import { indexNib, kindsFor, listNibTags } from "../src/service/nib.js";
+import { indexNib, kindsFor, listNibFolders, listNibTags, nibDataDir } from "../src/service/nib.js";
 import { bindSource, setSourceRules, sources } from "../src/service/api.js";
 import { openStore } from "../src/storage/store.js";
 import { DAY_MS } from "../src/domain/time.js";
@@ -309,6 +309,31 @@ describe("reading Nib's catalog", () => {
     const catalog = listNibTags(join(nibDir, "empty"));
     assert.equal(catalog.available, true);
     assert.deepEqual(catalog.available && catalog.tags, []);
+  });
+});
+
+describe("finding Nib at all", () => {
+  it("prefers the environment when the process has it", () => {
+    assert.equal(nibDataDir({ env: { NIB_DATA_DIR: "D:\somewhere" }, platform: "win32" }), "D:\somewhere");
+  });
+
+  it("falls back to the per-user default off Windows", () => {
+    const resolved = nibDataDir({ env: {}, platform: "linux", home: "/home/x" });
+    assert.match(resolved, /nib$/);
+  });
+
+  it("reports which folder it read, so a wrong one is visible", () => {
+    // The whole failure this guards: a machine that has moved its notebook has
+    // TWO, the old one still parses and still lists folders, and reading it
+    // looks exactly like reading the right one. Saying the path is the only
+    // thing that tells them apart.
+    writeNib([{ id: "n1", title: "1-1", tags: [] }]);
+    const folders = listNibFolders(nibDir);
+    assert.equal(folders.available, true);
+    assert.equal(folders.available && folders.dir, nibDir);
+
+    const catalog = listNibTags(nibDir);
+    assert.equal(catalog.available && catalog.dir, nibDir);
   });
 });
 

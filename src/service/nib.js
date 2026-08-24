@@ -22,6 +22,7 @@
  * which means the highest-value thing Tend tracks needs no model at all.
  */
 
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -41,6 +42,10 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
   if (override) {
     return override;
   }
+  const stored = userEnvironment("NIB_DATA_DIR", platform);
+  if (stored !== null) {
+    return stored;
+  }
   if (platform === "win32") {
     return join(env.APPDATA ?? join(home, "AppData", "Roaming"), "nib");
   }
@@ -48,6 +53,46 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
     return join(home, "Library", "Application Support", "nib");
   }
   return join(env.XDG_CONFIG_HOME ?? join(home, ".config"), "nib");
+}
+
+/**
+ * A user environment variable, read from where Windows actually keeps it.
+ *
+ * `process.env` only carries what the process INHERITED, and a variable set
+ * after a parent started is not in it. Nib itself always resolves correctly,
+ * because it is launched fresh from the shell; Tend reaching for the same
+ * variable can come up empty and quietly fall back to the per-user default -
+ * which on this machine is a leftover notebook that still parses, still has
+ * categories, and is three years of notes out of date.
+ *
+ * That failure is invisible: Tend finds A notebook, lists folders, binds them,
+ * and reports nothing wrong. It cost a whole evening once. So the registry is
+ * consulted rather than trusted to have been inherited.
+ *
+ * Windows only, and best-effort: anything unexpected means "not set", never a
+ * throw. On other platforms the environment is the whole answer.
+ *
+ * @param {string} name
+ * @param {NodeJS.Platform} platform
+ * @returns {string | null}
+ */
+function userEnvironment(name, platform) {
+  if (platform !== "win32") {
+    return null;
+  }
+  try {
+    const out = execFileSync("reg", ["query", "HKCU\\Environment", "/v", name], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+    // REG_SZ and REG_EXPAND_SZ both land as `<name>    <TYPE>    <value>`.
+    const match = /\s{2,}REG_(?:EXPAND_)?SZ\s{2,}(.+)/.exec(out);
+    const value = match?.[1]?.trim() ?? "";
+    return value === "" ? null : value.replace(/%([^%]+)%/g, (_, key) => process.env[key] ?? "");
+  } catch {
+    // Not set, or reg is unavailable. Both mean the same thing here.
+    return null;
+  }
 }
 
 /**
@@ -113,7 +158,7 @@ export function readNibIndex(dir = nibDataDir()) {
  * holds. This is what the binding UI offers.
  *
  * @param {string} [dir]
- * @returns {{ available: false, why: string } | { available: true, folders: NibFolder[] }}
+ * @returns {{ available: false, why: string } | { available: true, folders: NibFolder[], dir: string }}
  */
 export function listNibFolders(dir) {
   const index = readNibIndex(dir);
@@ -142,7 +187,7 @@ export function listNibFolders(dir) {
     }
   }
 
-  return { available: true, folders };
+  return { available: true, folders, dir: dir ?? nibDataDir() };
 }
 
 /**
@@ -153,7 +198,7 @@ export function listNibFolders(dir) {
  * renaming a tag over there changes what this screen says and nothing else.
  *
  * @param {string} [dir]
- * @returns {{ available: false, why: string } | { available: true, tags: { id: string, name: string, color: string, description: string }[] }}
+ * @returns {{ available: false, why: string } | { available: true, dir: string, tags: { id: string, name: string, color: string, description: string }[] }}
  */
 export function listNibTags(dir) {
   const index = readNibIndex(dir);
@@ -163,6 +208,7 @@ export function listNibTags(dir) {
   const raw = /** @type {any} */ (index).tags;
   return {
     available: true,
+    dir: dir ?? nibDataDir(),
     tags: (Array.isArray(raw) ? raw : []).map((/** @type {any} */ t) => ({
       id: String(t?.id ?? ""),
       name: String(t?.name ?? ""),
