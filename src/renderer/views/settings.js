@@ -240,18 +240,48 @@ export const actions = {
   },
 
   bind: async () => {
-    const [folders, roster] = await Promise.all([tend.invoke("nibFolders"), tend.invoke("people")]);
+    const [folders, roster, catalog] = await Promise.all([
+      tend.invoke("nibFolders"),
+      tend.invoke("people"),
+      tend.invoke("nibTags")
+    ]);
     if (!folders?.available) {
       return;
     }
 
+    /**
+     * The tag rows, in this dialog rather than in one after it.
+     *
+     * They used to open as a second dialog once the binding existed, on the
+     * reasoning that a mapping needs something to be a mapping ON. True, and
+     * still wrong: standing in the bind dialog there was no sign tags existed
+     * at all, so anyone who read it and cancelled saw a screen identical to the
+     * old one and concluded the feature had not shipped. A decision you cannot
+     * see is a decision you do not make.
+     */
+    const tags = catalog?.available ? catalog.tags : [];
+    const tagFields = tags.map((/** @type {any} */ tag, /** @type {number} */ i) => ({
+      name: `tag:${tag.id}`,
+      label: tag.name,
+      type: /** @type {const} */ ("select"),
+      hint:
+        i === 0
+          ? `Tags read from ${catalog.dir}. Leave one on "ignore" and it means nothing here.`
+          : tag.description || undefined,
+      value: "",
+      options: [{ value: "", label: "Ignore - means nothing to Tend" }, ...CONTACT_KINDS]
+    }));
+
     const values = await form({
       title: "Bind a Nib folder",
       intro:
-        "Notes in this folder count as contact with this person. The kind you pick here is " +
-        "the DEFAULT - a tag on a note overrides it, which is what lets one folder hold every " +
+        "Notes in this folder count as contact with this person. The kind you pick is the " +
+        "DEFAULT, and a tag on a note overrides it - which is what lets one folder hold every " +
         "sort of note about somebody without a second-hand note resetting the clock on having " +
-        "spoken to them. Pick what most notes there are; the tags come next.",
+        "spoken to them." +
+        (tagFields.length > 0
+          ? " Say what each of your tags means underneath; most of them will mean nothing here."
+          : ""),
       fields: [
         {
           name: "folder",
@@ -268,7 +298,14 @@ export const actions = {
           type: "select",
           options: roster.map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
         },
-        { name: "kind", label: "They count as", type: "select", options: CONTACT_KINDS, value: "one-to-one" }
+        {
+          name: "kind",
+          label: "Most notes there are",
+          type: "select",
+          options: CONTACT_KINDS,
+          value: "one-to-one"
+        },
+        ...tagFields
       ],
       confirm: "Bind"
     });
@@ -289,26 +326,27 @@ export const actions = {
     if (!bound) {
       return;
     }
+
+    const rules = Object.entries(values)
+      .filter(([name, kind]) => name.startsWith("tag:") && typeof kind === "string" && kind !== "")
+      .map(([name, kind]) => ({ tagId: name.slice(4), kind: String(kind) }));
+
+    if (rules.length > 0) {
+      await act("setSourceRules", { id: String(bound.id), rules });
+    }
     refresh();
 
-    // Straight on to the tags rather than leaving a button to be found later.
-    // The moment somebody is deciding what a folder counts as is the moment the
-    // exceptions are in their head; asking a screen later is asking too late.
-    // Only when Nib actually has tags - otherwise this is a dialog about nothing.
-    const catalog = await tend.invoke("nibTags");
-    if (catalog?.available && catalog.tags.length > 0) {
-      await actions.rules({ id: String(bound.id), name: String(label ?? "this folder") });
-      return;
+    // Only worth saying when there was nothing to offer. Silence here was the
+    // original bug: nothing happened, nothing said why, and the reason was that
+    // Tend had found a DIFFERENT notebook with no tags in it.
+    if (tagFields.length === 0) {
+      toast(
+        catalog?.available
+          ? `No tags in the notebook at ${catalog.dir}, so there is nothing to map yet.`
+          : `Could not read Nib's tags: ${catalog?.why ?? "unknown reason"}`,
+        "bad"
+      );
     }
-    // Skipping in silence was the bug: nothing happened, nothing said why, and
-    // the reason was that Tend had found a DIFFERENT notebook with no tags in
-    // it. A step that does not run has to say so.
-    toast(
-      catalog?.available
-        ? `No tags in the notebook at ${catalog.dir}, so there is nothing to map yet.`
-        : `Could not read Nib's tags: ${catalog?.why ?? "unknown reason"}`,
-      "bad"
-    );
   },
 
   /** @param {Record<string, string>} d */

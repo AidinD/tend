@@ -785,26 +785,42 @@ try {
 
   const folder = folderOptions.find((o) => /1-1 \/ Testperson/.test(o.label));
   const personOption = (await page.dialogOptions("person"))[0];
-  await page.fillDialog({
-    folder: folder?.value ?? "",
-    person: personOption?.value ?? "",
-    kind: "one-to-one"
-  });
-  // Binding now runs straight on into the tag mapping, because the moment
-  // somebody decides what a folder counts as is the moment the exceptions are
-  // in their head. Asserted rather than merely dismissed: leaving the mapping
-  // to be discovered on a row afterwards is the thing that was wrong.
-  await page.waitFor("document.querySelector('.dialog') !== null", "the tag mapping");
-  const mappingIntro = await page.text(".dialog-intro");
-  check("binding goes straight on to what the tags mean", () => {
-    if (!/tag on a note overrides/i.test(mappingIntro)) {
-      throw new Error(`the dialog after binding said: "${mappingIntro}"`);
+
+  // The tags are in THIS dialog, not in one after it. That is the whole point:
+  // a mapping offered only once the binding exists is invisible to anybody who
+  // opens the dialog, reads it, and cancels - which is exactly what happened.
+  const bindTagOptions = await page.dialogOptions("tag:tag-second-hand");
+  check("the bind dialog itself offers what each tag means", () => {
+    if (!bindTagOptions.some((o) => /second-hand/i.test(o.label))) {
+      throw new Error(`offered: ${JSON.stringify(bindTagOptions.map((o) => o.label))}`);
+    }
+    if (!bindTagOptions.some((o) => o.value === "")) {
+      throw new Error("there is no way to say a tag means nothing here");
     }
   });
 
-  await page.fillDialog({ "tag:tag-second-hand": "second-hand", "tag:tag-one-to-one": "" });
+  await page.fillDialog({
+    folder: folder?.value ?? "",
+    person: personOption?.value ?? "",
+    kind: "one-to-one",
+    "tag:tag-second-hand": "second-hand",
+    "tag:tag-one-to-one": ""
+  });
   await page.waitFor("document.body.textContent.includes('one-to-one')", "the binding");
   check("a folder can be bound to a person without leaving the app", () => {});
+
+  const boundRow = String(await page.evaluate("document.body.textContent"));
+  check("and its tag rule was saved with it, in one step", () => {
+    if (!/tag rule/.test(boundRow)) {
+      throw new Error("the binding shows no tag rule, so the mapping did not save with it");
+    }
+  });
+
+  check("and Settings says which notebook it read", () => {
+    if (!/Reading /.test(boundRow)) {
+      throw new Error("no notebook path on screen; two notebooks cannot be told apart");
+    }
+  });
 
   // Counted before and after the import, because the walkthrough logs contact
   // by hand earlier in the run. What matters is what the IMPORT added.
