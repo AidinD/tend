@@ -21,6 +21,7 @@ import { focusCost, focusStatus, stretchFor } from "./focus.js";
 import { openPromises } from "./promises.js";
 import { signalsDue } from "./signals.js";
 import { driftBadge, humanDays } from "./time.js";
+import { hasLeft, inScope, notBefore } from "./people.js";
 import { namedStakes, stakeInterval } from "./stakes.js";
 import { isUnspecified, reviewInterval } from "./workstreams.js";
 
@@ -107,13 +108,22 @@ export function expandCadences(state, now) {
           continue;
         }
         const kinds = Array.isArray(duty.evidenceKinds) ? duty.evidenceKinds : [];
+
+        // Nothing older than a return counts. A person back from six months of
+        // leave has not been neglected for six months, and measuring from the
+        // conversation before they left would report them as critical on their
+        // first morning back - a red item that is not true and cannot be
+        // cleared by anything except talking to somebody who was not there.
+        const floor = kind === "person" ? notBefore(subject, now) : 0;
+        const last = latestEvidence(touches, subject.id, kinds);
+
         out.push({
           duty,
           subject,
           subjectKind: kind,
           drift: computeDrift({
             intervalDays: interval,
-            lastAt: latestEvidence(touches, subject.id, kinds),
+            lastAt: last !== null && last >= floor ? last : floor > 0 ? floor : last,
             // `since` can be set explicitly - somebody may have existed for
             // years before becoming your report - and otherwise falls back to
             // when the row was created.
@@ -131,7 +141,14 @@ export function expandCadences(state, now) {
     }
   };
 
-  cross(live("people"), "person");
+  // Somebody away or already gone is skipped entirely rather than shown as
+  // behind. See src/domain/people.js for why that is not the same as removing
+  // them: the history is the valuable part, and a flag somebody has to remember
+  // to unset is a flag that stays set.
+  cross(
+    live("people").filter((p) => inScope(p, now)),
+    "person"
+  );
   cross(live("projects"), "project");
   cross(live("workstreams"), "workstream");
   // Named here rather than stored on the row, so renaming a person or a project
@@ -224,6 +241,13 @@ export function buildAttention(state, now) {
       continue;
     }
     const person = people.find((x) => x.id === p.person);
+    // Somebody who has left cannot be given the answer, so it stops being
+    // something you can act on today. Deliberately still true until their last
+    // day passes: a promise to a person leaving next week is exactly the
+    // promise to keep. The row itself is never touched.
+    if (person && hasLeft(person, now)) {
+      continue;
+    }
     const who = person ? subjectName(person) : "someone";
     items.push({
       key: `promise:${p.id}`,

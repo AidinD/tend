@@ -15,18 +15,23 @@ import {
   form,
   pill,
   RELATION_OPTIONS,
+  RELATIONS,
   tend
 } from "../ui.js";
 import { go, refresh } from "../app.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 
-const GROUPS = [
-  ["lead-and-manage", "Lead and manage"],
-  ["lead-only", "Lead, don't manage"],
-  ["manage-remotely", "Manage, don't see"],
-  ["equal-lead", "Equal leads"],
-  ["own-manager", "Your manager"]
-];
+/**
+ * The roster's groups, one per relationship type, in the order the domain
+ * declares them.
+ *
+ * Derived, because the hand-written version of this list was the fourth copy of
+ * the same thing and it hid people: it had no row for `stakeholder`, so somebody
+ * added with that relationship simply did not appear on the roster at all. No
+ * error, no empty group, no trace - the person was in the store and off the
+ * page.
+ */
+const GROUPS = RELATION_OPTIONS.map((r) => [r.value, RELATIONS[r.value].label]);
 
 /** @param {Record<string, any>} params */
 export async function render(params) {
@@ -63,10 +68,11 @@ export async function render(params) {
         (/** @type {any} */ p) => `<button class="row" data-act="open" data-person="${esc(p.id)}">
           <span class="row-name">${esc(p.name)}</span>
           <span class="row-right">
+            ${p.availability ? `<span class="pill plain">${esc(p.availability)}</span>` : ""}
             ${
               p.worstDrift
                 ? `<span class="row-meta">${esc(p.worstDrift.duty)}</span>${pill(p.worstDrift.urgency)}<span class="pill plain">${esc(p.worstDrift.behindBy)}</span>`
-                : `<span class="row-meta">no duty applies</span>`
+                : `<span class="row-meta">${p.availability === "away" ? "nothing expected while they are away" : p.availability === "left" ? "history kept, nothing expected" : "no duty applies"}</span>`
             }
           </span>
         </button>`
@@ -116,11 +122,16 @@ async function personPage(id) {
     )
     .join("");
 
+  // Each line can be taken back. A contact logged against the wrong person, or
+  // as the wrong kind, is worse than no log at all: it moves a clock and then
+  // looks identical to a real one. There was no way to undo it.
   const contact = p.recentContact
     .map(
       (/** @type {any} */ t) => `<div class="line">
         <span class="line-when">${esc(t.when)}</span>
-        <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` — ${esc(t.note)}` : ""}</span>
+        <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` - ${esc(t.note)}` : ""}</span>
+        <button class="act tiny danger" data-act="unlogContact" data-id="${esc(t.id)}"
+          data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
       </div>`
     )
     .join("");
@@ -223,6 +234,19 @@ export async function addPersonDialog() {
 
 export const actions = {
   /** @param {Record<string, string>} d */
+  unlogContact: async (d) => {
+    const sure = await ask({
+      title: "Take this back?",
+      body: `"${d.what}" stops counting, so whatever cadence it satisfied goes back to where it was. The event stays in the log - nothing here is ever really deleted - it just stops being evidence.`,
+      confirm: "Take it back",
+      tone: "danger"
+    });
+    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, "Taken back."))) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
   open: (d) => go("people", { person: d.person }),
   back: () => go("people"),
 
@@ -275,6 +299,26 @@ export const actions = {
             "When the relationship started. Every cadence measures from here until there is " +
             "contact to measure from instead, so a placeholder puts somebody months behind on " +
             "their first day - or perfectly in step with somebody you have never spoken to."
+        },
+        {
+          name: "awayUntil",
+          label: "Away until",
+          type: "date",
+          value: p.awayUntil ? asDateInput(p.awayUntil) : "",
+          hint:
+            "Parental leave, a sabbatical, a long illness. Nothing is expected of you while " +
+            "they are away, and the clock restarts from the day they are back rather than from " +
+            "the last time you spoke. Clear it if they return early."
+        },
+        {
+          name: "leftAt",
+          label: "Last day",
+          type: "date",
+          value: p.leftAt ? asDateInput(p.leftAt) : "",
+          hint:
+            "Set it as soon as you know it. Everything holds until that day - a promise to " +
+            "somebody leaving next week is exactly the promise to keep - and after it their " +
+            "cadences go quiet while the whole history stays. Better than removing them."
         }
       ],
       confirm: "Save"
@@ -282,7 +326,15 @@ export const actions = {
     if (!values) {
       return;
     }
-    if (await act("updatePerson", { person: d.person, fields: values }, "Updated.")) {
+    // An empty date field arrives as undefined, which the service reads as
+    // "leave it alone". For these two, empty has to mean "clear it" - somebody
+    // coming back early, or a resignation withdrawn - so it is made explicit.
+    const fields = {
+      ...values,
+      awayUntil: values.awayUntil ?? null,
+      leftAt: values.leftAt ?? null
+    };
+    if (await act("updatePerson", { person: d.person, fields }, "Updated.")) {
       refresh();
     }
   },

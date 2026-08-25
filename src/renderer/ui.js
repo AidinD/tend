@@ -280,7 +280,7 @@ export async function act(op, args, success) {
  * be hand-copied here, and a type added to the domain was then unpickable in the
  * window with nothing failing anywhere.
  */
-export { RELATION_OPTIONS } from "../domain/cadence.js";
+export { RELATIONS, RELATION_OPTIONS } from "../domain/cadence.js";
 
 /*
  * Contact kinds come from the domain, not from a second list here. The rule

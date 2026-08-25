@@ -15,6 +15,7 @@ import { myAttention } from "../domain/myattention.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { CONTACT_KINDS, SUBJECT_KINDS, evidenceFor, kindsFor, subjectOf } from "../domain/contact.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
+import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
 import { openPromises } from "../domain/promises.js";
 import { signalsDue } from "../domain/signals.js";
 import { DEFAULT_STAKE_DAYS, namedStakes, stakeInterval } from "../domain/stakes.js";
@@ -127,8 +128,12 @@ export function person(store, query, now) {
     .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
     .slice(0, 20)
     .map((t) => ({
+      // The id, so a mislogged contact can be taken back. Without it the history
+      // was read-only and a wrong entry was permanent.
+      id: t.id,
       kind: t.kind,
       when: agoWords(Math.max(0, Math.floor((now - Number(t.at ?? now)) / 86_400_000))),
+      at: t.at ?? null,
       note: t.note ?? null
     }));
 
@@ -167,6 +172,9 @@ export function person(store, query, now) {
     // makes it the one field somebody sets wrong once and never revisits.
     since: p.since ?? null,
     relationMeans: isRelation(relation) ? RELATIONS[relation].note : "Unknown relationship type.",
+    awayUntil: p.awayUntil ?? null,
+    leftAt: p.leftAt ?? null,
+    availability: availability(p, now),
     cadences,
     openPromises: promises,
     recentContact: history,
@@ -194,6 +202,9 @@ export function people(store, now, relation) {
         id: p.id,
         name: p.name,
         relation: p.relation,
+        // Said on the roster, because "no duty applies" reads as a gap in the
+        // setup when the truth is that somebody is on leave or has left.
+        availability: availability(p, now),
         worstDrift: worst ? { duty: worst.duty.name, behindBy: driftBadge(worst.drift.driftDays), urgency: worst.drift.trueSeverity } : null
       };
     })
@@ -365,11 +376,17 @@ export function setRelation(store, who, relation) {
  * @param {import("../storage/store.js").TendStore} store
  * @param {string} who
  * @param {object} fields
+ * @param {number | null} [fields.awayUntil] When they are back. Suspends every
+ *   cadence until then, and the clock restarts from that day rather than from
+ *   the last conversation. Null clears it.
+ * @param {number | null} [fields.leftAt] Their last day. Everything behaves
+ *   normally until it passes, then the cadences and promises go quiet and the
+ *   history stays. Null clears it.
  * @param {string} [fields.name]
  * @param {string} [fields.relation]
  * @param {number} [fields.since]
  */
-export function updatePerson(store, who, { name, relation, since }) {
+export function updatePerson(store, who, { name, relation, since, awayUntil, leftAt }) {
   const found = resolvePerson(store, who);
   if (!found.ok) {
     return { error: found.error };
@@ -406,6 +423,25 @@ export function updatePerson(store, who, { name, relation, since }) {
       return { error: "The start date must be a date." };
     }
     patch.since = since;
+  }
+
+  // A date, or null to clear it. Null matters: coming back early has to be
+  // sayable, and so does a resignation that was withdrawn.
+  for (const [field, value] of [
+    ["awayUntil", awayUntil],
+    ["leftAt", leftAt]
+  ]) {
+    if (value === undefined) {
+      continue;
+    }
+    if (value === null) {
+      patch[String(field)] = null;
+      continue;
+    }
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return { error: `${field === "awayUntil" ? "The return date" : "The last day"} must be a date.` };
+    }
+    patch[String(field)] = value;
   }
 
   if (Object.keys(patch).length === 0) {
@@ -1155,15 +1191,34 @@ export function updateDuty(store, id, fields) {
  * @param {string} id
  */
 export function removeRow(store, collection, id) {
-  if (!["people", "projects", "workstreams", "duties", "promises", "evidence"].includes(collection)) {
-    return { error: `Rows in "${collection}" are not removable.` };
+  // touches, stakes and topics were missing, which left three Remove buttons in
+  // the window doing nothing but showing an error - and no way at all to undo a
+  // contact logged against the wrong person, which is worse than not logging it:
+  // a wrong entry moves a clock and then looks exactly like a real one.
+  const removable = [
+    "people",
+    "projects",
+    "workstreams",
+    "duties",
+    "promises",
+    "evidence",
+    "touches",
+    "stakes",
+    "topics",
+    "raised"
+  ];
+  if (!removable.includes(collection)) {
+    return { error: `Rows in "${collection}" are not removable. Removable: ${removable.join(", ")}.` };
   }
   const row = store.rows(collection).find((r) => r.id === id);
   if (!row) {
     return { error: `No ${collection} row with id "${id}".` };
   }
   store.remove(collection, id);
-  return { removed: row.name ?? row.text ?? id };
+  // A touch has neither a name nor a text, so say what it actually was.
+  const what =
+    row.name ?? row.text ?? (row.kind ? `${row.kind}${row.note ? ` - ${row.note}` : ""}` : id);
+  return { removed: what };
 }
 
 /**

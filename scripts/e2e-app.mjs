@@ -693,6 +693,89 @@ try {
     }
   });
 
+  /* ------------------------------------------------ taking it back -- */
+
+  step("Undoing a mislogged contact, and going on leave");
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor("document.querySelector('.line') !== null", "the contact history");
+
+  // A contact logged against the wrong person or as the wrong kind is worse than
+  // no log: it moves a clock and then looks identical to a real one. The history
+  // was read-only, so there was no way to undo it - which is how a wrong entry
+  // becomes permanent.
+  const linesBefore = await page.evaluate("document.querySelectorAll('.line .act.danger').length");
+  check("every logged contact can be taken back", () => {
+    if (Number(linesBefore) === 0) {
+      throw new Error("the contact history offers no way to undo an entry");
+    }
+  });
+
+  await page.click(".line .act.danger");
+  await page.click("[data-confirm]");
+  await sleep(400);
+  const linesAfter = await page.evaluate("document.querySelectorAll('.line .act.danger').length");
+  check("and taking one back removes it from the history", () => {
+    if (Number(linesAfter) !== Number(linesBefore) - 1) {
+      throw new Error(`${linesBefore} entries before, ${linesAfter} after`);
+    }
+  });
+
+  // Parental leave, a sabbatical, a long illness. Left unmodelled this produces
+  // a red item that is not true and that nothing can clear, which is the one
+  // failure this page must never have.
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor("document.querySelector('.card') !== null", "the Now view");
+  const beforeLeave = await page.texts(".card-title");
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor('document.querySelector(\'[data-act="edit"]\') !== null', "the person page");
+  await page.click('[data-act="edit"]');
+  const backSoon = new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10);
+  await page.fillDialog({ awayUntil: backSoon });
+  await sleep(400);
+
+  await page.click('.nav-btn[data-view="now"]');
+  await sleep(400);
+  const afterLeave = await page.texts(".card-title");
+  check("somebody on leave stops being reported as behind", () => {
+    const named = (/** @type {string[]} */ list) => list.filter((c) => /Testperson/.test(c)).length;
+    if (named(beforeLeave) === 0) {
+      throw new Error("nothing was reported before the leave, so this proves nothing");
+    }
+    if (named(afterLeave) !== 0) {
+      throw new Error(`still reported while away: ${JSON.stringify(afterLeave)}`);
+    }
+  });
+
+  // Cleared again, so the rest of the walkthrough sees the person it expects.
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  const awayPill = await page.texts(".row-right .pill.plain");
+  check("and the roster says why, rather than showing them as having no duties", () => {
+    if (!awayPill.some((t) => /away/.test(t))) {
+      throw new Error(`no marker on the row: ${JSON.stringify(awayPill)}`);
+    }
+  });
+
+  await page.click('[data-act="open"]');
+  await page.waitFor('document.querySelector(\'[data-act="edit"]\') !== null', "the person page");
+  await page.click('[data-act="edit"]');
+  await page.fillDialog({ awayUntil: "" });
+  await sleep(400);
+  await page.click('.nav-btn[data-view="now"]');
+  await sleep(400);
+  const afterReturn = await page.texts(".card-title");
+  check("clearing the date brings them back, so an early return is sayable", () => {
+    if (!afterReturn.some((c) => /Testperson/.test(c))) {
+      throw new Error(`still hidden after clearing the date: ${JSON.stringify(afterReturn)}`);
+    }
+  });
+
   step("Promises");
 
   await page.click('.nav-btn[data-view="people"]');

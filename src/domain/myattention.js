@@ -30,6 +30,7 @@
  * a false "you are neglecting Nina" is a thing you might act on.
  */
 
+import { inScope } from "./people.js";
 import { DAY_MS } from "./time.js";
 
 /** The window every signal looks back over. A month is one review cycle. */
@@ -62,7 +63,11 @@ const CONCENTRATION_OF = 0.2;
  */
 export function myAttention({ people, touches, now }) {
   const since = now - WINDOW_DAYS * DAY_MS;
-  const names = new Map(people.map((p) => [String(p.id), String(p.name ?? "")]));
+  // Somebody on leave or already gone is not somebody you are neglecting, and
+  // counting them makes every signal here quietly wrong: "I have not spoken to
+  // 5 of 10 people" is a different sentence when two of them were not there.
+  const here = people.filter((p) => inScope(p, now));
+  const names = new Map(here.map((p) => [String(p.id), String(p.name ?? "")]));
 
   const recent = touches.filter((t) => Number(t.at ?? 0) >= since && names.has(String(t.subject ?? "")));
 
@@ -74,10 +79,10 @@ export function myAttention({ people, touches, now }) {
   const spokenTo = new Set(recent.map((t) => String(t.subject)));
   const unheard = [...names.entries()].filter(([id]) => !spokenTo.has(id)).map(([, name]) => name);
 
-  if (unheard.length > 0 && people.length > 1) {
+  if (unheard.length > 0 && here.length > 1) {
     signals.push({
       key: "i-have-not-spoken-to",
-      text: `I have not spoken to ${unheard.length} of ${people.length} people this month.`,
+      text: `I have not spoken to ${unheard.length} of ${here.length} people this month.`,
       detail: unheard.join(", "),
       weight: 100 + unheard.length
     });

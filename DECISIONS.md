@@ -996,3 +996,44 @@ coherent. Service tests cover the refusals, including that a refused edit writes
 nothing. And the walkthrough opens the real edit form on a stake duty and checks
 the subject survives a round trip - the unit tests would all have passed while
 this bug was live, because the broken list was in the renderer.
+
+## 2026-08-25 - Away and gone are dates on a person, not a delete
+
+**Decided.** A person carries `awayUntil` and `leftAt`. While away, no cadence
+applies and the clock restarts from the day they return rather than from the last
+conversation. A last day changes nothing until it passes; after it, cadences and
+promises go quiet and the whole history stays. A logged contact can also be taken
+back.
+
+**Why not delete somebody who leaves.** The record is the valuable part - a year
+of 1-1s, what they delivered, what was promised - and a tombstone throws it away
+to save a line on a roster. The last day is stored the moment it is known, so the
+app handles the transition itself instead of waiting to be told.
+
+**Why a date rather than a flag.** It expires by itself. A flag somebody has to
+remember to unset is a flag that stays set, and an "away indefinitely" state
+never prompts anybody to look again. A rough return date that comes round and
+puts the person back on the page is better than an accurate one nobody enters.
+
+**The clock restarts from the return.** Measuring from the last conversation
+reports somebody as critically neglected on their first morning back, which is a
+red item that is not true and cannot be cleared. Treating the return as contact
+means nobody notices you have not caught up. A return is the start of an
+interval, not an event in it.
+
+**Rejected: hiding a promise the moment a resignation is known.** A promise to
+somebody leaving next week is exactly the promise to keep. It goes quiet when the
+day passes, and the row is never touched.
+
+**A mislogged contact had to become undoable.** `removeRow` did not accept
+`touches`, `stakes` or `topics`, so three Remove buttons in the window did
+nothing and a contact logged against the wrong person was permanent. A wrong
+entry is worse than a missing one: it moves a clock and then looks identical to a
+real one.
+
+**Two bugs found by the walkthrough that unit tests could not see.** `Number(null)`
+is 0, a finite instant in the past, so clearing a last day reported somebody as
+having left in 1970 - the unit tests passed `{}` where the form sends an explicit
+null. And the roster's list of groups was a fourth hand-written copy of the
+relationship types, missing `stakeholder`, so a person with that relationship was
+in the store and absent from the page with no error anywhere.
