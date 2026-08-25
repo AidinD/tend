@@ -144,7 +144,7 @@ describe("topics through the store", () => {
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "tend-topics-"));
     store = openStore({ dataDir: dir, role: "app", host: "test" });
-    ok(api.addPerson(store, { name: "Osvald", relation: "own-manager", now: ago(400) }));
+    ok(api.addPerson(store, { name: "Halvar", relation: "own-manager", now: ago(400) }));
   });
 
   afterEach(() => {
@@ -164,7 +164,7 @@ describe("topics through the store", () => {
     ok(api.decideTopic(store, made.id, "active"));
     const after = prep(store, NOW);
     assert.equal(after.cards.length, 1);
-    assert.equal(after.cards[0].person, "Osvald");
+    assert.equal(after.cards[0].person, "Halvar");
   });
 
   it("re-seeding with the same id updates rather than duplicating", () => {
@@ -187,12 +187,12 @@ describe("topics through the store", () => {
     const made = ok(api.proposeTopic(store, {
       text: "t", why: "w", cadenceDays: 30, relations: ["own-manager"], status: "active"
     }));
-    const why = failed(api.markRaised(store, { topic: made.id, person: "Osvald", at: NOW + DAY_MS, now: NOW }));
+    const why = failed(api.markRaised(store, { topic: made.id, person: "Halvar", at: NOW + DAY_MS, now: NOW }));
     assert.match(why, /has not arrived yet/);
   });
 
   it("puts his manager on the prep page even though no duty covers that direction", () => {
-    // The point of the test: Osvald has no cadence and no promises, so before
+    // The point of the test: Halvar has no cadence and no promises, so before
     // topics existed there was no path by which he could ever be prepared for.
     assert.equal(prep(store, NOW).cards.length, 0);
 
@@ -206,7 +206,7 @@ describe("topics through the store", () => {
     }));
 
     const card = prep(store, NOW).cards[0];
-    assert.equal(card.person, "Osvald");
+    assert.equal(card.person, "Halvar");
     assert.match(card.why, /topic worth raising/);
     assert.equal(card.worthRaising.length, 1);
     assert.equal(card.worthRaising[0].lastRaised, "never");
@@ -221,11 +221,11 @@ describe("topics through the store", () => {
       relations: ["own-manager"],
       status: "active"
     }));
-    ok(api.markRaised(store, { topic: "topic-next-level", person: "Osvald", note: "said Q1", now: NOW }));
+    ok(api.markRaised(store, { topic: "topic-next-level", person: "Halvar", note: "said Q1", now: NOW }));
 
     assert.equal(prep(store, NOW).cards.length, 0, "just-asked topics are not worth raising again");
 
-    const view = ok(api.topics(store, "Osvald", NOW));
+    const view = ok(api.topics(store, "Halvar", NOW));
     assert.equal(view.topics.length, 1);
     assert.equal(view.topics[0].lastRaised, "today");
     assert.equal(view.due.length, 0);
@@ -252,6 +252,6 @@ describe("topics through the store", () => {
 
     const cards = prep(store, NOW).cards;
     assert.equal(cards[0].person, "Vidar", "somebody you are behind on outranks a standing question");
-    assert.equal(cards[1].person, "Osvald");
+    assert.equal(cards[1].person, "Halvar");
   });
 });
