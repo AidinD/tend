@@ -664,6 +664,19 @@ try {
     }
   });
 
+  // A delegation review is contact with a piece of WORK, not with a person or a
+  // project. It used to answer "No project matching <uuid>" - the button was
+  // there, the duty that consumes reviews existed, and nothing could ever
+  // satisfy it. Driven from the window rather than the service layer, because
+  // that is where it was broken.
+  await page.click('[data-act="review"]');
+  await page.fillDialog({ note: "Went through it with them" });
+  await page.waitFor(
+    "document.body.textContent.includes('reviewed today')",
+    "the review to land on the workstream"
+  );
+  check("a delegation review can be recorded against a piece of work", () => {});
+
   /* ------------------------------------------------------------- prep -- */
 
   step("Preparing for a conversation");

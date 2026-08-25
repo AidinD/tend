@@ -72,3 +72,42 @@ export function resolveProject(store, query) {
   const known = projects.map((p) => p.name).join(", ") || "none yet";
   return { ok: false, error: `No project matching "${query}". Known: ${known}.` };
 }
+
+/**
+ * Same, for workstreams.
+ *
+ * Needed because a delegation review is contact with a piece of work rather
+ * than with a person or a project, and without this the only way to record one
+ * was an error message. The Work view had a button for it that answered
+ * "No project matching <uuid>" - the duty that consumes those reviews could
+ * never be satisfied by anything.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} query
+ * @returns {{ ok: true, workstream: any } | { ok: false, error: string }}
+ */
+export function resolveWorkstream(store, query) {
+  const workstreams = store.rows("workstreams");
+  const q = String(query ?? "").trim().toLowerCase();
+  if (!q) {
+    return { ok: false, error: "No piece of work given." };
+  }
+
+  const byId = workstreams.find((w) => w.id === query);
+  if (byId) {
+    return { ok: true, workstream: byId };
+  }
+
+  const hit = workstreams.filter((w) => String(w.name ?? "").toLowerCase().includes(q));
+  if (hit.length === 1) {
+    return { ok: true, workstream: hit[0] };
+  }
+  if (hit.length > 1) {
+    return {
+      ok: false,
+      error: `"${query}" matches ${hit.length} pieces of work: ${hit.map((w) => w.name).join(", ")}. Be more specific.`
+    };
+  }
+  const known = workstreams.map((w) => w.name).join(", ") || "none yet";
+  return { ok: false, error: `No piece of work matching "${query}". Known: ${known}.` };
+}

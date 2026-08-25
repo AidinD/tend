@@ -10,7 +10,7 @@ import {
   act,
   ask,
   asDateInput,
-  CONTACT_KINDS,
+  kindsFor,
   esc,
   form,
   pill,
@@ -293,7 +293,10 @@ export const actions = {
       title: "Log contact",
       intro: "The kind decides which cadence this satisfies. A second-hand report does not count as having spoken to them.",
       fields: [
-        { name: "kind", label: "What kind", type: "select", options: CONTACT_KINDS, value: "one-to-one" },
+        // A person can only be the subject of the person kinds. The project and
+        // workstream ones were on this list too, and picking one recorded
+        // something that satisfied nothing while the toast still said Logged.
+        { name: "kind", label: "What kind", type: "select", options: kindsFor("person"), value: "one-to-one" },
         { name: "note", label: "One line, optional", placeholder: "What it was about" },
         { name: "at", label: "When", type: "date", value: asDateInput(Date.now()), hint: "Backdate it if you are catching up." }
       ],

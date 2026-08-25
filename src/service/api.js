@@ -13,16 +13,17 @@
 import { buildAttention, expandCadences, meanDrift } from "../domain/attention.js";
 import { myAttention } from "../domain/myattention.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
+import { CONTACT_KINDS, kindsFor, subjectOf } from "../domain/contact.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 import { openPromises } from "../domain/promises.js";
 import { signalsDue } from "../domain/signals.js";
 import { TOPICS_PER_CARD, appliesTo, lastRaised, topicsFor } from "../domain/topics.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
 import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../domain/workstreams.js";
-import { resolvePerson, resolveProject } from "./resolve.js";
+import { resolvePerson, resolveProject, resolveWorkstream } from "./resolve.js";
 import { decideDecision, decisions, logDecision, revisitsDue, stillHolds } from "./ledger.js";
 
-export { resolvePerson, resolveProject };
+export { resolvePerson, resolveProject, resolveWorkstream };
 export { decideDecision, decisions, logDecision, revisitsDue, stillHolds };
 import { PREP_CARDS, prep } from "./prep.js";
 
@@ -82,7 +83,11 @@ function summariseItem(i) {
     behindBy: i.badge,
     guarded: i.guarded,
     from: i.source,
-    person: i.subject
+    person: i.subject,
+    // What the subject IS, not only its id. A card for a project cadence and a
+    // card for a person cadence look identical without it, and the actions they
+    // can honestly offer are different.
+    subjectKind: i.subjectKind ?? null
   };
 }
 
@@ -492,26 +497,109 @@ export function resolvePromise(store, id, as = "resolved") {
  * @param {number} args.now
  */
 export function logTouch(store, { subject, kind, note, at, now }) {
-  const asPerson = resolvePerson(store, subject);
-  const target = asPerson.ok ? asPerson.person : null;
-  const asProject = target ? null : resolveProject(store, subject);
-
-  if (!target && (!asProject || !asProject.ok)) {
-    return { error: asProject && !asProject.ok ? asProject.error : asPerson.ok ? "" : asPerson.error };
-  }
-
-  const row = target ?? /** @type {any} */ (asProject).project;
-  if (!String(kind ?? "").trim()) {
+  const asked = String(kind ?? "").trim();
+  if (!asked) {
     return { error: "A contact needs a kind, e.g. one-to-one, second-hand, sideways, check-in." };
   }
 
+  // The KIND decides what sort of thing the subject has to be, so it also
+  // decides which lookup to use. That is not a shortcut - it is the only
+  // ordering that cannot go wrong. Resolving first and validating afterwards
+  // means a name shared by a person and a project silently picks whichever
+  // lookup ran first, and then the kind is judged against the wrong one.
+  //
+  // It also produces the better error. "No person matching Zeta" says what went
+  // wrong; falling through to the project lookup and complaining about projects
+  // when you were logging a 1-1 does not.
+  const subjectKind = subjectOf(asked);
+  if (subjectKind === null) {
+    const every = CONTACT_KINDS.map((k) => k.value).join(", ");
+    return { error: `"${asked}" is not a kind of contact. The kinds are: ${every}.` };
+  }
+
+  const found = findSubject(store, subjectKind, subject);
+  if (!found.ok) {
+    // Before repeating "no person by that name", check whether the name is a
+    // real thing of some OTHER sort. That is the mistake almost every time - a
+    // 1-1 aimed at a project, a check-in aimed at a person - and naming it
+    // beats a lookup failure that leaves you wondering how to spell a colleague
+    // you can see on the roster.
+    const actually = otherSubject(store, subjectKind, subject);
+    if (actually !== null) {
+      const offer = kindsFor(actually.kind)
+        .map((k) => k.value)
+        .join(", ");
+      return {
+        error:
+          `${actually.name} is a ${actually.kind}, and "${asked}" is about a ${subjectKind}, ` +
+          `so it would satisfy nothing. For a ${actually.kind} the kinds are: ${offer}.`
+      };
+    }
+    const offer = kindsFor(subjectKind)
+      .map((k) => k.value)
+      .join(", ");
+    return {
+      error: `${found.error} A "${asked}" is about a ${subjectKind}; those are the only subjects it can satisfy a cadence for (${offer}).`
+    };
+  }
+
   const id = store.create("touches", {
-    subject: row.id,
-    kind: String(kind).trim(),
+    subject: found.row.id,
+    kind: asked,
     note: note ?? null,
     at: typeof at === "number" ? at : now
   });
-  return { id, logged: `${kind} with ${row.name}` };
+  return { id, logged: `${asked} with ${found.row.name}` };
+}
+
+/**
+ * Look a subject up as the given sort of thing.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {import("../domain/contact.js").SubjectKind} subjectKind
+ * @param {string} query
+ * @returns {{ ok: true, row: any } | { ok: false, error: string }}
+ */
+/**
+ * The same name, resolved as some other sort of subject.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {import("../domain/contact.js").SubjectKind} expected
+ * @param {string} query
+ * @returns {{ kind: import("../domain/contact.js").SubjectKind, name: string } | null}
+ */
+function otherSubject(store, expected, query) {
+  /** @type {import("../domain/contact.js").SubjectKind[]} */
+  const every = ["person", "project", "workstream"];
+  const others = every.filter((k) => k !== expected);
+  for (const kind of others) {
+    const hit = findSubject(store, kind, query);
+    if (hit.ok) {
+      return { kind, name: String(hit.row.name ?? query) };
+    }
+  }
+  return null;
+}
+
+/**
+ * Look a subject up as the given sort of thing.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {import("../domain/contact.js").SubjectKind} subjectKind
+ * @param {string} query
+ * @returns {{ ok: true, row: any } | { ok: false, error: string }}
+ */
+function findSubject(store, subjectKind, query) {
+  if (subjectKind === "project") {
+    const hit = resolveProject(store, query);
+    return hit.ok ? { ok: true, row: hit.project } : { ok: false, error: hit.error };
+  }
+  if (subjectKind === "workstream") {
+    const hit = resolveWorkstream(store, query);
+    return hit.ok ? { ok: true, row: hit.workstream } : { ok: false, error: hit.error };
+  }
+  const hit = resolvePerson(store, query);
+  return hit.ok ? { ok: true, row: hit.person } : { ok: false, error: hit.error };
 }
 
 /**

@@ -9,7 +9,7 @@
  * report you then have to go and act on somewhere else.
  */
 
-import { act, ask, CONTACT_KINDS, esc, form, tend } from "../ui.js";
+import { act, ask, esc, form, kindsFor, tend } from "../ui.js";
 import { go, refresh } from "../app.js";
 
 export async function render() {
@@ -188,8 +188,21 @@ function card(item) {
 
   const actions = [];
   if (item.person) {
-    actions.push(`<button class="act" data-act="logContact" data-person="${esc(item.person)}">Log contact</button>`);
-    actions.push(`<button class="act" data-act="openPerson" data-person="${esc(item.person)}">Open</button>`);
+    // The subject decides both the wording and the kinds the form will offer.
+    // A project cadence is answered by looking at the project, not by having a
+    // conversation with it, and the old card offered every kind for either -
+    // which records something that satisfies nothing and still says "Logged".
+    const forProject = item.subjectKind === "project";
+    const forWork = item.subjectKind === "workstream";
+    const label = forProject ? "Log a look" : forWork ? "Log a review" : "Log contact";
+    actions.push(
+      `<button class="act" data-act="logContact" data-person="${esc(item.person)}" data-subject-kind="${esc(item.subjectKind ?? "person")}">${label}</button>`
+    );
+    // Only people have a page. Sending a project id to the roster showed an
+    // empty person rather than saying it had nowhere to go.
+    if (!forProject && !forWork) {
+      actions.push(`<button class="act" data-act="openPerson" data-person="${esc(item.person)}">Open</button>`);
+    }
   }
   if (item.key.startsWith("promise:")) {
     actions.push(
@@ -266,11 +279,16 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   logContact: async (d) => {
+    const subjectKind = /** @type {any} */ (d.subjectKind ?? "person");
+    const options = kindsFor(subjectKind);
     const values = await form({
-      title: "Log contact",
-      intro: "The kind decides which cadence this satisfies. Hearing about someone from their lead is not the same as having spoken to them, and Tend keeps those apart on purpose.",
+      title: subjectKind === "person" ? "Log contact" : "Log what you looked at",
+      intro:
+        subjectKind === "person"
+          ? "The kind decides which cadence this satisfies. Hearing about someone from their lead is not the same as having spoken to them, and Tend keeps those apart on purpose."
+          : "Only the kinds that can be about this sort of subject are offered. The rest would record something that satisfies no cadence.",
       fields: [
-        { name: "kind", label: "What kind", type: "select", options: CONTACT_KINDS, value: "one-to-one" },
+        { name: "kind", label: "What kind", type: "select", options, value: options[0]?.value },
         { name: "note", label: "One line, optional", placeholder: "What it was about" }
       ],
       confirm: "Log it"

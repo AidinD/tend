@@ -828,3 +828,38 @@ a scratch folder.
 quietly means nobody configured this, which is the only case where the shadow
 directory can happen. Settings says which of the three applies, so the question
 is answerable from the window rather than by comparing file timestamps.
+
+## 2026-08-25 - The kind of contact decides what the subject must be
+
+**Decided.** Each contact kind belongs to exactly one sort of subject: person,
+project, or workstream. The kind chosen decides which lookup runs, the form
+offers only the kinds that can be about what you clicked, and the service layer
+refuses the rest.
+
+**Why.** The form offered all kinds whatever the subject was. Filing a 1-1
+against a project, or a check-in against a person, recorded a row, said
+"Logged", and satisfied no cadence - so the thing it was meant to answer stayed
+exactly as behind as it was. The whole design rests on kinds not being
+interchangeable, so a form that lets one be filed against the wrong sort of
+subject is quietly undoing the premise.
+
+**Filtered on the subject's TYPE, not on which duties are active.** The
+tempting version offers only kinds that would move a clock today. It fails
+twice: `casual` satisfies nothing by design and would disappear, taking the one
+way to record having actually spoken to somebody; and duties are the user's to
+edit, so a list that reshuffles when a duty's relations change, or refuses to
+record a true thing because no duty consumes it yet, is a tool arguing about
+what happened. Duties decide what counts. This decides what a sentence can be
+about.
+
+**Refused in the service layer, not only filtered in the window.** The window
+is not the only caller - an agent over MCP reaches the same function.
+
+**Found while doing it: delegation reviews had never worked.** `logTouch`
+resolved a subject as a person or a project only, and a workstream is neither,
+so the Work view's "Log a review" button answered "No project matching
+<uuid>". The duty that consumes those reviews could not be satisfied by
+anything. Letting the kind pick the lookup fixed it as a side effect, which is
+the argument for that ordering: resolving first and validating afterwards also
+meant a name shared by a person and a project silently picked whichever lookup
+ran first.

@@ -35,6 +35,11 @@ import { isUnspecified, reviewInterval } from "./workstreams.js";
  * @property {boolean} guarded
  * @property {string} source Where the item came from, shown to the user.
  * @property {string | null} subject Subject id, when there is one.
+ * @property {string | null} [subjectKind] What sort of thing the subject is.
+ *   Carried because the actions a card can offer depend on it: the kinds of
+ *   contact that could satisfy a project cadence are not the ones that could
+ *   satisfy a person's, and a card that offers all of them lets you record
+ *   something that satisfies nothing.
  */
 
 /**
@@ -174,7 +179,7 @@ export function buildAttention(state, now) {
   /** @type {AttentionItem[]} */
   const items = [];
 
-  for (const { duty, subject, drift } of cadences) {
+  for (const { duty, subject, subjectKind, drift } of cadences) {
     // Existence is decided by the truth, not by the focus. An item the focus
     // softened all the way to "ok" still exists - it gets counted as held back
     // rather than vanishing.
@@ -197,7 +202,8 @@ export function buildAttention(state, now) {
       badge: driftBadge(drift.driftDays),
       guarded: Boolean(duty.guarded),
       source: `Role map: ${duty.name}`,
-      subject: subject.id
+      subject: subject.id,
+      subjectKind
     });
   }
 

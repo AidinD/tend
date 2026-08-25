@@ -284,41 +284,14 @@ export const RELATION_OPTIONS = [
   { value: "own-manager", label: "Your manager" }
 ];
 
-/**
- * Contact kinds. These are not interchangeable; each satisfies its own cadence.
- *
- * `casual` is the one that satisfies NOTHING, and deliberately. A chat in the
- * kitchen is real contact - it means you have spoken to them, so the signal
- * about people you have only heard about second-hand correctly stays quiet -
- * but it is not the recurring conversation with a structure that the 1-1 duty
- * means, and letting it reset that clock would let a good week of corridor talk
- * hide a quarter without a real one.
+/*
+ * Contact kinds come from the domain, not from a second list here. The rule
+ * about which kinds can be about which sort of subject has to hold for an agent
+ * over MCP as well as for this window, so it lives in one place and both read
+ * it. A copy in the renderer is a copy that drifts, and the way it drifts is by
+ * offering a kind that records something satisfying nothing.
  */
-export const CONTACT_KINDS = [
-  { value: "one-to-one", label: "1-1 - a conversation with them" },
-  {
-    value: "casual",
-    label: "Casual - you spoke, but it was not a 1-1"
-  },
-  { value: "second-hand", label: "Second-hand - heard about them from someone else" },
-  { value: "sideways", label: "Sideways - contact with a peer lead" },
-  { value: "feedback", label: "Feedback - you told them something directly" },
-  { value: "observation", label: "Observation - you saw their work" },
-  { value: "survey", label: "Survey round" },
-  { value: "check-in", label: "Check-in - you looked at a project" }
-];
-
-/**
- * The contact kinds a NOTE can be evidence of.
- *
- * A subset of CONTACT_KINDS, and the subset is the point: a survey round is a
- * form going out and a project check-in is about a project, so neither is ever
- * something a note about a person carries. Offering them in the mapping would
- * be asking a question with no answer, seven times.
- */
-export const NOTE_CONTACT_KINDS = CONTACT_KINDS.filter((k) =>
-  ["one-to-one", "casual", "second-hand", "sideways", "feedback", "observation"].includes(k.value)
-);
+export { CONTACT_KINDS, NOTE_CONTACT_KINDS, kindsFor } from "../domain/contact.js";
 
 export const LEVEL_OPTIONS = [
   { value: "doing", label: "Doing it myself - still mine, reviewed weekly" },
