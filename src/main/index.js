@@ -87,6 +87,9 @@ const OPERATIONS = {
   decideTopic: (/** @type {any} */ a) => api.decideTopic(store, a.id, a.status, a.overrides),
   markRaised: (/** @type {any} */ a) => api.markRaised(store, { ...a, now: a.now ?? Date.now() }),
 
+  journal: (/** @type {any} */ a) => api.journal(store, a.now ?? Date.now(), a.days),
+  logEntry: (/** @type {any} */ a) => api.logEntry(store, { ...a, now: a.now ?? Date.now() }),
+
   logSkip: (/** @type {any} */ a) => api.logSkip(store, { ...a, now: a.now ?? Date.now() }),
   skips: (/** @type {any} */ a) => api.skips(store, a.person, a.now ?? Date.now()),
 

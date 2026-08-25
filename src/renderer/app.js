@@ -15,6 +15,7 @@ import { esc, tend, toast } from "./ui.js";
 import { installPalette } from "./palette.js";
 import * as now from "./views/now.js";
 import * as prep from "./views/prep.js";
+import * as journal from "./views/journal.js";
 import * as decisions from "./views/decisions.js";
 import * as people from "./views/people.js";
 import * as work from "./views/work.js";
@@ -29,7 +30,7 @@ const errors = [];
 window.addEventListener("error", (e) => errors.push(String(e.message)));
 window.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
 
-const VIEWS = { now, prep, people, work, role, decisions, focus, knowledge, settings };
+const VIEWS = { now, prep, journal, people, work, role, decisions, focus, knowledge, settings };
 
 const main = /** @type {HTMLElement} */ (document.getElementById("main"));
 

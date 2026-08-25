@@ -1192,3 +1192,45 @@ emphasising none of them - a fact about the set, not a display problem.
 **The action point's age is a proxy and says so.** Nib records when a note
 changed, not when a block was flagged, so the list is sorted by it and no number
 of days is put in front of him as though it were measured.
+
+## 2026-08-25 - The day gets written down, and nothing asks for it
+
+**Decided.** Four boxes on their own page: what took the day, what I avoided,
+what I would do differently, and a longer one. Every field optional, one entry
+per day replaced rather than duplicated, no prompt, no streak, and no count in
+the rail.
+
+**Why nothing prompts.** Days will be missed, by design rather than by
+shortfall. A tool that asks every evening becomes a tool that is avoided every
+evening, and then the record stops entirely instead of arriving unevenly - which
+is strictly worse, because an uneven record still shows a pattern and an
+abandoned one shows nothing. The rail carries no badge for the same reason: every
+other entry there earns a number because something waits, and a number on an
+optional habit is only ever a reproach.
+
+**Why every field is optional.** Three required boxes produce something invented
+at eleven at night. Invented data is worse than none: it survives, it reads like
+a fact afterwards, and it poisons the pass that is the entire point of writing
+any of this down. One filled box is a complete entry, and an empty box is absent
+from the card rather than shown with a dash.
+
+**Why these questions.** The rule the rest of the app follows - never ask for
+what can be derived. Who he spoke to is in the store, so asking would waste the
+only thing a form has, which is his attention. What is left is what only he can
+say: where the day actually went as opposed to where it was meant to, what he
+avoided, and the smallest possible retrospective.
+
+**One entry per day, replaced.** Coming back in the evening to add a line is
+normal; three partial rows for one Tuesday would make every count over days
+wrong, and the count over days is what separates a habit from an evening of
+catching up.
+
+**The coverage travels with the entries.** A pass over five and a pass over
+twenty-five are different claims, and a summary that does not say which sounds
+equally confident either way. Saying it in the data rather than leaving it to
+whoever renders it means the honesty is structural rather than remembered.
+
+**Deliberately not built yet: the pass that reads them.** It is the product and
+the form is only the means, but a summary needs entries to summarise. Signals
+built on a guess about which patterns exist are worse than no signals, which is
+the same order the topic and stakeholder work followed.

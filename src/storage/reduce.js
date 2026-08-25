@@ -66,7 +66,13 @@ export const COLLECTIONS = /** @type {const} */ ([
    * and "we booked it and cancelled it three times" are different facts, and a
    * tool that only counts contact sees both as silence.
    */
-  "skips"
+  "skips",
+  /**
+   * End-of-day entries. Optional by design - days get missed and nothing here
+   * prompts for one - so the value is in a pass over many rather than in any
+   * single row.
+   */
+  "entries"
 ]);
 
 /**

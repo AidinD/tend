@@ -16,6 +16,7 @@ import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { CONTACT_KINDS, SUBJECT_KINDS, evidenceFor, kindsFor, subjectOf } from "../domain/contact.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
+import { JOURNAL_FIELDS, REVIEW_WINDOW_DAYS, coverage, entriesSince, hasContent } from "../domain/journal.js";
 import { openPromises } from "../domain/promises.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import { signalsDue } from "../domain/signals.js";
@@ -1238,7 +1239,8 @@ export function removeRow(store, collection, id) {
     "stakes",
     "topics",
     "raised",
-    "skips"
+    "skips",
+    "entries"
   ];
   if (!removable.includes(collection)) {
     return { error: `Rows in "${collection}" are not removable. Removable: ${removable.join(", ")}.` };
@@ -1692,5 +1694,86 @@ export function skips(store, who, now) {
       when: agoWords(Math.max(0, Math.floor((now - Number(s.at ?? now)) / 86_400_000)))
     })),
     pattern: skipPattern(skipsFor(rows, id, now, "one-to-one"), "1-1")
+  };
+}
+
+/* --------------------------------------------------------------- journal -- */
+
+/**
+ * Write an end-of-day entry.
+ *
+ * Every field is optional and so is the whole thing having more than one filled.
+ * Requiring three would produce something invented at eleven at night, and
+ * invented data is worse than none - it survives, it reads like a fact, and it
+ * poisons the pass that is the entire point.
+ *
+ * One entry per day, replaced rather than duplicated. Coming back in the evening
+ * to add a line is normal; ending up with three partial entries for a Tuesday is
+ * not, and it would make any count over days wrong.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {number} args.now
+ * @param {number} [args.at] The day it is about. Defaults to today.
+ * @param {string} [args.took]
+ * @param {string} [args.avoided]
+ * @param {string} [args.differently]
+ * @param {string} [args.notes]
+ */
+export function logEntry(store, { now, at, ...fields }) {
+  const when = typeof at === "number" ? at : now;
+  if (isLaterDay(when, now)) {
+    return { error: "That day has not arrived yet." };
+  }
+
+  /** @type {Record<string, any>} */
+  const entry = { at: when };
+  for (const field of JOURNAL_FIELDS) {
+    const value = String(fields[field.name] ?? "").trim();
+    entry[field.name] = value === "" ? null : value;
+  }
+
+  if (!hasContent(entry)) {
+    return { error: "Nothing was written, so there is nothing to keep." };
+  }
+
+  const day = new Date(when).toISOString().slice(0, 10);
+  const already = store
+    .rows("entries")
+    .find((e) => new Date(Number(e.at ?? 0)).toISOString().slice(0, 10) === day);
+
+  if (already) {
+    store.update("entries", String(already.id), entry);
+    return { id: String(already.id), day, replaced: true };
+  }
+  const id = store.create("entries", entry);
+  return { id, day, replaced: false };
+}
+
+/**
+ * The recent entries, and how much there is to read.
+ *
+ * The coverage travels with them rather than being computed by whoever displays
+ * them, so a summary built on five entries cannot be presented in the same voice
+ * as one built on twenty-five.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ * @param {number} [days]
+ */
+export function journal(store, now, days = REVIEW_WINDOW_DAYS) {
+  const window = entriesSince(store.rows("entries"), now, days);
+  return {
+    fields: JOURNAL_FIELDS.map((f) => ({ ...f })),
+    coverage: coverage(window, days),
+    entries: window.map((e) => ({
+      id: String(e.id),
+      at: Number(e.at ?? 0),
+      when: agoWords(Math.max(0, Math.floor((now - Number(e.at ?? now)) / 86_400_000))),
+      took: e.took ?? null,
+      avoided: e.avoided ?? null,
+      differently: e.differently ?? null,
+      notes: e.notes ?? null
+    }))
   };
 }

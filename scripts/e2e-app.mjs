@@ -1189,6 +1189,88 @@ try {
 
   /* -------------------------------------------------------- decisions -- */
 
+  /* ---------------------------------------------------- the day -- */
+
+  step("Writing the day down");
+
+  await page.click('.nav-btn[data-view="journal"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the journal view");
+
+  const emptyJournal = await page.text("#main");
+  check("an empty journal says which questions it asks and why it asks them", () => {
+    if (!/took the day/.test(emptyJournal) || !/avoided/.test(emptyJournal)) {
+      throw new Error(`the empty state names no questions: ${emptyJournal.slice(0, 200)}`);
+    }
+    // The load-bearing phrase, not a paraphrase of it. The app asks only for
+    // what it cannot derive, and the empty state has to say so - otherwise the
+    // form reads as three chores rather than three questions worth answering.
+    if (!/only reason it asks/.test(emptyJournal)) {
+      throw new Error("it does not say why it is asking rather than deriving");
+    }
+  });
+
+  // One box, and nothing else. Three required fields would produce something
+  // invented at eleven at night, and invented data reads like a fact afterwards.
+  await page.click('[data-act="writeEntry"]');
+  await page.fillDialog({ avoided: "Feedbackrundorna, igen" });
+  await page.waitFor(
+    "document.body.textContent.includes('Feedbackrundorna')",
+    "the entry on the page"
+  );
+
+  const oneBox = await page.evaluate(
+    `(() => { const card = document.querySelector('.card');
+      return JSON.stringify({
+        heads: [...card.querySelectorAll('.prep-head')].map(h => h.textContent.trim()),
+        text: card.textContent
+      }); })()`
+  );
+  check("an entry with one box filled is a whole entry", () => {
+    const card = JSON.parse(String(oneBox));
+    if (card.heads.length !== 1) {
+      throw new Error(`an empty box was rendered anyway: ${JSON.stringify(card.heads)}`);
+    }
+    if (!/What I avoided/.test(card.heads[0])) {
+      throw new Error(`the wrong box survived: ${JSON.stringify(card.heads)}`);
+    }
+  });
+
+  const coverageLine = await page.text(".prep-dropped");
+  check("and the page says how thin the record is, before any summary exists", () => {
+    if (!/1 entry across 1 day/.test(coverageLine)) {
+      throw new Error(`coverage reads "${coverageLine}"`);
+    }
+    if (!/pattern/.test(coverageLine)) {
+      throw new Error("it does not warn that this is too little to read a pattern into");
+    }
+  });
+
+  // Same day again: an edit, not a second row. Three partial entries for one
+  // Tuesday would make every count over days wrong.
+  await page.click('[data-act="writeEntry"]');
+  await page.fillDialog({ avoided: "Feedbackrundorna, igen", took: "Sjöhästen hela dagen" });
+  await page.waitFor("document.body.textContent.includes('Sjöhästen hela dagen')", "the edit");
+
+  const cardsAfter = await page.evaluate("document.querySelectorAll('.card').length");
+  check("writing the same day again edits it rather than adding a second", () => {
+    if (Number(cardsAfter) !== 1) {
+      throw new Error(`${cardsAfter} entries for one day`);
+    }
+  });
+
+  const nowAfterJournal = await page.evaluate(
+    `(() => { const b = document.querySelector('.nav-btn[data-view="journal"] .nav-count');
+      return b === null ? "none" : b.textContent; })()`
+  );
+  check("the rail carries no count for it, because nothing here is waiting", () => {
+    // Every other entry in the rail earns a number because something waits. A
+    // badge on an optional habit is only ever a reproach, and a tool that
+    // reproaches you every evening is one you stop opening.
+    if (String(nowAfterJournal).trim() !== "none" && String(nowAfterJournal).trim() !== "") {
+      throw new Error(`the rail shows "${nowAfterJournal}"`);
+    }
+  });
+
   step("Recording a decision");
 
   await page.click('.nav-btn[data-view="decisions"]');
