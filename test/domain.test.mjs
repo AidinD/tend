@@ -101,6 +101,29 @@ describe("data directory", () => {
 });
 
 describe("time", () => {
+  // Casts, because the signature says `number` and the checker is right to
+  // object. That is the shape of the whole bug: a typechecked caller cannot get
+  // here, so the guard only ever fires for a plain script - which is exactly
+  // who hit it, and exactly who benefits from a throw over a plausible number.
+  const missing = /** @type {any} */ (undefined);
+
+  it("refuses an instant that is not a finite number", () => {
+    // The reproduction: a service function takes the clock as an argument, a
+    // caller omits it, and the old behaviour was NaN all the way out to the
+    // screen as "NaN weeks ago" - a confident answer that reads like a product
+    // bug. A throw is the one outcome that cannot be mistaken for a result.
+    assert.throws(() => daysBetween(NOW, missing), /omitted "now"/);
+    assert.throws(() => daysBetween(missing, NOW), /finite instants/);
+    assert.throws(() => daysBetween(NOW, Number.NaN), /NaN/);
+    assert.throws(() => daysBetween(NOW, Infinity), /finite instants/);
+  });
+
+  it("names undefined and NaN differently, since they mean different mistakes", () => {
+    // One is an argument nobody passed; the other was computed from one.
+    assert.throws(() => daysBetween(NOW, missing), /got .* and undefined/);
+    assert.throws(() => daysBetween(NOW, Number.NaN), /got .* and NaN/);
+  });
+
   it("counts whole days, rounding down", () => {
     assert.equal(daysBetween(daysAgo(3), NOW), 3);
     assert.equal(daysBetween(NOW - DAY_MS * 2.9, NOW), 2);

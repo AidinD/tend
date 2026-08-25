@@ -12,12 +12,56 @@ export const DAY_MS = 86_400_000;
 /**
  * Whole days between two instants, rounded down.
  *
+ * Throws on an instant that is not a finite number, and the throw is the point.
+ * Every service function here takes the clock as an argument; a caller that
+ * omits it used to get `NaN` through `Math.max`, which came out of the app as
+ * "NaN weeks ago" and "+NaNw" - a confident answer that looked like a product
+ * bug and was a missing argument. It cost a session's time before anybody
+ * suspected the call rather than the code.
+ *
+ * Substituting `Date.now()` instead would be worse. A silently supplied clock
+ * gives a plausible wrong answer, which is the failure that keeps happening in
+ * this codebase: it passes every check the caller thinks to run. A throw is the
+ * one outcome that cannot be mistaken for a result.
+ *
+ * Nothing in the app can reach this. The MCP server stamps the clock once at
+ * its dispatch point and every Electron operation passes `a.now ?? Date.now()`,
+ * so the only callers that can arrive without one are tests and scripts -
+ * exactly where a loud failure is worth having. Same reasoning as
+ * `computeDrift` refusing a non-positive interval.
+ *
  * @param {number} from Milliseconds since epoch.
  * @param {number} to Milliseconds since epoch.
  * @returns {number} Negative if `to` is before `from`.
  */
 export function daysBetween(from, to) {
+  if (!Number.isFinite(from) || !Number.isFinite(to)) {
+    throw new Error(
+      `daysBetween needs two finite instants, got ${describe(from)} and ${describe(to)}. ` +
+        `A missing one is almost always an omitted "now" argument.`
+    );
+  }
   return Math.floor((to - from) / DAY_MS);
+}
+
+/**
+ * Name a bad value in a way that points at the mistake.
+ *
+ * `undefined` and `NaN` print identically through template interpolation once
+ * they have been through arithmetic, and they mean different things: the first
+ * is an argument nobody passed, the second is one that was computed from one.
+ *
+ * @param {unknown} value
+ * @returns {string}
+ */
+function describe(value) {
+  if (value === undefined) {
+    return "undefined";
+  }
+  if (typeof value === "number" && Number.isNaN(value)) {
+    return "NaN";
+  }
+  return JSON.stringify(value) ?? String(value);
 }
 
 /**
