@@ -10,7 +10,7 @@
  *   abdicating.
  *
  * So a level sits on a piece of work with an owner, not on a project and not on
- * a person. "Tidepool rendering, Nadia, delegated with close follow-up" is one
+ * a person. "Strandkanten rendering, Nadia, delegated with close follow-up" is one
  * row. A person and a project each carrying their own level would be a matrix
  * nobody maintains.
  */

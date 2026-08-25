@@ -445,7 +445,7 @@ function realisticOps() {
     ["people.create", { id: "nadia", name: "Nadia Ohlsson", relation: "lead-and-manage", since: daysAgo(200) }],
     ["people.create", { id: "johan", name: "Johan Lind", relation: "manage-remotely", since: daysAgo(200) }],
     ["people.create", { id: "sofia", name: "Sofia Krantz", relation: "equal-lead", since: daysAgo(200) }],
-    ["projects.create", { id: "tidepool", name: "Tidepool", since: daysAgo(200) }],
+    ["projects.create", { id: "tidepool", name: "Strandkanten", since: daysAgo(200) }],
 
     ["touches.create", { id: "t1", subject: "nadia", kind: "one-to-one", at: daysAgo(13) }],
     ["touches.create", { id: "t2", subject: "johan", kind: "one-to-one", at: daysAgo(42) }],

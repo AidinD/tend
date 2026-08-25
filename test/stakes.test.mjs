@@ -72,7 +72,7 @@ describe("stakeholders through the store", () => {
     }
     ok(api.addPerson(store, { name: "Nadia", relation: "stakeholder", now: ago(400) }));
     ok(api.addProject(store, { name: "Sjöhästen", since: ago(400), now: ago(400) }));
-    ok(api.addProject(store, { name: "Meta", since: ago(400), now: ago(400) }));
+    ok(api.addProject(store, { name: "Vinterlek", since: ago(400), now: ago(400) }));
   });
 
   afterEach(() => {
@@ -98,7 +98,7 @@ describe("stakeholders through the store", () => {
 
   it("an update about one project does not answer for another", () => {
     const sjohasten = stakeOn("Sjöhästen");
-    const meta = stakeOn("Meta");
+    const vinterlek = stakeOn("Vinterlek");
 
     ok(api.logTouch(store, { subject: sjohasten, kind: "update", note: "on track", now: NOW }));
 
@@ -109,15 +109,15 @@ describe("stakeholders through the store", () => {
     );
 
     assert.equal(drifts.get(sjohasten)?.everHappened, true);
-    assert.equal(drifts.get(meta)?.everHappened, false, "Meta was never mentioned and must still be waiting");
+    assert.equal(drifts.get(vinterlek)?.everHappened, false, "Vinterlek was never mentioned and must still be waiting");
     assert.ok(
-      Number(drifts.get(meta)?.driftDays) > Number(drifts.get(sjohasten)?.driftDays),
+      Number(drifts.get(vinterlek)?.driftDays) > Number(drifts.get(sjohasten)?.driftDays),
       "the project nobody heard about should be the one that surfaces"
     );
   });
 
   it("takes its interval from the stake rather than from the duty", () => {
-    const quarterly = ok(api.addStake(store, { person: "Nadia", project: "Meta", cadenceDays: 90, since: ago(200) }));
+    const quarterly = ok(api.addStake(store, { person: "Nadia", project: "Vinterlek", cadenceDays: 90, since: ago(200) }));
     const monthly = stakeOn("Sjöhästen");
 
     const byId = new Map(
@@ -136,13 +136,13 @@ describe("stakeholders through the store", () => {
   });
 
   it("refuses an interval that is not a positive number of days", () => {
-    assert.match(failed(api.addStake(store, { person: "Nadia", project: "Meta", cadenceDays: 0 })), /positive/);
+    assert.match(failed(api.addStake(store, { person: "Nadia", project: "Vinterlek", cadenceDays: 0 })), /positive/);
   });
 
   it("says who is waiting and how long, in words rather than a bare count", () => {
     const sjohasten = stakeOn("Sjöhästen");
     ok(api.logTouch(store, { subject: sjohasten, kind: "update", note: "shipped the import", now: NOW }));
-    stakeOn("Meta");
+    stakeOn("Vinterlek");
 
     const list = api.stakeholders(store, NOW);
     assert.ok(Array.isArray(list));
@@ -150,13 +150,13 @@ describe("stakeholders through the store", () => {
 
     assert.equal(byProject.get("Sjöhästen")?.lastUpdated, "today");
     assert.equal(byProject.get("Sjöhästen")?.note, "shipped the import");
-    assert.equal(byProject.get("Meta")?.lastUpdated, "never", "never is not the same fact as zero days ago");
-    assert.equal(byProject.get("Meta")?.label, "Nadia, about Meta");
+    assert.equal(byProject.get("Vinterlek")?.lastUpdated, "never", "never is not the same fact as zero days ago");
+    assert.equal(byProject.get("Vinterlek")?.label, "Nadia, about Vinterlek");
   });
 
   it("narrows to one project when asked", () => {
     stakeOn("Sjöhästen");
-    stakeOn("Meta");
+    stakeOn("Vinterlek");
     const only = api.stakeholders(store, NOW, "Sjöhästen");
     assert.ok(Array.isArray(only));
     assert.deepEqual(

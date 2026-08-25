@@ -55,7 +55,7 @@ beforeEach(() => {
   store.create("people", { id: "nadia", name: "Nadia Ohlsson", relation: "lead-and-manage", since: daysAgo(200) });
   store.create("people", { id: "johan", name: "Johan Lind", relation: "manage-remotely", since: daysAgo(200) });
   store.create("people", { id: "marta", name: "Marta Sund", relation: "lead-only", since: daysAgo(200) });
-  store.create("projects", { id: "tidepool", name: "Tidepool", since: daysAgo(200) });
+  store.create("projects", { id: "tidepool", name: "Strandkanten", since: daysAgo(200) });
 
   store.create("touches", { id: "t1", subject: "nadia", kind: "one-to-one", at: daysAgo(13) });
   store.create("touches", { id: "t2", subject: "johan", kind: "one-to-one", at: daysAgo(42) });
@@ -77,12 +77,12 @@ describe("finding a person by what a human would type", () => {
   });
 
   it("refuses an ambiguous match rather than guessing", () => {
-    // "mar" hits both Nadia and Marta. Logging a promise against the wrong
-    // person is worse than an error.
-    const r = api.resolvePerson(store, "mar");
+    // "nd" hits both Johan Lind and Marta Sund. Logging a promise against the
+    // wrong person is worse than an error.
+    const r = api.resolvePerson(store, "nd");
     assert.equal(r.ok, false);
     assert.match(r.error, /matches 2 people/);
-    assert.match(r.error, /Nadia Ohlsson/);
+    assert.match(r.error, /Johan Lind/);
   });
 
   it("lists who it does know when it finds nobody", () => {
@@ -157,7 +157,7 @@ describe("adding people and projects", () => {
   });
 
   it("refuses a duplicate rather than creating a second row for one person", () => {
-    const r = api.addPerson(store, { name: "nadia ek", relation: "lead-only", now: NOW });
+    const r = api.addPerson(store, { name: "nadia ohlsson", relation: "lead-only", now: NOW });
     assert.match(String(r.error), /already here/);
   });
 
@@ -220,9 +220,9 @@ describe("writing", () => {
   });
 
   it("accepts a project as a touch subject too", () => {
-    const r = api.logTouch(store, { subject: "Tidepool", kind: "check-in", now: NOW });
+    const r = api.logTouch(store, { subject: "Strandkanten", kind: "check-in", now: NOW });
     assert.ok(!r.error);
-    assert.match(String(r.logged), /Tidepool/);
+    assert.match(String(r.logged), /Strandkanten/);
   });
 
   it("requires a kind on a touch, since kinds are not interchangeable", () => {

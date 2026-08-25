@@ -205,6 +205,15 @@ a test never writes into real data.
 The directory holds assessments of named colleagues. It stays local and private
 and is never committed or pushed.
 
+**No real name reaches this repository, and a hook enforces it rather than a
+rule.** This repo is public. Colleague first names, a real project name and a
+real product name got into test fixtures and code comments here on 2026-08-25,
+past a rule that said not to - because writing a fixture is the moment nobody is
+thinking about visibility. [privacy] clean - 30 private terms checked against this push, from 2 source(s). now derives the forbidden terms
+from the live Tend and Nib data and refuses the push, so there is nothing to
+remember and no list in the tree to go stale. Invent fixture names; never borrow
+one. See keel/privacy.
+
 **Keep it off the user profile, and check where your writes actually land.**
 An agent session may be running inside a Windows app container (MSIX), which
 silently redirects writes to `%APPDATA%` and `%LOCALAPPDATA%` into a per-package

@@ -18,7 +18,7 @@
  * neither are the things contact is ABOUT.
  *
  * So the subject is the pair. "The COO, about Sjöhästen" has its own clock, and
- * an update about Meta does not touch it. Workstreams already work this way -
+ * an update about another project does not touch it. Workstreams already work this way -
  * a piece of work is its own cadence subject rather than a field on a person -
  * so this is a fourth subject kind rather than a new mechanism.
  *

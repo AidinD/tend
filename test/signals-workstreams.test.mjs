@@ -51,7 +51,7 @@ beforeEach(() => {
     status: "active"
   });
   store.create("people", { id: "nadia", name: "Nadia Ohlsson", relation: "lead-and-manage", since: daysAgo(200) });
-  store.create("projects", { id: "tidepool", name: "Tidepool", since: daysAgo(200) });
+  store.create("projects", { id: "tidepool", name: "Strandkanten", since: daysAgo(200) });
 });
 
 afterEach(() => {
@@ -155,7 +155,7 @@ describe("delegation levels", () => {
 
   it("sits on the work and its owner together", () => {
     const r = api.addWorkstream(store, {
-      name: "Tidepool rendering",
+      name: "Strandkanten rendering",
       owner: "nadia",
       project: "tidepool",
       level: "close",
@@ -164,7 +164,7 @@ describe("delegation levels", () => {
     assert.ok(!r.error);
     const [w] = api.workstreams(store, NOW);
     assert.equal(w.owner, "Nadia Ohlsson");
-    assert.equal(w.project, "Tidepool");
+    assert.equal(w.project, "Strandkanten");
     assert.equal(w.reviewEvery, "14 days");
   });
 
@@ -174,7 +174,7 @@ describe("delegation levels", () => {
   });
 
   it("treats a missing level as a finding, not as missing data", () => {
-    api.addWorkstream(store, { name: "Tidepool physics", owner: "nadia", now: NOW });
+    api.addWorkstream(store, { name: "Strandkanten physics", owner: "nadia", now: NOW });
     const a = api.attention(store, NOW);
     const item = [...a.needsYou, ...a.nudges].find((/** @type {any} */ i) => /No delegation level/.test(i.what));
     assert.ok(item, "unstated delegation is the failure Grove names, so it must surface");
@@ -182,7 +182,7 @@ describe("delegation levels", () => {
   });
 
   it("stops flagging it once a level is set", () => {
-    const { id } = api.addWorkstream(store, { name: "Tidepool physics", owner: "nadia", now: NOW });
+    const { id } = api.addWorkstream(store, { name: "Strandkanten physics", owner: "nadia", now: NOW });
     api.setDelegationLevel(store, String(id), "theirs");
     const a = api.attention(store, NOW);
     assert.equal(
