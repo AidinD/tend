@@ -282,9 +282,22 @@ export const RELATION_OPTIONS = [
   { value: "own-manager", label: "Your manager" }
 ];
 
-/** Contact kinds. These are not interchangeable; each satisfies its own cadence. */
+/**
+ * Contact kinds. These are not interchangeable; each satisfies its own cadence.
+ *
+ * `casual` is the one that satisfies NOTHING, and deliberately. A chat in the
+ * kitchen is real contact - it means you have spoken to them, so the signal
+ * about people you have only heard about second-hand correctly stays quiet -
+ * but it is not the recurring conversation with a structure that the 1-1 duty
+ * means, and letting it reset that clock would let a good week of corridor talk
+ * hide a quarter without a real one.
+ */
 export const CONTACT_KINDS = [
   { value: "one-to-one", label: "1-1 - a conversation with them" },
+  {
+    value: "casual",
+    label: "Casual - you spoke, but it was not a 1-1"
+  },
   { value: "second-hand", label: "Second-hand - heard about them from someone else" },
   { value: "sideways", label: "Sideways - contact with a peer lead" },
   { value: "feedback", label: "Feedback - you told them something directly" },
@@ -302,7 +315,7 @@ export const CONTACT_KINDS = [
  * be asking a question with no answer, seven times.
  */
 export const NOTE_CONTACT_KINDS = CONTACT_KINDS.filter((k) =>
-  ["one-to-one", "second-hand", "sideways", "feedback", "observation"].includes(k.value)
+  ["one-to-one", "casual", "second-hand", "sideways", "feedback", "observation"].includes(k.value)
 );
 
 export const LEVEL_OPTIONS = [

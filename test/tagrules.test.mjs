@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import { indexNib, kindsFor, listNibFolders, listNibTags, nibDataDir } from "../src/service/nib.js";
-import { bindSource, setSourceRules, sources } from "../src/service/api.js";
+import { bindSource, myAttentionSignals, person, setSourceRules, sources } from "../src/service/api.js";
 import { openStore } from "../src/storage/store.js";
 import { DAY_MS } from "../src/domain/time.js";
 import { failed, ok } from "./helpers.mjs";
@@ -48,7 +48,8 @@ function writeNib(notes) {
         { id: "tag-one-to-one", name: "1-1", color: "#6f9cff", description: "" },
         { id: "tag-second-hand", name: "Second-hand", color: "#b98cff", description: "" },
         { id: "tag-feedback", name: "Feedback", color: "#5fd0a0", description: "" },
-        { id: "tag-principle", name: "Principle", color: "#9a9da3", description: "" }
+        { id: "tag-principle", name: "Principle", color: "#9a9da3", description: "" },
+        { id: "tag-casual", name: "Casual", color: "#5fd0a0", description: "" }
       ],
       categories: [
         {
@@ -195,6 +196,59 @@ describe("which cadence a note satisfies", () => {
   });
 });
 
+describe("a casual chat", () => {
+  it("is contact, but does not reset the 1-1 clock", () => {
+    // The whole reason the kind exists. A chat in the kitchen means you HAVE
+    // spoken to them - so the signal about people you only hear about
+    // second-hand correctly stays quiet - but it is not the recurring
+    // conversation with a structure the duty means, and letting it count would
+    // let a good week of corridor talk hide a quarter without a real one.
+    store.create("duties", {
+      id: "d-1to1",
+      name: "1-1",
+      subjectKind: "person",
+      cadenceDays: 14,
+      evidenceKinds: ["one-to-one"],
+      relations: ["lead-and-manage"],
+      status: "active"
+    });
+
+    writeNib([{ id: "n1", title: "Snack i köket", tags: ["tag-casual"], created: NOW - DAY_MS }]);
+    const id = bind();
+    ok(setSourceRules(store, { id, rules: [{ tagId: "tag-casual", kind: "casual" }] }));
+    ok(indexNib(store, { dir: nibDir }));
+
+    assert.deepEqual(kindsOf(), ["casual"], "it is recorded as contact");
+
+    const seen = ok(person(store, "Rasmus", NOW));
+    assert.equal(seen.recentContact[0].kind, "casual", "and shows in their history");
+
+    const oneToOne = seen.cadences.find((/** @type {any} */ c) => c.duty === "1-1");
+    assert.equal(oneToOne?.lastHappened, "never", "but the 1-1 has still never happened");
+  });
+
+  it("keeps the person out of the people-I-only-heard-about signal", () => {
+    store.create("duties", {
+      id: "d-1to1",
+      name: "1-1",
+      subjectKind: "person",
+      cadenceDays: 14,
+      evidenceKinds: ["one-to-one"],
+      relations: ["lead-and-manage"],
+      status: "active"
+    });
+
+    writeNib([{ id: "n1", title: "Snack i köket", tags: ["tag-casual"], created: NOW - DAY_MS }]);
+    const id = bind();
+    ok(setSourceRules(store, { id, rules: [{ tagId: "tag-casual", kind: "casual" }] }));
+    ok(indexNib(store, { dir: nibDir }));
+
+    const signals = myAttentionSignals(store, NOW);
+    const onlyHeard = signals.find((/** @type {any} */ x) => x.key === "i-have-only-heard-about");
+    assert.equal(onlyHeard, undefined, "you did speak to them, however briefly");
+  });
+});
+
 describe("the rule itself", () => {
   it("is keyed on the tag id, so renaming it in Nib changes nothing here", () => {
     writeNib([{ id: "n1", title: "Vad producenten sa", tags: ["tag-second-hand"] }]);
@@ -299,7 +353,7 @@ describe("reading Nib's catalog", () => {
     assert.equal(catalog.available, true);
     assert.deepEqual(
       catalog.available && catalog.tags.map((tag) => tag.name),
-      ["1-1", "Second-hand", "Feedback", "Principle"]
+      ["1-1", "Second-hand", "Feedback", "Principle", "Casual"]
     );
   });
 
