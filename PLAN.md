@@ -129,3 +129,58 @@ point into Dropbox since it is his private account with only his own access.
 - Text Tend generates gets pasted into real places, so it never writes out a
   management job title. Describe the role as lead, coaching, or responsibility.
 - Swedish text keeps its å, ä and ö, including inside code and fixtures.
+
+## Next: a private mode, for relationships outside work
+
+Discussed 2026-08-25, to be built. Not decided in DECISIONS.md yet because
+nothing has been built and nothing has met use.
+
+The idea is that the model underneath Tend is not work-specific. A person, a
+relationship, things you owe them, a record of contact, promises - none of that
+belongs only to a job. The name already covers it.
+
+**What does not transfer: drift.** The whole tool rests on "you have not spoken
+to this person in N days, and that is a deviation". For somebody you live with,
+contact is continuous, so the cadence machinery produces either permanent green
+or something faintly grotesque. Duties and drift are therefore switched off in
+this mode rather than reused.
+
+**What does transfer: the journal and the pattern-finding.** Which is the
+thinnest part of the app today - `evidence` and `themes` - so building it
+properly improves the work side at the same time. A review conversation is built
+from the same material.
+
+**The mode swaps the data directory, it does not filter one.** Two stores that
+never merge and are never read across. The mode has to be visible and sticky, so
+you cannot be in it without noticing. Nib already models this with a scope per
+category and needs no change: it holds the notes for both halves already.
+
+**The constraint that makes it safe is the one `myattention.js` already
+enforces.** Every signal has a first-person subject. Applied here it becomes a
+rule about what a journal entry may say: record the interaction and your own part
+in it, not the other person's state. "That conversation went badly and I got
+impatient" rather than "they were impossible." Three reasons, and the third is
+the one that matters: it is the half you can change, it keeps the signals honest,
+and it is the only version you could show the person it is about.
+
+A model pass on each entry enforces that rule where good intentions do not - the
+review is shown and thrown away, never stored and never rewriting the entry, the
+same boundary `draftBrief` already keeps. A smaller model is the right size for a
+per-entry check. An input form shaped as a few specific questions rather than a
+free box may do more of the work than any review can, by moving it upstream.
+
+**Build order.** Mode switch, then the journal entry, then the model review, then
+the reference material, then the signals. Signals last on purpose: built on
+twenty real entries rather than on a guess about which patterns exist. The review
+comes before the signals because it improves the entries, and signals built on
+poor entries are worse than none.
+
+**Reference material carries its provenance.** A card summarised from general
+knowledge says so, distinctly from one drawn from a specific book that was
+actually read. Same rule as `themes` carrying `source` to the screen: what a
+model wrote has to be visible, so it can be read with the right scepticism.
+Where a subject has a wide range of individual variation, general summaries are a
+starting point and are marked as one - the people involved outrank them.
+
+**Open: whether one private store holds every relationship, or whether the
+closest ones are separated further.** Hard to change afterwards.
