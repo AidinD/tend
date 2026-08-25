@@ -17,10 +17,11 @@ import { CONTACT_KINDS, SUBJECT_KINDS, evidenceFor, kindsFor, subjectOf } from "
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
 import { openPromises } from "../domain/promises.js";
+import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import { signalsDue } from "../domain/signals.js";
 import { DEFAULT_STAKE_DAYS, namedStakes, stakeInterval } from "../domain/stakes.js";
 import { TOPICS_PER_CARD, appliesTo, lastRaised, topicsFor } from "../domain/topics.js";
-import { agoWords, driftBadge, humanDays } from "../domain/time.js";
+import { agoWords, driftBadge, humanDays, isLaterDay } from "../domain/time.js";
 import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../domain/workstreams.js";
 import { resolvePerson, resolveProject, resolveStake, resolveWorkstream } from "./resolve.js";
 import { decideDecision, decisions, logDecision, revisitsDue, stillHolds } from "./ledger.js";
@@ -173,6 +174,15 @@ export function person(store, query, now) {
     // makes it the one field somebody sets wrong once and never revisits.
     since: p.since ?? null,
     relationMeans: isRelation(relation) ? RELATIONS[relation].note : "Unknown relationship type.",
+    // Beside the contact history rather than mixed into it: a cancellation is
+    // not a conversation, and the two must stay legible as different things.
+    skipped: recentSkips(store.rows("skips"), p.id).map((s) => ({
+      id: String(s.id),
+      kind: String(s.kind ?? ""),
+      why: s.why ?? null,
+      when: agoWords(Math.max(0, Math.floor((now - Number(s.at ?? now)) / 86_400_000)))
+    })),
+    skipPattern: skipPattern(skipsFor(store.rows("skips"), p.id, now, "one-to-one"), "1-1"),
     awayUntil: p.awayUntil ?? null,
     leftAt: p.leftAt ?? null,
     availability: availability(p, now),
@@ -586,11 +596,28 @@ export function logTouch(store, { subject, kind, note, at, now }) {
     };
   }
 
+  // A booked meeting is not contact. Accepting a future date let somebody clear
+  // a cadence for a conversation that had not happened yet - and it goes green
+  // immediately, so the page says you are in step for however many days remain
+  // until the thing actually takes place. Wrong in the flattering direction,
+  // which is the direction nobody checks.
+  //
+  // Tend deliberately models drift rather than a calendar, so there is no
+  // "planned" state for this to become. Log it afterwards, or backdate it.
+  const when = typeof at === "number" ? at : now;
+  if (isLaterDay(when, now)) {
+    return {
+      error:
+        "That day has not arrived yet. Contact is a record of something that happened, so a " +
+        "meeting in the diary cannot satisfy a cadence - log it once it has, or backdate it."
+    };
+  }
+
   const id = store.create("touches", {
     subject: found.row.id,
     kind: asked,
     note: note ?? null,
-    at: typeof at === "number" ? at : now
+    at: when
   });
   return { id, logged: `${asked} with ${found.row.name}` };
 }
@@ -1210,7 +1237,8 @@ export function removeRow(store, collection, id) {
     "touches",
     "stakes",
     "topics",
-    "raised"
+    "raised",
+    "skips"
   ];
   if (!removable.includes(collection)) {
     return { error: `Rows in "${collection}" are not removable. Removable: ${removable.join(", ")}.` };
@@ -1421,8 +1449,8 @@ export function markRaised(store, { topic, person: who, note, at, now }) {
     return { error: found.error };
   }
   const when = typeof at === "number" ? at : now;
-  if (when > now) {
-    return { error: "That is in the future. A topic is marked raised after the conversation, not before." };
+  if (isLaterDay(when, now)) {
+    return { error: "That day has not arrived yet. A topic is marked raised after the conversation, not before." };
   }
 
   const id = store.create("raised", {
@@ -1585,4 +1613,84 @@ export function updateStake(store, id, { cadenceDays, what }) {
   }
   store.update("stakes", id, patch);
   return { id, changed: Object.keys(patch) };
+}
+
+/* ----------------------------------------------------------------- skips -- */
+
+/**
+ * Record that something booked did not happen.
+ *
+ * Never satisfies a cadence, and is deliberately stored in its own collection so
+ * that it cannot start doing so by accident. See src/domain/skips.js: the value
+ * is entirely in the difference between "we never booked it" and "we booked it
+ * and cancelled it three times", which a tool that only counts contact cannot
+ * see at all.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.person Name or id.
+ * @param {string} args.kind What it would have been, e.g. one-to-one.
+ * @param {string} [args.why] In his own words. One line.
+ * @param {number} [args.at] When it should have happened. Defaults to today.
+ * @param {number} args.now
+ */
+export function logSkip(store, { person: who, kind, why, at, now }) {
+  const found = resolvePerson(store, who);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+
+  const asked = String(kind ?? "").trim();
+  if (!asked) {
+    return { error: "A skipped meeting needs to say what it would have been." };
+  }
+  if (subjectOf(asked) !== "person") {
+    const offer = kindsFor("person")
+      .map((k) => k.value)
+      .join(", ");
+    return { error: `"${asked}" is not something you can have with a person. Try one of: ${offer}.` };
+  }
+
+  const when = typeof at === "number" ? at : now;
+  if (isLaterDay(when, now)) {
+    return {
+      error:
+        "That day has not arrived yet. A meeting can only be recorded as not having happened " +
+        "once its day has passed."
+    };
+  }
+
+  const id = store.create("skips", {
+    person: String(found.person.id),
+    kind: asked,
+    why: String(why ?? "").trim() || null,
+    at: when
+  });
+  return { id, skipped: `${asked} with ${found.person.name}` };
+}
+
+/**
+ * Skipped meetings with one person, and whether they add up to a pattern.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} who
+ * @param {number} now
+ */
+export function skips(store, who, now) {
+  const found = resolvePerson(store, who);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  const rows = store.rows("skips");
+  const id = String(found.person.id);
+  return {
+    person: found.person.name,
+    recent: recentSkips(rows, id).map((s) => ({
+      id: String(s.id),
+      kind: String(s.kind ?? ""),
+      why: s.why ?? null,
+      when: agoWords(Math.max(0, Math.floor((now - Number(s.at ?? now)) / 86_400_000)))
+    })),
+    pattern: skipPattern(skipsFor(rows, id, now, "one-to-one"), "1-1")
+  };
 }

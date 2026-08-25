@@ -1078,3 +1078,35 @@ critical first and pushes anything with a critical true severity to nudges rathe
 than muting it. Guarding only changes whether the tier below critical is
 protected. Un-guarding a duty that is badly overdue therefore does nothing at
 all, and suggesting it as a way to quiet the page was wrong.
+
+## 2026-08-25 - A cancelled meeting is recorded, and satisfies nothing
+
+**Decided.** A `skips` row holds a meeting that was booked and did not happen:
+who, what it would have been, when, and why in one free line. It lives in its
+own collection, is read nowhere contact is read, and no cadence consumes it.
+
+**Why record it at all.** "We never got round to booking it" and "we booked it
+and cancelled it three times" look identical to a tool that only counts contact:
+both are silence. They are not the same fact. The second is a pattern, it is
+usually about something, and it is exactly the sort of thing that is obvious in
+hindsight and invisible while it is happening.
+
+**Why it must satisfy nothing.** The conversation still has not taken place, so
+the page saying so is correct. If recording a cancellation quieted the cadence,
+being honest about it would make the tool lie - and then the honest thing to do
+would be to record nothing.
+
+**The reason is a free line, not a category.** A dropdown of causes produces
+statistics nobody acts on. The difference between "he was ill" and "I moved it
+for the third time" is the whole point, and only one of those is about you.
+
+**Two, not one, before it is called a pattern.** Something cancelled once is a
+week. A card that comments on every rearranged meeting is a card that gets
+skimmed.
+
+**Also: contact can no longer be logged for a day that has not arrived.** The
+temptation is concrete - a 1-1 in the diary for next week and a card saying you
+are two weeks behind - and logging it early goes green immediately and stays
+green until the day comes. Wrong in the flattering direction, which is the
+direction nobody checks. The check is day-granular because the date pickers
+parse a chosen day at midday, so a plain `at > now` would have rejected today.

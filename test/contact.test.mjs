@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 
 import * as api from "../src/service/api.js";
 import { openStore } from "../src/storage/store.js";
+import { DAY_MS } from "../src/domain/time.js";
 import {
   CONTACT_KINDS,
   NOTE_CONTACT_KINDS,
@@ -200,6 +201,25 @@ describe("logging contact against the right sort of subject", () => {
 
     assert.ok(people.has(String(oneToOne?.subject)), "the 1-1 landed on the person");
     assert.ok(projects.has(String(checkIn?.subject)), "the check-in landed on the project");
+  });
+
+  it("refuses a meeting that has not happened yet", () => {
+    // The temptation is concrete: a 1-1 in the diary for next Wednesday, and a
+    // card saying you are two weeks behind. Logging it early goes green at once
+    // and stays green until the day arrives - wrong in the flattering
+    // direction, which is the direction nobody checks.
+    const why = failed(api.logTouch(store, { subject: "Ada", kind: "one-to-one", at: NOW + 8 * DAY_MS, now: NOW }));
+    assert.match(why, /has not arrived yet/);
+    assert.equal(store.rows("touches").length, 0);
+  });
+
+  it("still accepts something that happened earlier today", () => {
+    // The date pickers parse a chosen day at midday, so logging this morning
+    // produces a stamp a few hours ahead of the clock. A plain "later than now"
+    // check would have rejected today.
+    const morning = Date.parse("2026-08-25T07:00:00Z");
+    const middayStamp = Date.parse("2026-08-25T12:00:00");
+    ok(api.logTouch(store, { subject: "Ada", kind: "casual", at: middayStamp, now: morning }));
   });
 
   it("a refused contact writes nothing at all", () => {

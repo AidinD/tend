@@ -723,6 +723,41 @@ try {
     }
   });
 
+  // A cancelled meeting, recorded as one. The guarantee that matters is the
+  // negative: writing down that a 1-1 did not happen must NOT satisfy the 1-1
+  // cadence, because the conversation still has not taken place. If it did, the
+  // act of being honest about a cancellation would quiet the page that was
+  // telling the truth.
+  const cadencesBefore = await page.texts(".block .line-text");
+  await page.click('[data-act="logSkip"]');
+  await page.fillDialog({ kind: "one-to-one", why: "Release week, I moved it" });
+  await page.waitFor(
+    "document.body.textContent.includes('did not happen')",
+    "the cancellation on the page"
+  );
+
+  const skipBlock = await page.evaluate(
+    `(() => { const blocks = [...document.querySelectorAll('.block')];
+      const b = blocks.find(x => /Booked and did not happen/.test(x.textContent));
+      return b === undefined ? null : b.querySelectorAll('.line').length; })()`
+  );
+  check("a cancelled meeting is recorded in its own block, not among the contact", () => {
+    if (Number(skipBlock) !== 1) {
+      throw new Error(`the skip block holds ${skipBlock} entries`);
+    }
+  });
+
+  const cadencesAfter = await page.texts(".block .line-text");
+  check("and it satisfies nothing, because the conversation still has not happened", () => {
+    const oneToOne = (/** @type {string[]} */ list) =>
+      list.find((t) => /1-1/.test(t) && /never|ago/.test(t)) ?? "";
+    if (oneToOne(cadencesAfter) !== oneToOne(cadencesBefore)) {
+      throw new Error(
+        `the cadence moved: "${oneToOne(cadencesBefore)}" became "${oneToOne(cadencesAfter)}"`
+      );
+    }
+  });
+
   // Parental leave, a sabbatical, a long illness. Left unmodelled this produces
   // a red item that is not true and that nothing can clear, which is the one
   // failure this page must never have.

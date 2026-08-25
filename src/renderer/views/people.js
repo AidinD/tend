@@ -136,6 +136,20 @@ async function personPage(id) {
     )
     .join("");
 
+  // Kept as its own block. A cancellation is not a conversation, and the two
+  // have to stay legible as different things - the whole value is in the
+  // difference between "we never booked it" and "we booked it three times".
+  const skipped = (p.skipped ?? [])
+    .map(
+      (/** @type {any} */ sk) => `<div class="line">
+        <span class="line-when">${esc(sk.when)}</span>
+        <span class="line-text"><strong>${esc(sk.kind)}</strong> did not happen${sk.why ? ` - ${esc(sk.why)}` : ""}</span>
+        <button class="act tiny danger" data-act="unlogSkip" data-id="${esc(sk.id)}"
+          data-what="${esc(sk.kind)} that did not happen">Not right</button>
+      </div>`
+    )
+    .join("");
+
   const model = await modelStatus();
   const themesKey = `themes:${p.id}`;
 
@@ -178,6 +192,7 @@ async function personPage(id) {
 
       <div class="button-row">
         <button class="act primary" data-act="logContact" data-person="${esc(p.id)}">Log contact</button>
+        <button class="act" data-act="logSkip" data-person="${esc(p.id)}">It did not happen</button>
         <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
         <button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>
         ${
@@ -194,7 +209,9 @@ async function personPage(id) {
       ${themes ? list("Themes", themes, "") : ""}
       ${list("Cadences", cadences, "No duty in the role map applies to this relationship type.")}
       ${list("Open promises", promises, "Nothing outstanding.")}
+      ${p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
       ${list("Recent contact", contact, "No contact recorded yet.")}
+      ${skipped ? list("Booked and did not happen", skipped, "") : ""}
       ${list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")}
 
       <div class="block danger-zone">
@@ -233,6 +250,55 @@ export async function addPersonDialog() {
 }
 
 export const actions = {
+  /** @param {Record<string, string>} d */
+  logSkip: async (d) => {
+    const values = await form({
+      title: "What did not happen?",
+      intro:
+        "Recorded, and it satisfies nothing - the conversation still has not taken place, so " +
+        "the clock keeps running. The point is the difference between never having booked it " +
+        "and having cancelled it three times, which contact alone cannot show.",
+      fields: [
+        {
+          name: "kind",
+          label: "What it would have been",
+          type: "select",
+          options: kindsFor("person").filter((k) => k.value !== "second-hand" && k.value !== "survey"),
+          value: "one-to-one"
+        },
+        {
+          name: "why",
+          label: "Why, in a line",
+          placeholder: "Release week, moved it myself for the third time",
+          hint:
+            "Your own words rather than a category. The difference between \"he was ill\" and " +
+            "\"I moved it again\" is the whole reason to write it down."
+        },
+        { name: "at", label: "When it should have been", type: "date", value: asDateInput(Date.now()) }
+      ],
+      confirm: "Record it"
+    });
+    if (!values) {
+      return;
+    }
+    if (await act("logSkip", { person: d.person, ...values }, "Recorded.")) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  unlogSkip: async (d) => {
+    const sure = await ask({
+      title: "Take this back?",
+      body: `"${d.what}" stops being on record. Nothing else changes - a skip never satisfied anything.`,
+      confirm: "Take it back",
+      tone: "danger"
+    });
+    if (sure && (await act("removeRow", { collection: "skips", id: d.id }, "Taken back."))) {
+      refresh();
+    }
+  },
+
   /** @param {Record<string, string>} d */
   unlogContact: async (d) => {
     const sure = await ask({

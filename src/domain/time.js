@@ -118,3 +118,27 @@ export function driftBadge(days) {
   }
   return `+${Math.floor(days / 7)}w`;
 }
+
+/**
+ * Is this instant on a later day than now?
+ *
+ * Days rather than milliseconds, because the date pickers in this app parse a
+ * chosen day at midday. Logging something that happened this morning therefore
+ * produces a timestamp a few hours ahead of the clock, and a plain `at > now`
+ * would reject today.
+ *
+ * The comparison is in local time on purpose. "Has this happened yet" is a
+ * question about the user's day, and there is exactly one user in one place.
+ *
+ * @param {number} at
+ * @param {number} now
+ * @returns {boolean}
+ */
+export function isLaterDay(at, now) {
+  if (!Number.isFinite(at) || !Number.isFinite(now)) {
+    return false;
+  }
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  return at > endOfToday.getTime();
+}

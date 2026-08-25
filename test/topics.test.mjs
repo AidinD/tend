@@ -188,7 +188,7 @@ describe("topics through the store", () => {
       text: "t", why: "w", cadenceDays: 30, relations: ["own-manager"], status: "active"
     }));
     const why = failed(api.markRaised(store, { topic: made.id, person: "Osvald", at: NOW + DAY_MS, now: NOW }));
-    assert.match(why, /future/);
+    assert.match(why, /has not arrived yet/);
   });
 
   it("puts his manager on the prep page even though no duty covers that direction", () => {

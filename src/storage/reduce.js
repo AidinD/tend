@@ -58,7 +58,15 @@ export const COLLECTIONS = /** @type {const} */ ([
    * any update at all would let a quarter of silence about the thing they depend
    * on hide behind a fortnight of chatter about something else.
    */
-  "stakes"
+  "stakes",
+  /**
+   * Meetings that were booked and did not happen.
+   *
+   * Stored beside contact and read nowhere contact is read. "We never booked it"
+   * and "we booked it and cancelled it three times" are different facts, and a
+   * tool that only counts contact sees both as silence.
+   */
+  "skips"
 ]);
 
 /**
