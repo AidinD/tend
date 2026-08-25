@@ -70,6 +70,7 @@ export function myAttentionSignals(store, now) {
   return myAttention({
     people: /** @type {any[]} */ (store.rows("people")),
     touches: /** @type {any[]} */ (store.rows("touches")),
+    stakes: /** @type {any[]} */ (store.rows("stakes")),
     now
   });
 }

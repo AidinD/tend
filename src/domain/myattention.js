@@ -59,9 +59,11 @@ const CONCENTRATION_OF = 0.2;
  * @param {{ id: string, name: string, relation?: string }[]} input.people
  * @param {{ subject?: string, kind?: string, at?: number }[]} input.touches
  * @param {number} input.now
+ * @param {{ id: string, person?: string }[]} [input.stakes] Stakeholder interests,
+ *   so an update logged against one counts as contact with the person it is for.
  * @returns {Signal[]}
  */
-export function myAttention({ people, touches, now }) {
+export function myAttention({ people, touches, now, stakes = [] }) {
   const since = now - WINDOW_DAYS * DAY_MS;
   // Somebody on leave or already gone is not somebody you are neglecting, and
   // counting them makes every signal here quietly wrong: "I have not spoken to
@@ -69,7 +71,26 @@ export function myAttention({ people, touches, now }) {
   const here = people.filter((p) => inScope(p, now));
   const names = new Map(here.map((p) => [String(p.id), String(p.name ?? "")]));
 
-  const recent = touches.filter((t) => Number(t.at ?? 0) >= since && names.has(String(t.subject ?? "")));
+  // An update to a stakeholder is contact with a person, even though it is
+  // filed against the person-and-project pair. Without this translation the app
+  // says "I have not spoken to Silje this month" on a day it also shows an
+  // update to Silje logged that morning - two true records contradicting each
+  // other, which is worse than either signal being absent.
+  const viaStake = new Map(
+    stakes
+      .filter((s) => names.has(String(s.person ?? "")))
+      .map((s) => [String(s.id), String(s.person)])
+  );
+
+  /** @param {unknown} subject */
+  const asPerson = (subject) => {
+    const id = String(subject ?? "");
+    return names.has(id) ? id : (viaStake.get(id) ?? null);
+  };
+
+  const recent = touches
+    .filter((t) => Number(t.at ?? 0) >= since && asPerson(t.subject) !== null)
+    .map((t) => ({ ...t, subject: asPerson(t.subject) }));
 
   /** @type {Signal[]} */
   const signals = [];

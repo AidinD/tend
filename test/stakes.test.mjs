@@ -185,6 +185,22 @@ describe("stakeholders through the store", () => {
     assert.match(failed(api.updateStake(store, id, {})), /Nothing to change/);
   });
 
+  it("counts an update as having spoken to that person", () => {
+    // The contradiction this removes: an update to Silje logged this morning,
+    // and a signal on the same page saying nobody has spoken to Silje this
+    // month. Two true records disagreeing is worse than either being absent.
+    const sjohasten = stakeOn("Sjöhästen");
+    ok(api.logTouch(store, { subject: sjohasten, kind: "update", now: NOW }));
+
+    const unheard = api
+      .myAttentionSignals(store, NOW)
+      .find((/** @type {any} */ s) => s.key === "i-have-not-spoken-to");
+    assert.ok(
+      !String(unheard?.detail ?? "").includes("Nadia"),
+      `still counted as unheard: ${unheard?.detail}`
+    );
+  });
+
   it("surfaces the stakeholder nobody has updated, once the duty is active", () => {
     stakeOn("Sjöhästen");
     const items = api.attention(store, NOW).needsYou ?? [];

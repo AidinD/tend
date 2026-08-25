@@ -1037,3 +1037,19 @@ having left in 1970 - the unit tests passed `{}` where the form sends an explici
 null. And the roster's list of groups was a fourth hand-written copy of the
 relationship types, missing `stakeholder`, so a person with that relationship was
 in the store and absent from the page with no error anywhere.
+
+## 2026-08-25 - An update to a stakeholder is contact with a person
+
+**Decided.** `myAttention` translates a touch filed against a stake into contact
+with the person that stake is for.
+
+**Why.** The stake is the right subject for the cadence - an update about one
+project must not answer for another - but it is the wrong subject for "have I
+spoken to this person at all". Without the translation the app showed an update
+to somebody logged that morning, and a signal on the same page saying nobody had
+spoken to them this month. Two true records contradicting each other is worse
+than either being absent: it teaches you that the signals are approximate, and
+then you stop believing the one that matters.
+
+**Only for the first-person signals, not for the cadence.** The duty still reads
+the stake, because that is the whole reason a stake exists.
