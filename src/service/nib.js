@@ -291,6 +291,51 @@ export function tagsInFolder(categoryId, subId, dir) {
 }
 
 /**
+ * Where a binding's folder actually is, now.
+ *
+ * A binding to a sub-folder is resolved by `subId` ALONE. That id is minted once
+ * and travels with the folder when it is dragged to another category, so it is
+ * the only part of the address that cannot go stale - and the stored
+ * `categoryId` is exactly the part that does. Requiring both to match is what
+ * made moving a person in Nib break their indexing in silence: the lookup found
+ * nothing, reported "no notes", and the person stopped being counted with no
+ * error anywhere.
+ *
+ * A binding to a whole category still matches on `categoryId`, because there is
+ * nothing more specific to match on. A category id is stable too - renaming or
+ * reordering a category does not change it.
+ *
+ * Returns null when the folder is nowhere in the index, which is a different
+ * thing from an empty folder and is reported differently.
+ *
+ * @param {any[]} categories
+ * @param {any} binding
+ * @returns {{ categoryId: string, subId: string | null, label: string } | null}
+ */
+export function folderFor(categories, binding) {
+  const subId = binding.subId ?? null;
+  if (subId === null) {
+    const category = categories.find((c) => String(c.id) === String(binding.categoryId));
+    return category === undefined
+      ? null
+      : { categoryId: String(category.id), subId: null, label: String(category.name ?? category.id) };
+  }
+  for (const category of categories) {
+    const sub = (Array.isArray(category.subs) ? category.subs : []).find(
+      (/** @type {any} */ s) => String(s.id) === String(subId)
+    );
+    if (sub !== undefined) {
+      return {
+        categoryId: String(category.id),
+        subId: String(subId),
+        label: `${String(category.name ?? category.id)} / ${String(sub.name ?? subId)}`
+      };
+    }
+  }
+  return null;
+}
+
+/**
  * Notes inside one bound folder.
  *
  * A binding on a whole category deliberately covers only the notes sitting
@@ -390,7 +435,7 @@ export function kindsFor(note, binding, rules) {
  * @param {boolean} [opts.dry] Report what would change without writing.
  * @returns {{ error: string } | {
  *   contacts: number, promises: number, resolved: number, retracted: number,
- *   bindings: number, skipped: string[]
+ *   moves: number, bindings: number, skipped: string[]
  * }}
  */
 export function indexNib(store, { dir, dry = false } = {}) {
@@ -440,13 +485,41 @@ export function indexNib(store, { dir, dry = false } = {}) {
   let promises = 0;
   let resolved = 0;
   let retracted = 0;
+  let moves = 0;
   /** @type {string[]} */
   const skipped = [];
 
   for (const binding of bindings) {
-    const notes = notesIn(index.categories, String(binding.categoryId), binding.subId ?? null);
+    /*
+     * The folder is found by its own id, wherever it has been moved to, and the
+     * binding is corrected to match. Without the correction the app would go on
+     * showing the old path in the bind list - right data, wrong label, which is
+     * the kind of small lie that makes someone re-bind by hand.
+     */
+    const folder = folderFor(index.categories, binding);
+    if (folder === null) {
+      skipped.push(
+        `${binding.label ?? binding.categoryId}: no such folder in Nib any more - ` +
+          `it was deleted, or this is not the notebook it was bound in`
+      );
+      continue;
+    }
+    if (
+      !dry &&
+      (String(binding.categoryId) !== folder.categoryId || binding.label !== folder.label)
+    ) {
+      moves += 1;
+      store.update("sources", String(binding.id), {
+        categoryId: folder.categoryId,
+        label: folder.label
+      });
+    } else if (dry && String(binding.categoryId) !== folder.categoryId) {
+      moves += 1;
+    }
+
+    const notes = notesIn(index.categories, folder.categoryId, folder.subId);
     if (notes.length === 0) {
-      skipped.push(`${binding.label ?? binding.categoryId}: no notes`);
+      skipped.push(`${folder.label}: no notes`);
       continue;
     }
 
@@ -531,7 +604,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
     }
   }
 
-  return { contacts, promises, resolved, retracted, bindings: bindings.length, skipped };
+  return { contacts, promises, resolved, retracted, moves, bindings: bindings.length, skipped };
 }
 
 /* ------------------------------------------------------- reading a body -- */

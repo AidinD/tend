@@ -3,6 +3,33 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-25 - A binding follows its folder, by id
+
+**Decided.** A binding to a Nib sub-folder is resolved by `subId` alone, wherever
+that folder now sits. The stored `categoryId` is corrected on the next index
+rather than being part of the lookup. A binding to a whole category still matches
+on `categoryId`, because there is nothing more specific to match on.
+
+**The failure it removes.** Dragging a person's folder to another category in Nib
+takes its id with it, so the sub id stayed right and the category id went stale.
+The lookup needed both, found nothing, and reported "no notes" - which reads
+exactly like a person you have not written about yet. Alve moved from Team to Org
+and stopped being indexed, and nothing anywhere said so. This is the app's own
+worst failure mode: not a wrong answer, a missing one.
+
+**An id, not a path, and only one id.** The sub id is minted once and never
+changes. Keeping the category id in the lookup was belt and braces where the belt
+was the thing breaking - a second identifier that can only ever disagree with the
+first.
+
+**A folder that is nowhere is reported as gone, not as empty.** Different words
+for different things: one is a mistake to fix, the other is a person you have not
+written about. The old message could not tell them apart.
+
+**`bindSource` matches on the sub id too**, so a moved folder cannot be bound a
+second time. Comparing both ids would have let one set of notes count twice.
+
+
 ## 2026-08-25 - A tag taken off a note withdraws its contact
 
 **Decided.** `indexNib` now retracts a derived contact whose tag is gone. A note

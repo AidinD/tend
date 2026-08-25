@@ -736,9 +736,19 @@ export function bindSource(store, { person: who, categoryId, subId, label }) {
     return { error: "A binding needs a Nib category id." };
   }
 
+  /*
+   * A sub-folder is one binding wherever it sits.
+   *
+   * Matched on `subId` alone when there is one, because that id follows the
+   * folder when it is dragged to another category - so comparing both ids would
+   * let a moved folder be bound a second time, and the person would then be
+   * counted twice from one set of notes.
+   */
   const clash = store
     .rows("sources")
-    .find((s) => s.categoryId === categoryId && (s.subId ?? null) === (subId ?? null));
+    .find((s) =>
+      subId ? (s.subId ?? null) === subId : s.categoryId === categoryId && (s.subId ?? null) === null
+    );
   if (clash) {
     return {
       error: `That Nib folder is already bound to ${

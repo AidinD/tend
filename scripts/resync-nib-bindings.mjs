@@ -1,14 +1,14 @@
 /*
  * Point the Nib bindings at where the folders actually are.
  *
- * A Nib sub-category can be dragged to another category, and its id travels with
- * it - so the binding's `subId` stays right while its `categoryId` goes stale.
- * Nothing complains: `indexNib` looks the folder up by both, finds nothing, and
- * reports "no notes". A person quietly stops being indexed at all, which is the
- * failure this app exists to prevent.
+ * Indexing follows a moved folder by itself now - `folderFor` resolves a binding
+ * by its own sub id, wherever the folder has been dragged to, and corrects the
+ * stored path as it goes. So the re-pointing here is a belt to that braces: it
+ * will normally report nothing, and it stays because a one-line check is worth
+ * having when the alternative failed in silence.
  *
- * This script re-points a moved folder and binds any person who has a folder in
- * Nib but no binding here. It reads Nib and writes only to Tend.
+ * What this is still for is the other half: binding a person who has a folder in
+ * Nib and no binding here. It reads Nib and writes only to Tend.
  *
  * Run with `node scripts/resync-nib-bindings.mjs [--write]`.
  */

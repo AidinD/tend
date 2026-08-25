@@ -106,6 +106,91 @@ afterEach(() => {
   rmSync(nibDir, { recursive: true, force: true });
 });
 
+describe("moving a folder in Nib", () => {
+  /**
+   * The same notebook, with Rasmus's folder under a different category.
+   *
+   * @param {{ id: string, title: string, tags: string[], created?: number }[]} notes
+   */
+  function writeNibMoved(notes) {
+    mkdirSync(join(nibDir, "notes"), { recursive: true });
+    writeFileSync(
+      join(nibDir, "index.json"),
+      JSON.stringify({
+        version: 2,
+        tags: [{ id: "tag-one-to-one", name: "1-1", color: "#6f9cff", description: "" }],
+        categories: [
+          { id: "cat-team", name: "Team", subs: [], notes: [] },
+          {
+            id: "cat-org",
+            name: "Org",
+            // Same sub id, new parent - which is what dragging it does.
+            subs: [{ id: "sub-c", name: "Rasmus" }],
+            notes: notes.map((/** @type {any} */ note) => ({
+              id: note.id,
+              categoryId: "cat-org",
+              subId: "sub-c",
+              title: note.title,
+              created: note.created ?? NOW - 3 * DAY_MS,
+              edited: note.created ?? NOW - 3 * DAY_MS,
+              alerts: [],
+              flag: "",
+              tags: note.tags
+            }))
+          }
+        ]
+      }),
+      "utf8"
+    );
+  }
+
+  it("keeps indexing a person whose folder was dragged elsewhere", () => {
+    // The silent break this fixes. The binding stored both ids and the lookup
+    // needed both to match, so moving the folder made it resolve to nothing -
+    // reported as "no notes", which is indistinguishable from an empty folder.
+    // The person simply stopped being counted.
+    writeNib([{ id: "n1", title: "1-1", tags: ["tag-one-to-one"] }]);
+    const id = bind();
+    ok(setSourceRules(store, { id, rules: [{ tagId: "tag-one-to-one", kind: "one-to-one" }] }));
+    ok(indexNib(store, { dir: nibDir }));
+    assert.deepEqual(kindsOf(), ["one-to-one"]);
+
+    writeNibMoved([{ id: "n2", title: "1-1 efter flytten", tags: ["tag-one-to-one"] }]);
+    const after = ok(indexNib(store, { dir: nibDir }));
+    assert.equal(after.contacts, 1);
+    assert.deepEqual(kindsOf(), ["one-to-one", "one-to-one"]);
+  });
+
+  it("corrects the binding's own record of where the folder is", () => {
+    // Otherwise the bind list goes on showing the old path: right data, wrong
+    // label, which is what makes someone re-bind by hand and end up with two.
+    writeNib([{ id: "n1", title: "1-1", tags: ["tag-one-to-one"] }]);
+    const id = bind();
+    writeNibMoved([{ id: "n1", title: "1-1", tags: ["tag-one-to-one"] }]);
+    const after = ok(indexNib(store, { dir: nibDir }));
+    assert.equal(after.moves, 1);
+    const binding = ok(sources(store)).find((/** @type {any} */ s) => s.id === id);
+    assert.ok(binding, "the binding should still be there after the folder moved");
+    assert.equal(binding.categoryId, "cat-org");
+    assert.equal(binding.nibFolder, "Org / Rasmus");
+  });
+
+  it("says so when the folder is gone rather than calling it empty", () => {
+    // A deleted folder and an empty one need different words: one is a mistake
+    // to fix, the other is a person you have not written about yet.
+    writeNib([{ id: "n1", title: "1-1", tags: ["tag-one-to-one"] }]);
+    bind();
+    writeFileSync(
+      join(nibDir, "index.json"),
+      JSON.stringify({ version: 2, tags: [], categories: [{ id: "cat-team", name: "Team", subs: [], notes: [] }] }),
+      "utf8"
+    );
+    const after = ok(indexNib(store, { dir: nibDir }));
+    assert.equal(after.contacts, 0);
+    assert.match(after.skipped[0], /no such folder/);
+  });
+});
+
 describe("taking a tag off a note", () => {
   it("withdraws the contact the old tag created", () => {
     // The reported failure, exactly: a note tagged 1-1 by mistake, indexed,
