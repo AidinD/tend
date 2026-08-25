@@ -26,6 +26,7 @@ import * as knowledge from "../service/knowledge.js";
 import * as nib from "../service/nib.js";
 import { seedRoleMap } from "../service/seed.js";
 import { openStore } from "../storage/store.js";
+import { watchEvents } from "../storage/watch.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const { dir, source } = resolveDataDir();
@@ -195,6 +196,27 @@ function createWindow() {
   });
 
   window.loadFile(join(here, "..", "renderer", "index.html"));
+
+  // Somebody else writing to the log is news for this window. The store already
+  // re-reads from disk on demand; what was missing was a reason to ask. Without
+  // this, a contact logged over MCP stays invisible until the user navigates,
+  // which reads as the app having lost the data rather than the screen being
+  // old.
+  const stopWatching = watchEvents({
+    dir: join(dir, "events"),
+    self: store.w,
+    onWarning: (msg) => {
+      warnings.push(msg);
+      console.warn(`[tend] ${msg}`);
+    },
+    onChange: () => {
+      if (!window.isDestroyed()) {
+        window.webContents.send("tend:changed");
+      }
+    }
+  });
+  window.on("closed", stopWatching);
+
   return window;
 }
 

@@ -718,3 +718,29 @@ for two years is two years unasked, whenever you got round to writing it down.
 **Three per card, with the reason on the page.** The same limit as the monthly
 questions and for the same reason. The reason is shown rather than hidden behind
 a hover, because a question you do not believe in is one you skip.
+
+## 2026-08-25 - The window is told about changes rather than polling for them
+
+**Decided.** The main process watches the events directory and tells the
+renderer when another writer appends. A slow timer stays as a backstop.
+
+**Why.** The storage layer is built for concurrent writers and the store
+re-reads on demand, but a window sitting on a view has no reason to ask, so a
+contact logged over MCP was up to twenty seconds late. The poll it replaced did
+the same work whether or not anything had changed - a full render plus six calls
+into the service layer, which on Prep means re-reading Nib's index and Jot's
+board off disk - forever, in an app meant to be left open all day.
+
+**A writer never hears its own appends.** Segments are named after their writer,
+so the app's own writes are filtered out. Otherwise every action redraws twice,
+and the watcher starts to look like the thing keeping the app current when the
+action already did.
+
+**The backstop was kept rather than deleted,** at two minutes. Directory
+watching is the part most likely to fail quietly on a given machine, and the
+data directory can be pointed at Dropbox, where it is least reliable.
+
+**Measured, not assumed.** Both the old behaviour and the new one were checked
+by launching an Electron instance against a copy of the real data and writing a
+contact from a second process while the window was up: 20 seconds before, 2.5
+after, with nothing touched.

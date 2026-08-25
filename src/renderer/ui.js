@@ -15,8 +15,10 @@
  * own declaration, so this cannot drift from what the preload actually exposes.
  * Writing that shape out a second time is how you get a compiler that lies.
  *
- * @type {{ invoke: (name: string, args?: Record<string, any>) => Promise<any> }
- *   & ReturnType<typeof import("keel/window").windowControlsBridge>}
+ * @type {{
+ *   invoke: (name: string, args?: Record<string, any>) => Promise<any>,
+ *   onChanged: (handler: () => void) => void
+ * } & ReturnType<typeof import("keel/window").windowControlsBridge>}
  */
 export const tend = /** @type {any} */ (window).tend;
 

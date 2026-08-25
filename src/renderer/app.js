@@ -178,13 +178,41 @@ document.addEventListener("click", async (event) => {
 });
 
 /**
- * Pick up writes from another process - the MCP server, or a scheduled job.
- * Only while the window is actually being looked at.
+ * Writes from another process - the MCP server, or a scheduled job.
+ *
+ * Event-driven rather than polled. The poll this replaced ran every twenty
+ * seconds and it worked, but it did the work whether or not anything had
+ * changed: a full view render plus six calls into the service layer, which on
+ * Prep means re-reading Nib's whole index and Jot's board off disk. Forever, on
+ * an app meant to be left open all day. Now the main process watches the log
+ * and says when there is something to redraw for, so the common case - nothing
+ * happened - costs nothing and the uncommon case is immediate instead of up to
+ * twenty seconds late.
+ *
+ * The slow timer stays as a backstop rather than being deleted. Directory
+ * watching is the part most likely to fail quietly on somebody's machine, and
+ * the data directory can be pointed at Dropbox, where it is least reliable. Two
+ * minutes is slow enough to cost nothing and fast enough that a broken watcher
+ * is an annoyance rather than a bug report.
  */
-setInterval(() => {
-  if (document.visibilityState === "visible") {
+const BACKSTOP_MS = 120_000;
+
+/**
+ * Redrawing under an open dialog pulls the ground out from under whatever is
+ * being typed into it. Skipped rather than queued: the actions that close a
+ * dialog redraw anyway, and the backstop catches anything they miss.
+ */
+function busyWithSomething() {
+  return document.querySelector(".dialog, .palette-scrim") !== null;
+}
+
+function refreshFromOutside() {
+  if (document.visibilityState === "visible" && !busyWithSomething()) {
     draw();
   }
-}, 20_000);
+}
+
+tend.onChanged(refreshFromOutside);
+setInterval(refreshFromOutside, BACKSTOP_MS);
 
 draw();

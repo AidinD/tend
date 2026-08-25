@@ -22,5 +22,16 @@ contextBridge.exposeInMainWorld("tend", {
    */
   invoke: (name, args) => ipcRenderer.invoke("tend:invoke", name, args ?? {}),
 
+  /**
+   * Another process appended to the log. The renderer decides what to do about
+   * it - this only carries the fact, and passes no payload, so nothing can
+   * arrive here that did not come back through `invoke` and the service layer.
+   *
+   * @param {() => void} handler
+   */
+  onChanged: (handler) => {
+    ipcRenderer.on("tend:changed", () => handler());
+  },
+
   ...windowControlsBridge(ipcRenderer)
 });
