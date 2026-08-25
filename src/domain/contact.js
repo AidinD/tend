@@ -28,7 +28,7 @@
  * are different questions and only the second one has a fixed answer.
  */
 
-/** @typedef {"person" | "project" | "workstream"} SubjectKind */
+/** @typedef {"person" | "project" | "workstream" | "stake"} SubjectKind */
 
 /**
  * Every kind of contact, with the sort of subject it can be about.
@@ -55,6 +55,11 @@ export const CONTACT_KINDS = [
     value: "delegation-review",
     label: "Delegation review - you looked at how a handover is going",
     subject: "workstream"
+  },
+  {
+    value: "update",
+    label: "Update - you told a stakeholder where it stands",
+    subject: "stake"
   }
 ];
 

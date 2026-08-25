@@ -7,14 +7,15 @@
  * is the half the player-coach model leaves unsaid.
  */
 
-import { act, ask, asDateInput, esc, form, LEVEL_OPTIONS, pill, tend } from "../ui.js";
+import { act, ask, asDateInput, DEFAULT_STAKE_DAYS, esc, form, LEVEL_OPTIONS, pill, tend } from "../ui.js";
 import { refresh } from "../app.js";
 
 export async function render() {
-  const [projects, streams, roster] = await Promise.all([
+  const [projects, streams, roster, stakes] = await Promise.all([
     tend.invoke("projects"),
     tend.invoke("workstreams"),
-    tend.invoke("people")
+    tend.invoke("people"),
+    tend.invoke("stakeholders")
   ]);
 
   const header = `
@@ -26,6 +27,7 @@ export async function render() {
         </div>
         <div class="button-row">
           <button class="act" data-act="addProject">Add project</button>
+          <button class="act" data-act="addStake">Add stakeholder</button>
           <button class="act primary" data-act="addStream">Add workstream</button>
         </div>
       </div>
@@ -40,6 +42,23 @@ export async function render() {
           ${p.behindBy ? pill(p.urgency) : ""}
           <button class="act tiny" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Log a look</button>
           <button class="act tiny danger" data-act="removeProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>
+        </span>
+      </div>`
+    )
+    .join("");
+
+  const stakeRows = (Array.isArray(stakes) ? stakes : [])
+    .map(
+      (/** @type {any} */ k) => `<div class="row static">
+        <span class="row-name">
+          ${esc(k.label)}
+          ${k.note ? `<span class="src">last time: ${esc(k.note)}</span>` : ""}
+        </span>
+        <span class="row-right">
+          <span class="row-meta">every ${esc(k.every)} &middot; last ${esc(k.lastUpdated)}</span>
+          <button class="act tiny" data-act="logUpdate" data-id="${esc(k.id)}" data-name="${esc(k.label)}">Log an update</button>
+          <button class="act tiny" data-act="editStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">Edit</button>
+          <button class="act tiny danger" data-act="removeStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">Remove</button>
         </span>
       </div>`
     )
@@ -73,6 +92,16 @@ export async function render() {
     <div class="group">
       <div class="group-head"><span class="group-title">Projects</span><span class="group-rule"></span><span class="group-meta">${(projects ?? []).length}</span></div>
       ${projectRows ? `<div class="rows">${projectRows}</div>` : `<div class="empty">No projects yet. Add the ones you are accountable for without being in the daily work.</div>`}
+    </div>
+    <div class="group" data-group="stakeholders">
+      <div class="group-head"><span class="group-title">Waiting to hear from you</span><span class="group-rule"></span><span class="group-meta">${(stakes ?? []).length}</span></div>
+      ${stakeRows ? `<div class="rows">${stakeRows}</div>` : `<div class="empty">Nobody is down as waiting for a report. A stakeholder is someone who depends on what you deliver without being your report or your peer - the one direction where silence stays invisible until something slips.</div>`}
+      <p class="group-note">
+        The clock is per person AND project. An update about one project does not
+        answer for another, which is the whole reason this is not a field on a
+        person: a quarter of silence about the thing somebody depends on should
+        not sit behind a fortnight of talk about something else.
+      </p>
     </div>
     <div class="group">
       <div class="group-head"><span class="group-title">Workstreams</span><span class="group-rule"></span><span class="group-meta">${(streams ?? []).length}</span></div>
@@ -108,6 +137,154 @@ export async function setLevelDialog(id) {
 }
 
 export const actions = {
+  /**
+   * Add somebody as waiting to hear about a project.
+   *
+   * Two steps rather than one long form: who and what first, then how often.
+   * The interval is the only field with a real default, and asking for it in
+   * the same breath as the names invites accepting whatever is prefilled.
+   */
+  addStake: async () => {
+    const [roster, projects] = await Promise.all([tend.invoke("people"), tend.invoke("projects")]);
+    if (!Array.isArray(roster) || roster.length === 0) {
+      await ask({
+        title: "Nobody on the roster yet",
+        body: "A stakeholder is a person first. Add them under People, then come back - the relationship type to give them is Stakeholder, which inherits none of the duties written for people you lead.",
+        confirm: "Right"
+      });
+      return;
+    }
+    if (!Array.isArray(projects) || projects.length === 0) {
+      await ask({
+        title: "No projects yet",
+        body: "A stakeholder waits to hear about something specific, so the project has to exist first.",
+        confirm: "Right"
+      });
+      return;
+    }
+
+    const values = await form({
+      title: "Who is waiting to hear from you?",
+      intro:
+        "Somebody who depends on what you deliver without being your report or your peer. The obligation is per person AND project: telling them about one thing does not answer for another.",
+      fields: [
+        {
+          name: "person",
+          label: "Who",
+          type: "select",
+          options: roster.map((/** @type {any} */ r) => ({ value: r.id, label: r.name }))
+        },
+        {
+          name: "project",
+          label: "About what",
+          type: "select",
+          options: projects.map((/** @type {any} */ r) => ({ value: r.id, label: r.name }))
+        },
+        {
+          name: "cadenceDays",
+          label: "How often, in days",
+          type: "number",
+          value: String(DEFAULT_STAKE_DAYS),
+          hint: "A month is one reporting cycle. Shorter for someone close to the work, longer for a distant sponsor."
+        },
+        {
+          name: "what",
+          label: "What they actually want to know, optional",
+          placeholder: "Whether the migration lands before the quarter closes"
+        },
+        {
+          name: "since",
+          label: "Waiting since",
+          type: "date",
+          value: asDateInput(Date.now()),
+          hint: "Backdate it if they have been in the dark for a while - otherwise the first month of the record flatters you."
+        }
+      ],
+      confirm: "Add"
+    });
+    if (!values) {
+      return;
+    }
+    if (
+      await act(
+        "addStake",
+        {
+          person: values.person,
+          project: values.project,
+          cadenceDays: Number(values.cadenceDays),
+          what: values.what,
+          since: values.since
+        },
+        "Added."
+      )
+    ) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  editStake: async (d) => {
+    const stakes = await tend.invoke("stakeholders");
+    const current = (Array.isArray(stakes) ? stakes : []).find((/** @type {any} */ k) => k.id === d.id);
+    const values = await form({
+      title: `How often should ${d.name.split(",")[0]} hear from you?`,
+      fields: [
+        {
+          name: "cadenceDays",
+          label: "How often, in days",
+          type: "number",
+          value: String(parseInt(String(current?.every ?? DEFAULT_STAKE_DAYS), 10) || DEFAULT_STAKE_DAYS)
+        },
+        { name: "what", label: "What they want to know, optional", value: current?.note ?? "" }
+      ],
+      confirm: "Save"
+    });
+    if (!values) {
+      return;
+    }
+    if (
+      await act(
+        "updateStake",
+        { id: d.id, cadenceDays: Number(values.cadenceDays), what: values.what },
+        "Saved."
+      )
+    ) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  logUpdate: async (d) => {
+    const values = await form({
+      title: `What did you tell them about ${d.name.split("about ")[1] ?? "it"}?`,
+      intro: "One line is enough. The point of the record is the date, not the report.",
+      fields: [
+        { name: "note", label: "What you said, optional", type: "textarea" },
+        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+      ],
+      confirm: "Log it"
+    });
+    if (!values) {
+      return;
+    }
+    if (await act("logTouch", { subject: d.id, kind: "update", ...values }, "Logged.")) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  removeStake: async (d) => {
+    const sure = await ask({
+      title: `Remove ${d.name}?`,
+      body: "They stop appearing as waiting for a report about this project. The updates you already logged stay on record, and being a stakeholder in anything else is untouched.",
+      confirm: "Remove",
+      tone: "danger"
+    });
+    if (sure && (await act("removeRow", { collection: "stakes", id: d.id }, "Removed."))) {
+      refresh();
+    }
+  },
+
   addProject: async () => {
     const values = await form({
       title: "Add a project",

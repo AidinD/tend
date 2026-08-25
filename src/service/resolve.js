@@ -111,3 +111,31 @@ export function resolveWorkstream(store, query) {
   const known = workstreams.map((w) => w.name).join(", ") || "none yet";
   return { ok: false, error: `No piece of work matching "${query}". Known: ${known}.` };
 }
+
+/**
+ * Same, for a stake - one person's interest in one project.
+ *
+ * By id only. A stake has no name of its own; the label a card shows is built
+ * from the person and the project every time it is read, so there is nothing
+ * here for a fuzzy match to match against. Accepting "the COO" or "Sjöhästen"
+ * would also be the wrong shape: either could name several stakes, and picking
+ * one would silently record an update to the wrong stakeholder.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} query
+ * @returns {{ ok: true, stake: any } | { ok: false, error: string }}
+ */
+export function resolveStake(store, query) {
+  const q = String(query ?? "").trim();
+  if (!q) {
+    return { ok: false, error: "No stakeholder interest given." };
+  }
+  const hit = store.rows("stakes").find((s) => s.id === q);
+  if (hit) {
+    return { ok: true, stake: hit };
+  }
+  return {
+    ok: false,
+    error: `No stakeholder interest with id "${q}". An update is recorded against a specific person-and-project pair, not against either on its own.`
+  };
+}

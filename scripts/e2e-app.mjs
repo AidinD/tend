@@ -505,8 +505,12 @@ try {
     if (!/Role map/.test(roleTitle)) {
       throw new Error(`expected the role map, saw "${roleTitle}"`);
     }
-    if (proposedCount !== 5) {
-      throw new Error(`expected 5 proposals, saw ${proposedCount}`);
+    // Six, not five: the stakeholder duty joined the set. This number is a
+    // deliberate tripwire - a duty that arrives already active rather than
+    // proposed is a duty the user never agreed to, and a missing status field
+    // reads as active.
+    if (proposedCount !== 6) {
+      throw new Error(`expected 6 proposals, saw ${proposedCount}`);
     }
     if (activeCount !== 3) {
       throw new Error(`expected 3 active duties, saw ${activeCount}`);
@@ -551,8 +555,12 @@ try {
   });
 
   await page.click('.card.sev-proposed [data-act="accept"]');
+  // One fewer than whatever was there, read rather than hardcoded. The literal
+  // that used to be here had to be edited every time the seed set changed, and
+  // it fails as a timeout - which reads like a broken click rather than a
+  // stale number.
   await page.waitFor(
-    "document.querySelectorAll('.card.sev-proposed').length === 4",
+    `document.querySelectorAll('.card.sev-proposed').length === ${proposedCount - 1}`,
     "one fewer proposal"
   );
   check("a proposal can be accepted with one click", () => {});
@@ -715,6 +723,48 @@ try {
       throw new Error(`owner missing: "${streamText}"`);
     }
   });
+
+  // A stakeholder is the one direction with no duty behind the person: they are
+  // neither a report nor a peer, so nothing else in the app would ever mention
+  // them. Driven from the window because the sibling feature - a delegation
+  // review - had a button that could never work, and only the window showed it.
+  await page.click('[data-act="addStake"]');
+  const stakePeople = await page.dialogOptions("person");
+  check("the stakeholder form offers the roster and the projects", () => {
+    if (!stakePeople.some((o) => /Testperson/.test(o.label))) {
+      throw new Error(`people offered: ${JSON.stringify(stakePeople.map((o) => o.label))}`);
+    }
+  });
+  const stakeProject = (await page.dialogOptions("project")).find((o) => /Bergsklyftan/.test(o.label));
+  await page.fillDialog({
+    person: stakePeople.find((o) => /Testperson/.test(o.label))?.value ?? "",
+    project: stakeProject?.value ?? "",
+    cadenceDays: "30",
+    what: "Whether it lands before the quarter closes",
+    since: longAgo
+  });
+  await page.waitFor(
+    "document.querySelector('[data-group=\"stakeholders\"] .row') !== null",
+    "the stakeholder row"
+  );
+
+  const waiting = await page.text('[data-group="stakeholders"] .row-meta');
+  check("somebody nobody has updated reads as never, not as zero days ago", () => {
+    if (!/last never/.test(waiting)) {
+      throw new Error(`the row says "${waiting}"`);
+    }
+    if (!/every 30 days/.test(waiting)) {
+      throw new Error(`the interval is missing: "${waiting}"`);
+    }
+  });
+
+  await page.click('[data-group="stakeholders"] [data-act="logUpdate"]');
+  await page.fillDialog({ note: "Told them the import is done" });
+  await page.waitFor(
+    "/last today/.test(document.querySelector('[data-group=\"stakeholders\"] .row-meta').textContent)",
+    "the update to land on the pair"
+  );
+  check("an update can be recorded against the person-and-project pair", () => {});
 
   // A delegation review is contact with a piece of WORK, not with a person or a
   // project. It used to answer "No project matching <uuid>" - the button was

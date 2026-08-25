@@ -44,6 +44,10 @@ export const RELATIONS = /** @type {const} */ ({
   "own-manager": {
     label: "Your manager",
     note: "Upward. Different duties apply."
+  },
+  stakeholder: {
+    label: "Stakeholder",
+    note: "You deliver to them. You owe them a picture, not a conversation."
   }
 });
 

@@ -292,6 +292,7 @@ export const RELATION_OPTIONS = [
  * offering a kind that records something satisfying nothing.
  */
 export { CONTACT_KINDS, NOTE_CONTACT_KINDS, kindsFor } from "../domain/contact.js";
+export { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
 
 export const LEVEL_OPTIONS = [
   { value: "doing", label: "Doing it myself - still mine, reviewed weekly" },

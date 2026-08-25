@@ -192,15 +192,17 @@ function card(item) {
     // A project cadence is answered by looking at the project, not by having a
     // conversation with it, and the old card offered every kind for either -
     // which records something that satisfies nothing and still says "Logged".
-    const forProject = item.subjectKind === "project";
-    const forWork = item.subjectKind === "workstream";
-    const label = forProject ? "Log a look" : forWork ? "Log a review" : "Log contact";
+    /** @type {Record<string, string>} */
+    const LABELS = { project: "Log a look", workstream: "Log a review", stake: "Log an update" };
+    const kind = String(item.subjectKind ?? "person");
+    const label = LABELS[kind] ?? "Log contact";
+    const isPerson = kind === "person";
     actions.push(
       `<button class="act" data-act="logContact" data-person="${esc(item.person)}" data-subject-kind="${esc(item.subjectKind ?? "person")}">${label}</button>`
     );
     // Only people have a page. Sending a project id to the roster showed an
     // empty person rather than saying it had nowhere to go.
-    if (!forProject && !forWork) {
+    if (isPerson) {
       actions.push(`<button class="act" data-act="openPerson" data-person="${esc(item.person)}">Open</button>`);
     }
   }

@@ -12,6 +12,7 @@
  */
 
 import { DEFAULT_SIGNALS, SIGNAL_CADENCE_DAYS } from "../domain/signals.js";
+import { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
 import { TOPIC_SEEDS } from "../domain/topics.js";
 
 export const SEED_DUTIES = [
@@ -117,7 +118,11 @@ export const SEED_DUTIES = [
       "of monitoring is what separates delegating from abdicating, and it is the half the " +
       "player-coach model does not specify.",
     source: "High Output Management (task-relevant maturity)",
-    subjectKind: "project",
+    // A workstream, not a project. It consumes `delegation-review`, which is
+    // about a piece of work, so declared against a project it crossed with
+    // every project and could never be satisfied by anything - it would have
+    // sat in Now saying a project had never had its level set, forever.
+    subjectKind: "workstream",
     cadenceDays: 30,
     evidenceKinds: ["delegation-review"],
     relations: [],
@@ -136,6 +141,27 @@ export const SEED_DUTIES = [
     cadenceDays: 7,
     evidenceKinds: ["sideways"],
     relations: ["equal-lead"],
+    guarded: false
+  },
+  {
+    id: "duty-stakeholder-update",
+    // Proposed, like every duty he did not write. A missing status reads as
+    // active, which would have switched this on without him agreeing to it -
+    // the one boundary the role map exists to hold.
+    status: "proposed",
+    name: "Keep your stakeholders current",
+    means:
+      "Somebody who depends on what you deliver should not learn how it is going from " +
+      "the news that it slipped. The interval lives on each stakeholder rather than " +
+      "here, because a sponsor two levels up who wants to know it is moving is a " +
+      "different obligation from someone sitting next to the work.",
+    source: "The gap nothing else covered: a stakeholder is neither a report nor a peer",
+    subjectKind: "stake",
+    cadenceDays: DEFAULT_STAKE_DAYS,
+    evidenceKinds: ["update"],
+    // Empty on purpose. A stake is its own subject and carries no relationship
+    // type, so a duty that filtered on one would never apply to any of them.
+    relations: [],
     guarded: false
   }
 ];

@@ -25,12 +25,20 @@ describe("what a kind can be about", () => {
     assert.ok(values.includes("casual"));
     assert.ok(!values.includes("check-in"), "a person is not a project");
     assert.ok(!values.includes("delegation-review"), "a person is not a piece of work");
+    assert.ok(!values.includes("update"), "an update is about a person AND a project, not a person");
   });
 
   it("offers a project exactly one kind, since only one is about a project", () => {
     assert.deepEqual(
       kindsFor("project").map((k) => k.value),
       ["check-in"]
+    );
+  });
+
+  it("offers a stake the update that its duty consumes", () => {
+    assert.deepEqual(
+      kindsFor("stake").map((k) => k.value),
+      ["update"]
     );
   });
 
@@ -58,7 +66,7 @@ describe("what a kind can be about", () => {
   it("gives every kind exactly one sort of subject", () => {
     for (const kind of CONTACT_KINDS) {
       assert.ok(
-        ["person", "project", "workstream"].includes(kind.subject),
+        ["person", "project", "workstream", "stake"].includes(kind.subject),
         `${kind.value} is about "${kind.subject}", which is not a subject`
       );
     }

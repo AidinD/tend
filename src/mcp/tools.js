@@ -304,6 +304,24 @@ export const TOOLS = [
     run: (store, args, now) => api.answerSignal(store, { ...args, now })
   },
   {
+    name: "tend_stakeholders",
+    description:
+      "Who is waiting to hear how something is going, and how long since they did. A " +
+      "stakeholder depends on what you deliver without being your report or your peer, which " +
+      "makes it the one direction where going quiet is invisible until something slips. The " +
+      "clock is per person AND project: an update about one project does not answer for " +
+      "another. Read only - deciding who you owe a report to is the user's call, like the " +
+      "role map. Record an update with tend_log_touch, kind \"update\", against the id here.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project: { type: "string", description: "Narrow it to one project. Optional." }
+      },
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.stakeholders(store, now, args.project)
+  },
+  {
     name: "tend_topics",
     description:
       "Standing topics worth raising with one person - what to actually say, as opposed to " +

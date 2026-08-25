@@ -893,3 +893,44 @@ anything. Letting the kind pick the lookup fixed it as a side effect, which is
 the argument for that ordering: resolving first and validating afterwards also
 meant a name shared by a person and a project silently picked whichever lookup
 ran first.
+
+## 2026-08-25 - A stakeholder is a person and a project, not a relationship type
+
+**Decided.** Stakeholders are modelled as a stake: one row joining one person to
+one project, carrying its own interval. A stake is its own cadence subject, and
+`update` is a contact kind that can only be about one. Plus a `stakeholder`
+relationship type, so somebody you deliver to can exist on the roster without
+inheriting duties written for people you lead.
+
+**Why it was missing at all.** A stakeholder is neither a report nor a peer, so
+no duty could reach them. The failure is specific: you go quiet for a quarter
+and the first thing they hear is that it slipped. That is the one direction
+where silence leaves no trace anywhere in the tool.
+
+**Rejected: a relationship type with one duty behind it.** Much smaller, and it
+fails for the reason this whole tool exists. That cadence would be satisfied by
+any update at all, so telling somebody about one project silences every other -
+a quarter of silence about the thing they actually depend on, sitting behind a
+fortnight of talk about something else. Contact kinds are not interchangeable,
+and neither are the things contact is about.
+
+**Rejected: modelling milestones.** Tend measures drift, not due dates, and
+shipping something and saying so resets the clock where it happens. A milestone
+is an occasion to write an update, not a second kind of obligation.
+
+**The interval lives on the stake, not on the duty.** How often is the whole
+substance of the arrangement, and a sponsor two levels up who wants to know it
+is moving is a different obligation from someone sitting beside the work. Same
+reasoning as a workstream taking its review interval from its delegation level.
+
+**The label is built from the rows every time, never stored.** A copied label
+goes stale in the most misleading way available: a person was renamed and the
+card still shows the old spelling, which reads as a second person you have
+neglected. A stake whose person or project is gone is dropped rather than shown
+with a placeholder - nobody can act on it, and this page's value is that
+everything on it can be acted on.
+
+**Found while doing it: the delegation-level duty was declared against a
+project.** It consumes `delegation-review`, which is about a piece of work, so
+it crossed with every project and could never be satisfied by anything. It
+would have sat in Now saying a project had never had its level set, forever.

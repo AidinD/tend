@@ -21,6 +21,7 @@ import { focusCost, focusStatus, stretchFor } from "./focus.js";
 import { openPromises } from "./promises.js";
 import { signalsDue } from "./signals.js";
 import { driftBadge, humanDays } from "./time.js";
+import { namedStakes, stakeInterval } from "./stakes.js";
 import { isUnspecified, reviewInterval } from "./workstreams.js";
 
 /**
@@ -92,8 +93,16 @@ export function expandCadences(state, now) {
         // than from the duty: how often you look is the whole meaning of the
         // level, and a level with no review interval is the abdication Grove
         // warns about wearing a label.
+        // A workstream's interval comes from its delegation level, and a
+        // stake's from the stake itself: in both cases how often you look IS
+        // the substance of the arrangement, so it belongs on the thing rather
+        // than on a duty shared by every one of them.
         const interval =
-          kind === "workstream" ? reviewInterval(subject.level) : Number(duty.cadenceDays);
+          kind === "workstream"
+            ? reviewInterval(subject.level)
+            : kind === "stake"
+              ? stakeInterval(subject, Number(duty.cadenceDays))
+              : Number(duty.cadenceDays);
         if (!(interval > 0)) {
           continue;
         }
@@ -125,6 +134,9 @@ export function expandCadences(state, now) {
   cross(live("people"), "person");
   cross(live("projects"), "project");
   cross(live("workstreams"), "workstream");
+  // Named here rather than stored on the row, so renaming a person or a project
+  // cannot leave a card showing a spelling nobody uses any more.
+  cross(namedStakes(live("stakes"), live("people"), live("projects")), "stake");
 
   return out.sort((a, b) => compareDrift(a.drift, b.drift));
 }

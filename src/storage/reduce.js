@@ -50,7 +50,15 @@ export const COLLECTIONS = /** @type {const} */ ([
    * would let the easy question silence the hard one.
    */
   "topics",
-  "raised"
+  "raised",
+  /**
+   * One person's interest in one project, and what you owe them about it.
+   *
+   * The pair rather than the person, because a stakeholder cadence satisfied by
+   * any update at all would let a quarter of silence about the thing they depend
+   * on hide behind a fortnight of chatter about something else.
+   */
+  "stakes"
 ]);
 
 /**

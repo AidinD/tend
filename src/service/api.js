@@ -17,13 +17,14 @@ import { CONTACT_KINDS, kindsFor, subjectOf } from "../domain/contact.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 import { openPromises } from "../domain/promises.js";
 import { signalsDue } from "../domain/signals.js";
+import { DEFAULT_STAKE_DAYS, namedStakes, stakeInterval } from "../domain/stakes.js";
 import { TOPICS_PER_CARD, appliesTo, lastRaised, topicsFor } from "../domain/topics.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
 import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../domain/workstreams.js";
-import { resolvePerson, resolveProject, resolveWorkstream } from "./resolve.js";
+import { resolvePerson, resolveProject, resolveStake, resolveWorkstream } from "./resolve.js";
 import { decideDecision, decisions, logDecision, revisitsDue, stillHolds } from "./ledger.js";
 
-export { resolvePerson, resolveProject, resolveWorkstream };
+export { resolvePerson, resolveProject, resolveStake, resolveWorkstream };
 export { decideDecision, decisions, logDecision, revisitsDue, stillHolds };
 import { PREP_CARDS, prep } from "./prep.js";
 
@@ -570,7 +571,7 @@ export function logTouch(store, { subject, kind, note, at, now }) {
  */
 function otherSubject(store, expected, query) {
   /** @type {import("../domain/contact.js").SubjectKind[]} */
-  const every = ["person", "project", "workstream"];
+  const every = ["person", "project", "workstream", "stake"];
   const others = every.filter((k) => k !== expected);
   for (const kind of others) {
     const hit = findSubject(store, kind, query);
@@ -597,6 +598,15 @@ function findSubject(store, subjectKind, query) {
   if (subjectKind === "workstream") {
     const hit = resolveWorkstream(store, query);
     return hit.ok ? { ok: true, row: hit.workstream } : { ok: false, error: hit.error };
+  }
+  if (subjectKind === "stake") {
+    const hit = resolveStake(store, query);
+    if (!hit.ok) {
+      return { ok: false, error: hit.error };
+    }
+    // Named for the confirmation message, from the rows as they are now.
+    const named = namedStakes([hit.stake], store.rows("people"), store.rows("projects"))[0];
+    return { ok: true, row: named ?? { ...hit.stake, name: "a stakeholder" } };
   }
   const hit = resolvePerson(store, query);
   return hit.ok ? { ok: true, row: hit.person } : { ok: false, error: hit.error };
@@ -1308,4 +1318,147 @@ export function markRaised(store, { topic, person: who, note, at, now }) {
  */
 function daysBetweenNow(then, now) {
   return Math.max(0, Math.floor((now - then) / 86_400_000));
+}
+
+/* ---------------------------------------------------------- stakeholders -- */
+
+/**
+ * Who is waiting to hear about what, and how long since they did.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ * @param {string} [project] Name or id, to narrow it to one project.
+ */
+export function stakeholders(store, now, project) {
+  let only = null;
+  if (project !== undefined && String(project).trim() !== "") {
+    const found = resolveProject(store, project);
+    if (!found.ok) {
+      return { error: found.error };
+    }
+    only = String(found.project.id);
+  }
+
+  const touches = store.rows("touches");
+  const named = namedStakes(store.rows("stakes"), store.rows("people"), store.rows("projects"));
+  const projects = new Map(store.rows("projects").map((p) => [String(p.id), String(p.name ?? "")]));
+  const people = new Map(store.rows("people").map((p) => [String(p.id), String(p.name ?? "")]));
+
+  return named
+    .filter((s) => only === null || String(s.project) === only)
+    .map((s) => {
+      const last = touches
+        .filter((t) => t.subject === s.id && t.kind === "update" && typeof t.at === "number")
+        .sort((a, b) => Number(b.at) - Number(a.at))[0];
+      const days = last ? Math.max(0, Math.floor((now - Number(last.at)) / 86_400_000)) : null;
+      const interval = stakeInterval(s);
+      return {
+        id: String(s.id),
+        person: people.get(String(s.person)) ?? "",
+        project: projects.get(String(s.project)) ?? "",
+        label: String(s.name ?? ""),
+        every: `${interval} days`,
+        // "never" and "today" are different facts and neither is a number, so
+        // both are words. A card that says "0 days ago" for something that has
+        // not happened at all is the reason this is not just a count.
+        lastUpdated: days === null ? "never" : agoWords(days),
+        behindBy: driftBadge((days ?? 0) - interval),
+        note: last?.note ?? null
+      };
+    })
+    .sort((a, b) => (a.lastUpdated === "never" ? -1 : 0) - (b.lastUpdated === "never" ? -1 : 0));
+}
+
+/**
+ * Record that somebody is a stakeholder in a project.
+ *
+ * Structure, so this is the user's to do rather than an agent's - same boundary
+ * as the role map. An agent that can decide who you owe a report to has decided
+ * part of your job.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.person Name or id.
+ * @param {string} args.project Name or id.
+ * @param {number} [args.cadenceDays] How often they should hear from you.
+ * @param {string} [args.what] What they actually want to know, in a line.
+ * @param {number} [args.since] When they started waiting. Defaults to now.
+ */
+export function addStake(store, { person: who, project, cadenceDays, what, since }) {
+  const foundPerson = resolvePerson(store, who);
+  if (!foundPerson.ok) {
+    return { error: foundPerson.error };
+  }
+  const foundProject = resolveProject(store, project);
+  if (!foundProject.ok) {
+    return { error: foundProject.error };
+  }
+
+  const personId = String(foundPerson.person.id);
+  const projectId = String(foundProject.project.id);
+
+  const already = store
+    .rows("stakes")
+    .find((s) => String(s.person) === personId && String(s.project) === projectId);
+  if (already) {
+    return {
+      error: `${foundPerson.person.name} is already a stakeholder in ${foundProject.project.name}. Change the interval on the existing one rather than adding a second.`
+    };
+  }
+
+  const every = Number(cadenceDays);
+  if (cadenceDays !== undefined && !(every > 0)) {
+    return { error: "An interval has to be a positive number of days." };
+  }
+
+  // Backdatable, and the default is deliberately the cautious one. Somebody
+  // added today has waited no time at all, so they do not arrive already
+  // overdue - but "they have been waiting since March" is a thing that is often
+  // true when a stakeholder gets written down, and it has to be sayable or the
+  // first month of the record is a lie in the flattering direction.
+  const started = Number(since);
+  const id = store.create("stakes", {
+    person: personId,
+    project: projectId,
+    cadenceDays: every > 0 ? every : DEFAULT_STAKE_DAYS,
+    what: String(what ?? "").trim() || null,
+    since: Number.isFinite(started) && started > 0 ? started : undefined
+  });
+  return {
+    id,
+    added: `${foundPerson.person.name} on ${foundProject.project.name}`,
+    every: `${every > 0 ? every : DEFAULT_STAKE_DAYS} days`
+  };
+}
+
+/**
+ * Change how often a stakeholder should hear from you, or what they want.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ * @param {object} fields
+ * @param {number} [fields.cadenceDays]
+ * @param {string} [fields.what]
+ */
+export function updateStake(store, id, { cadenceDays, what }) {
+  const found = resolveStake(store, id);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  /** @type {Record<string, any>} */
+  const patch = {};
+  if (cadenceDays !== undefined) {
+    if (!(Number(cadenceDays) > 0)) {
+      return { error: "An interval has to be a positive number of days." };
+    }
+    patch.cadenceDays = Number(cadenceDays);
+  }
+  if (what !== undefined) {
+    patch.what = String(what).trim() || null;
+  }
+  if (Object.keys(patch).length === 0) {
+    return { error: "Nothing to change." };
+  }
+  store.update("stakes", id, patch);
+  return { id, changed: Object.keys(patch) };
 }
