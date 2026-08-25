@@ -98,6 +98,35 @@ export function fitsSubject(kind, subjectKind) {
 }
 
 /**
+ * The sorts of thing a duty can be about, as options for a list.
+ *
+ * Derived from the kinds rather than written out again. A hand-copied version of
+ * this list in the duty form was missing `stake`, so editing a stakeholder duty
+ * silently rewrote it to apply to people instead - the select had no option
+ * matching the stored value, so the browser showed the first one and saving
+ * wrote that. Nothing failed, and the duty then crossed with every colleague
+ * while being satisfiable by nothing at all.
+ *
+ * @type {{ value: SubjectKind, label: string }[]}
+ */
+export const SUBJECT_KINDS = [
+  { value: "person", label: "Each person" },
+  { value: "project", label: "Each project" },
+  { value: "workstream", label: "Each workstream" },
+  { value: "stake", label: "Each stakeholder, per project" }
+];
+
+/**
+ * Which evidence kinds a duty about this sort of subject could possibly consume.
+ *
+ * @param {SubjectKind} subjectKind
+ * @returns {string[]}
+ */
+export function evidenceFor(subjectKind) {
+  return kindsFor(subjectKind).map((k) => k.value);
+}
+
+/**
  * The kinds a NOTE can be evidence of.
  *
  * A subset, and the subset is the point: a survey round is a form going out and

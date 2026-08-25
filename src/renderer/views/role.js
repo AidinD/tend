@@ -6,7 +6,7 @@
  * or removable, including the duties that came from a book - especially those.
  */
 
-import { act, ask, esc, form, RELATION_OPTIONS, tend } from "../ui.js";
+import { act, ask, esc, form, RELATION_OPTIONS, SUBJECT_KINDS, tend } from "../ui.js";
 import { refresh } from "../app.js";
 
 export async function render() {
@@ -184,22 +184,23 @@ function dutyFields(duty) {
       hint: "In your own words. This is what you will read in six months when you have forgotten why you added it."
     },
     {
+      // Derived. This list was hand-written and missing "stake", so editing a
+      // stakeholder duty found no option matching the stored value, showed the
+      // first one, and saved THAT - rewriting the duty to apply to every
+      // colleague while consuming evidence that can never be about a person.
       name: "subjectKind",
       label: "Applies to",
       type: "select",
       value: duty?.appliesTo ?? "person",
-      options: [
-        { value: "person", label: "Each person" },
-        { value: "project", label: "Each project" },
-        { value: "workstream", label: "Each workstream" }
-      ]
+      options: SUBJECT_KINDS
     },
     {
       name: "cadenceDays",
       label: "How often, in days",
       type: "number",
       min: 1,
-      value: duty ? Number(String(duty.every).replace(/\D/g, "")) : 14
+      // The number, not digits scraped back out of "30 days".
+      value: duty?.cadenceDays ?? 14
     },
     {
       name: "guarded",

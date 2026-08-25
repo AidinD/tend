@@ -15,7 +15,16 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 
 import * as api from "../src/service/api.js";
 import { openStore } from "../src/storage/store.js";
-import { CONTACT_KINDS, NOTE_CONTACT_KINDS, fitsSubject, kindsFor, subjectOf } from "../src/domain/contact.js";
+import {
+  CONTACT_KINDS,
+  NOTE_CONTACT_KINDS,
+  SUBJECT_KINDS,
+  evidenceFor,
+  fitsSubject,
+  kindsFor,
+  subjectOf
+} from "../src/domain/contact.js";
+import { SEED_DUTIES } from "../src/service/seed.js";
 import { ok, failed } from "./helpers.mjs";
 
 describe("what a kind can be about", () => {
@@ -79,6 +88,45 @@ describe("what a kind can be about", () => {
     assert.ok(!values.includes("survey"), "a survey round is a form going out, not a note");
     assert.ok(!values.includes("check-in"));
     assert.ok(values.includes("second-hand"));
+  });
+});
+
+describe("a duty has to be satisfiable by its own evidence", () => {
+  // The failure has no symptom other than a card that never clears. A duty
+  // declared against a person while consuming evidence about a stake crosses
+  // with every colleague, reports each of them as never done, and no action in
+  // the app can answer it. Two seeded duties shipped in that state, and a form
+  // silently put a third one there.
+  it("every subject kind is offered with a label", () => {
+    const offered = new Set(SUBJECT_KINDS.map((k) => k.value));
+    const used = new Set(CONTACT_KINDS.map((k) => k.subject));
+    for (const subject of used) {
+      assert.ok(offered.has(subject), `${subject} is a subject nothing can be declared against`);
+    }
+    for (const k of SUBJECT_KINDS) {
+      assert.ok(String(k.label).trim().length > 0, `${k.value} has no label`);
+    }
+  });
+
+  it("names the evidence that could apply to each subject", () => {
+    assert.deepEqual(evidenceFor("project"), ["check-in"]);
+    assert.deepEqual(evidenceFor("stake"), ["update"]);
+    assert.ok(evidenceFor("person").includes("one-to-one"));
+  });
+
+  it("every seeded duty could actually be satisfied", () => {
+    // The tripwire. "Stated delegation level per workstream" was declared
+    // against a project while consuming a workstream's evidence, so it could
+    // never be satisfied by anything - and it shipped that way.
+    for (const duty of SEED_DUTIES) {
+      for (const kind of duty.evidenceKinds ?? []) {
+        assert.equal(
+          subjectOf(kind),
+          duty.subjectKind,
+          `"${duty.name}" applies to each ${duty.subjectKind} but consumes "${kind}", which is about a ${subjectOf(kind)}`
+        );
+      }
+    }
   });
 });
 
@@ -158,4 +206,67 @@ describe("logging contact against the right sort of subject", () => {
     failed(api.logTouch(store, { subject: "Ada", kind: "check-in", now: NOW }));
     assert.equal(store.rows("touches").length, 0, "a rejected kind must not leave a row behind");
   });
+
+  it("refuses a duty whose evidence can never be about its subject", () => {
+    const why = failed(
+      api.proposeDuty(store, {
+        name: "Nonsense",
+        means: "Applies to people, satisfied by a stakeholder update.",
+        source: "test",
+        subjectKind: "person",
+        cadenceDays: 7,
+        evidenceKinds: ["update"]
+      })
+    );
+    assert.match(why, /about a stake/);
+    assert.match(why, /never be satisfied/);
+  });
+
+  it("refuses an edit that leaves a duty nothing can satisfy", () => {
+    // The exact shape of the bug: a form rewrote the subject alone, and the two
+    // halves were never judged together.
+    const made = ok(
+      api.proposeDuty(store, {
+        name: "Stakeholder updates",
+        means: "Keep them current.",
+        source: "test",
+        subjectKind: "stake",
+        cadenceDays: 30,
+        evidenceKinds: ["update"]
+      })
+    );
+    const why = failed(api.updateDuty(store, made.id, { subjectKind: "person" }));
+    assert.match(why, /about a stake/);
+
+    const row = store.rows("duties").find((d) => d.id === made.id);
+    assert.equal(row?.subjectKind, "stake", "a refused edit must not have written anything");
+  });
+
+  it("accepts a duty that names no evidence, which means any contact counts", () => {
+    ok(
+      api.proposeDuty(store, {
+        name: "Anything",
+        means: "Any contact at all.",
+        source: "test",
+        subjectKind: "person",
+        cadenceDays: 30,
+        evidenceKinds: []
+      })
+    );
+  });
+
+  it("does not quietly turn an unknown subject into a person", () => {
+    const why = failed(
+      api.proposeDuty(store, {
+        name: "Whatever",
+        means: "Applies to something that does not exist.",
+        source: "test",
+        subjectKind: /** @type {any} */ ("department"),
+        cadenceDays: 30,
+        evidenceKinds: []
+      })
+    );
+    assert.match(why, /applies to one of/);
+  });
 });
+

@@ -289,7 +289,7 @@ export { RELATION_OPTIONS } from "../domain/cadence.js";
  * it. A copy in the renderer is a copy that drifts, and the way it drifts is by
  * offering a kind that records something satisfying nothing.
  */
-export { CONTACT_KINDS, NOTE_CONTACT_KINDS, kindsFor } from "../domain/contact.js";
+export { CONTACT_KINDS, NOTE_CONTACT_KINDS, SUBJECT_KINDS, kindsFor } from "../domain/contact.js";
 export { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
 
 export const LEVEL_OPTIONS = [

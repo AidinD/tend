@@ -13,7 +13,7 @@
 import { buildAttention, expandCadences, meanDrift } from "../domain/attention.js";
 import { myAttention } from "../domain/myattention.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
-import { CONTACT_KINDS, kindsFor, subjectOf } from "../domain/contact.js";
+import { CONTACT_KINDS, SUBJECT_KINDS, evidenceFor, kindsFor, subjectOf } from "../domain/contact.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 import { openPromises } from "../domain/promises.js";
 import { signalsDue } from "../domain/signals.js";
@@ -238,6 +238,10 @@ export function roleMap(store, now) {
           appliesTo: d.subjectKind,
           relations: d.relations ?? "all",
           every: d.cadenceDays ? `${d.cadenceDays} days` : "no cadence",
+          // The number as well as the sentence. The edit form used to recover it
+          // by stripping non-digits out of the sentence, which turns "no
+          // cadence" into zero and would break the day the wording changes.
+          cadenceDays: Number(d.cadenceDays) > 0 ? Number(d.cadenceDays) : null,
           guarded: Boolean(d.guarded),
           subjectsBehind: status === "active" ? `${behind} of ${theirs.length}` : null,
           proposedBy: d._by
@@ -953,6 +957,45 @@ export function unbindSource(store, id) {
 }
 
 /**
+ * Can a duty about this sort of subject be satisfied by this evidence?
+ *
+ * The check that was missing. A duty declared against a person while consuming
+ * evidence that is about a stake can never be satisfied by anything: it crosses
+ * with every colleague, reports each of them as never done, and no action in the
+ * app can clear it. Two duties in the seeded set had exactly this shape, and a
+ * form silently gave a third one.
+ *
+ * An empty evidence list is allowed. That means "any contact counts", which is a
+ * real thing to want and is not the same as naming evidence that cannot apply.
+ *
+ * @param {string} subjectKind
+ * @param {string[] | undefined} evidenceKinds
+ * @returns {string | null} An explanation, or null when it is coherent.
+ */
+function incoherent(subjectKind, evidenceKinds) {
+  const known = SUBJECT_KINDS.map((k) => k.value);
+  if (!known.includes(/** @type {any} */ (subjectKind))) {
+    return `A duty applies to one of: ${known.join(", ")}.`;
+  }
+  const kinds = Array.isArray(evidenceKinds) ? evidenceKinds : [];
+  const wrong = kinds.filter((k) => subjectOf(k) !== subjectKind);
+  if (wrong.length === 0) {
+    return null;
+  }
+  const fits = evidenceFor(/** @type {any} */ (subjectKind));
+  const named = wrong
+    .map((k) => {
+      const belongs = subjectOf(k);
+      return belongs === null ? `"${k}" is not a kind of contact` : `"${k}" is about a ${belongs}`;
+    })
+    .join(", and ");
+  return (
+    `${named}, so a duty about each ${subjectKind} could never be satisfied by it. ` +
+    `For a ${subjectKind} the evidence is: ${fits.length > 0 ? fits.join(", ") : "nothing yet"}.`
+  );
+}
+
+/**
  * Propose a duty for the role map.
  *
  * Always lands as `proposed`, never active, whoever is calling. An agent may
@@ -964,7 +1007,7 @@ export function unbindSource(store, id) {
  * @param {string} args.name
  * @param {string} args.means
  * @param {string} args.source Where it came from, e.g. a book and chapter.
- * @param {"person" | "project"} args.subjectKind
+ * @param {import("../domain/contact.js").SubjectKind} args.subjectKind
  * @param {number} args.cadenceDays
  * @param {string[]} [args.evidenceKinds]
  * @param {string[]} [args.relations]
@@ -980,11 +1023,20 @@ export function proposeDuty(store, { name, means, source, subjectKind, cadenceDa
     return { error: `Unknown relationship type. Valid: ${Object.keys(RELATIONS).join(", ")}.` };
   }
 
+  // Not coerced to person-or-project any more. Silently turning an unrecognised
+  // value into "person" is how a duty ends up applying to every colleague while
+  // consuming evidence that can never be about one.
+  const applies = String(subjectKind ?? "person");
+  const why = incoherent(applies, evidenceKinds);
+  if (why !== null) {
+    return { error: why };
+  }
+
   const id = store.create("duties", {
     name: String(name).trim(),
     means: String(means).trim(),
     source: source ?? "proposed",
-    subjectKind: subjectKind === "project" ? "project" : "person",
+    subjectKind: applies,
     cadenceDays: Number(cadenceDays),
     evidenceKinds: evidenceKinds ?? [],
     relations: relations ?? [],
@@ -1078,6 +1130,18 @@ export function updateDuty(store, id, fields) {
   if (fields.relations && fields.relations.some((/** @type {string} */ r) => !isRelation(r))) {
     return { error: `Unknown relationship type. Valid: ${Object.keys(RELATIONS).join(", ")}.` };
   }
+
+  // Checked against the row as it WILL be, not against the fields given. An edit
+  // that only changes the subject has to be judged against the evidence already
+  // stored, and vice versa - otherwise each half passes on its own and the two
+  // together leave a duty nothing can satisfy. That is how this row got broken:
+  // a form rewrote the subject alone, and nothing looked at the pair.
+  const merged = { ...row, ...fields };
+  const why = incoherent(String(merged.subjectKind ?? "person"), merged.evidenceKinds);
+  if (why !== null) {
+    return { error: why };
+  }
+
   store.update("duties", id, fields);
   return { id, updated: Object.keys(fields) };
 }

@@ -556,6 +556,35 @@ try {
     }
   });
 
+  // Open the edit form on the stakeholder duty and check the subject survives a
+  // round trip. This is the failure it catches: the select's option list was
+  // hand-written and missing "stake", so the stored value matched nothing, the
+  // browser showed the first option, and saving rewrote the duty to apply to
+  // every colleague while consuming evidence that can never be about a person.
+  // Nothing failed, and the duty then reported each person as never done with no
+  // action in the app able to clear it.
+  await page.click('[data-act="editDuty"][data-id="duty-stakeholder-update"]');
+  const subjectOptions = await page.dialogOptions("subjectKind");
+  const subjectSelected = await page.evaluate('document.querySelector(\'[name="subjectKind"]\').value');
+  const cadenceShown = await page.evaluate('document.querySelector(\'[name="cadenceDays"]\').value');
+  await page.click("[data-cancel]");
+  await sleep(200);
+
+  check("the duty form keeps the subject it was given, whatever it is", () => {
+    if (!subjectOptions.some((o) => o.value === "stake")) {
+      throw new Error(`"stake" is not offered: ${JSON.stringify(subjectOptions.map((o) => o.value))}`);
+    }
+    if (subjectSelected !== "stake") {
+      throw new Error(`the form opened showing "${subjectSelected}", so saving would have rewritten it`);
+    }
+  });
+
+  check("and prefills the interval as a number rather than scraping it from prose", () => {
+    if (Number(cadenceShown) !== 30) {
+      throw new Error(`the interval came back as "${cadenceShown}", expected 30`);
+    }
+  });
+
   await page.click('.card.sev-proposed [data-act="accept"]');
   // One fewer than whatever was there, read rather than hardcoded. The literal
   // that used to be here had to be edited every time the seed set changed, and

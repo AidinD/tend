@@ -960,3 +960,39 @@ place beats two strings in one place and a third somewhere else.
 walkthrough separately counts the options in the real dropdown against the
 domain, because the unit test would have passed the whole time this bug existed:
 it was the renderer's copy that was wrong, and no unit test read it.
+
+## 2026-08-25 - A duty must be satisfiable by the evidence it names
+
+**Decided.** `proposeDuty` and `updateDuty` refuse a duty whose evidence kinds
+cannot be about its subject kind, checked against the merged row rather than
+against the fields given. An unknown subject kind is refused rather than coerced
+to "person". An empty evidence list stays legal - that means "any contact
+counts", which is a real thing to want.
+
+**Why.** A duty declared against a person while consuming evidence about a stake
+can never be satisfied by anything. It crosses with every colleague, reports
+each of them as never done, and no action anywhere in the app can clear it. That
+is worse than an error: it is a permanent red item that looks exactly like real
+neglect.
+
+**How it happened, twice.** The seeded delegation-level duty shipped declared
+against a project while consuming a workstream's evidence. And the duty edit
+form kept a hand-written list of subject kinds that was missing `stake`, so the
+stored value matched no option, the browser showed the first one, and saving
+rewrote a stakeholder duty to apply to every person. The user saw the result
+before any test did.
+
+**The merged-row check is the point.** An edit that changes only the subject has
+to be judged against the evidence already stored, and vice versa. Validating
+just the incoming fields lets each half pass on its own while the pair is
+nonsense - which is exactly the edit that broke it.
+
+**The form's options are derived now, and the interval comes as a number.** It
+used to recover the interval by stripping non-digits out of "30 days", which
+turns "no cadence" into zero and breaks the day that wording changes.
+
+**Guarded at three altitudes.** A unit test asserts every seeded duty is
+coherent. Service tests cover the refusals, including that a refused edit writes
+nothing. And the walkthrough opens the real edit form on a stake duty and checks
+the subject survives a round trip - the unit tests would all have passed while
+this bug was live, because the broken list was in the renderer.
