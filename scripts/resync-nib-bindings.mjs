@@ -55,7 +55,9 @@ const nibFolders = folders.folders
     categoryId: folder.categoryId,
     subId: folder.subId,
     label: folder.label,
-    name: String(folder.label).split(' / ').pop()
+    // `?? label` rather than a bare `pop()`: a label with no separator would
+    // otherwise type as possibly-undefined and read as one at every use.
+    name: String(folder.label).split(' / ').pop() ?? String(folder.label)
   }))
 
 const people = store.rows('people')
@@ -100,15 +102,15 @@ for (const folder of nibFolders) {
   if (apply) {
     const result = api.bindSource(store, {
       person: String(person.id),
-      categoryId: folder.categoryId,
-      subId: folder.subId,
-      label: folder.label
+      categoryId: String(folder.categoryId),
+      subId: folder.subId === null ? undefined : String(folder.subId),
+      label: String(folder.label)
     })
     if (result?.error) {
       console.error(`  failed: ${result.error}`)
       process.exit(1)
     }
-    const rules = api.setSourceRules(store, { id: result.id, rules: RULES })
+    const rules = api.setSourceRules(store, { id: String(result.id), rules: RULES })
     if (rules?.error) {
       console.error(`  rules failed: ${rules.error}`)
       process.exit(1)
@@ -137,6 +139,10 @@ if (!apply) {
 }
 
 const after = api.sources(store)
+if (!Array.isArray(after)) {
+  console.error(`Could not read the bindings back: ${after.error}`)
+  process.exit(1)
+}
 console.log(`\n${moved} re-pointed, ${bound} bound; ${after.length} binding(s) in total:`)
 for (const binding of after) {
   console.log(`  ${String(binding.person).padEnd(10)} ${binding.nibFolder}`)
