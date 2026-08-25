@@ -188,3 +188,45 @@ starting point and are marked as one - the people involved outrank them.
 
 **Open: whether one private store holds every relationship, or whether the
 closest ones are separated further.** Hard to change afterwards.
+
+### The journal, and the loop it closes
+
+Agreed 2026-08-25. Wanted on both sides of the mode switch, so it is one build.
+
+**It is nice to have, not a discipline.** Days will be missed and that is
+expected, so nothing prompts for it, nothing counts a streak, and no field is
+required. A tool that asks every evening becomes a tool that is avoided every
+evening, and the data then stops entirely rather than arriving unevenly.
+
+**The value is in the periodic pass, not in the entry.** An entry on its own is
+a note; twenty of them are a pattern. So the summary is the product and the form
+is the means, which inverts the build order: the form only has to be good enough
+to make writing cheap.
+
+**The loop.** Entries accumulate. A pass reads them and says what keeps coming
+up. What keeps coming up points at a principle. He flags that principle in Nib,
+and it then appears above the Prep cards until it comes naturally. Three of the
+four parts already exist - `themes` is the precedent for a model writing a
+structured finding, and it carries `source` to the screen for the same reason
+anything here does.
+
+**Three or four fields, and none of them a question Tend can answer itself.**
+Not "who did you speak to": the store knows. The fields have to be the things
+only he can say - where the day actually went as opposed to where it was meant
+to, what he avoided, what he would do differently. Plus a longer box for when
+there is more to write.
+
+**How much was read is part of the answer.** A monthly pass over five entries
+and one over twenty-five are different claims, and a summary that does not say
+which is a summary that sounds equally confident either way. Same rule as
+`openWork` being null rather than empty when the board cannot be read.
+
+**Model sizes differ by job.** A per-entry check is small and cheap. A synthesis
+across a month of entries is not, and pretending otherwise produces a confident
+paragraph built on nothing.
+
+**The per-entry check belongs in the private mode and is optional in the work
+one.** In private it enforces the rule that an entry records the interaction and
+his own part in it rather than the other person's state, which is what protects
+the relationship being written about. Against a work entry the same check is
+friction on the one thing that has to stay frictionless.
