@@ -12,6 +12,7 @@
  */
 
 import { DEFAULT_SIGNALS, SIGNAL_CADENCE_DAYS } from "../domain/signals.js";
+import { TOPIC_SEEDS } from "../domain/topics.js";
 
 export const SEED_DUTIES = [
   {
@@ -158,11 +159,12 @@ export const SEED_SIGNALS = DEFAULT_SIGNALS.map((s) => ({
  * would put fiction into live data.
  *
  * @param {import("../storage/store.js").TendStore} store
- * @returns {{ duties: number, questions: number }}
+ * @returns {{ duties: number, questions: number, topics: number }}
  */
 export function seedRoleMap(store) {
   const haveDuties = new Set(store.rows("duties").map((d) => d.id));
   const haveSignals = new Set(store.rows("signals").map((s) => s.id));
+  const haveTopics = new Set(store.rows("topics").map((t) => t.id));
 
   let duties = 0;
   for (const duty of SEED_DUTIES) {
@@ -180,5 +182,22 @@ export function seedRoleMap(store) {
     }
   }
 
-  return { duties, questions };
+  // Topics are seeded proposed like everything else. They cover the two
+  // directions no duty does: upward, where the question is what he wants rather
+  // than what he owes, and sideways, where there is no formal channel at all.
+  let topics = 0;
+  for (const topic of TOPIC_SEEDS) {
+    if (!haveTopics.has(topic.id)) {
+      store.create("topics", {
+        ...topic,
+        relations: [...topic.relations],
+        person: null,
+        source: "management reading",
+        status: "proposed"
+      });
+      topics += 1;
+    }
+  }
+
+  return { duties, questions, topics };
 }

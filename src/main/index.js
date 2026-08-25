@@ -80,6 +80,12 @@ const OPERATIONS = {
   decideDecision: (/** @type {any} */ a) => api.decideDecision(store, a.id, a.fields ?? {}, a.now ?? Date.now()),
   stillHolds: (/** @type {any} */ a) => api.stillHolds(store, a.id, a.now ?? Date.now(), a.days),
 
+  topics: (/** @type {any} */ a) => api.topics(store, a.person, a.now ?? Date.now()),
+  allTopics: () => api.allTopics(store),
+  proposeTopic: (/** @type {any} */ a) => api.proposeTopic(store, a),
+  decideTopic: (/** @type {any} */ a) => api.decideTopic(store, a.id, a.status, a.overrides),
+  markRaised: (/** @type {any} */ a) => api.markRaised(store, { ...a, now: a.now ?? Date.now() }),
+
   signals: (/** @type {any} */ a) => api.signals(store, a.now ?? Date.now()),
   answerSignal: (/** @type {any} */ a) => api.answerSignal(store, { ...a, now: a.now ?? Date.now() }),
   workstreams: (/** @type {any} */ a) => api.workstreams(store, a.now ?? Date.now()),

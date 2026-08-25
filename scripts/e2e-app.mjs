@@ -462,11 +462,39 @@ try {
   });
 
   const questions = await page.evaluate(
-    "document.querySelectorAll('.group .rows .row.static').length"
+    "document.querySelectorAll('[data-group=\"questions\"] .rows .row.static').length"
   );
   check("and three monthly questions, not six", () => {
     if (questions !== 3) {
       throw new Error(`expected 3 questions, saw ${questions}`);
+    }
+  });
+
+  // Topics arrive with the same seed and are decided the same way. They are
+  // counted separately from the questions on purpose: both render as plain
+  // rows, and a selector that catches either would go green while showing the
+  // wrong group.
+  const topicRows = await page.evaluate(
+    "document.querySelectorAll('[data-group=\"topics\"] .rows .row.static').length"
+  );
+  const topicProposals = await page.evaluate(
+    "document.querySelectorAll('[data-group=\"topics\"] [data-act=\"acceptTopic\"]').length"
+  );
+  check("topics to raise are seeded too, all of them undecided", () => {
+    if (topicRows === 0) {
+      throw new Error("no topics were seeded");
+    }
+    if (topicProposals !== topicRows) {
+      throw new Error(`${topicRows} topics but ${topicProposals} awaiting a decision`);
+    }
+  });
+
+  const topicWhy = await page.evaluate(
+    "document.querySelector('[data-group=\"topics\"] .row-name .src').textContent.trim().length"
+  );
+  check("and each says why it is worth the minutes", () => {
+    if (topicWhy < 40) {
+      throw new Error(`the reason is ${topicWhy} characters long, which is not a reason`);
     }
   });
 
@@ -698,6 +726,73 @@ try {
       throw new Error(`a source was unreadable: ${why}`);
     }
   });
+
+  /* ------------------------------------------------------------ upward -- */
+
+  step("What to raise with your own manager");
+
+  // The direction nothing else in the app covers. No duty lists own-manager, so
+  // before topics existed there was no path by which this person could ever
+  // appear on a page - the whole upward half was unreachable from the window.
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the people view");
+  await page.click('[data-act="addPerson"]');
+  const twoYears = new Date(Date.now() - 700 * 86_400_000).toISOString().slice(0, 10);
+  await page.fillDialog({ name: "Chefen Testsson", relation: "own-manager", since: twoYears });
+  await page.waitFor(
+    "[...document.querySelectorAll('.row-name')].some(n => /Chefen/.test(n.textContent))",
+    "the manager on the roster"
+  );
+
+  await page.click('.nav-btn[data-view="role"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"acceptTopic\"][data-id=\"topic-next-level\"]') !== null",
+    "the upward topic"
+  );
+  await page.click('[data-act="acceptTopic"][data-id="topic-next-level"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"acceptTopic\"][data-id=\"topic-next-level\"]') === null",
+    "the topic to leave the undecided pile"
+  );
+
+  await page.click('.nav-btn[data-view="prep"]');
+  await page.waitFor("document.querySelector('.prep-card') !== null", "the prep cards");
+
+  const managerCard = await page.evaluate(
+    "JSON.stringify((() => {" +
+      "const card = [...document.querySelectorAll('.prep-card')]" +
+        ".find(c => /Chefen/.test(c.querySelector('.card-title').textContent));" +
+      "if (card === undefined) { return { found: false }; }" +
+      "return {" +
+        "found: true," +
+        "why: card.querySelector('.card-why').textContent.trim()," +
+        "topics: card.querySelectorAll('.prep-topic').length," +
+        "text: card.querySelector('.topic-text') === null ? '' : card.querySelector('.topic-text').textContent.trim()" +
+      "}; })())"
+  );
+  const manager = JSON.parse(String(managerCard));
+  check("a standing question is enough to put someone on the prep page", () => {
+    if (!manager.found) {
+      throw new Error("the manager has no card, so the upward half is still unreachable");
+    }
+    if (manager.topics !== 1) {
+      throw new Error(`expected one topic on the card, saw ${manager.topics}`);
+    }
+    if (!/topic worth raising/.test(manager.why)) {
+      throw new Error(`the card does not say why it is there: "${manager.why}"`);
+    }
+    if (!/next level/i.test(manager.text)) {
+      throw new Error(`the wrong topic is on the card: "${manager.text}"`);
+    }
+  });
+
+  await page.click('.prep-card [data-act="markRaised"]');
+  await page.waitFor(
+    "[...document.querySelectorAll('.prep-card .card-title')].every(t => !/Chefen/.test(t.textContent))",
+    "the card to go once the question has been asked"
+  );
+  check("marking it raised clears it, so the block cannot become wallpaper", () => {});
 
   /* -------------------------------------------------------- decisions -- */
 

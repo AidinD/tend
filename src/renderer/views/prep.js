@@ -103,6 +103,8 @@ function card(c, model) {
 
       ${section("You promised them", c.youPromised, (/** @type {any} */ p) => `${esc(p.text)} <span class="src">open ${esc(p.openFor)}</span>`)}
 
+      ${raising(c)}
+
       ${section("They own", c.theyOwn, (/** @type {any} */ w) => `${esc(w.name)} <span class="src">${esc(w.mandate)} &middot; reviewed ${esc(w.lastReviewed)}</span>`)}
 
       ${
@@ -130,6 +132,46 @@ function card(c, model) {
           <button class="act" data-act="openPerson" data-person="${esc(c.person)}">Open ${esc(c.person)}</button>
         </span>
       </div>
+    </div>`;
+}
+
+/**
+ * What is worth raising with this person, and a way to say you did.
+ *
+ * Each topic carries its own reason. That is not padding: the whole set is
+ * questions whose value is not obvious in the moment - "what are you hearing
+ * about me that I am not" reads as paranoid until you have read why it is on
+ * the list - and a question you do not believe in is one you skip.
+ *
+ * The button is the honest half. Without a way to mark one raised, the same
+ * three questions sit on the card forever and the block becomes wallpaper
+ * within a fortnight.
+ *
+ * @param {any} c
+ */
+function raising(c) {
+  const topics = Array.isArray(c.worthRaising) ? c.worthRaising : [];
+  if (topics.length === 0) {
+    return "";
+  }
+  return `
+    <div class="prep-block">
+      <h3 class="prep-head">Worth raising</h3>
+      <ul class="prep-list prep-topics">
+        ${topics
+          .map(
+            (/** @type {any} */ t) => `
+          <li class="prep-topic">
+            <div class="topic-line">
+              <span class="topic-text">${esc(t.text)}</span>
+              <button class="act" data-act="markRaised" data-topic="${esc(t.id)}" data-person="${esc(c.person)}">Raised it</button>
+            </div>
+            <span class="src">${esc(t.why)}</span>
+            <span class="src">Last raised ${esc(t.lastRaised)}.</span>
+          </li>`
+          )
+          .join("")}
+      </ul>
     </div>`;
 }
 
@@ -221,6 +263,12 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   readNote: (d) => run(`note:${d.note}`, "extractPromises", { noteId: d.note }),
+
+  /** @param {Record<string, string>} d */
+  markRaised: async (d) => {
+    await tend.invoke("markRaised", { topic: d.topic, person: d.person });
+    go("prep");
+  },
 
   ...modelActions()
 };

@@ -37,6 +37,7 @@ import { expandCadences } from "../domain/attention.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { openPromises } from "../domain/promises.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
+import { topicsFor } from "../domain/topics.js";
 import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
 import { notesIn, readNibIndex } from "./nib.js";
@@ -60,6 +61,8 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
   const workstreams = store.rows("workstreams");
   const projects = new Map(store.rows("projects").map((p) => [String(p.id), String(p.name ?? "")]));
   const bindings = store.rows("sources");
+  const topicRows = store.rows("topics").filter((t) => (t.status ?? "active") === "active");
+  const raised = store.rows("raised");
 
   const board = readBoard(jotDir ?? jotDataDir());
   const nib = safeNib(nibDir);
@@ -77,7 +80,23 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
     const drift = worst ? worst.drift.driftDays : 0;
     const theirPromises = promises.filter((x) => x.person === id);
 
-    if (drift <= 0 && theirPromises.length === 0) {
+    // Topics are the third reason to be on this page, and the weakest one on
+    // purpose. Somebody you owe nothing and are behind on nothing still has
+    // standing questions attached to them - your own manager most of all, since
+    // no duty covers that direction - and a card that never appears is a
+    // feature nobody uses.
+    const worthRaising = topicsFor({
+      topics: topicRows,
+      raised,
+      person: {
+        id,
+        relation: String(person.relation ?? ""),
+        since: typeof person.since === "number" ? person.since : undefined
+      },
+      now
+    });
+
+    if (drift <= 0 && theirPromises.length === 0 && worthRaising.length === 0) {
       continue;
     }
 
@@ -111,10 +130,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       // time" as the reason for their being listed is worse than saying nothing.
       // Words here, the compact badge in `behindBy`. "1-1 is +5d" is a badge
       // wearing a sentence's clothes; a reason is read once and has to parse.
-      why:
-        drift > 0 && worst
-          ? `${worst.duty.name} is ${humanDays(worst.drift.driftDays)} behind`
-          : `${theirPromises.length} open promise${theirPromises.length === 1 ? "" : "s"}`,
+      why: reasonFor({ drift, worst, promises: theirPromises, worthRaising }),
       behindBy: worst ? driftBadge(worst.drift.driftDays) : null,
       lastSpoke:
         lastTouch === undefined
@@ -147,6 +163,17 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       openWork: board === null ? null : workFor({ board, name: String(person.name ?? ""), areas }),
 
       lastWrote: lastNote(nib, bindings, id),
+
+      // What to actually say, as opposed to whether to speak at all. Never more
+      // than three: a card suggesting eight things to raise in half an hour is
+      // a card read as decoration.
+      worthRaising: worthRaising.map((t) => ({
+        id: t.id,
+        text: t.text,
+        why: t.why,
+        lastRaised: t.everRaised ? agoWords(t.daysSince) : "never"
+      })),
+
       driftDays: drift
     });
   }
@@ -159,6 +186,31 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
     jotFound: board !== null,
     nibFound: nib !== null
   };
+}
+
+/**
+ * Why this person is on the page, in words.
+ *
+ * Read off what actually put them here rather than off whichever field happens
+ * to be populated. Somebody can be perfectly in step and still be listed
+ * because of a promise, and naming the cadence as the reason would be worse
+ * than saying nothing at all.
+ *
+ * @param {object} args
+ * @param {number} args.drift
+ * @param {any} args.worst
+ * @param {any[]} args.promises
+ * @param {any[]} args.worthRaising
+ * @returns {string}
+ */
+function reasonFor({ drift, worst, promises, worthRaising }) {
+  if (drift > 0 && worst) {
+    return `${worst.duty.name} is ${humanDays(worst.drift.driftDays)} behind`;
+  }
+  if (promises.length > 0) {
+    return `${promises.length} open promise${promises.length === 1 ? "" : "s"}`;
+  }
+  return `${worthRaising.length} topic${worthRaising.length === 1 ? "" : "s"} worth raising`;
 }
 
 /**

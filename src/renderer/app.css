@@ -520,6 +520,27 @@ button.row:hover {
   font-size: 12px;
 }
 
+/*
+ * A row whose name carries its own second line. Topics need it: the reason a
+ * question is worth asking is what makes it get asked, so it has to be on the
+ * page rather than behind a hover. `align-items: start` on the row keeps the
+ * buttons level with the question rather than floating to the middle of a
+ * two-line block.
+ */
+.row-name .src {
+  display: block;
+  margin-top: 2px;
+  max-width: 62ch;
+}
+
+.row:has(.row-name .src) {
+  align-items: flex-start;
+}
+
+.row:has(.row-name .src) .row-right {
+  padding-top: 1px;
+}
+
 .row-right {
   margin-left: auto;
   display: flex;
@@ -969,6 +990,38 @@ button.row:hover {
 .prep-note {
   margin: 0;
   line-height: 1.5;
+}
+
+/*
+ * Topics get more room than the other lists on the card, because unlike a
+ * promise or a piece of open work they are not self-explanatory: the reason a
+ * question is worth asking is the part that makes it get asked, so it is set as
+ * a second line rather than a tooltip.
+ */
+.prep-topics {
+  gap: 10px;
+}
+
+.prep-topic {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.topic-line {
+  display: flex;
+  align-items: bassignee;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.topic-text {
+  line-height: 1.5;
+}
+
+/* Holds its width when the row is tight, so the question wraps and not the button. */
+.topic-line .act {
+  flex: none;
 }
 
 .prep-dropped,

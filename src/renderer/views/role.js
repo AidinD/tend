@@ -10,7 +10,11 @@ import { act, ask, esc, form, RELATION_OPTIONS, tend } from "../ui.js";
 import { refresh } from "../app.js";
 
 export async function render() {
-  const [map, questions] = await Promise.all([tend.invoke("roleMap"), tend.invoke("signals")]);
+  const [map, questions, topics] = await Promise.all([
+    tend.invoke("roleMap"),
+    tend.invoke("signals"),
+    tend.invoke("allTopics")
+  ]);
 
   const header = `
     <div class="view-head">
@@ -27,7 +31,7 @@ export async function render() {
     return `${header}
       <article class="card sev-book">
         <div class="card-top"><h2 class="card-title">Nothing here yet</h2></div>
-        <p class="card-why">Start from a set drawn from management reading: three duties most managers already practise, five worth considering, and three monthly questions. The proposals do nothing until you accept them, and you can edit or delete every one.</p>
+        <p class="card-why">Start from a set drawn from management reading: three duties most managers already practise, five worth considering, three monthly questions, and a set of standing topics to raise with your own manager and your peer leads. The proposals do nothing until you accept them, and you can edit or delete every one.</p>
         <div class="card-foot">
           <span class="src">Or write your own from scratch</span>
           <button class="act primary" data-act="seed">Set up the role map</button>
@@ -82,6 +86,30 @@ export async function render() {
     )
     .join("");
 
+  const topicList = Array.isArray(topics) ? topics.filter((/** @type {any} */ t) => t.status !== "declined") : [];
+  const topicRows = topicList
+    .map((/** @type {any} */ t) => {
+      const scope = t.person ? "one person" : relationWords(t.relations);
+      const isProposed = t.status === "proposed";
+      return `<div class="row static">
+        <span class="row-name">
+          ${esc(t.text)}
+          <span class="src">${esc(t.why)}</span>
+        </span>
+        <span class="row-right">
+          <span class="row-meta">every ${t.cadenceDays} days &middot; ${esc(scope)}</span>
+          ${
+            isProposed
+              ? `<span class="pill book">proposed</span>
+                 <button class="act primary" data-act="acceptTopic" data-id="${esc(t.id)}">Use it</button>
+                 <button class="act" data-act="declineTopic" data-id="${esc(t.id)}">Not for me</button>`
+              : `<button class="act danger" data-act="removeTopic" data-id="${esc(t.id)}" data-name="${esc(t.text)}">Remove</button>`
+          }
+        </span>
+      </div>`;
+    })
+    .join("");
+
   return `
     ${header}
     ${
@@ -98,14 +126,47 @@ export async function render() {
     </div>
     ${
       questionRows
-        ? `<div class="group">
+        ? `<div class="group" data-group="questions">
             <div class="group-head"><span class="group-title">Monthly questions</span><span class="group-rule"></span><span class="group-meta">${(questions ?? []).length}</span></div>
             <div class="rows">${questionRows}</div>
             <p class="group-note">The one thing Tend cannot work out on its own, so it asks. They appear in Now when they are due.</p>
           </div>`
         : ""
     }
+    ${
+      topicRows
+        ? `<div class="group" data-group="topics">
+            <div class="group-head"><span class="group-title">Topics to raise</span><span class="group-rule"></span><span class="group-meta">${topicList.length}</span></div>
+            <div class="rows">${topicRows}</div>
+            <p class="group-note">
+              Not duties. A duty asks whether you spoke to someone at all and turns
+              up in Now when you have not; a topic is what to actually say, and it
+              appears only on that person's card in Prep. These are the two
+              directions nothing else covers: upward, where the questions are about
+              what you want rather than what you owe, and sideways, where there is
+              no formal channel in either direction.
+            </p>
+          </div>`
+        : ""
+    }
   `;
+}
+
+/**
+ * Which relationships a topic applies to, in words rather than internal names.
+ *
+ * @param {string[]} relations
+ * @returns {string}
+ */
+function relationWords(relations) {
+  if (!Array.isArray(relations) || relations.length === 0) {
+    return "nobody yet";
+  }
+  const labels = relations.map((r) => {
+    const found = RELATION_OPTIONS.find((o) => o.value === r);
+    return found ? found.label.toLowerCase() : r;
+  });
+  return labels.join(", ");
 }
 
 /**
@@ -263,6 +324,33 @@ export const actions = {
       "Saved."
     );
     if (ok) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  acceptTopic: async (d) => {
+    if (await act("decideTopic", { id: d.id, status: "active" }, "It will show up when you next prepare for them.")) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  declineTopic: async (d) => {
+    if (await act("decideTopic", { id: d.id, status: "declined" }, "Declined.")) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  removeTopic: async (d) => {
+    const sure = await ask({
+      title: "Remove this topic?",
+      body: `"${d.name}" stops appearing on anyone's card. The times you already marked it raised stay on record.`,
+      confirm: "Remove",
+      tone: "danger"
+    });
+    if (sure && (await act("removeRow", { collection: "topics", id: d.id }, "Removed."))) {
       refresh();
     }
   },

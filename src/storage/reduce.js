@@ -40,7 +40,17 @@ export const COLLECTIONS = /** @type {const} */ ([
    * gets renegotiated every three months by people who have forgotten why -
    * yourself included.
    */
-  "decisions"
+  "decisions",
+  /**
+   * Standing subjects worth raising with someone, and a row per time one was.
+   *
+   * Separate from duties because a duty is contact you owe and drifts into Now;
+   * a topic is content, it belongs to one conversation, and it is never
+   * critical. Separate from touches because a shared "raised something" kind
+   * would let the easy question silence the hard one.
+   */
+  "topics",
+  "raised"
 ]);
 
 /**

@@ -304,6 +304,41 @@ export const TOOLS = [
     run: (store, args, now) => api.answerSignal(store, { ...args, now })
   },
   {
+    name: "tend_topics",
+    description:
+      "Standing topics worth raising with one person - what to actually say, as opposed to " +
+      "whether to speak at all. Mostly upward and sideways, the two directions no duty covers: " +
+      "questions to your own manager about your own career, and the subjects that have no " +
+      "formal channel between peer leads. Shows the whole set for that person and which of " +
+      "them are due.",
+    inputSchema: {
+      type: "object",
+      properties: { person: { type: "string", description: "Their name." } },
+      required: ["person"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.topics(store, args.person, now)
+  },
+  {
+    name: "tend_mark_raised",
+    description:
+      "Record that a topic was actually raised with someone, which quiets it until its " +
+      "interval passes again. Per person: the same standing question put to one peer lead " +
+      "has not been put to the others.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: { type: "string", description: "The topic's id, from tend_topics." },
+        person: { type: "string", description: "Who it was raised with." },
+        note: { type: "string", description: "What came back, in a line." },
+        at: { type: "number", description: "When, in milliseconds. Defaults to now." }
+      },
+      required: ["topic", "person"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.markRaised(store, { ...args, now })
+  },
+  {
     name: "tend_workstreams",
     description:
       "Pieces of work with a stated delegation level and an owner, and how long since each " +

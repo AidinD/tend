@@ -686,3 +686,35 @@ existing authentication, as Helm does. No separate API key to store.
 
 **Trade accepted:** it ties Tend to the Agent SDK being installed. Given it is a
 personal tool on machines that already have it, that is fine.
+
+## 2026-08-25 - Topics are separate from duties
+
+**Decided.** A second thing the role map can hold: standing topics to raise with
+a person, on a per-topic cadence, surfaced only on that person's prep card. A
+topic is content ("what does the next level actually require of me?"); a duty is
+contact ("have you spoken to them at all?").
+
+**Why.** Nothing modelled the upward direction. No duty listed `own-manager`, so
+his own manager could not appear on any page, and the questions that drive his
+own career had no home in a tool built entirely around what he owes other
+people. Sideways had a contact duty but nothing to say.
+
+**Rejected: a flag on the duty model.** Duties drift into Now, where everything
+on the page is a deviation to act on today. A career question is never critical
+and never neglect, so it would either shout about something that is not urgent
+or teach him to skim the one page that must never be skimmed.
+
+**Rejected: one shared "raised something" contact kind.** Cheaper, and it fails
+the way the evidence-kinds rule already says contact fails: one such touch would
+satisfy every topic for that person at once, so raising the easy question would
+silence the hard one. Each topic carries its own last-raised date, per person.
+
+**A never-raised topic counts from the start of the relationship,** not from
+when the row was written. Counting from the row means a set seeded today sits
+silent for three months and shows up empty on the day he goes looking for it -
+and it is a lie besides: a question never put to someone you have worked with
+for two years is two years unasked, whenever you got round to writing it down.
+
+**Three per card, with the reason on the page.** The same limit as the monthly
+questions and for the same reason. The reason is shown rather than hidden behind
+a hover, because a question you do not believe in is one you skip.
