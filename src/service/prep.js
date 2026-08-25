@@ -36,7 +36,7 @@
 import { expandCadences } from "../domain/attention.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { openPromises } from "../domain/promises.js";
-import { driftBadge, humanDays } from "../domain/time.js";
+import { agoWords, driftBadge, humanDays } from "../domain/time.js";
 import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
 import { notesIn, readNibIndex } from "./nib.js";
@@ -116,7 +116,10 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
           ? `${worst.duty.name} is ${humanDays(worst.drift.driftDays)} behind`
           : `${theirPromises.length} open promise${theirPromises.length === 1 ? "" : "s"}`,
       behindBy: worst ? driftBadge(worst.drift.driftDays) : null,
-      lastSpoke: since(lastTouch === undefined ? null : Number(lastTouch.at ?? now), now),
+      lastSpoke:
+        lastTouch === undefined
+          ? "never"
+          : agoWords(Math.max(0, Math.floor((now - Number(lastTouch.at ?? now)) / 86_400_000))),
 
       youPromised: theirPromises.map((x) => ({
         text: x.text,
@@ -134,7 +137,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
           mandate: isLevel(level) ? LEVELS[level].authority : "nobody has said who decides",
           reviewEvery: `${reviewInterval(w.level)} days`,
           lastReviewed: reviewed
-            ? `${humanDays(Math.max(0, Math.floor((now - Number(reviewed.at)) / 86_400_000)))} ago`
+            ? agoWords(Math.max(0, Math.floor((now - Number(reviewed.at)) / 86_400_000)))
             : "never"
         };
       }),
@@ -156,24 +159,6 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
     jotFound: board !== null,
     nibFound: nib !== null
   };
-}
-
-/**
- * How long ago, as something you can read aloud.
- *
- * `humanDays` returns "today" for nought, so appending "ago" to it produced
- * "Last spoke today ago" on every card of somebody contacted this morning. The
- * words are not interchangeable and the suffix has to know that.
- *
- * @param {number | null} at
- * @param {number} now
- */
-function since(at, now) {
-  if (at === null) {
-    return "never";
-  }
-  const words = humanDays(Math.max(0, Math.floor((now - at) / 86_400_000)));
-  return words === "today" ? "today" : `${words} ago`;
 }
 
 /**

@@ -16,7 +16,7 @@ import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 import { openPromises } from "../domain/promises.js";
 import { signalsDue } from "../domain/signals.js";
-import { driftBadge, humanDays } from "../domain/time.js";
+import { agoWords, driftBadge, humanDays } from "../domain/time.js";
 import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../domain/workstreams.js";
 import { resolvePerson, resolveProject } from "./resolve.js";
 import { decideDecision, decisions, logDecision, revisitsDue, stillHolds } from "./ledger.js";
@@ -105,7 +105,7 @@ export function person(store, query, now) {
     .map((c) => ({
       duty: c.duty.name,
       target: `every ${c.drift.interval} days`,
-      lastHappened: c.drift.everHappened ? humanDays(c.drift.daysSince) + " ago" : "never",
+      lastHappened: c.drift.everHappened ? agoWords(c.drift.daysSince) : "never",
       behindBy: driftBadge(c.drift.driftDays),
       urgency: c.drift.trueSeverity
     }));
@@ -119,7 +119,11 @@ export function person(store, query, now) {
     .filter((t) => t.subject === p.id)
     .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
     .slice(0, 20)
-    .map((t) => ({ kind: t.kind, when: humanDays(Math.max(0, Math.floor((now - Number(t.at ?? now)) / 86_400_000))) + " ago", note: t.note ?? null }));
+    .map((t) => ({
+      kind: t.kind,
+      when: agoWords(Math.max(0, Math.floor((now - Number(t.at ?? now)) / 86_400_000))),
+      note: t.note ?? null
+    }));
 
   const evidence = store
     .rows("evidence")

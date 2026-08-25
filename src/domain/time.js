@@ -44,6 +44,22 @@ export function humanDays(days) {
 }
 
 /**
+ * How long ago, as something you can read aloud.
+ *
+ * `humanDays` answers "how long" and returns "today" for nought, so appending
+ * "ago" to it produces "today ago" on every row about somebody spoken to this
+ * morning. The two words are not interchangeable and the suffix has to know
+ * that - which Prep learned once and the person page did not, so it lives here
+ * now rather than in whichever file noticed first.
+ *
+ * @param {number} days
+ */
+export function agoWords(days) {
+  const words = humanDays(days);
+  return words === "today" ? "today" : `${words} ago`;
+}
+
+/**
  * Short form for a drift badge: "+3w", "+5d", "on time".
  *
  * @param {number} days Positive means behind.

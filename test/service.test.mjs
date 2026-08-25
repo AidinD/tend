@@ -208,7 +208,10 @@ describe("writing", () => {
     api.logTouch(store, { subject: "johan", kind: "second-hand", note: "Nova's lead", now: NOW });
 
     const after = ok(api.person(store, "johan", NOW));
-    assert.equal(after.cadences.find((c) => c.duty === "Second-hand read")?.lastHappened, "today ago");
+    // "today", not "today ago". The test used to assert the second, which is
+    // how the wording survived on the person page after Prep had already fixed
+    // it - a test can pin a bug in place as firmly as it pins a feature.
+    assert.equal(after.cadences.find((c) => c.duty === "Second-hand read")?.lastHappened, "today");
     assert.equal(
       after.cadences.find((c) => c.duty === "1-1")?.behindBy,
       "+4w",
