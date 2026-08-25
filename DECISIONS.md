@@ -1161,3 +1161,34 @@ are two weeks behind - and logging it early goes green immediately and stays
 green until the day comes. Wrong in the flattering direction, which is the
 direction nobody checks. The check is day-granular because the date pickers
 parse a chosen day at midday, so a plain `at > now` would have rejected today.
+
+## 2026-08-25 - The principles being practised are read from Nib, with no clock
+
+**Decided.** A note tagged `Principle` and flagged open in Nib is a principle he
+is currently working on. Tend reads them, shows up to three above the Prep cards,
+and puts no date on any of them. Unfinished action points written on a principle
+note appear in the same block, oldest first.
+
+**Why no interval.** A flag means "this is what I am trying to emphasise at the
+moment", and it graduates when it starts coming naturally - a judgement only he
+can make from the inside. A review date would be a deadline on internalising a
+habit, which does not have one, and it would turn a practice into a chore. Nib
+owns the flag; he raises and lowers it there and Tend only reads.
+
+**Rejected: a principle on every card.** They are about him, not about any one
+person, so the same two lines beside six names is exactly how a card stops being
+read. Once for the page, above the cards.
+
+**Rejected: Now.** Nothing here is a deviation, and every item on Now is one.
+
+**Rejected: a model pass judging entries against the principles.** Technically
+easy, and the fastest way to stop the app being opened. A tool that comments on
+your character is not a tool anybody keeps.
+
+**Three at a time, and the rest is named rather than truncated.** A set that has
+grown to six is worth saying out loud, because emphasising six things at once is
+emphasising none of them - a fact about the set, not a display problem.
+
+**The action point's age is a proxy and says so.** Nib records when a note
+changed, not when a block was flagged, so the list is sorted by it and no number
+of days is put in front of him as though it were measured.

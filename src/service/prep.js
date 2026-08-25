@@ -40,7 +40,8 @@ import { agoWords, driftBadge, humanDays } from "../domain/time.js";
 import { topicsFor } from "../domain/topics.js";
 import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
-import { notesIn, readNibIndex } from "./nib.js";
+import { notesIn, principlesInNib, readNibIndex } from "./nib.js";
+import { forCard } from "../domain/practices.js";
 
 /** How many cards. Not a page size - a limit. */
 export const PREP_CARDS = 6;
@@ -184,7 +185,51 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
     cards: cards.slice(0, PREP_CARDS),
     dropped: Math.max(0, cards.length - PREP_CARDS),
     jotFound: board !== null,
-    nibFound: nib !== null
+    nibFound: nib !== null,
+    // Once for the page rather than once per card. These are about him, not
+    // about a person, so repeating them beside every name is the wallpaper
+    // failure this view is otherwise careful to avoid.
+    practising: practising(nibDir)
+  };
+}
+
+/**
+ * The principles he is working on, and anything he said he would do about one.
+ *
+ * Read from Nib on every call rather than copied into Tend. He raises and lowers
+ * the flag over there, and a copy here would be a second answer to the question
+ * "what am I practising" that could disagree with the first.
+ *
+ * The reason is carried when it cannot be read, because "nothing is flagged" and
+ * "the notebook could not be opened" look identical as an empty block, and only
+ * one of them is something to act on.
+ *
+ * @param {string} [dir]
+ */
+function practising(dir) {
+  let found;
+  try {
+    found = principlesInNib(dir);
+  } catch (error) {
+    return { available: false, why: error instanceof Error ? error.message : String(error) };
+  }
+  if (!found.available) {
+    return { available: false, why: found.why };
+  }
+  const card = forCard(found.practices);
+  return {
+    available: true,
+    active: card.shown,
+    more: card.more,
+    tooMany: card.note,
+    // Sorted oldest first by the domain, so the one that has been waiting
+    // longest is the one on top.
+    actionPoints: found.actionPoints.map((a) => ({
+      id: a.id,
+      note: a.note,
+      noteTitle: a.noteTitle,
+      text: a.text
+    }))
   };
 }
 

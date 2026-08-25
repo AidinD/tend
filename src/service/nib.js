@@ -25,6 +25,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { activePractices, openActionPoints } from "../domain/practices.js";
+
 import { userEnvironment } from "../domain/userenv.js";
 import { homedir } from "node:os";
 
@@ -636,4 +638,50 @@ export function htmlToText(html) {
     .map((line) => line.trim())
     .join("\n")
     .trim();
+}
+
+/**
+ * The principle notes: which are being worked on, and which carry an unfinished
+ * action point.
+ *
+ * The tag is found by id first and by name second. The id is what everything
+ * else here uses - a tag renamed in Nib must not change what Tend counts - but
+ * this one tag is picked out of the catalog by Tend rather than chosen by him in
+ * a mapping, so a name match is the fallback for a notebook whose defaults were
+ * seeded differently.
+ *
+ * Never throws, and says why when it comes back empty. "No principles are
+ * flagged" and "there is no Principle tag in this notebook" look identical on a
+ * card, and only one of them is something to act on.
+ *
+ * @param {string} [dir]
+ * @returns {{ available: false, why: string }
+ *   | { available: true, practices: any[], actionPoints: any[] }}
+ */
+export function principlesInNib(dir) {
+  const all = allNibNotes(dir);
+  if (!all.available) {
+    return { available: false, why: all.why };
+  }
+
+  const catalog = listNibTags(dir);
+  const tags = catalog.available ? catalog.tags : [];
+  const tag =
+    tags.find((t) => t.id === "tag-principle") ??
+    tags.find((t) => String(t.name).toLowerCase() === "principle");
+
+  if (tag === undefined) {
+    return {
+      available: false,
+      why: "This notebook has no Principle tag, so there is nothing to read. Add one in Nib and tag the notes you want to practise."
+    };
+  }
+
+  const trails = new Map(all.notes.map((n) => [String(n.id), String(n.trail ?? "")]));
+
+  return {
+    available: true,
+    practices: activePractices(/** @type {any[]} */ (all.notes), tag.id, (id) => trails.get(id) ?? ""),
+    actionPoints: openActionPoints(/** @type {any[]} */ (all.notes), tag.id)
+  };
 }

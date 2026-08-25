@@ -1024,6 +1024,19 @@ button.row:hover {
   flex: none;
 }
 
+/*
+ * What he is practising, above the cards. Marked as its own thing rather than
+ * dressed as a person: it is the only block on this page that is about him, and
+ * it should not be mistaken for a seventh card.
+ */
+.prep-practice {
+  border-left: 2px solid var(--accent, var(--text-faint));
+}
+
+.prep-practice .prep-list {
+  gap: 8px;
+}
+
 .prep-dropped,
 .prep-missing {
   margin: 14px 0 0;

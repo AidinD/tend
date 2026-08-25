@@ -45,6 +45,7 @@ export async function render() {
 
   if (cards.length === 0) {
     return `${head}
+      ${practices(result.practising)}
       <div class="empty">
         Nobody is behind and nothing is owed. This page is empty most days, which
         is the point of it.
@@ -53,9 +54,81 @@ export async function render() {
   }
 
   return `${head}
+    ${practices(result.practising)}
     ${cards.map((/** @type {any} */ c) => card(c, model)).join("")}
     ${result.dropped > 0 ? `<p class="prep-dropped">${result.dropped} more further behind than nobody, held back so this page ends.</p>` : ""}
     ${sources(result)}`;
+}
+
+/**
+ * What he is practising, once for the page.
+ *
+ * Above the cards rather than on them. A principle about how to talk to people
+ * is about him, not about any one of them, and printing the same two lines
+ * beside six names is how a card stops being read.
+ *
+ * The note title is the whole entry. The principle itself is in Nib and copying
+ * its text here would be a second copy to go stale - the block's job is to put
+ * it back in his head before a conversation, and the title does that.
+ *
+ * @param {any} practising
+ */
+function practices(practising) {
+  if (practising === undefined || practising === null) {
+    return "";
+  }
+  if (practising.available === false) {
+    return `<div class="card prep-practice">
+      <div class="card-top"><h2 class="card-title">Nothing to practise</h2></div>
+      <p class="card-why">${esc(practising.why)}</p>
+    </div>`;
+  }
+
+  const active = Array.isArray(practising.active) ? practising.active : [];
+  const points = Array.isArray(practising.actionPoints) ? practising.actionPoints : [];
+  if (active.length === 0 && points.length === 0) {
+    return "";
+  }
+
+  const lines = active
+    .map(
+      (/** @type {any} */ a) => `<li>
+        ${esc(a.title)}
+        <span class="src">${esc(a.source)}</span>
+      </li>`
+    )
+    .join("");
+
+  const todo = points
+    .map(
+      (/** @type {any} */ a) => `<li>
+        ${esc(a.text)}
+        <span class="src">you wrote this on ${esc(a.noteTitle)}</span>
+      </li>`
+    )
+    .join("");
+
+  return `<article class="card prep-practice">
+    <div class="card-top">
+      <h2 class="card-title">What you are working on</h2>
+      <span class="badge">${active.length}</span>
+    </div>
+    <p class="card-why">
+      Flagged in Nib, read from there every time. Lower the flag when it starts
+      coming naturally and pick up the next one - the timing is yours, and Tend
+      deliberately puts no date on it.
+    </p>
+    ${lines ? `<div class="prep-block"><ul class="prep-list">${lines}</ul></div>` : ""}
+    ${
+      todo
+        ? `<div class="prep-block">
+             <h3 class="prep-head">And one thing you said you would do</h3>
+             <ul class="prep-list">${todo}</ul>
+           </div>`
+        : ""
+    }
+    ${practising.tooMany ? `<p class="card-why dim">${esc(practising.tooMany)}</p>` : ""}
+  </article>`;
 }
 
 /**
