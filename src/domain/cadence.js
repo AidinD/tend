@@ -23,31 +23,47 @@ export const SEVERITY_ORDER = /** @type {const} */ (["ok", "watch", "warn", "cri
  * How the user relates to a person. Attention rules differ per type, because what
  * you owe someone you lead daily is not what you owe someone you manage from
  * two teams away.
+ *
+ * Three strings each, and all three live here. `label` names it, `note` says
+ * what it means on a card, and `choice` is how it reads in a dropdown - written
+ * for that job rather than derived, because a list of options wants to be
+ * scannable and a note wants to be read.
+ *
+ * The renderer had its own hand-copied version of the list for a while. Adding
+ * a relationship type here then left it unpickable in the window, with nothing
+ * failing anywhere: the type existed, the service accepted it, and the only way
+ * to notice was to open the dropdown and find it absent.
  */
 export const RELATIONS = /** @type {const} */ ({
   "lead-and-manage": {
     label: "Lead and manage",
-    note: "You see their work and you are accountable for them."
+    note: "You see their work and you are accountable for them.",
+    choice: "Lead and manage - you see their work and are accountable"
   },
   "lead-only": {
     label: "Lead, don't manage",
-    note: "You see their work daily but have no formal channel."
+    note: "You see their work daily but have no formal channel.",
+    choice: "Lead, don't manage - you see their work, no formal channel"
   },
   "manage-remotely": {
     label: "Manage, don't see",
-    note: "You hold the mandate and none of the observation. The blind spot."
+    note: "You hold the mandate and none of the observation. The blind spot.",
+    choice: "Manage, don't see - the mandate without the observation"
   },
   "equal-lead": {
     label: "Equal lead",
-    note: "No authority either way. Influence rests entirely on goodwill."
+    note: "No authority either way. Influence rests entirely on goodwill.",
+    choice: "Equal lead - no authority either way"
   },
   "own-manager": {
     label: "Your manager",
-    note: "Upward. Different duties apply."
+    note: "Upward. Different duties apply.",
+    choice: "Your manager"
   },
   stakeholder: {
     label: "Stakeholder",
-    note: "You deliver to them. You owe them a picture, not a conversation."
+    note: "You deliver to them. You owe them a picture, not a conversation.",
+    choice: "Stakeholder - you deliver to them, they are not yours to lead"
   }
 });
 
@@ -60,6 +76,20 @@ export const RELATIONS = /** @type {const} */ ({
 export function isRelation(v) {
   return Object.prototype.hasOwnProperty.call(RELATIONS, v);
 }
+
+/**
+ * Every relationship type, as options for a list.
+ *
+ * Derived rather than written out again, so a type added above cannot be
+ * missing from the window - which is a failure with no symptom other than a
+ * dropdown that quietly does not offer it.
+ *
+ * @type {{ value: Relation, label: string }[]}
+ */
+export const RELATION_OPTIONS = Object.entries(RELATIONS).map(([value, r]) => ({
+  value: /** @type {Relation} */ (value),
+  label: r.choice
+}));
 
 /**
  * Severity for a drift, relative to the interval it drifted from.

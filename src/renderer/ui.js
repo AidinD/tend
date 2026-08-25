@@ -275,14 +275,12 @@ export async function act(op, args, success) {
   return result;
 }
 
-/** Relationship types, with the wording used everywhere they are offered. */
-export const RELATION_OPTIONS = [
-  { value: "lead-and-manage", label: "Lead and manage - you see their work and are accountable" },
-  { value: "lead-only", label: "Lead, don't manage - you see their work, no formal channel" },
-  { value: "manage-remotely", label: "Manage, don't see - the mandate without the observation" },
-  { value: "equal-lead", label: "Equal lead - no authority either way" },
-  { value: "own-manager", label: "Your manager" }
-];
+/*
+ * Relationship types come from the domain, like contact kinds. This list used to
+ * be hand-copied here, and a type added to the domain was then unpickable in the
+ * window with nothing failing anywhere.
+ */
+export { RELATION_OPTIONS } from "../domain/cadence.js";
 
 /*
  * Contact kinds come from the domain, not from a second list here. The rule

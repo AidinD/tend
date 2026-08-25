@@ -13,7 +13,14 @@ import { describe, it } from "node:test";
 import { compareEvents, makeEventFactory } from "../src/storage/events.js";
 import { reduce } from "../src/storage/reduce.js";
 import { buildAttention, expandCadences, meanDrift } from "../src/domain/attention.js";
-import { computeDrift, isRelation, latestEvidence, severityFor } from "../src/domain/cadence.js";
+import {
+  computeDrift,
+  isRelation,
+  latestEvidence,
+  RELATIONS,
+  RELATION_OPTIONS,
+  severityFor
+} from "../src/domain/cadence.js";
 import { DEFAULT_STRETCH, focusCost, focusStatus, stretchFor } from "../src/domain/focus.js";
 import { defaultUserDataDir, resolveDataDir } from "../src/domain/paths.js";
 import { PROMISE_GUARD_DAYS, openPromises, promiseStatus } from "../src/domain/promises.js";
@@ -97,6 +104,43 @@ describe("data directory", () => {
       defaultUserDataDir({ platform: "win32", env: {}, home: "C:\\u" }),
       /AppData[/\\]Roaming[/\\]tend$/
     );
+  });
+});
+
+describe("relationship types", () => {
+  // The bug these exist for had no symptom. The renderer kept its own copy of
+  // the option list, so a type added to the domain was accepted by the service,
+  // stored happily, and simply absent from the dropdown - discoverable only by
+  // opening the dropdown and looking for something that was not there.
+  it("offers every relationship type there is", () => {
+    const offered = new Set(RELATION_OPTIONS.map((o) => /** @type {string} */ (o.value)));
+    for (const value of Object.keys(RELATIONS)) {
+      assert.ok(offered.has(value), `${value} exists but cannot be picked`);
+    }
+    assert.equal(RELATION_OPTIONS.length, Object.keys(RELATIONS).length, "the list has an option for something that is not a relationship");
+  });
+
+  it("gives every type all three strings it needs", () => {
+    for (const [value, r] of Object.entries(RELATIONS)) {
+      assert.ok(String(r.label).trim().length > 0, `${value} has no name`);
+      assert.ok(String(r.note).trim().length > 0, `${value} does not say what it means`);
+      assert.ok(String(r.choice).trim().length > 0, `${value} has nothing to show in a list`);
+    }
+  });
+
+  it("recognises its own types and nothing else", () => {
+    for (const value of Object.keys(RELATIONS)) {
+      assert.equal(isRelation(value), true);
+    }
+    assert.equal(isRelation("colleague"), false);
+    assert.equal(isRelation("toString"), false, "a prototype property is not a relationship");
+  });
+
+  it("has a type for somebody you deliver to but do not lead", () => {
+    // Without it the only honest options are wrong: pick any of the five that
+    // involve leading and a stakeholder starts owing you 1-1s.
+    assert.ok(isRelation("stakeholder"));
+    assert.match(RELATIONS.stakeholder.note, /deliver/);
   });
 });
 

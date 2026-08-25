@@ -934,3 +934,29 @@ everything on it can be acted on.
 project.** It consumes `delegation-review`, which is about a piece of work, so
 it crossed with every project and could never be satisfied by anything. It
 would have sat in Now saying a project had never had its level set, forever.
+
+## 2026-08-25 - A relationship type is declared once, and the list is derived
+
+**Decided.** `RELATIONS` in `src/domain/cadence.js` carries three strings per
+type - a name, what it means on a card, and how it reads in a dropdown - and
+`RELATION_OPTIONS` is derived from it. The renderer re-exports rather than
+keeping a copy.
+
+**Why.** It kept a hand-written copy. Adding the `stakeholder` type to the
+domain therefore left it unpickable in the window with nothing failing
+anywhere: the type existed, the service accepted it, tests that called
+`addPerson` directly passed, and the only way to notice was to open the dropdown
+and find it absent. The user found it, one commit after the same duplication was
+removed for contact kinds - the list that broke was ten lines above the one that
+had just been fixed.
+
+**The dropdown wording is stored rather than derived from the other two.** A
+list of options wants to be scannable and a note wants to be read, so joining
+`label` and `note` produced something worse than either. Three strings in one
+place beats two strings in one place and a third somewhere else.
+
+**Guarded twice, at both altitudes.** A unit test asserts every key in
+`RELATIONS` appears in `RELATION_OPTIONS` and that the counts match. The
+walkthrough separately counts the options in the real dropdown against the
+domain, because the unit test would have passed the whole time this bug existed:
+it was the renderer's copy that was wrong, and no unit test read it.

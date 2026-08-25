@@ -37,6 +37,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { RELATIONS } from "../src/domain/cadence.js";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const PORT = 9411;
@@ -578,6 +580,19 @@ try {
     const remote = relationOptions.find((o) => o.value === "manage-remotely");
     if (!remote || !/without the observation/i.test(remote.label)) {
       throw new Error(`relationship options are bare: ${JSON.stringify(relationOptions)}`);
+    }
+  });
+
+  // Counted against the domain rather than spot-checked. The renderer used to
+  // keep its own copy of this list, so a relationship type added to the domain
+  // was accepted by the service and simply absent from this dropdown, with
+  // nothing failing anywhere: a stakeholder existed and could not be picked.
+  check("and offers every relationship type the domain has", () => {
+    const missing = Object.keys(RELATIONS).filter(
+      (value) => !relationOptions.some((o) => o.value === value)
+    );
+    if (missing.length > 0) {
+      throw new Error(`not offered in the window: ${missing.join(", ")}`);
     }
   });
 
