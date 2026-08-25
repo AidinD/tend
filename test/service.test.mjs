@@ -15,7 +15,7 @@ import * as api from "../src/service/api.js";
 import { TOOLS, callTool, toolManifest } from "../src/mcp/tools.js";
 import { openStore } from "../src/storage/store.js";
 import { DAY_MS } from "../src/domain/time.js";
-import { ok } from "./helpers.mjs";
+import { failed, ok } from "./helpers.mjs";
 
 const NOW = 1_800_000_000_000;
 /** @param {number} n */
@@ -347,5 +347,46 @@ describe("the MCP surface", () => {
     const broken = /** @type {any} */ ({ rows: () => { throw new Error("disk gone"); }, state: () => { throw new Error("disk gone"); } });
     const r = callTool(broken, "tend_promises", {}, NOW);
     assert.match(r.error, /tend_promises failed: disk gone/);
+  });
+});
+
+describe("correcting a person", () => {
+  it("renames without losing anything pointed at them", () => {
+    const id = ok(api.addPerson(store, { name: "Rasmus Falk", relation: "manage-remotely", now: NOW })).id;
+    ok(api.logPromise(store, { person: id, text: "svara om renderingen", now: NOW }));
+
+    ok(api.updatePerson(store, id, { name: "Rasmus Falk" }));
+
+    const after = ok(api.person(store, "Rasmus", NOW));
+    assert.equal(after.name, "Rasmus Falk");
+    assert.equal(after.openPromises.length, 1, "everything holds the id, so a rename costs nothing");
+  });
+
+  it("refuses a name somebody else already has", () => {
+    ok(api.addPerson(store, { name: "Nina Berg", relation: "lead-and-manage", now: NOW }));
+    const other = ok(api.addPerson(store, { name: "Tom Ek", relation: "lead-and-manage", now: NOW })).id;
+    // Two people with one name makes both unreachable from Ctrl+K, which
+    // refuses on an ambiguous match rather than guessing.
+    assert.match(failed(api.updatePerson(store, other, { name: "nina berg" })), /already called/);
+  });
+
+  it("moves the date every cadence measures from", () => {
+    const id = ok(api.addPerson(store, { name: "Nina Berg", relation: "lead-and-manage", now: NOW })).id;
+
+    const fresher = ok(api.person(store, id, NOW)).cadences[0];
+    ok(api.updatePerson(store, id, { since: NOW - 200 * DAY_MS }));
+    const backdated = ok(api.person(store, id, NOW)).cadences[0];
+
+    assert.notEqual(backdated.behindBy, fresher.behindBy, "a placeholder start date is a wrong answer, not a blank one");
+  });
+
+  it("refuses an unknown relationship rather than storing it", () => {
+    const id = ok(api.addPerson(store, { name: "Nina Berg", relation: "lead-and-manage", now: NOW })).id;
+    assert.match(failed(api.updatePerson(store, id, { relation: "friend" })), /Unknown relationship/);
+  });
+
+  it("changes nothing when handed nothing", () => {
+    const id = ok(api.addPerson(store, { name: "Nina Berg", relation: "lead-and-manage", now: NOW })).id;
+    assert.deepEqual(ok(api.updatePerson(store, id, {})).changed, []);
   });
 });

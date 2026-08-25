@@ -68,6 +68,7 @@ const OPERATIONS = {
 
   addPerson: (/** @type {any} */ a) => api.addPerson(store, { ...a, now: a.now ?? Date.now() }),
   setRelation: (/** @type {any} */ a) => api.setRelation(store, a.person, a.relation),
+  updatePerson: (/** @type {any} */ a) => api.updatePerson(store, a.person, a.fields ?? {}),
   addProject: (/** @type {any} */ a) => api.addProject(store, { ...a, now: a.now ?? Date.now() }),
   logPromise: (/** @type {any} */ a) => api.logPromise(store, { ...a, now: a.now ?? Date.now() }),
   resolvePromise: (/** @type {any} */ a) => api.resolvePromise(store, a.id, a.as),

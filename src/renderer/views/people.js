@@ -254,16 +254,35 @@ export const actions = {
     }
     const values = await form({
       title: `Edit ${p.name}`,
-      intro: "Changing the relationship changes which duties apply. Their history comes with them.",
+      intro:
+        "Their history comes with them whatever you change here - everything that points at " +
+        "somebody holds their id, so the name is only what is shown and what Ctrl+K matches.",
       fields: [
-        { name: "relation", label: "How you relate to them", type: "select", options: RELATION_OPTIONS, value: p.relation }
+        { name: "name", label: "Name", value: p.name, required: true },
+        {
+          name: "relation",
+          label: "How you relate to them",
+          type: "select",
+          options: RELATION_OPTIONS,
+          value: p.relation
+        },
+        {
+          name: "since",
+          label: "Since when",
+          type: "date",
+          value: p.since ? asDateInput(p.since) : "",
+          hint:
+            "When the relationship started. Every cadence measures from here until there is " +
+            "contact to measure from instead, so a placeholder puts somebody months behind on " +
+            "their first day - or perfectly in step with somebody you have never spoken to."
+        }
       ],
       confirm: "Save"
     });
     if (!values) {
       return;
     }
-    if (await act("setRelation", { person: d.person, relation: values.relation }, "Updated.")) {
+    if (await act("updatePerson", { person: d.person, fields: values }, "Updated.")) {
       refresh();
     }
   },

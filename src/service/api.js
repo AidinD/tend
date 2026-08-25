@@ -151,6 +151,10 @@ export function person(store, query, now) {
     id: p.id,
     name: p.name,
     relation: p.relation,
+    // Carried so the edit dialog can show it. It is the date every cadence
+    // measures from until there is contact to measure from instead, which
+    // makes it the one field somebody sets wrong once and never revisits.
+    since: p.since ?? null,
     relationMeans: isRelation(relation) ? RELATIONS[relation].note : "Unknown relationship type.",
     cadences,
     openPromises: promises,
@@ -327,6 +331,74 @@ export function setRelation(store, who, relation) {
   }
   store.update("people", found.person.id, { relation });
   return { id: found.person.id, name: found.person.name, was: found.person.relation, now: relation };
+}
+
+/**
+ * Correct a person's details: their name, how you relate to them, or when the
+ * relationship started.
+ *
+ * Renaming is safe by construction. Everything that points at somebody -
+ * contact, promises, Nib bindings, workstream ownership - holds their id, so
+ * the name is only ever what is shown and what Ctrl+K matches against. A typo
+ * therefore costs a lookup rather than a record, and fixing it costs nothing.
+ *
+ * `since` matters more than it looks. It is what every cadence measures from
+ * before there is any contact to measure from instead, so a placeholder date
+ * puts somebody months behind on their first day, or perfectly in step with
+ * somebody you have not spoken to.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} who
+ * @param {object} fields
+ * @param {string} [fields.name]
+ * @param {string} [fields.relation]
+ * @param {number} [fields.since]
+ */
+export function updatePerson(store, who, { name, relation, since }) {
+  const found = resolvePerson(store, who);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+
+  /** @type {Record<string, any>} */
+  const patch = {};
+
+  if (name !== undefined) {
+    const trimmed = String(name).trim();
+    if (trimmed === "") {
+      return { error: "A person needs a name." };
+    }
+    // A second person with the same name makes both unreachable from Ctrl+K,
+    // which refuses on an ambiguous match rather than guessing.
+    const clash = store
+      .rows("people")
+      .find((p) => p.id !== found.person.id && String(p.name).toLowerCase() === trimmed.toLowerCase());
+    if (clash) {
+      return { error: `Somebody else is already called "${trimmed}".` };
+    }
+    patch.name = trimmed;
+  }
+
+  if (relation !== undefined) {
+    if (!isRelation(String(relation))) {
+      return { error: `Unknown relationship type "${relation}". Valid: ${Object.keys(RELATIONS).join(", ")}.` };
+    }
+    patch.relation = relation;
+  }
+
+  if (since !== undefined) {
+    if (typeof since !== "number" || !Number.isFinite(since)) {
+      return { error: "The start date must be a date." };
+    }
+    patch.since = since;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return { id: found.person.id, changed: [] };
+  }
+
+  store.update("people", found.person.id, patch);
+  return { id: found.person.id, name: patch.name ?? found.person.name, changed: Object.keys(patch) };
 }
 
 /**
