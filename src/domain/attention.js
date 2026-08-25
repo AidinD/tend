@@ -21,7 +21,7 @@ import { focusCost, focusStatus, stretchFor } from "./focus.js";
 import { openPromises } from "./promises.js";
 import { signalsDue } from "./signals.js";
 import { driftBadge, humanDays } from "./time.js";
-import { hasLeft, inScope, notBefore } from "./people.js";
+import { appliesWhileLeaving, hasLeft, inScope, isLeaving, notBefore } from "./people.js";
 import { namedStakes, stakeInterval } from "./stakes.js";
 import { isUnspecified, reviewInterval } from "./workstreams.js";
 
@@ -89,7 +89,15 @@ export function expandCadences(state, now) {
   /** @param {any[]} subjects @param {string} kind */
   const cross = (subjects, kind) => {
     for (const subject of subjects) {
+      // Somebody with a last day still owes everything by default. Which duties
+      // stop is his choice per duty, because the answer differs: a 1-1 during a
+      // notice period is when the handover gets arranged, a feedback round is an
+      // instrument for developing somebody who is on their way out.
+      const leaving = kind === "person" && isLeaving(subject);
       for (const duty of dutiesFor(duties, kind, subject.relation)) {
+        if (leaving && !appliesWhileLeaving(duty)) {
+          continue;
+        }
         // A workstream's review interval comes from its delegation level rather
         // than from the duty: how often you look is the whole meaning of the
         // level, and a level with no review interval is the abdication Grove

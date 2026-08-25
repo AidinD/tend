@@ -138,3 +138,23 @@ export function availability(person, now) {
   }
   return null;
 }
+
+/**
+ * Does this duty still apply to somebody working out their notice?
+ *
+ * The user's call, per duty, because the answer genuinely differs. A 1-1 during
+ * a notice period is when the handover actually gets arranged, so it matters
+ * more than usual. A quarterly feedback round is an instrument for developing
+ * somebody, which a person on their way out is not - running one is work for
+ * everybody involved and changes nothing.
+ *
+ * Absent means yes. Nothing should change behaviour for a duty nobody has
+ * revisited, and the safe direction is to keep asking rather than to go quiet
+ * about somebody who is still here for two months.
+ *
+ * @param {Record<string, any>} duty
+ * @returns {boolean}
+ */
+export function appliesWhileLeaving(duty) {
+  return duty.keepWhileLeaving !== false;
+}

@@ -1053,3 +1053,28 @@ then you stop believing the one that matters.
 
 **Only for the first-person signals, not for the cadence.** The duty still reads
 the stake, because that is the whole reason a stake exists.
+
+## 2026-08-25 - Which duties survive a notice period is a choice per duty
+
+**Decided.** A duty carries `keepWhileLeaving`. Once a person has a last day set,
+duties with it turned off stop applying to them. Absent means it still applies,
+so nothing changes for a duty nobody has revisited.
+
+**Why per duty rather than per person, or as a rule.** The answer genuinely
+differs and the user is the one who knows: a 1-1 during a notice period is when
+the handover actually gets arranged, so it matters more than usual, while a peer
+review round is an instrument for developing somebody who is on their way out -
+running one is work for everybody involved and changes nothing. Neither "keep
+everything" nor "drop everything" is right, and the app is not in a position to
+guess which duty is which.
+
+**It takes effect when the last day is SET, not when it arrives.** That is the
+point: the decision not to run a review round happens the moment you know
+somebody is leaving, not on their final afternoon.
+
+**A related correction to something this file used to imply.** A focus never
+removes a critical item from Now, guarded or not - `buildAttention` surfaces
+critical first and pushes anything with a critical true severity to nudges rather
+than muting it. Guarding only changes whether the tier below critical is
+protected. Un-guarding a duty that is badly overdue therefore does nothing at
+all, and suggesting it as a way to quiet the page was wrong.

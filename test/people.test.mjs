@@ -17,7 +17,15 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import * as api from "../src/service/api.js";
 import { expandCadences } from "../src/domain/attention.js";
 import { myAttention } from "../src/domain/myattention.js";
-import { availability, hasLeft, inScope, isAway, isLeaving, notBefore } from "../src/domain/people.js";
+import {
+  appliesWhileLeaving,
+  availability,
+  hasLeft,
+  inScope,
+  isAway,
+  isLeaving,
+  notBefore
+} from "../src/domain/people.js";
 import { DAY_MS } from "../src/domain/time.js";
 import { openStore } from "../src/storage/store.js";
 import { ok, failed } from "./helpers.mjs";
@@ -141,6 +149,25 @@ describe("through the store", () => {
     const ada = expandCadences(store.state(), NOW).find((c) => c.subject.name === "Ada");
     assert.equal(ada?.drift.daysSince, 56);
     assert.equal(ada?.drift.severity, "critical");
+  });
+
+  it("keeps a duty for a leaver unless it has been turned off", () => {
+    // His example: he will keep having 1-1s with somebody working out their
+    // notice, and will not send out a peer review round for them. Both are
+    // reasonable, which is why it is a choice per duty and not a rule.
+    ok(api.updatePerson(store, "Ada", { leftAt: ahead(60) }));
+    assert.ok(behind(NOW).includes("Ada"), "a duty nobody has revisited keeps applying");
+
+    const oneToOne = store.rows("duties")[0];
+    ok(api.updateDuty(store, String(oneToOne.id), { keepWhileLeaving: false }));
+    assert.equal(behind(NOW).includes("Ada"), false);
+    assert.ok(behind(NOW).includes("Bo"), "and it still applies to everybody else");
+  });
+
+  it("reads a duty nobody has revisited as still applying", () => {
+    assert.equal(appliesWhileLeaving({}), true, "absent must not silently mean off");
+    assert.equal(appliesWhileLeaving({ keepWhileLeaving: false }), false);
+    assert.equal(appliesWhileLeaving({ keepWhileLeaving: true }), true);
   });
 
   it("holds somebody to everything until their last day passes", () => {

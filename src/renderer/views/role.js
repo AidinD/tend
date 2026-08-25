@@ -67,7 +67,7 @@ export async function render() {
         </div>
         ${d.means ? `<p class="card-why">${esc(d.means)}</p>` : ""}
         <div class="card-foot">
-          <span class="src">Every ${esc(d.every)} · ${esc(d.appliesTo)} · from ${esc(d.source)}${d.guarded ? " · guarded" : ""}</span>
+          <span class="src">Every ${esc(d.every)} · ${esc(d.appliesTo)} · from ${esc(d.source)}${d.guarded ? " · guarded" : ""}${d.keepWhileLeaving === false ? " · paused for leavers" : ""}</span>
           <button class="act" data-act="editDuty" data-id="${esc(d.id)}">Edit</button>
           <button class="act danger" data-act="removeDuty" data-id="${esc(d.id)}" data-name="${esc(d.name)}">Remove</button>
         </div>
@@ -207,7 +207,20 @@ function dutyFields(duty) {
       label: "Never dampen this, even under a focus",
       type: "checkbox",
       value: Boolean(duty?.guarded),
-      hint: "For the things a busy month must not be allowed to bury."
+      hint:
+        "For the things a busy month must not be allowed to bury. Note that a focus never " +
+        "removes anything critical from Now whether this is set or not - it holds back the " +
+        "softest tier, and guarding also protects the tier above it."
+    },
+    {
+      name: "keepWhileLeaving",
+      label: "Still applies to somebody working out their notice",
+      type: "checkbox",
+      value: duty ? duty.keepWhileLeaving !== false : true,
+      hint:
+        "Leave it on for a 1-1: a notice period is when the handover gets arranged. Turn it " +
+        "off for anything meant to develop somebody, like a peer review round - running one " +
+        "for a person on their way out is work for everybody and changes nothing."
     }
   ];
 }
@@ -291,7 +304,15 @@ export const actions = {
     }
     // Written by him, so it goes straight to active rather than sitting as a
     // proposal from himself to himself.
-    await act("decideDuty", { id: created.id, status: "active", overrides: { guarded: values.guarded } }, "Added.");
+    await act(
+      "decideDuty",
+      {
+        id: created.id,
+        status: "active",
+        overrides: { guarded: values.guarded, keepWhileLeaving: values.keepWhileLeaving }
+      },
+      "Added."
+    );
     refresh();
   },
 
@@ -319,7 +340,8 @@ export const actions = {
           means: values.means,
           subjectKind: values.subjectKind,
           cadenceDays: values.cadenceDays,
-          guarded: values.guarded
+          guarded: values.guarded,
+          keepWhileLeaving: values.keepWhileLeaving
         }
       },
       "Saved."

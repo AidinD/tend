@@ -250,6 +250,7 @@ export function roleMap(store, now) {
           appliesTo: d.subjectKind,
           relations: d.relations ?? "all",
           every: d.cadenceDays ? `${d.cadenceDays} days` : "no cadence",
+          keepWhileLeaving: d.keepWhileLeaving !== false,
           // The number as well as the sentence. The edit form used to recover it
           // by stripping non-digits out of the sentence, which turns "no
           // cadence" into zero and would break the day the wording changes.
@@ -1078,6 +1079,9 @@ export function proposeDuty(store, { name, means, source, subjectKind, cadenceDa
     evidenceKinds: evidenceKinds ?? [],
     relations: relations ?? [],
     guarded: false,
+    // Absent would already read as "keeps applying"; written out so the row says
+    // what it means rather than relying on a default two files away.
+    keepWhileLeaving: true,
     status: "proposed"
   });
   return { id, proposed: name, note: "Proposed only. It does nothing until accepted in the app." };
