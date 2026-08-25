@@ -34,9 +34,13 @@ notes to search, and there isn't one until Nib has been used for a while.
   design tokens, frameless with its own header like Jot and Nib
 - Monthly signal questions, delegation levels on workstreams, and Nib bindings:
   `src/domain/signals.js`, `src/domain/workstreams.js`, `src/service/nib.js`
-- 133 unit tests, 8 MCP end-to-end checks, and a 29-check walkthrough of the
+- 386 unit tests, 8 MCP end-to-end checks, and an 83-check walkthrough of the
   whole product driven over the Chrome DevTools Protocol. Type check clean
   (`npm test`, `npm run test:e2e`, `npm run test:app`, `npm run typecheck`)
+- The walkthrough can only ever drive the Electron it started: it refuses to
+  begin when the debugging port is already taken, naming the PID, and checks the
+  attached app's data directory against this run's scratch folder. `--port=N`
+  for a second run at once. See `scripts/e2e-port.mjs`
 - Concurrency design: [docs/storage.md](docs/storage.md)
 - Role map research across several books and current practice:
   [docs/role-map-research.md](docs/role-map-research.md) - **needs a review pass

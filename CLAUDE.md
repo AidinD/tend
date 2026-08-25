@@ -124,11 +124,17 @@ Do **not** verify by moving the pointer and clicking. It fights whoever is using
 the machine, steals focus, and every coordinate is a guess that goes stale the
 moment a layout shifts.
 
-Two rules that come with it:
+Three rules that come with it:
 
 - **Never kill processes by name.** Other Electron apps are often running. Kill only the PID you started, as the harness does.
 - **Always point `TEND_DATA_DIR` at a scratch folder** for a test run. The real
   directory holds notes about real colleagues.
+- **A run may only drive the instance it started.** It refuses to begin when
+  something already holds the debugging port and names the PID; once attached it
+  asks the app for its data directory and stops unless the answer is this run's
+  scratch folder. It never kills what it finds - `--port=N` is the way past a
+  port somebody else has. A stale Electron on 9411 once produced four failures
+  about code that was fine; see `scripts/e2e-port.mjs` and DECISIONS.md.
 
 A check that asserts nothing is worse than no check. Three of the first ones
 here passed while testing nothing; if a `check()` body is empty, it is a bug.

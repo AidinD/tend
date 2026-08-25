@@ -13,7 +13,7 @@
  * app, set up the role map, add people, log things, run a focus, hand work
  * over. If any of that can only be done from a terminal, this fails.
  *
- * Two rules it follows, both learned the hard way:
+ * Three rules it follows, all learned the hard way:
  *
  *   It launches its OWN Electron instance and kills only that PID. Never kill
  *   by name - other Electron apps are often running and a broad kill closes
@@ -22,13 +22,23 @@
  *   It always points TEND_DATA_DIR at a scratch folder, so a test run can never
  *   write into real notes about real colleagues.
  *
- *   node scripts/e2e-app.mjs [--keep] [--packaged]
+ *   It only ever drives the instance it started. It refuses to begin when
+ *   something already holds the debugging port, and once attached it asks the
+ *   app which data directory it is using and stops unless the answer is this
+ *   run's scratch folder. See scripts/e2e-port.mjs for why - the short version
+ *   is that a stale Electron on the port produced four failures about the code
+ *   and none of them were real.
+ *
+ *   node scripts/e2e-app.mjs [--keep] [--packaged] [--port=N]
  *
  * `--packaged` runs against dist/win-unpacked/Tend.exe instead of the
  * development Electron. Worth its own mode: Tend ships its source unbuilt, so
  * the packaged app resolves the preload and the renderer from inside an asar
  * archive, and a path that works in development can fail there with nothing but
  * a blank window.
+ *
+ * `--port` moves the debugging port, which is how two runs go at once and how a
+ * run gets past a port something else has taken for good.
  */
 
 import { spawn } from "node:child_process";
@@ -38,12 +48,35 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { RELATIONS } from "../src/domain/cadence.js";
+import {
+  DEFAULT_PORT,
+  describeListener,
+  parsePort,
+  portInUse,
+  refusalMessage,
+  wrongInstance
+} from "./e2e-port.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
-const PORT = 9411;
 const keep = process.argv.includes("--keep");
 const packaged = process.argv.includes("--packaged");
+
+const chosen = parsePort(process.argv);
+if (chosen.error !== undefined) {
+  console.error(chosen.error);
+  process.exit(1);
+}
+const PORT = chosen.port;
+
+// Before anything is created, and before Electron is started. A refused run has
+// to leave nothing behind: no scratch folders, no fixtures, and above all no
+// half a run's worth of failures about code that is fine.
+if (await portInUse(PORT)) {
+  console.error(refusalMessage(PORT, describeListener(PORT), PORT !== DEFAULT_PORT));
+  process.exit(1);
+}
+
 const scratch = mkdtempSync(join(tmpdir(), "tend-app-"));
 const nibScratch = mkdtempSync(join(tmpdir(), "tend-app-nib-"));
 const jotScratch = mkdtempSync(join(tmpdir(), "tend-app-jot-"));
@@ -80,8 +113,22 @@ function step(label) {
   console.log(`\n  — ${label}`);
 }
 
-async function findPage() {
+/**
+ * Wait for the renderer to show up on the debugging port.
+ *
+ * `gone` lets it give up the moment the Electron it started has died, rather
+ * than polling out the full fifteen seconds and then reporting a timeout. An
+ * Electron that cannot bind the port exits almost at once, and "it never
+ * appeared" is a much worse description of that than "it exited with 1".
+ *
+ * @param {() => string | null} gone Why the spawned process is no longer running.
+ */
+async function findPage(gone) {
   for (let attempt = 0; attempt < 60; attempt++) {
+    const dead = gone();
+    if (dead) {
+      throw new Error(`The app exited before the renderer appeared (${dead})`);
+    }
     try {
       const response = await fetch(`http://127.0.0.1:${PORT}/json/list`);
       const targets = /** @type {any[]} */ (await response.json());
@@ -348,7 +395,8 @@ function writeNibFixture() {
       // contact kinds; the names stay Nib's and the ids are what get stored.
       tags: [
         { id: "tag-one-to-one", name: "1-1", color: "#6f9cff", description: "" },
-        { id: "tag-second-hand", name: "Second-hand", color: "#b98cff", description: "" }
+        { id: "tag-second-hand", name: "Second-hand", color: "#b98cff", description: "" },
+        { id: "tag-principle", name: "Principle", color: "#e0b062", description: "" }
       ],
       categories: [
         {
@@ -366,9 +414,12 @@ function writeNibFixture() {
               preview: "Kritik får folk att försvara sig.",
               created: 1,
               edited: 1,
-              alerts: [],
-              flag: "",
-              tags: []
+              // Tagged and flagged: a principle he is currently working on, plus
+              // an action point he wrote on it and has not finished. Tend reads
+              // both out of Nib rather than keeping its own copy.
+              alerts: [{ id: "alert-1", text: "Använd den i tre veckor innan jag dömer", done: false }],
+              flag: "open",
+              tags: ["tag-principle"]
             },
             {
               id: "note-p2",
@@ -453,17 +504,47 @@ const child = spawn(exe, args, {
   stdio: ["ignore", "pipe", "pipe"]
 });
 
+console.log(`Debugging port: ${PORT} (pid ${child.pid})`);
+
 /** @type {string[]} */
 const mainOutput = [];
 child.stdout?.on("data", (d) => mainOutput.push(String(d)));
 child.stderr?.on("data", (d) => mainOutput.push(String(d)));
 
+/** Why the spawned Electron is no longer running, or null while it is. */
+let exitedBecause = /** @type {string | null} */ (null);
+child.on("exit", (code, signal) => {
+  exitedBecause = signal ? `signal ${signal}` : `exit code ${code}`;
+});
+child.on("error", (err) => {
+  exitedBecause = `could not be started: ${err.message}`;
+});
+
 /** @type {Awaited<ReturnType<typeof connect>> | null} */
 let page = null;
 
 try {
-  const target = await findPage();
+  const target = await findPage(() => exitedBecause);
   page = await connect(target.webSocketDebuggerUrl);
+
+  // Before a single check runs. The port was free a moment ago, which makes it
+  // very likely this is ours, and "very likely" is not what a release gate
+  // should be built on: the app hands back the data directory it opened, this
+  // run made that directory with mkdtemp seconds ago, and no other instance on
+  // the machine can name it. Anything else is somebody else's window.
+  await page.waitFor("typeof window.tend?.invoke === 'function'", "the preload bridge");
+  const reported = await page.evaluate(
+    "window.tend.invoke('status').then((s) => JSON.stringify(s))"
+  );
+  const notOurs = wrongInstance({
+    port: PORT,
+    expected: scratch,
+    status: JSON.parse(String(reported))
+  });
+  if (notOurs) {
+    throw new Error(notOurs);
+  }
+
   await page.waitFor("document.querySelector('.view-title') !== null", "the first view");
   console.log("App is up.");
 
@@ -990,6 +1071,41 @@ try {
   check("and the card does not say \"today ago\"", () => {
     if (/today ago/.test(prepText)) {
       throw new Error("humanDays returns \"today\", so the suffix has to know that");
+    }
+  });
+
+  const practiceCard = await page.evaluate(
+    `(() => { const c = document.querySelector('.prep-practice');
+      if (c === null) { return null; }
+      return JSON.stringify({
+        title: c.querySelector('.card-title').textContent.trim(),
+        lines: [...c.querySelectorAll('.prep-list li')].map(li => li.textContent.trim()),
+        heads: [...c.querySelectorAll('.prep-head')].map(h => h.textContent.trim())
+      }); })()`
+  );
+  check("the principles he is working on are above the cards, once for the page", () => {
+    // Once rather than per card. They are about him, not about any one person,
+    // and printing the same lines beside six names is how a card stops being
+    // read at all.
+    if (practiceCard === null) {
+      throw new Error("no practice block on the prep page");
+    }
+    const block = JSON.parse(String(practiceCard));
+    if (!block.lines.some((/** @type {string} */ l) => /Kritisera inte/.test(l))) {
+      throw new Error(`the flagged principle is missing: ${JSON.stringify(block.lines)}`);
+    }
+    if (!block.heads.some((/** @type {string} */ h) => /said you would do/.test(h))) {
+      throw new Error(`the unfinished action point has no home: ${JSON.stringify(block.heads)}`);
+    }
+    if (!block.lines.some((/** @type {string} */ l) => /tre veckor/.test(l))) {
+      throw new Error(`the action point's own words are missing: ${JSON.stringify(block.lines)}`);
+    }
+  });
+
+  const practiceCount = await page.evaluate("document.querySelectorAll('.prep-practice').length");
+  check("and exactly once, not beside every name", () => {
+    if (Number(practiceCount) !== 1) {
+      throw new Error(`the block appears ${practiceCount} times`);
     }
   });
 
@@ -1664,7 +1780,12 @@ try {
     rmSync(nibScratch, { recursive: true, force: true });
     rmSync(jotScratch, { recursive: true, force: true });
   } else {
+    // Say how to put it down, here, where somebody reads it. This is the
+    // process that broke a later run: it keeps holding the debugging port, and
+    // until this printed the next run had no idea it was there.
     console.log(`\nLeft running (pid ${child.pid}), data in ${scratch}`);
+    console.log(`It is holding port ${PORT}. Stop that pid before the next run,`);
+    console.log(`or run the next one with --port=${PORT + 1}.`);
   }
 }
 

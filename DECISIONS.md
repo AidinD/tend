@@ -3,6 +3,57 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-25 - The app harness only ever drives the app it started
+
+**Decided.** `scripts/e2e-app.mjs` refuses to begin when something is already
+listening on the debugging port, naming the PID and the executable holding it,
+and once attached it asks the app for its data directory and stops unless the
+answer is the scratch folder this run just made. `--port=N` moves the port. The
+pure half of both gates is in `scripts/e2e-port.mjs`, tested in
+`test/harness.test.mjs`.
+
+**The failure it removes.** A previous run had left an Electron alive on 9411, so
+a fresh run attached to that old instance and reported four failures: main never
+reported the scratch dir, the first-run view was already People, and then nothing
+matched `[data-act=seed]`. Not one of them had anything to do with the code.
+Killing the stale process made the same run pass 83 of 83.
+
+**Both gates, not one.** The port check alone would have caught this, and it is
+the one that produces the good message - it fires before Electron starts, so a
+refused run leaves no scratch folders and no half a run's worth of wrong
+assertions. But it can only say the port was free when it looked, and a release
+gate should not rest on that. The identity check is the unconditional half: this
+run made its scratch directory with `mkdtemp` seconds earlier, so no other
+instance on the machine can name it, and the check needs no process-inspection
+tooling to hold.
+
+**The data directory is the proof, not the PID.** Comparing the CDP target's
+owner against the spawned PID was the obvious version and it is worse: the owning
+process is the spawned one on Windows but a descendant under the `.bin/electron`
+shim elsewhere, so it needs a parent-chain walk, per-platform tools, and a
+degraded path when they are missing. The app already reports `dataDir` through
+`status`, over the same bridge the walkthrough uses for everything else.
+
+**It refuses, it never kills.** The process holding the port is by definition one
+the harness did not start, and a broad kill here has already closed somebody's
+work once - a filter on a command-line flag rather than a path stopped 19
+processes at once, because Chromium passes its flags to every child. So the
+lookup reports and nothing more; a test asserts there is no `Stop-Process` in it.
+The only process this harness may stop is still the one it spawned, by that PID.
+
+**A fixed default port, not a random one.** A per-run port would have dodged the
+collision without anyone noticing the stale process, and `--keep` exists so a
+person can attach real DevTools to the window it leaves - telling them to read
+the port out of a log first is worse than telling them the number. Instead
+`--keep` now prints that it is holding the port and how to stop it, which is
+where this went wrong in the first place.
+
+**A dead Electron is reported as dead.** The attach loop gives up the moment the
+process it spawned exits, rather than polling out fifteen seconds and calling it
+"the renderer never appeared". An Electron that cannot bind the port exits almost
+immediately, and that is the failure this change makes more likely to be seen.
+
+
 ## 2026-08-25 - The walkthrough waits for a settled window, it does not sleep
 
 **Decided.** The maximise check in `scripts/e2e-app.mjs` polls `outerWidth`
