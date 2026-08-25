@@ -3,6 +3,36 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-25 - The walkthrough waits for a settled window, it does not sleep
+
+**Decided.** The maximise check in `scripts/e2e-app.mjs` polls `outerWidth`
+until it holds the same value across three reads eighty milliseconds apart *and*
+satisfies what the click should have done, with a six second timeout that fails
+with the whole trace. The two fixed 400ms sleeps are gone.
+
+**The failure it removes.** The check failed once with "width went 1180 -> 160",
+then passed on an immediate re-run with nothing changed in between. 160 is
+neither a maximised width nor a restored one: the renderer was reading the frame
+while the window manager was still moving it.
+
+**Not a longer sleep.** That was the obvious fix and it is the wrong one - it
+makes the race rarer rather than removing it, and this harness is the thing that
+is supposed to catch races. A flaky check here is worse than a missing one,
+because `npm run test:app` is the evidence gate before every release: a check
+that cries wolf teaches everybody to re-run until green, which is exactly how a
+real failure gets waved through.
+
+**The wait is conditional, not just settled.** Waiting for stillness alone would
+pass a click that never reached the main process, because a window nobody touched
+is perfectly still. Each wait carries what it expects - larger than before it,
+then back to exactly what it was - so the timeout is what a dead click looks
+like, and the message says which of the two it was.
+
+**The widths are printed on a passing run** as a `--` note. This check is
+entirely about timing, so the log should show the margin getting thinner before
+the check starts failing.
+
+
 ## 2026-08-25 - A binding follows its folder, by id
 
 **Decided.** A binding to a Nib sub-folder is resolved by `subId` alone, wherever

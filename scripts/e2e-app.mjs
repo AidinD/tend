@@ -52,6 +52,14 @@ let checks = 0;
 /** @param {number} ms */
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
+// The window manager animates a maximise and a restore, so for a few hundred
+// milliseconds after the click the width is a moving target rather than a fact.
+// Three equal reads eighty milliseconds apart is "it has stopped moving"; six
+// seconds is long enough that only a click which never arrived runs out of it.
+const SETTLE_STEP = 80;
+const SETTLE_HOLDS = 3;
+const SETTLE_TIMEOUT = 6000;
+
 /** @param {string} label @param {() => void} fn */
 function check(label, fn) {
   checks += 1;
@@ -141,6 +149,49 @@ async function connect(url) {
       await sleep(150);
     }
     throw new Error(`Timed out waiting for ${label}`);
+  };
+
+  /**
+   * Read the window's outer width until it holds still and satisfies `wanted`.
+   *
+   * Sampling once after a fixed sleep reads a width mid-flight: this check has
+   * seen 1180 -> 160, which is neither a maximised width nor a restored one, and
+   * then passed on an immediate re-run. Sleeping longer would only make that
+   * rarer, and the harness is the thing that is supposed to catch races. A check
+   * that cries wolf is worse than a missing one here, because it teaches
+   * everybody to re-run until green, and that is how a real failure gets waved
+   * through the gate before a release.
+   *
+   * It never throws. It returns what it saw, widths passed through included, so
+   * the caller can fail with the whole trace rather than with one misleading
+   * number.
+   *
+   * @param {(width: number) => boolean} wanted
+   * @returns {Promise<{ width: number, settled: boolean, waited: number, trace: number[] }>}
+   */
+  const settledWidth = async (wanted) => {
+    const started = Date.now();
+    /** @type {number[]} */
+    const trace = [];
+    let last = NaN;
+    let holds = 0;
+
+    while (Date.now() - started < SETTLE_TIMEOUT) {
+      const width = Number(await evaluate("window.outerWidth"));
+      if (width === last) {
+        holds += 1;
+      } else {
+        holds = 1;
+        last = width;
+        trace.push(width);
+      }
+      if (holds >= SETTLE_HOLDS && wanted(width)) {
+        return { width, settled: true, waited: Date.now() - started, trace };
+      }
+      await sleep(SETTLE_STEP);
+    }
+
+    return { width: last, settled: false, waited: Date.now() - started, trace };
   };
 
   /** @param {string} selector */
@@ -236,6 +287,7 @@ async function connect(url) {
   return {
     evaluate,
     waitFor,
+    settledWidth,
     click,
     text,
     texts,
@@ -1267,22 +1319,45 @@ try {
   // Maximise is the one of the three a renderer can observe, so it is the one
   // that proves the whole path: click, preload send, main handler, window. Then
   // click again to put the window back where it was.
-  const before = await page.evaluate("window.outerWidth");
+  // Every width here is waited for rather than sampled, including the bassignee:
+  // a number read while the window manager is still moving the frame is not a
+  // width, and this check exists to catch a click that never arrived, not to
+  // race an animation.
+  const start = await page.settledWidth(() => true);
+  const before = start.width;
   await page.click('[data-window="maximize"]');
-  await sleep(400);
-  const maximised = await page.evaluate("window.outerWidth");
+  const maximised = await page.settledWidth((width) => width > before);
   await page.click('[data-window="maximize"]');
-  await sleep(400);
-  const restored = await page.evaluate("window.outerWidth");
+  const restored = await page.settledWidth((width) => width === before);
 
   check("clicking maximise actually resizes the window, and again restores it", () => {
-    if (!(Number(maximised) > Number(before))) {
-      throw new Error(`width went ${before} -> ${maximised}; the click did not reach the main process`);
+    if (!start.settled) {
+      throw new Error(`the window was still moving before the click: ${start.trace.join(" -> ")}`);
     }
-    if (Number(restored) !== Number(before)) {
-      throw new Error(`width came back as ${restored}, not ${before}`);
+    if (!maximised.settled) {
+      if (maximised.trace.length === 1) {
+        throw new Error(
+          `width held at ${maximised.width} for ${maximised.waited}ms; the click did not reach the main process`
+        );
+      }
+      throw new Error(
+        `width went ${maximised.trace.join(" -> ")} in ${maximised.waited}ms and never held above ${before}`
+      );
+    }
+    if (!restored.settled) {
+      throw new Error(
+        `width went ${restored.trace.join(" -> ")} in ${restored.waited}ms and never came back to ${before}`
+      );
     }
   });
+
+  // Printed because this check is entirely about timing. If the window manager
+  // starts taking longer than the settle window, the log says so on a run that
+  // still passes, rather than the check turning flaky with nobody able to see
+  // how close it had been getting.
+  console.log(
+    `  --   widths: ${before} -> ${maximised.width} in ${maximised.waited}ms -> ${restored.width} in ${restored.waited}ms`
+  );
 
   /* --------------------------------------------------------- scrolling -- */
 
