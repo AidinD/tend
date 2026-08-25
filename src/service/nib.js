@@ -22,9 +22,10 @@
  * which means the highest-value thing Tend tracks needs no model at all.
  */
 
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { userEnvironment } from "../domain/userenv.js";
 import { homedir } from "node:os";
 
 /**
@@ -53,46 +54,6 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
     return join(home, "Library", "Application Support", "nib");
   }
   return join(env.XDG_CONFIG_HOME ?? join(home, ".config"), "nib");
-}
-
-/**
- * A user environment variable, read from where Windows actually keeps it.
- *
- * `process.env` only carries what the process INHERITED, and a variable set
- * after a parent started is not in it. Nib itself always resolves correctly,
- * because it is launched fresh from the shell; Tend reaching for the same
- * variable can come up empty and quietly fall back to the per-user default -
- * which on this machine is a leftover notebook that still parses, still has
- * categories, and is three years of notes out of date.
- *
- * That failure is invisible: Tend finds A notebook, lists folders, binds them,
- * and reports nothing wrong. It cost a whole evening once. So the registry is
- * consulted rather than trusted to have been inherited.
- *
- * Windows only, and best-effort: anything unexpected means "not set", never a
- * throw. On other platforms the environment is the whole answer.
- *
- * @param {string} name
- * @param {NodeJS.Platform} platform
- * @returns {string | null}
- */
-function userEnvironment(name, platform) {
-  if (platform !== "win32") {
-    return null;
-  }
-  try {
-    const out = execFileSync("reg", ["query", "HKCU\\Environment", "/v", name], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"]
-    });
-    // REG_SZ and REG_EXPAND_SZ both land as `<name>    <TYPE>    <value>`.
-    const match = /\s{2,}REG_(?:EXPAND_)?SZ\s{2,}(.+)/.exec(out);
-    const value = match?.[1]?.trim() ?? "";
-    return value === "" ? null : value.replace(/%([^%]+)%/g, (_, key) => process.env[key] ?? "");
-  } catch {
-    // Not set, or reg is unavailable. Both mean the same thing here.
-    return null;
-  }
 }
 
 /**

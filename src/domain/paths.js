@@ -14,6 +14,8 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { userEnvironment } from "./userenv.js";
+
 /** Matches package.json `name`, which is what Electron uses for userData. */
 export const APP_NAME = "tend";
 
@@ -46,16 +48,40 @@ export function defaultUserDataDir({
 /**
  * The data directory to use.
  *
+ * Three places, in this order.
+ *
+ * The middle one is the important one. `TEND_DATA_DIR` in `process.env` only
+ * covers what this process inherited, so a variable set after the terminal that
+ * spawned it opened is invisible - and then Tend quietly uses the per-user
+ * default, which is a real directory that parses and reports nothing wrong. An
+ * agent session on this machine writes into an app-container overlay of that
+ * default which the installed app never reads, so the two halves of the same
+ * tool end up on separate stores, each convinced it is right. Reading the
+ * variable from where Windows keeps it closes that.
+ *
+ * The inherited value still wins, because that is how a test points the app at
+ * a scratch folder.
+ *
  * @param {object} [opts]
  * @param {Record<string, string | undefined>} [opts.env]
  * @param {NodeJS.Platform} [opts.platform]
  * @param {string} [opts.home]
- * @returns {{ dir: string, source: "env" | "default" }}
+ * @param {(name: string, platform?: NodeJS.Platform) => string | null} [opts.stored]
+ * @returns {{ dir: string, source: "env" | "user-env" | "default" }}
  */
-export function resolveDataDir({ env = process.env, platform, home } = {}) {
+export function resolveDataDir({
+  env = process.env,
+  platform = process.platform,
+  home,
+  stored = userEnvironment
+} = {}) {
   const override = env.TEND_DATA_DIR?.trim();
   if (override) {
     return { dir: override, source: "env" };
+  }
+  const fromRegistry = stored("TEND_DATA_DIR", platform)?.trim();
+  if (fromRegistry) {
+    return { dir: fromRegistry, source: "user-env" };
   }
   return { dir: defaultUserDataDir({ platform, env, home }), source: "default" };
 }

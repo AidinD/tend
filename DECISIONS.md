@@ -801,3 +801,30 @@ data directory can be pointed at Dropbox, where it is least reliable.
 by launching an Electron instance against a copy of the real data and writing a
 contact from a second process while the window was up: 20 seconds before, 2.5
 after, with nothing touched.
+
+## 2026-08-25 - The data directory is read from the user environment, not only inherited
+
+**Decided.** `resolveDataDir()` checks `TEND_DATA_DIR` in `process.env` first, then
+the value Windows has stored for the user, then the per-user default. The
+returned `source` says which of the three answered.
+
+**Why.** `process.env` only carries what a process inherited, so a variable set
+after the parent started is invisible - and then the app silently uses the
+per-user default, which is a real directory that parses and reports nothing
+wrong. An agent session on this machine additionally has its writes to that
+default redirected into an app-container overlay while its reads fall through,
+so the two halves of the same tool ended up on separate stores, each verifying
+its own writes successfully and each convinced the other was showing stale
+data. Nothing errored, at any point.
+
+`src/service/nib.js` already had this exact fallback for `NIB_DATA_DIR`, with a
+comment saying it had cost an evening. Tend's own directory did not have it. The
+reader is now one module both use.
+
+**The inherited value still wins,** because that is how a test points the app at
+a scratch folder.
+
+**Naming the source is the point, not decoration.** "default" is the answer that
+quietly means nobody configured this, which is the only case where the shadow
+directory can happen. Settings says which of the three applies, so the question
+is answerable from the window rather than by comparing file timestamps.

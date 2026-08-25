@@ -26,14 +26,59 @@ const daysAgo = (n) => NOW - n * DAY_MS;
 const inDays = (n) => NOW + n * DAY_MS;
 
 describe("data directory", () => {
+  // The stored-variable lookup is injected in every case here. Left to its
+  // default it reads this machine's registry, which makes the answer depend on
+  // whose laptop the suite ran on - and on a machine where the variable IS set,
+  // the fallback cases fail for a reason that has nothing to do with the code.
+  const nothingStored = () => null;
+  /** @param {string} value @returns {() => string} */
+  const storedAs = (value) => () => value;
+
   it("prefers TEND_DATA_DIR when it is set", () => {
-    const r = resolveDataDir({ env: { TEND_DATA_DIR: "D:\\Dropbox\\tend" } });
+    const r = resolveDataDir({ env: { TEND_DATA_DIR: "D:\\Dropbox\\tend" }, stored: nothingStored });
     assert.equal(r.dir, "D:\\Dropbox\\tend");
     assert.equal(r.source, "env");
   });
 
   it("ignores an empty or whitespace override", () => {
-    assert.equal(resolveDataDir({ env: { TEND_DATA_DIR: "   " }, platform: "win32", home: "C:\\u" }).source, "default");
+    assert.equal(
+      resolveDataDir({
+        env: { TEND_DATA_DIR: "   " },
+        platform: "win32",
+        home: "C:\\u",
+        stored: nothingStored
+      }).source,
+      "default"
+    );
+  });
+
+  it("reads the variable Windows has stored when the process did not inherit it", () => {
+    // The failure this prevents is silent. A process started before the variable
+    // was set falls through to the per-user default, which is a real directory
+    // that parses and reports nothing wrong - so the app and a helper process
+    // end up on two different stores, each verifying its own writes.
+    const r = resolveDataDir({ env: {}, platform: "win32", stored: storedAs("D:\\Dropbox\\tend") });
+    assert.equal(r.dir, "D:\\Dropbox\\tend");
+    assert.equal(r.source, "user-env");
+  });
+
+  it("still lets an inherited value win, which is how a test gets a scratch folder", () => {
+    const r = resolveDataDir({
+      env: { TEND_DATA_DIR: "D:\\scratch" },
+      platform: "win32",
+      stored: storedAs("D:\\Dropbox\\tend")
+    });
+    assert.equal(r.dir, "D:\\scratch");
+    assert.equal(r.source, "env");
+  });
+
+  it("ignores a stored value that is blank", () => {
+    const r = resolveDataDir({
+      env: { APPDATA: "C:\\u\\AppData\\Roaming" },
+      platform: "win32",
+      stored: storedAs("  ")
+    });
+    assert.equal(r.source, "default");
   });
 
   it("matches Electron's userData location per platform", () => {

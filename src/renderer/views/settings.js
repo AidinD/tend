@@ -12,6 +12,23 @@ import { act, ask, esc, form, NOTE_CONTACT_KINDS, tend, toast } from "../ui.js";
 import { refresh } from "../app.js";
 import { modelStatus } from "../model.js";
 
+/**
+ * How the data directory was decided, in words.
+ *
+ * Spelled out for all three because "default" is the one that quietly means
+ * nobody configured this and the app picked - and the per-user default is the
+ * location a helper process can be silently redirected away from, leaving two
+ * halves of the same tool on two stores. Naming which of the three applies is
+ * what makes that visible from the window instead of by comparing timestamps.
+ */
+/** @type {Record<string, string>} */
+const WHERE_FROM = {
+  env: "Set by the TEND_DATA_DIR environment variable, inherited when this app started.",
+  "user-env": "Set by TEND_DATA_DIR, read from your Windows user environment rather than inherited.",
+  default:
+    "The default per-user location, because nothing set TEND_DATA_DIR. Set it to keep the data somewhere synced, and somewhere a helper process can reach."
+};
+
 export async function render() {
   const [status, folders, bindings, roster, model] = await Promise.all([
     tend.invoke("status"),
@@ -108,12 +125,9 @@ function dataSection(status) {
     <div class="group-head"><span class="group-title">Your data</span><span class="group-rule"></span></div>
     <article class="card">
       <div class="card-top"><h2 class="card-title">Where it is kept</h2></div>
+
       <p class="card-why mono-text">${esc(status.dataDir)}</p>
-      <p class="card-why dim">${
-        status.dataDirFrom === "env"
-          ? "Set by the TEND_DATA_DIR environment variable."
-          : "The default per-user location. Set TEND_DATA_DIR to keep it somewhere synced instead."
-      }</p>
+      <p class="card-why dim">${esc(WHERE_FROM[String(status.dataDirFrom)] ?? WHERE_FROM.default)}</p>
       <p class="card-why dim">Written as an append-only log, one file per writer, so this app and anything else reaching the same folder can write at once without losing each other's changes. Nothing is ever overwritten, which is also why nothing is ever truly lost.</p>
       ${warning}
       <div class="card-foot">
