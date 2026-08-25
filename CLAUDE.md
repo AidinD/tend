@@ -199,6 +199,26 @@ a test never writes into real data.
 The directory holds assessments of named colleagues. It stays local and private
 and is never committed or pushed.
 
+**Keep it off the user profile, and check where your writes actually land.**
+An agent session may be running inside a Windows app container (MSIX), which
+silently redirects writes to `%APPDATA%` and `%LOCALAPPDATA%` into a per-package
+overlay under `%LOCALAPPDATA%\Packages\<package>\LocalCache\`. Reads fall
+through to the real location, so a script reads the installed app's own event
+file, concludes it is in the right place, and writes into a shadow store the app
+will never open. Nothing errors. The data is simply somewhere else, and every
+verification the script runs on its own writes passes.
+
+The tell is a store that reduces correctly for the script and shows an older
+state in the window. To check, list
+`%LOCALAPPDATA%\Packages\*\LocalCache\Roaming	end\events` and compare it
+with what the same path shows through `%APPDATA%`. A path outside the profile -
+`D:\Dropbox	end`, set through `TEND_DATA_DIR` - is not redirected and is why
+Jot and Nib were never affected.
+
+The same container virtualises `HKCU` writes, so setting that variable from
+inside a session cannot be trusted either. Have the user run it from their own
+shell.
+
 ## Style
 
 Plain JavaScript with JSDoc types, checked with `npm run typecheck`. No build
