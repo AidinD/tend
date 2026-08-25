@@ -389,7 +389,7 @@ export function kindsFor(note, binding, rules) {
  * @param {string} [opts.dir] Nib data directory.
  * @param {boolean} [opts.dry] Report what would change without writing.
  * @returns {{ error: string } | {
- *   contacts: number, promises: number, resolved: number,
+ *   contacts: number, promises: number, resolved: number, retracted: number,
  *   bindings: number, skipped: string[]
  * }}
  */
@@ -411,9 +411,35 @@ export function indexNib(store, { dir, dry = false } = {}) {
   const existingTouches = new Set(store.rows("touches").map((t) => String(t.id)));
   const promiseRows = new Map(store.rows("promises").map((p) => [String(p.id), p]));
 
+  /*
+   * Every contact this index has ever derived, by the note it came from.
+   *
+   * Needed because a tag can be TAKEN OFF a note, and until now nothing noticed.
+   * A note tagged 1-1 by mistake, indexed, then re-tagged Casual left both rows
+   * behind - and the stale one went on satisfying the 1-1 cadence for ever. That
+   * is the one direction this app must never fail in: a nudge that does not
+   * appear is invisible, so a wrong tag was quietly worse than no tag at all.
+   *
+   * Only rows this indexer wrote are collected. A contact logged by hand is
+   * somebody's own record of a conversation and is not Nib's to retract.
+   */
+  const derivedByNote = new Map();
+  for (const touch of store.rows("touches")) {
+    const id = String(touch.id);
+    if (touch.from !== "nib" || !id.startsWith("nib:")) {
+      continue;
+    }
+    const cut = id.lastIndexOf(":");
+    const noteId = id.slice("nib:".length, cut);
+    const list = derivedByNote.get(noteId) ?? [];
+    list.push({ id, kind: String(touch.kind ?? "") });
+    derivedByNote.set(noteId, list);
+  }
+
   let contacts = 0;
   let promises = 0;
   let resolved = 0;
+  let retracted = 0;
   /** @type {string[]} */
   const skipped = [];
 
@@ -433,7 +459,28 @@ export function indexNib(store, { dir, dry = false } = {}) {
       // One touch per KIND, not one per note. A note tagged both 1-1 and
       // Feedback is honestly both, and satisfies both cadences; the id carries
       // the kind so the two never collide and a re-run still writes nothing new.
-      for (const kind of kindsFor(note, binding, rules)) {
+      const kinds = kindsFor(note, binding, rules);
+
+      /*
+       * A kind this note no longer claims is withdrawn.
+       *
+       * Scoped to the notes actually read on this pass, so a folder that came
+       * back empty - Nib closed mid-sync, or the wrong data directory - can
+       * never be read as "every conversation in here was a mistake". Deleting
+       * derived rows on the strength of an absent file is how a fix like this
+       * becomes the worst bug in the app.
+       */
+      for (const stale of derivedByNote.get(String(note.id)) ?? []) {
+        if (kinds.includes(stale.kind)) {
+          continue;
+        }
+        retracted += 1;
+        if (!dry) {
+          store.remove("touches", stale.id);
+        }
+      }
+
+      for (const kind of kinds) {
         const touchId = `nib:${note.id}:${kind}`;
         if (existingTouches.has(touchId)) {
           continue;
@@ -484,7 +531,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
     }
   }
 
-  return { contacts, promises, resolved, bindings: bindings.length, skipped };
+  return { contacts, promises, resolved, retracted, bindings: bindings.length, skipped };
 }
 
 /* ------------------------------------------------------- reading a body -- */

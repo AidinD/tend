@@ -106,6 +106,80 @@ afterEach(() => {
   rmSync(nibDir, { recursive: true, force: true });
 });
 
+describe("taking a tag off a note", () => {
+  it("withdraws the contact the old tag created", () => {
+    // The reported failure, exactly: a note tagged 1-1 by mistake, indexed,
+    // then corrected to Casual. Before this, both rows survived and the stale
+    // 1-1 went on satisfying the fortnightly cadence for ever - which is the one
+    // direction this app must never fail in, because a nudge that never appears
+    // cannot be noticed.
+    writeNib([{ id: "n1", title: "2026-08-24 1-1", tags: ["tag-one-to-one"] }]);
+    const id = bind();
+    ok(
+      setSourceRules(store, {
+        id,
+        rules: [
+          { tagId: "tag-one-to-one", kind: "one-to-one" },
+          { tagId: "tag-casual", kind: "casual" }
+        ]
+      })
+    );
+    ok(indexNib(store, { dir: nibDir }));
+    assert.deepEqual(kindsOf(), ["one-to-one"]);
+
+    writeNib([{ id: "n1", title: "2026-08-24 Resignation", tags: ["tag-casual"] }]);
+    const second = ok(indexNib(store, { dir: nibDir }));
+    assert.equal(second.retracted, 1);
+    assert.deepEqual(kindsOf(), ["casual"]);
+  });
+
+  it("keeps a note that honestly counts as two things", () => {
+    writeNib([{ id: "n1", title: "1-1 med feedback", tags: ["tag-one-to-one", "tag-feedback"] }]);
+    const id = bind();
+    ok(
+      setSourceRules(store, {
+        id,
+        rules: [
+          { tagId: "tag-one-to-one", kind: "one-to-one" },
+          { tagId: "tag-feedback", kind: "feedback" }
+        ]
+      })
+    );
+    ok(indexNib(store, { dir: nibDir }));
+    const again = ok(indexNib(store, { dir: nibDir }));
+    assert.equal(again.retracted, 0);
+    assert.deepEqual(kindsOf(), ["feedback", "one-to-one"]);
+  });
+
+  it("leaves a contact logged by hand alone", () => {
+    // Nib did not write it, so Nib does not get to withdraw it. Someone typing
+    // "we spoke on Friday" into the app is the record, not a derived row.
+    writeNib([{ id: "n1", title: "Anteckning", tags: [] }]);
+    bind();
+    store.create("touches", { subject: "p-c", kind: "one-to-one", at: NOW, from: "app" });
+    ok(indexNib(store, { dir: nibDir }));
+    assert.deepEqual(
+      store.rows("touches").map((t) => String(t.kind)),
+      ["one-to-one"]
+    );
+  });
+
+  it("does not withdraw anything when the folder comes back empty", () => {
+    // The dangerous version of this fix. An empty read - Nib mid-sync, or the
+    // wrong data directory - must never be taken as "none of that happened".
+    writeNib([{ id: "n1", title: "1-1", tags: ["tag-one-to-one"] }]);
+    const id = bind();
+    ok(setSourceRules(store, { id, rules: [{ tagId: "tag-one-to-one", kind: "one-to-one" }] }));
+    ok(indexNib(store, { dir: nibDir }));
+    assert.deepEqual(kindsOf(), ["one-to-one"]);
+
+    writeNib([]);
+    const after = ok(indexNib(store, { dir: nibDir }));
+    assert.equal(after.retracted, 0);
+    assert.deepEqual(kindsOf(), ["one-to-one"]);
+  });
+});
+
 describe("which cadence a note satisfies", () => {
   it("counts an untagged note as nothing at all", () => {
     // There is no folder-level default any more, and this is the reason. A

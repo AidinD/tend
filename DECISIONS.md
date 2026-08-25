@@ -3,6 +3,36 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-25 - A tag taken off a note withdraws its contact
+
+**Decided.** `indexNib` now retracts a derived contact whose tag is gone. A note
+tagged 1-1 by mistake, indexed, then corrected to Casual leaves one contact -
+casual - not two.
+
+**What it looked like before.** Both rows survived, and the stale `one-to-one`
+went on satisfying the fortnightly cadence for ever. Found in real data: a note
+renamed from "2026-08-24 1-1" to "2026-08-24 Resignation" and re-tagged had left
+`nib:<id>:one-to-one` behind, and Rasmus's 1-1 read "today, on time" on the
+strength of a note that no longer claimed to be a 1-1. After the fix the same
+cadence reads "12 days ago", which is the truth.
+
+**This is the direction that matters.** A contact that should not be there
+suppresses a nudge, and a nudge that never appears cannot be noticed - the rule
+everywhere else in this app is to flag in doubt and never suppress. A wrong tag
+was quietly worse than no tag at all, which is the opposite of what a correction
+should cost.
+
+**Only rows this indexer wrote.** A contact logged by hand is somebody's own
+record of a conversation, and Nib does not get to withdraw it: the sweep is
+limited to `from: "nib"` rows whose id starts `nib:`.
+
+**Scoped to the notes read on this pass, deliberately.** The dangerous version of
+this fix reconciles a whole folder, and then an empty read - Nib closed mid-sync,
+or the wrong data directory - deletes every contact in it as though none of those
+conversations happened. A folder that comes back empty retracts nothing. There is
+a test for exactly that.
+
+
 ## 2026-08-24 - The mark is a picture, and 16px is dense on purpose
 
 **Decided.** Tend's mark is an open hand with a flame rising out of it, supplied
