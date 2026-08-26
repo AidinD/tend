@@ -363,6 +363,9 @@ export { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
  */
 export { DEFAULT_CADENCE_DAYS, DRIVER_OPTIONS, STANCE_OPTIONS } from "../domain/growth.js";
 
+/* Both endings of a wait, from the definition that also holds what each means. */
+export { DEFAULT_WAIT_DAYS, WAIT_ENDING_OPTIONS } from "../domain/waiting.js";
+
 /*
  * Delegation levels, from the definition that also decides how often Tend asks
  * for a review. This was the fifth hand-copied list here, and the one with the

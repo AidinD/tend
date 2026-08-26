@@ -11,15 +11,18 @@
 
 import { act, ask, esc, form, kindsFor, tend } from "../ui.js";
 import { go, refresh } from "../app.js";
+import { actions as waitingActions, waitingGroup } from "./waiting.js";
 
 export async function render() {
-  const [attention, questions, roster, ledger, mine] = await Promise.all([
+  const [attention, questions, roster, ledger, mine, waits] = await Promise.all([
     tend.invoke("attention"),
     tend.invoke("signals"),
     tend.invoke("people"),
     tend.invoke("decisions"),
-    tend.invoke("myAttention")
+    tend.invoke("myAttention"),
+    tend.invoke("waitsOnNow")
   ]);
+  const waitingOn = Array.isArray(waits) ? waits : [];
 
   if (attention.error) {
     return `<div class="card sev-critical"><div class="card-top">
@@ -94,7 +97,13 @@ export async function render() {
     )
     .join("");
 
-  if (attention.allInStep && due.length === 0 && revisits.length === 0 && signals.length === 0) {
+  if (
+    attention.allInStep &&
+    due.length === 0 &&
+    revisits.length === 0 &&
+    signals.length === 0 &&
+    waitingOn.length === 0
+  ) {
     return `
       <div class="view-head">
         <h1 class="view-title">Nothing needs you</h1>
@@ -124,6 +133,7 @@ export async function render() {
             : ""),
       attention.nudges.length
     )}
+    ${waitingGroup(waitingOn)}
     ${
       signals.length === 0
         ? ""
@@ -249,6 +259,9 @@ function question(q) {
 }
 
 export const actions = {
+  // Chasing and closing are the same everywhere they appear.
+  ...waitingActions,
+
   /** @param {Record<string, string>} d */
   openPerson: (d) => go("people", { person: d.person }),
   openFocus: () => go("focus"),

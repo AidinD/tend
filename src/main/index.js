@@ -95,6 +95,12 @@ const OPERATIONS = {
   endThread: (/** @type {any} */ a) => api.endThread(store, a.id, a),
   logGrowthNote: (/** @type {any} */ a) => api.logGrowthNote(store, { ...a, now: a.now ?? Date.now() }),
 
+  waits: (/** @type {any} */ a) => api.waits(store, a.now ?? Date.now(), a.person),
+  waitsOnNow: (/** @type {any} */ a) => api.waitsOnNow(store, a.now ?? Date.now()),
+  waitFor: (/** @type {any} */ a) => api.waitFor(store, { ...a, now: a.now ?? Date.now() }),
+  chase: (/** @type {any} */ a) => api.chase(store, { ...a, now: a.now ?? Date.now() }),
+  stopWaiting: (/** @type {any} */ a) => api.stopWaiting(store, a.id, a),
+
   journal: (/** @type {any} */ a) => api.journal(store, a.now ?? Date.now(), a.days),
   logEntry: (/** @type {any} */ a) => api.logEntry(store, { ...a, now: a.now ?? Date.now() }),
 

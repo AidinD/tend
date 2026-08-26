@@ -82,7 +82,18 @@ export const COLLECTIONS = /** @type {const} */ ([
    * missing support, and no tool that only counts meetings can see it.
    */
   "growth",
-  "growthNotes"
+  "growthNotes",
+  /**
+   * Answers you are waiting for from somebody else, and a row per time you
+   * chased one.
+   *
+   * The mirror of a promise and kept apart from it on purpose. A promise you owe
+   * escalates hard because the person let down is let down today; somebody
+   * else's silence is not an alarm about you, so nothing here is ever critical.
+   * The count that matters is the chases, not the days.
+   */
+  "waiting",
+  "chases"
 ]);
 
 /**
