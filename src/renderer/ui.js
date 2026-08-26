@@ -102,9 +102,19 @@ export function toast(message, tone = "ok") {
  * @param {Field[]} spec.fields
  * @param {string} [spec.confirm]
  * @param {"normal" | "danger"} [spec.tone]
+ * @param {(values: Record<string, any>) => Promise<string | null>} [spec.attempt]
+ *   Runs the write while the dialog is still open. Return an error message to
+ *   keep it open with everything still typed in it, or null once it worked.
+ *
+ *   Without this, a write rejected by the service closes the dialog and throws
+ *   away what was typed - the toast explains why, over an empty screen. That
+ *   happened for real on a recorded decision with four fields of reasoning in it,
+ *   rejected because one name in "who was consulted" was not on the roster.
+ *   The field-level `required` check already keeps the dialog open; a rejection
+ *   from one layer down had no reason to behave differently.
  * @returns {Promise<Record<string, any> | null>}
  */
-export function form({ title, intro, fields, confirm = "Save", tone = "normal" }) {
+export function form({ title, intro, fields, confirm = "Save", tone = "normal", attempt }) {
   return new Promise((resolve) => {
     const scrim = document.createElement("div");
     scrim.className = "scrim";
@@ -144,11 +154,11 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal" }
       }
       if (e.key === "Enter" && !(e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault();
-        submit();
+        void submit();
       }
     };
 
-    const submit = () => {
+    const submit = async () => {
       /** @type {Record<string, any>} */
       const values = {};
       for (const field of fields) {
@@ -187,7 +197,32 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal" }
         }
         values[field.name] = raw === "" ? undefined : raw;
       }
-      close(values);
+
+      if (attempt === undefined) {
+        close(values);
+        return;
+      }
+
+      // Held open until the write succeeds. Disabled while it runs, so a second
+      // click cannot send it twice.
+      const button = panel.querySelector("[data-confirm]");
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = true;
+      }
+      let failure = null;
+      try {
+        failure = await attempt(values);
+      } catch (err) {
+        failure = err instanceof Error ? err.message : String(err);
+      }
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = false;
+      }
+      if (failure === null) {
+        close(values);
+        return;
+      }
+      showError(failure);
     };
 
     /** @param {string} message */
@@ -237,7 +272,7 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal" }
 
     scrim.addEventListener("click", () => close(null));
     panel.querySelector("[data-cancel]")?.addEventListener("click", () => close(null));
-    panel.querySelector("[data-confirm]")?.addEventListener("click", submit);
+    panel.querySelector("[data-confirm]")?.addEventListener("click", () => void submit());
     document.addEventListener("keydown", onKey);
 
     document.body.append(scrim, panel);

@@ -157,7 +157,13 @@ const fields = (roster) => [
     name: "consulted",
     label: "Who was consulted (comma separated)",
     type: "text",
-    hint: (roster ?? []).map((/** @type {any} */ p) => p.name).join(", ") || "nobody on the roster yet"
+    // Only people Tend already knows. Adding somebody to the roster just to name
+    // them here would be worse than leaving it empty: everyone on the roster is
+    // counted by the attention signals, so a dozen colleagues you have no duties
+    // toward turns "I have not spoken to 11 of 13 people this month" into noise.
+    hint:
+      `Only people already in Tend${(roster ?? []).length > 0 ? ": " + (roster ?? []).map((/** @type {any} */ p) => p.name).join(", ") : " - nobody on the roster yet"}. ` +
+      "Leave it empty for anybody else and name them in the reason instead."
   },
   { name: "revisitDays", label: "Come back to it in how many days", type: "number", value: "90" }
 ];
@@ -165,27 +171,33 @@ const fields = (roster) => [
 export const actions = {
   add: async () => {
     const roster = await tend.invoke("people");
+    // Written through `attempt` so a rejection keeps the dialog open with the
+    // reasoning still in it. This form has four fields of prose and one that can
+    // be rejected by the service, which is the worst possible combination for
+    // closing on failure.
     const values = await form({
       title: "Record a decision",
       intro:
         "The revisit date is the field that makes this a tool. A decision that comes back to you is one you can make today instead of gathering information you will not use.",
       fields: fields(roster),
-      confirm: "Record it"
+      confirm: "Record it",
+      attempt: async (v) => {
+        const result = await tend.invoke("logDecision", {
+          what: v.what,
+          because: v.because,
+          rejected: v.rejected,
+          consulted: String(v.consulted ?? "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s !== ""),
+          revisitDays: Number(v.revisitDays) || 90
+        });
+        return result?.error ? String(result.error) : null;
+      }
     });
-    if (!values) {
-      return;
+    if (values) {
+      refresh();
     }
-    await act("logDecision", {
-      what: values.what,
-      because: values.because,
-      rejected: values.rejected,
-      consulted: String(values.consulted ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s !== ""),
-      revisitDays: Number(values.revisitDays) || 90
-    });
-    refresh();
   },
 
   /** @param {Record<string, string>} d */
