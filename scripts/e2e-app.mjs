@@ -1037,9 +1037,12 @@ try {
     }
   });
 
-  check("and asks for the observable marker straight away", () => {
-    if (!/see in three months/.test(opened)) {
-      throw new Error("an unfinished thread went quiet instead of asking");
+  check("and asks him to take it to the person, not to invent their yardstick", () => {
+    if (!/Ask them/.test(opened)) {
+      throw new Error("a fresh thread went quiet instead of asking for the conversation");
+    }
+    if (/see in three months/.test(opened)) {
+      throw new Error("it asked for the marker before the conversation that produces it");
     }
   });
 

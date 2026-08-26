@@ -134,9 +134,9 @@ describe("progress, as distinct from attention", () => {
 });
 
 describe("the one question a thread asks", () => {
-  it("asks for the marker first, because nothing can be followed without it", () => {
+  it("asks for the marker once they have been asked, ahead of any other reading", () => {
     const notes = Array.from({ length: STALL_AFTER_TALKS }, (_, i) => talk(i + 1));
-    const state = threadState(thread({ marker: "" }), notes, person, NOW);
+    const state = threadState(thread({ marker: "", stance: "agreed" }), notes, person, NOW);
     assert.match(String(state.asks), /see in three months/);
   });
 
@@ -145,9 +145,18 @@ describe("the one question a thread asks", () => {
     assert.match(String(state.asks), /in their words/);
   });
 
-  it("says nothing about their stance before it has been discussed at all", () => {
-    const state = threadState(thread({ stance: "unasked" }), [], person, NOW);
-    assert.equal(state.asks, null);
+  it("asks for the conversation before it asks for anything the conversation produces", () => {
+    // Ordering that shipped wrong once: it asked for the observable marker
+    // first, which invites the manager to invent the other person's yardstick
+    // alone at a desk - the exact thing the two sittings exist to prevent.
+    const state = threadState(thread({ stance: "unasked", marker: "" }), [], person, NOW);
+    assert.match(String(state.asks), /Ask them/);
+    assert.doesNotMatch(String(state.asks), /three months/);
+  });
+
+  it("asks what they said once a conversation has happened", () => {
+    const state = threadState(thread({ stance: "unasked", marker: "" }), [talk(2)], person, NOW);
+    assert.match(String(state.asks), /in their words/);
   });
 
   it("questions the thread itself once the horizon passes", () => {
@@ -416,14 +425,16 @@ describe("on the prep card", () => {
     assert.equal(page.cards.length, 0);
   });
 
-  it("asks for the marker straight away, so an unfinished thread cannot go quiet", () => {
-    // Opening a direction and never saying what you would see is the most likely
-    // way this feature gets abandoned, so it is the one thing that nags on day
-    // one rather than after a cadence has passed.
+  it("asks for the conversation straight away, so a fresh thread cannot go quiet", () => {
+    // Opening a direction and never taking it to the person is the most likely
+    // way this feature gets abandoned, so it nags on day one rather than after a
+    // cadence has passed. Deliberately NOT asking for the marker yet: that comes
+    // out of the conversation, and asking first invites him to write the other
+    // person's yardstick alone.
     ok(api.openThread(store, { person: "Halvar", aim: "Something", now: NOW }));
     const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
     assert.equal(page.cards.length, 1);
-    assert.match(page.cards[0].why, /see in three months/);
+    assert.match(page.cards[0].why, /Ask them/);
   });
 
   it("puts somebody on the page for a thread alone", () => {

@@ -367,11 +367,19 @@ function question({ row, status, stalled, pastHorizon, talks }) {
   if (status !== "open" && status !== "expectation") {
     return null;
   }
+  // Before the first conversation the question is the conversation, NOT the
+  // marker. Asking for an observable first was the ordering this shipped with,
+  // and it contradicted the whole two-sitting design: the marker is supposed to
+  // come OUT of what they say, so nagging for it beforehand invites exactly the
+  // thing the split exists to prevent - a manager inventing the other person's
+  // yardstick alone at a desk.
+  if (String(row.stance ?? "unasked") === "unasked") {
+    return talks > 0
+      ? "You have discussed this. What did they actually say they want, in their words?"
+      : "Ask them. What you will look for comes out of that conversation rather than before it.";
+  }
   if (String(row.marker ?? "").trim() === "") {
     return "What will you see in three months that you do not see now? Without that, there is nothing to follow.";
-  }
-  if (String(row.stance ?? "unasked") === "unasked" && talks > 0) {
-    return "You have discussed this. What did they actually say they want, in their words?";
   }
   if (pastHorizon) {
     return "Is this still the thing? The horizon you set has passed.";
