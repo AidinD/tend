@@ -1134,7 +1134,7 @@ export function proposeDuty(store, { name, means, source, subjectKind, cadenceDa
 /**
  * Start a focus, or replace the one running.
  *
- * The bassignee drift is captured here and nowhere else. Without it the focus
+ * The baseline drift is captured here and nowhere else. Without it the focus
  * can never say what it cost, and "what did this cost me" is the honest half of
  * the feature - the half that stops a focus from quietly becoming the job.
  *
@@ -1158,7 +1158,7 @@ export function setFocus(store, { name, endsAt, budget, stretch, guarded, now })
     return { error: "Budget is a share of the week between 0 and 1." };
   }
 
-  const bassigneeDrift = meanDrift(expandCadences(store.state(), now));
+  const baselineDrift = meanDrift(expandCadences(store.state(), now));
 
   store.emit("focus.set", {
     id: randomId(),
@@ -1168,10 +1168,10 @@ export function setFocus(store, { name, endsAt, budget, stretch, guarded, now })
     budget: budget ?? null,
     stretch: stretch ?? DEFAULT_STRETCH,
     guarded: guarded ?? [],
-    bassigneeDrift
+    baselineDrift
   });
 
-  return { name, bassigneeDrift: Number(bassigneeDrift.toFixed(2)) };
+  return { name, baselineDrift: Number(baselineDrift.toFixed(2)) };
 }
 
 /**

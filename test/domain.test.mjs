@@ -318,7 +318,7 @@ describe("focus", () => {
     budget: 0.5,
     stretch: DEFAULT_STRETCH,
     guarded: ["d-remote"],
-    bassigneeDrift: 0.4
+    baselineDrift: 0.4
   };
 
   it("reports how long is left", () => {
@@ -334,7 +334,7 @@ describe("focus", () => {
     assert.match(cost.summary, /0\.4 to 1\.8 days/);
   });
 
-  it("says so when no bassignee was captured", () => {
+  it("says so when no baseline was captured", () => {
     assert.equal(focusCost({ id: "f", name: "x" }, 3).known, false);
   });
 
@@ -354,7 +354,7 @@ describe("the focus contract", () => {
     endsAt: inDays(21),
     stretch: DEFAULT_STRETCH,
     guarded: ["d-listed"],
-    bassigneeDrift: 0
+    baselineDrift: 0
   };
 
   it("never stretches a duty marked guarded", () => {
@@ -554,7 +554,7 @@ describe("attention under a focus", () => {
         endsAt: inDays(21),
         stretch: DEFAULT_STRETCH,
         budget: 0.5,
-        bassigneeDrift: 0.4
+        baselineDrift: 0.4
       }]
     ]);
 

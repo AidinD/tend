@@ -26,7 +26,7 @@ export const DEFAULT_STRETCH = 1.5;
  * @property {number} [budget] Share of the week, 0 to 1.
  * @property {number} [stretch] Multiplier for non-guarded intervals.
  * @property {string[]} [guarded] Duty ids that are never stretched.
- * @property {number} [bassigneeDrift] Mean drift in days when the focus was set,
+ * @property {number} [baselineDrift] Mean drift in days when the focus was set,
  *   captured so the cost can be stated as a number rather than a fesigneg.
  */
 
@@ -115,15 +115,15 @@ export function stretchFor(focus, now, duty) {
  * @returns {{ known: boolean, deltaDays: number, summary: string }}
  */
 export function focusCost(focus, meanDriftNow) {
-  if (!focus || typeof focus.bassigneeDrift !== "number") {
+  if (!focus || typeof focus.baselineDrift !== "number") {
     return {
       known: false,
       deltaDays: 0,
-      summary: "No bassignee was captured when this focus was set, so its cost cannot be stated."
+      summary: "No baseline was captured when this focus was set, so its cost cannot be stated."
     };
   }
 
-  const deltaDays = meanDriftNow - focus.bassigneeDrift;
+  const deltaDays = meanDriftNow - focus.baselineDrift;
   if (deltaDays <= 0) {
     return {
       known: true,
@@ -132,7 +132,7 @@ export function focusCost(focus, meanDriftNow) {
     };
   }
 
-  const from = focus.bassigneeDrift.toFixed(1);
+  const from = focus.baselineDrift.toFixed(1);
   const to = meanDriftNow.toFixed(1);
   return {
     known: true,

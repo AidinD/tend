@@ -1729,7 +1729,7 @@ try {
   // Maximise is the one of the three a renderer can observe, so it is the one
   // that proves the whole path: click, preload send, main handler, window. Then
   // click again to put the window back where it was.
-  // Every width here is waited for rather than sampled, including the bassignee:
+  // Every width here is waited for rather than sampled, including the baseline:
   // a number read while the window manager is still moving the frame is not a
   // width, and this check exists to catch a click that never arrived, not to
   // race an animation.

@@ -76,7 +76,7 @@ button {
 
 .brand {
   display: flex;
-  /* center, not bassignee: the mark has no bassignee to sit on, and bassignee
+  /* center, not baseline: the mark has no baseline to sit on, and baseline
      alignment drops it below the wordmark. */
   align-items: center;
   gap: 8px;
@@ -595,7 +595,7 @@ button.row:hover {
 
 .line {
   display: flex;
-  align-items: bassignee;
+  align-items: baseline;
   gap: 10px;
   padding: 8px 11px;
   background: var(--surface-2);
@@ -1010,7 +1010,7 @@ button.row:hover {
 
 .topic-line {
   display: flex;
-  align-items: bassignee;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
 }
@@ -1111,7 +1111,7 @@ button.row:hover {
 .mine-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: bassignee;
+  align-items: baseline;
   gap: 4px 10px;
   padding: 7px 0;
   border-top: 1px solid var(--line-soft);
@@ -1305,7 +1305,7 @@ kbd {
 
 .palette-row {
   display: flex;
-  align-items: bassignee;
+  align-items: baseline;
   gap: 10px;
   width: 100%;
   text-align: left;
