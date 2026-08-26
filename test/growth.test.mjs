@@ -611,3 +611,53 @@ describe("emptying a field", () => {
     assert.match(failed(api.updateThread(store, id, { cadenceDays: 0 })), /positive number of days/);
   });
 });
+
+describe("how long since a project was looked at", () => {
+  /** @type {string} */
+  let dir;
+  /** @type {import("../src/storage/store.js").TendStore} */
+  let store;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "tend-projects-"));
+    store = openStore({ dataDir: dir, role: "app", host: "test" });
+    ok(api.addProject(store, { name: "Strandkanten", now: ago(90) }));
+    ok(
+      api.proposeDuty(store, {
+        name: "Project check-in",
+        means: "whether you would hear about a problem in time",
+        subjectKind: "project",
+        cadenceDays: 14,
+        evidenceKinds: ["check-in"],
+        source: "yours"
+      })
+    );
+    for (const d of store.rows("duties")) {
+      ok(api.decideDuty(store, String(d.id), "active"));
+    }
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("says today rather than today ago", () => {
+    // The helper for this exists so nobody hand-rolls "N days" + " ago", and this
+    // view had hand-rolled it - so every project looked at that morning read
+    // "today ago".
+    ok(api.logTouch(store, { subject: "Strandkanten", kind: "check-in", now: NOW }));
+    const seen = api.projects(store, NOW).find((p) => p.name === "Strandkanten");
+    assert.equal(seen?.lastLookedAt, "today");
+  });
+
+  it("still says how long it has been when it has been a while", () => {
+    ok(api.logTouch(store, { subject: "Strandkanten", kind: "check-in", at: ago(20), now: NOW }));
+    const seen = api.projects(store, NOW).find((p) => p.name === "Strandkanten");
+    assert.match(String(seen?.lastLookedAt), /ago$/);
+  });
+
+  it("says never when nobody has looked, rather than counting from nothing", () => {
+    const seen = api.projects(store, NOW).find((p) => p.name === "Strandkanten");
+    assert.equal(seen?.lastLookedAt, "never");
+  });
+});

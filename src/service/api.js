@@ -323,7 +323,11 @@ export function projects(store, now) {
     return {
       id: p.id,
       name: p.name,
-      lastLookedAt: worst ? (worst.drift.everHappened ? humanDays(worst.drift.daysSince) + " ago" : "never") : "no cadence",
+      // `agoWords`, not `humanDays` plus " ago" - the helper exists precisely
+      // because the hand-rolled version says "today ago". The prep card has a
+      // check against that phrase and this view was saying it every day a
+      // project had just been looked at.
+      lastLookedAt: worst ? (worst.drift.everHappened ? agoWords(worst.drift.daysSince) : "never") : "no cadence",
       behindBy: worst ? driftBadge(worst.drift.driftDays) : null,
       urgency: worst ? worst.drift.trueSeverity : "ok"
     };
