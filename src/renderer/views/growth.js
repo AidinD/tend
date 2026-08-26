@@ -135,6 +135,7 @@ function thread(t) {
   return `<div class="thread">
     <div class="thread-top">
       <span class="thread-aim">${esc(t.aim)}</span>
+      ${live ? `<button class="act tiny" data-act="threadReword" data-id="${esc(t.id)}">Reword</button>` : ""}
       <span class="line-right">
         <span class="pill plain">${esc(t.driverLabel)}</span>
         <span class="pill plain">${esc(t.stanceLabel)}</span>
@@ -221,30 +222,6 @@ function prepareFields(values = {}, opening = false) {
         "Yours, before you have asked. What they will be able to DO, not an area to improve in - " +
         "their own answer comes later and is kept beside this."
     });
-  } else {
-    fields.push(
-      {
-        name: "aim",
-        label: "The direction as it stands",
-        required: true,
-        type: "textarea",
-        value: values.aim,
-        hint: "Reword it once you have talked to them, so it names what you agreed."
-      },
-      // Shown, not asked for. It was an editable box next to "the direction as it
-      // stands", and the improved wording for the direction got typed into it -
-      // which overwrites the one field whose entire value is that it does not
-      // change. If a record here is ever genuinely wrong it has to be corrected
-      // outside the window, and that is the right trade for the one thing in here
-      // that is supposed to survive being wrong.
-      {
-        name: "hypothesis",
-        label: "What you thought before you asked",
-        type: "note",
-        value: values.hypothesis,
-        hint: "A record, kept so it can sit next to what they actually said. Your current view goes in the field above."
-      }
-    );
   }
 
   fields.push(
@@ -382,6 +359,57 @@ export const actions = {
     // to whatever they agree on, and the guess must survive that so the two can
     // be read side by side afterwards.
     if (await act("openThread", { person: d.person, ...values, hypothesis: values.aim }, "Opened.")) {
+      refresh();
+    }
+  },
+
+  /**
+   * Change the direction, and only the direction.
+   *
+   * Its own action because it is its own concept: the thread is named after it,
+   * and it is the one thing likely to change after the person has been asked.
+   * It used to be the first field inside "Prepare", which is named after
+   * something else - so there was no obvious place to reword it, and the field
+   * that looked obvious was the record sitting beside it.
+   *
+   * The original guess is shown here rather than in Prepare, because this is the
+   * moment it is worth reading: you are about to replace what you thought with
+   * what you agreed, and seeing the two together is the whole reason the guess
+   * is kept.
+   *
+   * @param {Record<string, string>} d
+   */
+  threadReword: async (d) => {
+    const current = await currentThread(d.id);
+    if (!current) {
+      return;
+    }
+    const values = await form({
+      title: "Reword the direction",
+      intro: "The thread is named after this. Change it once you know what you actually agreed on.",
+      fields: [
+        {
+          name: "aim",
+          label: "The direction as it stands",
+          required: true,
+          type: "textarea",
+          value: current.fields.aim,
+          hint: "What they will be able to DO. If it describes what you do for them, the marker will measure the wrong person."
+        },
+        {
+          name: "hypothesis",
+          label: "What you thought before you asked",
+          type: "note",
+          value: current.fields.hypothesis,
+          hint: "Kept as a record, so it can sit next to what they actually said."
+        }
+      ],
+      confirm: "Save"
+    });
+    if (!values) {
+      return;
+    }
+    if (await act("updateThread", { id: d.id, fields: { aim: values.aim } }, "Reworded.")) {
       refresh();
     }
   },

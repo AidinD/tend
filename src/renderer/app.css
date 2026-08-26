@@ -1515,3 +1515,8 @@ kbd {
   line-height: 1.5;
   user-select: text;
 }
+
+/* Sits with the direction it changes, and never pushes it around. */
+.thread-top .act.tiny {
+  flex: none;
+}
