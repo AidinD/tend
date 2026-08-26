@@ -72,7 +72,17 @@ export const COLLECTIONS = /** @type {const} */ ([
    * prompts for one - so the value is in a pass over many rather than in any
    * single row.
    */
-  "entries"
+  "entries",
+  /**
+   * One direction a person is growing in, and a row per time it came up.
+   *
+   * The note carries an `observed` flag that is deliberately a separate answer
+   * from "did we talk about it", because the gap between the two is the whole
+   * reading: many conversations and nothing ever observed is a wrong plan or
+   * missing support, and no tool that only counts meetings can see it.
+   */
+  "growth",
+  "growthNotes"
 ]);
 
 /**
