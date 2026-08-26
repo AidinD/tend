@@ -217,9 +217,8 @@ function prepareFields(values = {}, opening = false) {
       type: "textarea",
       placeholder: "Runs the design review without me in the room",
       hint:
-        "Yours, before you have asked, and it is meant to be a guess. Their own answer comes in " +
-        "the second sitting and is kept beside this rather than replacing it, so this can change " +
-        "later. Write what they will be able to DO, not an area to improve in."
+        "Yours, before you have asked. What they will be able to DO, not an area to improve in - " +
+        "their own answer comes later and is kept beside this."
     });
   } else {
     fields.push(
@@ -229,18 +228,14 @@ function prepareFields(values = {}, opening = false) {
         required: true,
         type: "textarea",
         value: values.aim,
-        hint:
-          "Reword it once you have talked to them, so the thread is named after what you actually " +
-          "agreed rather than after your opening guess."
+        hint: "Reword it once you have talked to them, so it names what you agreed."
       },
       {
         name: "hypothesis",
         label: "What you thought before you asked",
         type: "textarea",
         value: values.hypothesis,
-        hint:
-          "Kept on purpose, and worth rereading. This sitting next to what they actually said is " +
-          "how you find out you have been managing an assumption."
+        hint: "Kept on purpose. Next to what they actually said, it shows you an assumption."
       }
     );
   }
@@ -253,9 +248,8 @@ function prepareFields(values = {}, opening = false) {
       options: DRIVER_OPTIONS,
       value: values.driver || "unknown",
       hint:
-        "Two different instruments. Using the development one on a performance gap produces a " +
-        "plan they read as a disciplinary process with a smile, and you lose both the trust and " +
-        "the improvement. Not knowing yet is a real answer."
+        "Two different instruments. The development one used on a performance gap reads as a " +
+        "disciplinary process with a smile. Not knowing yet is a real answer."
     },
     // Both of these belong to one answer above, so neither is on the screen
     // under any other. Switching back to "they want it" clears them, which is
@@ -277,16 +271,15 @@ function prepareFields(values = {}, opening = false) {
       value: values.ifNothingChanges,
       showIf: { field: "driver", equals: "needs" },
       hint:
-        "The uncomfortable one, and it is here rather than in a conversation for a reason: if " +
-        "the honest answer is nothing, this is a wish, and calling a wish a need is a thing to " +
-        "stop doing before you talk to them. \"You stay where you are\" is a legitimate answer."
+        "If the honest answer is nothing, this is a wish rather than a need. \"You stay where you " +
+        "are\" is a legitimate answer."
     },
     {
       name: "alreadySeen",
       label: "What have you already seen that supports it?",
       type: "textarea",
       value: values.alreadySeen,
-      hint: "If this is empty, that is itself the finding. You are about to propose a direction on no evidence."
+      hint: "Empty is itself the finding: you would be proposing a direction on no evidence."
     },
     {
       name: "offering",
@@ -295,9 +288,8 @@ function prepareFields(values = {}, opening = false) {
       value: values.offering,
       placeholder: "The architecture review, and I stop writing the migration plan myself",
       hint:
-        "Air cover, a room they need to be let into, work you stop doing yourself. Development " +
-        "stalls on the manager far more often than on the person, so this comes before you ask " +
-        "anything of them. Anything concrete here should also be logged as a promise."
+        "Cover, a room to be let into, work you stop doing yourself. Development stalls on the " +
+        "manager more often than on the person."
     }
   );
 
@@ -316,9 +308,7 @@ function askedFields(values) {
       label: "What they said they want, in their words",
       type: "textarea",
       value: values.theirWords,
-      hint:
-        "Theirs, not a tidied version. A plan written in your words is a plan they will read as " +
-        "yours, and the difference shows up six months later as a lack of effort you cannot explain."
+      hint: "Theirs, not a tidied version. A plan in your words is one they will read as yours."
     },
     {
       name: "stance",
@@ -333,9 +323,7 @@ function askedFields(values) {
       type: "textarea",
       value: values.assignment,
       placeholder: "Owns the migration end to end",
-      hint:
-        "Name the assignment, not a skill area. Stretch work with real stakes is the part that " +
-        "actually moves somebody; a course is the part that feels like progress."
+      hint: "Name the assignment, not a skill area. Real stakes move people; courses feel like it."
     },
     {
       name: "marker",
@@ -344,7 +332,7 @@ function askedFields(values) {
       value: values.marker,
       placeholder: "Chairs the review once with me absent",
       hint:
-        "If you cannot finish that sentence, the direction is too vague to follow. \"Better " +
+        "If you cannot finish that sentence the direction is too vague to follow. \"Better " +
         "communication\" is unobservable; \"runs it without me\" is not."
     },
     {
@@ -353,18 +341,14 @@ function askedFields(values) {
       type: "number",
       min: 1,
       value: values.cadenceDays || DEFAULT_CADENCE_DAYS,
-      hint:
-        "In the one-to-one, never as its own meeting - a separate meeting turns this into an HR " +
-        "ritual and it dies. Monthly by default."
+      hint: "In the one-to-one, never as its own meeting. A separate meeting kills it."
     },
     {
       name: "horizon",
       label: "When should the direction itself be questioned?",
       type: "date",
       value: values.horizon ? asDateInput(values.horizon) : "",
-      hint:
-        "Not a deadline. Nothing is late when this passes - the thread simply stops being taken " +
-        "for granted and starts asking whether it is still the thing."
+      hint: "Not a deadline. When it passes the thread asks whether this is still the thing."
     }
   ]);
 }
@@ -375,9 +359,8 @@ export const actions = {
     const values = await form({
       title: "Open a direction",
       intro:
-        "This is your own preparation and nothing here is shown to anybody. The questions the " +
-        "other person has to answer come afterwards, on purpose: a plan filled in alone at your " +
-        "desk is a plan you wrote for them.",
+        "Your own preparation, in four questions. What THEY want comes in a second form after you " +
+        "have asked them - a plan filled in alone at your desk is a plan you wrote for them.",
       fields: prepareFields({}, true),
       confirm: "Open it"
     });

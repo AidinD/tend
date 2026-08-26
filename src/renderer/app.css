@@ -1463,3 +1463,36 @@ kbd {
 .thread .button-row {
   margin-top: 9px;
 }
+
+/*
+ * A dialog that scrolls has to look like one.
+ *
+ * The growth form's second half sat under the fold, and it was read as a form
+ * that did not have those fields at all: the platform scrollbar is a few faint
+ * pixels on a dark ground, in a panel nobody expects to scroll. Two answers
+ * together, because neither is enough on its own - the fields carry one line of
+ * hint each now so a form usually fits, and when one does not, the scrollbar is
+ * wide enough to be seen without being looked for.
+ */
+.dialog-body {
+  scrollbar-width: auto;
+}
+
+.dialog-body::-webkit-scrollbar {
+  width: 11px;
+}
+
+.dialog-body::-webkit-scrollbar-track {
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+
+.dialog-body::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid var(--surface);
+  border-radius: 6px;
+}
+
+.dialog-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
