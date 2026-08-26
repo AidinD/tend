@@ -300,11 +300,14 @@ export { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
  */
 export { DEFAULT_CADENCE_DAYS, DRIVER_OPTIONS, STANCE_OPTIONS } from "../domain/growth.js";
 
-export const LEVEL_OPTIONS = [
-  { value: "doing", label: "Doing it myself - still mine, reviewed weekly" },
-  { value: "close", label: "Delegated, close follow-up - theirs to drive, reviewed fortnightly" },
-  { value: "theirs", label: "Fully theirs - they own the outcome, reviewed every two months" }
-];
+/*
+ * Delegation levels, from the definition that also decides how often Tend asks
+ * for a review. This was the fifth hand-copied list here, and the one with the
+ * worst failure mode: it spelled the review intervals out as words, so moving
+ * `review` in the domain left the window promising the old interval to the
+ * person reading the dropdown, with every test still green.
+ */
+export { LEVEL_OPTIONS } from "../domain/workstreams.js";
 
 /** @param {number} ms */
 export function asDateInput(ms) {

@@ -16,7 +16,7 @@ import * as api from "../src/service/api.js";
 import * as nibService from "../src/service/nib.js";
 import { openStore } from "../src/storage/store.js";
 import { DEFAULT_SIGNALS, SIGNAL_CADENCE_DAYS, signalsDue } from "../src/domain/signals.js";
-import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../src/domain/workstreams.js";
+import { LEVELS, LEVEL_OPTIONS, isLevel, isUnspecified, reviewInterval, reviewPhrase } from "../src/domain/workstreams.js";
 import { DAY_MS } from "../src/domain/time.js";
 import { failed, ok } from "./helpers.mjs";
 
@@ -146,6 +146,32 @@ describe("delegation levels", () => {
     for (const key of Object.keys(LEVELS)) {
       assert.ok(LEVELS[/** @type {keyof typeof LEVELS} */ (key)].review > 0, `${key} needs a review interval`);
     }
+  });
+
+  it("derives the option list from the definition rather than repeating it", () => {
+    // The fifth hand-copied list in the window, and the one that could lie
+    // quietly: it spelled the review intervals out as words, so moving `review`
+    // here left the dropdown promising the old one.
+    assert.deepEqual(
+      LEVEL_OPTIONS.map((o) => o.value),
+      Object.keys(LEVELS)
+    );
+  });
+
+  it("tells the reader of the dropdown the interval the level actually implies", () => {
+    for (const option of LEVEL_OPTIONS) {
+      const level = LEVELS[option.value];
+      assert.ok(
+        option.label.includes(reviewPhrase(level.review)),
+        `${option.value} does not say how often you look: "${option.label}"`
+      );
+      assert.ok(option.label.startsWith(level.label), `${option.value} does not name the level: "${option.label}"`);
+    }
+  });
+
+  it("names the intervals it has a word for and counts the days when it has none", () => {
+    assert.equal(reviewPhrase(7), "weekly");
+    assert.equal(reviewPhrase(21), "every 21 days");
   });
 
   it("looks more often the less you have handed over", () => {

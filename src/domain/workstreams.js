@@ -105,3 +105,53 @@ export function describe(workstream, names) {
 export function isUnspecified(workstream) {
   return !workstream.level || !isLevel(String(workstream.level));
 }
+
+/*
+ * Intervals English has a word for.
+ *
+ * The window used to spell these out in a hand-written option list, so changing
+ * `review` above left the dropdown quietly promising the old interval. Anything
+ * not in this table falls back to the day count, which is worth more than a
+ * wrong word: an interval nobody has a name for should read as "every 21 days"
+ * rather than get rounded to the nearest familiar one.
+ */
+const REVIEW_WORDS = /** @type {Record<number, string>} */ ({
+  1: "daily",
+  7: "weekly",
+  14: "fortnightly",
+  30: "monthly",
+  60: "every two months",
+  90: "every three months",
+  365: "yearly"
+});
+
+/**
+ * How often you look, in words.
+ *
+ * @param {number} days
+ * @returns {string}
+ */
+export function reviewPhrase(days) {
+  return REVIEW_WORDS[days] ?? `every ${days} days`;
+}
+
+/**
+ * The choices a level dropdown offers, derived rather than written out again.
+ *
+ * Four hand-copied lists in this window have already gone stale against their
+ * definition - one offered a contact kind that satisfied nothing, another left a
+ * whole roster group out and hid a person from the People view. This was the
+ * fifth, and it carried the review intervals as English words, so the domain and
+ * the window could disagree about how often you look with nothing failing.
+ *
+ * The gist is the first sentence of `means`: the dropdown wants the short form
+ * and the panel wants the whole thing, and taking one from the other is how they
+ * stay the same claim.
+ */
+export const LEVEL_OPTIONS = Object.entries(LEVELS).map(([value, level]) => {
+  const gist = level.means.split(". ")[0].replace(/\.$/, "");
+  return {
+    value: /** @type {Level} */ (value),
+    label: `${level.label} - ${gist.charAt(0).toLowerCase()}${gist.slice(1)}. Reviewed ${reviewPhrase(level.review)}.`
+  };
+});
