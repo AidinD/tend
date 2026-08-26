@@ -1037,11 +1037,15 @@ try {
     }
   });
 
+  // Read off the one line the thread POSES rather than off the whole panel: the
+  // marker also appears in the "still to ask them" checklist, quite correctly, so
+  // a panel-wide match cannot tell the two apart.
+  const posed = await page.text(".thread .card-why.warn-text");
   check("and asks him to take it to the person, not to invent their yardstick", () => {
-    if (!/Ask them/.test(opened)) {
-      throw new Error("a fresh thread went quiet instead of asking for the conversation");
+    if (!/Ask them/.test(posed)) {
+      throw new Error(`a fresh thread posed something else: "${posed}"`);
     }
-    if (/see in three months/.test(opened)) {
+    if (/see in three months/.test(posed)) {
       throw new Error("it asked for the marker before the conversation that produces it");
     }
   });
@@ -1089,7 +1093,7 @@ try {
 
   // Rewording the aim is what makes the two diverge, and the guess has to survive
   // it: that pair is the whole reason the field is kept.
-  await page.click('[data-act="threadPrepare"]');
+  await page.click('[data-act="threadReword"]');
   await page.fillDialog({ aim: "Går djupt på rendering och äger den delen själv" });
   await page.waitFor("document.body.textContent.includes('Går djupt på rendering')", "the reworded aim");
 
@@ -1109,9 +1113,19 @@ try {
     }
   });
 
-  // Three conversations, no observation. The reading this whole feature exists
+  const afterAsking = await page.text(".panel");
+  check("recording what they said counts as having spoken to them", () => {
+    // Otherwise the obvious way to use the form leaves the thread believing it
+    // was never discussed - clock running, count at zero - and the stall reading
+    // can never fire at all.
+    if (!/discussed 1×/.test(afterAsking)) {
+      throw new Error(`the conversation was not counted: ${afterAsking.slice(0, 300)}`);
+    }
+  });
+
+  // Two more conversations, no observation. The reading this whole feature exists
   // for, and the one no calendar or task list can produce.
-  for (const daysAgo of [70, 45, 20]) {
+  for (const daysAgo of [45, 20]) {
     await page.click('[data-act="threadTalked"]');
     await page.fillDialog({
       note: "kom upp",

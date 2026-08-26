@@ -322,6 +322,19 @@ function askedFields(values) {
         "If you cannot finish that sentence the direction is too vague to follow. \"Better " +
         "communication\" is unobservable; \"runs it without me\" is not."
     },
+    // Recording what somebody said IS proof you spoke to them, so this dialog
+    // carries the date of the conversation and logs it. Without that, filling in
+    // the second sitting left the thread believing it had never been discussed:
+    // the clock kept running and the count stayed at zero, so the stall reading -
+    // the whole point of the feature - could never fire for anybody who used the
+    // form the obvious way.
+    {
+      name: "at",
+      label: "When you talked",
+      type: "date",
+      value: asDateInput(Date.now()),
+      hint: "Logged as a conversation too, unless you have already logged one."
+    },
     {
       name: "cadenceDays",
       label: "How often should it come up?",
@@ -504,8 +517,17 @@ export const actions = {
     if (!values) {
       return;
     }
-    if (!(await act("updateThread", { id: d.id, fields: patchFrom(fields, values) }, "Saved."))) {
+    // The date belongs to the conversation, not to the thread's own fields.
+    const talkedAt = values.at;
+    const patch = patchFrom(fields, values);
+    delete patch.at;
+
+    if (!(await act("updateThread", { id: d.id, fields: patch }, "Saved."))) {
       return;
+    }
+
+    if (String(values.stance ?? "unasked") !== "unasked" && Number(current.talks ?? 0) === 0) {
+      await act("logGrowthNote", { growth: d.id, at: talkedAt, observed: false, note: "" });
     }
 
     if (values.stance !== "declined") {
