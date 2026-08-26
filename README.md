@@ -26,13 +26,18 @@ So Tend works differently in three ways:
   and the promise is logged from wherever you were standing. The seconds spent
   finding the right view are the seconds in which a promise stops getting
   written down at all.
+- **Development is a direction, not a document.** A growth thread holds one aim
+  per person and the observable thing that would prove it, and it counts
+  conversations and observations separately. Discussed six times with nothing
+  ever observed is a wrong plan or missing support - which is the reading a
+  written plan in a folder can never give you.
 
 ## Status
 
 Usable. Install it and everything happens in the window: people, contact,
-promises, the monthly questions, a focus, delegation levels, and binding Nib
-folders to the people their notes are about. The Knowledge view is the one piece
-still missing.
+promises, the monthly questions, a focus, delegation levels, growth threads, and
+binding Nib folders to the people their notes are about. The Knowledge view is
+the one piece still missing.
 
 See [PLAN.md](PLAN.md) for where it stands and [DECISIONS.md](DECISIONS.md) for
 why it is built this way.

@@ -3,6 +3,91 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-26 - A development plan is a direction with two clocks, not a document
+
+**Decided.** A growth thread is one direction per person: an aim, the observable
+marker that would prove it, a cadence for when it should come up, and a horizon
+after which the direction itself gets questioned rather than followed. The prose
+stays in the notebook, the actions stay as promises, measured competence stays on
+a workstream's delegation level. `src/domain/growth.js` holds the readings,
+`src/renderer/views/growth.js` the two surfaces.
+
+**What it is not.** A written development plan almost never fails because the
+plan was wrong. It fails because it was written once, felt good, and was never
+looked at again - so storing the document would have been storing the failure
+mode. Nothing here holds a plan.
+
+**Most of it already existed.** Worth writing down, because the temptation on a
+feature like this is to build a parallel world. The things he said he would do
+are promises, which already escalate hard and cannot be dampened by a focus, so
+all of a plan's urgency lives there and nothing in this feature ever has to reach
+Now. What to raise next time is a topic. Competence on a piece of work is a
+delegation level, and moving one from close follow-up to fully theirs IS growth,
+observed and already tracked - for some people that is the entire plan with no
+thread needed. What none of them held is a direction that persists across the
+rest, and whether it is moving.
+
+**Two clocks, and the second one is the whole point.** Attention drift is
+familiar: we have not talked about this in a while. Progress drift is not:
+discussed three times with the marker never once observed. That is a wrong plan
+or missing support, not a late task, and it is invisible to every tool that
+counts whether conversations happened. So a note carries `observed` as a separate
+answer from having been logged at all, and the gap between the two counts
+produces the reading. It surfaces as a question - is the aim wrong, or is the
+support missing - because a nag would be answering something the data cannot.
+
+**Never in Now, and a licence to reach Prep instead.** Nobody is let down today
+because a direction stood still for a month; the person let down by a broken
+promise is let down today. A Now page that talks about development is a page that
+gets skimmed, which would cost far more than this gains. But a thread whose
+person never drifts would then surface nowhere at all, so a thread that is asking
+something can put somebody on the prep page on its own - the same licence topics
+already have, and the same argument: the moment before the conversation is the
+only moment the answer is actionable.
+
+**Not in "My month" either**, which was the tempting home. Every signal there has
+a first-person subject, enforced by a test, and that constraint is what keeps the
+feature from becoming surveillance. A question about a thread is not about him.
+
+**Wants it, needs it, or unknown - asked first.** Two different instruments.
+Using the development one on a performance gap produces a plan the person reads
+as a disciplinary process with a smile, and loses both the trust and the
+improvement. `unknown` is a first-class answer rather than a missing one: not
+knowing is the normal state before the first conversation, and pretending
+otherwise is how a manager ends up writing somebody else's ambitions for them.
+The `needs` branch has to answer what happens if nothing changes, because if the
+honest answer is nothing then it is a wish, and that is worth finding out before
+the conversation rather than after.
+
+**The form is two sittings, and the split is enforced rather than suggested.**
+Stage one is his own preparation and never asks what the other person wants;
+stage two is what the conversation returned, in their words, and does not clear
+the guess. Collapsing them into one screen is how the plan gets written alone at
+a desk. Keeping the guess beside what they said is how a manager finds out they
+have been managing an assumption.
+
+**A declined direction is a path, not an edge case.** Recording it asks the
+follow-up immediately: does the job require it anyway? If it does, the thread
+becomes a stated expectation, written as it will be said out loud, including what
+follows if it is not met - and "you stay where you are" is a legitimate thing for
+that to be. If it does not, it is let go with a reason.
+
+**An ending needs its reason, and `endingSaid` defaults to false.** The most
+important default in the feature. Letting a direction go is often the right call;
+letting it go without telling the person is the worst of the three options,
+because the disappointment stays readable in the room while the decision never
+gets said. So the thread keeps asking until he confirms he said it, and the
+reason stays visible afterwards - a dropped thread with no reason turns into a
+mood six months later that neither of them can name.
+
+**Rejected: a limit on how many threads can be live.** Two is about what anybody
+can hold, and the app says so once he passes it. Enforcing it would be software
+deciding how many people he is allowed to develop at once.
+
+**Rejected: opening or ending a thread over MCP.** Reading one and logging that
+it came up are available; the rest is not. Deciding what somebody should be
+growing towards is his call, made in the window - the same line duties draw.
+
 ## 2026-08-25 - The app harness only ever drives the app it started
 
 **Decided.** `scripts/e2e-app.mjs` refuses to begin when something is already
