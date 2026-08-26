@@ -45,7 +45,7 @@ console.log(`Releasing ${name} ${version}\n`);
 // Tend publishes from here, so there is no tag to guard - electron-builder
 // creates it. The two that matter are a tree that matches what gets built, and a
 // version that is not already up.
-const failures = preflight(exec, { tag, checks: ["cleanTree", "notAlreadyReleased"] });
+const failures = preflight(exec, { tag, checks: ["cleanTree", "nothingUnpushed", "notAlreadyReleased"] });
 if (failures.length > 0) {
   fail(failures.map((failure) => failure.message).join("\n\n"));
 }
