@@ -328,7 +328,7 @@ describe("focus", () => {
     assert.equal(s.stretch, DEFAULT_STRETCH);
   });
 
-  it("states its cost as a number rather than a fesigneg", () => {
+  it("states its cost as a number rather than a feeling", () => {
     const cost = focusCost(focus, 1.8);
     assert.equal(cost.known, true);
     assert.match(cost.summary, /0\.4 to 1\.8 days/);

@@ -292,7 +292,7 @@ held as geometry can drop its own detail for the small frames - Nib drops its
 vent hole, Jot widens its ring's gap - and a bitmap cannot. So 16px stays dense.
 Helm made the same trade for its wheel and its generator says so too.
 
-**What the pipsignee still fixes.** Pointing `build.win.icon` at a 512px PNG lets
+**What the pipeline still fixes.** Pointing `build.win.icon` at a 512px PNG lets
 Windows scale one bitmap to whatever it needs. Each frame is instead resampled
 from the source at its own size, always from the source rather than from an
 already-shrunk frame, and the ladder carries 20 and 24 - the sizes the taskbar
@@ -560,7 +560,7 @@ a test run started reading the real board. Read-only, so nothing could be
 corrupted - and still wrong, because the test would depend on whatever is on the
 board today.
 
-## 2026-08-23 - Window chrome and the icon pipsignee come from keel
+## 2026-08-23 - Window chrome and the icon pipeline come from keel
 
 **Decided.** Tend depends on `keel` (`file:../keel`) for two things it had its
 own copy of: the three title-bar IPC handlers and the icon generator.

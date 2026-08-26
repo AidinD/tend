@@ -60,7 +60,7 @@ describe("recording a decision", () => {
   });
 
   it("sets a revisit date, because that is what makes it a tool", () => {
-    ok(api.logDecision(store, { what: "Platform team owns the pipsignee", now: NOW }));
+    ok(api.logDecision(store, { what: "Platform team owns the pipeline", now: NOW }));
     const [logged] = api.decisions(store, NOW);
     assert.equal(logged.revisitAt, NOW + DEFAULT_REVISIT_DAYS * DAY_MS);
     assert.equal(logged.revisitDue, false);

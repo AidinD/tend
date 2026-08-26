@@ -27,7 +27,7 @@ export const DEFAULT_STRETCH = 1.5;
  * @property {number} [stretch] Multiplier for non-guarded intervals.
  * @property {string[]} [guarded] Duty ids that are never stretched.
  * @property {number} [baselineDrift] Mean drift in days when the focus was set,
- *   captured so the cost can be stated as a number rather than a fesigneg.
+ *   captured so the cost can be stated as a number rather than a feeling.
  */
 
 /**
