@@ -204,6 +204,10 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
         aim: t.aim,
         marker: t.marker,
         asks: t.asks,
+        // Carried so the card can offer the action that is actually next. Before
+        // the direction has been put to the person, logging "it came up" is the
+        // wrong move: what the conversation produces has nowhere to go.
+        stance: t.stance,
         talks: t.talks,
         observations: t.observations,
         lastTalked: t.lastTalked === null ? "never" : agoWords(t.daysSinceTalked)

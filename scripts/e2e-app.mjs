@@ -1031,6 +1031,17 @@ try {
   await page.waitFor("document.body.textContent.includes('designgenomgången')", "the thread");
 
   const opened = await page.text(".panel");
+  check("a thread nobody has been asked yet does not offer to log a conversation", () => {
+    // The two are not interchangeable, and only one of them is the next step: the
+    // first conversation has somewhere better to go than a bare tally.
+    if (/It came up/.test(opened)) {
+      throw new Error("offered to count a conversation before their view is on record");
+    }
+    if (!/After the conversation/.test(opened)) {
+      throw new Error("the next step is not offered at all");
+    }
+  });
+
   check("the thread is opened and keeps its Swedish text", () => {
     if (!/designgenomgången utan mig/.test(opened)) {
       throw new Error("the aim did not survive");

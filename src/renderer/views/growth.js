@@ -121,12 +121,17 @@ function thread(t) {
     .map((line) => `<p class="card-why dim">${esc(line)}</p>`)
     .join("");
 
+  // "It came up" only appears once their view is on record, because until then
+  // the first conversation has somewhere better to go: the second sitting, which
+  // logs the conversation itself as well as what came back.
+  const asked = t.stance !== "unasked";
+
   const buttons = live
     ? `
-      <button class="act" data-act="threadTalked" data-id="${esc(t.id)}">It came up</button>
+      <button class="act${asked ? "" : " primary"}" data-act="threadAsked" data-id="${esc(t.id)}">After the conversation</button>
+      ${asked ? `<button class="act" data-act="threadTalked" data-id="${esc(t.id)}">It came up</button>` : ""}
       ${t.marker ? `<button class="act" data-act="threadObserved" data-id="${esc(t.id)}">I saw it</button>` : ""}
       <button class="act" data-act="threadPrepare" data-id="${esc(t.id)}">Prepare</button>
-      <button class="act" data-act="threadAsked" data-id="${esc(t.id)}">After the conversation</button>
       <button class="act" data-act="threadEnd" data-id="${esc(t.id)}">End it</button>`
     : t.fields.endingSaid
       ? `<button class="act tiny danger" data-act="threadRemove" data-id="${esc(t.id)}" data-aim="${esc(t.aim)}">Remove</button>`
@@ -175,7 +180,11 @@ export function growingBlock(c) {
           <li class="prep-topic">
             <div class="topic-line">
               <span class="topic-text">${esc(t.aim)}</span>
-              <button class="act" data-act="threadTalked" data-id="${esc(t.id)}">It came up</button>
+              ${
+                String(t.stance ?? "unasked") === "unasked"
+                  ? `<button class="act" data-act="threadAsked" data-id="${esc(t.id)}">After the conversation</button>`
+                  : `<button class="act" data-act="threadTalked" data-id="${esc(t.id)}">It came up</button>`
+              }
             </div>
             ${t.marker ? `<span class="src">You will see: ${esc(t.marker)}</span>` : ""}
             <span class="src">Discussed ${t.talks}×, seen ${t.observations}× &middot; last talked ${esc(t.lastTalked)}.</span>
