@@ -1520,3 +1520,15 @@ kbd {
 .thread-top .act.tiny {
   flex: none;
 }
+
+/*
+ * Cards on the prep page are separate people, and they were touching.
+ *
+ * Not a `.stack` because this view concatenates its cards rather than wrapping
+ * them, and every other list here spaces itself. Set on the card rather than the
+ * container so the practices card above keeps its own distance too.
+ */
+.prep-card + .prep-card,
+.prep-practice + .prep-card {
+  margin-top: 14px;
+}
