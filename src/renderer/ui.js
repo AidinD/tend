@@ -73,7 +73,11 @@ export function toast(message, tone = "ok") {
  * @typedef {object} Field
  * @property {string} name
  * @property {string} label
- * @property {"text" | "textarea" | "select" | "number" | "date" | "checkbox"} [type]
+ * @property {"text" | "textarea" | "select" | "number" | "date" | "checkbox" | "note"} [type]
+ *   `note` shows a value without offering to change it, and submits nothing. For
+ *   a fact the form has to put in front of somebody: a record kept on purpose is
+ *   not an input, and rendering it as one invites it to be overwritten by the
+ *   answer that belonged in the field above.
  * @property {string} [hint] Shown under the field. Say why it matters, not what it is.
  * @property {string | number | boolean} [value]
  * @property {{ value: string, label: string }[]} [options]
@@ -248,6 +252,16 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal" }
 function fieldHtml(f) {
   const id = `f-${f.name}`;
   const hint = f.hint ? `<span class="field-hint">${esc(f.hint)}</span>` : "";
+
+  // No control at all, so `submit` never finds an element for it and the value
+  // travels nowhere. That is the point: it is shown, not asked for.
+  if (f.type === "note") {
+    return `<div class="field" data-field="${esc(f.name)}">
+      <span class="field-label">${esc(f.label)}</span>
+      <p class="field-note">${esc(f.value ?? "")}</p>
+      ${hint}
+    </div>`;
+  }
 
   if (f.type === "checkbox") {
     return `<label class="field field-check" data-field="${esc(f.name)}">

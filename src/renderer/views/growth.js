@@ -231,12 +231,18 @@ function prepareFields(values = {}, opening = false) {
         value: values.aim,
         hint: "Reword it once you have talked to them, so it names what you agreed."
       },
+      // Shown, not asked for. It was an editable box next to "the direction as it
+      // stands", and the improved wording for the direction got typed into it -
+      // which overwrites the one field whose entire value is that it does not
+      // change. If a record here is ever genuinely wrong it has to be corrected
+      // outside the window, and that is the right trade for the one thing in here
+      // that is supposed to survive being wrong.
       {
         name: "hypothesis",
         label: "What you thought before you asked",
-        type: "textarea",
+        type: "note",
         value: values.hypothesis,
-        hint: "Kept on purpose. Next to what they actually said, it shows you an assumption."
+        hint: "A record, kept so it can sit next to what they actually said. Your current view goes in the field above."
       }
     );
   }
@@ -275,12 +281,15 @@ function prepareFields(values = {}, opening = false) {
         "If the honest answer is nothing, this is a wish rather than a need. \"You stay where you " +
         "are\" is a legitimate answer."
     },
+    // Past tense in the label, and about them. Phrased as a question it collected
+    // a plan instead: "talk to their lead and find out" is a thing he will do,
+    // and it landed here because an empty box invites being filled.
     {
       name: "alreadySeen",
-      label: "What have you already seen that supports it?",
+      label: "What you have already seen them do",
       type: "textarea",
       value: values.alreadySeen,
-      hint: "Empty is itself the finding: you would be proposing a direction on no evidence."
+      hint: "Only what has happened. Empty is itself the finding: no evidence under the direction."
     },
     {
       name: "offering",
@@ -289,8 +298,8 @@ function prepareFields(values = {}, opening = false) {
       value: values.offering,
       placeholder: "The architecture review, and I stop writing the migration plan myself",
       hint:
-        "Cover, a room to be let into, work you stop doing yourself. Development stalls on the " +
-        "manager more often than on the person."
+        "Cover, a room to be let into, work you stop doing yourself. Write it as done or dated - " +
+        "\"I could\" is not an offering."
     }
   );
 

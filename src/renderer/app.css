@@ -1496,3 +1496,22 @@ kbd {
 .dialog-body::-webkit-scrollbar-thumb:hover {
   background: var(--text-faint);
 }
+
+/*
+ * A value a form shows rather than asks for.
+ *
+ * Set apart from the inputs around it on purpose. Two text boxes with related
+ * labels got the answer typed into the wrong one, and one of them was a record
+ * of what somebody thought before asking - the single field whose whole value is
+ * that it does NOT change.
+ */
+.field-note {
+  margin: 0;
+  padding: 8px 11px;
+  background: var(--surface-2);
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  user-select: text;
+}
