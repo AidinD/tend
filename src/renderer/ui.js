@@ -82,6 +82,11 @@ export function toast(message, tone = "ok") {
  * @property {number} [min]
  * @property {number} [max]
  * @property {number} [step]
+ * @property {{ field: string, equals: string }} [showIf] Only ask this while
+ *   another field in the same form has that value. A question that does not
+ *   apply must not be on the screen: the first form built this way put "whose
+ *   need is it?" under an answer of "I do not know yet", and the reader
+ *   reasonably read the whole form as asking something else than it was.
  */
 
 /**
@@ -149,6 +154,14 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal" }
         if (!el) {
           continue;
         }
+        // A question that is not being asked is answered as empty rather than
+        // skipped. Skipping would mean "leave what was there", so switching an
+        // answer from "the job needs it" back to "they want it" would silently
+        // keep the need he had typed under the old answer.
+        if (hidden(field)) {
+          values[field.name] = field.type === "checkbox" ? false : "";
+          continue;
+        }
         if (field.type === "checkbox") {
           values[field.name] = /** @type {HTMLInputElement} */ (el).checked;
           continue;
@@ -182,6 +195,42 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal" }
       }
     };
 
+    /**
+     * Whether a conditional field is currently not being asked.
+     *
+     * Read off the live control rather than off a stored flag, so it is the same
+     * answer the person is looking at.
+     *
+     * @param {Field} field
+     */
+    const hidden = (field) => {
+      if (field.showIf === undefined) {
+        return false;
+      }
+      const control = /** @type {HTMLInputElement | HTMLSelectElement | null} */ (
+        panel.querySelector(`[name="${field.showIf.field}"]`)
+      );
+      return control === null || control.value !== field.showIf.equals;
+    };
+
+    /** Show or hide every conditional field for what is currently selected. */
+    const applyConditions = () => {
+      for (const field of fields) {
+        if (field.showIf === undefined) {
+          continue;
+        }
+        const wrapper = panel.querySelector(`[data-field="${field.name}"]`);
+        if (wrapper instanceof HTMLElement) {
+          wrapper.hidden = hidden(field);
+        }
+      }
+    };
+
+    for (const name of new Set(fields.map((f) => f.showIf?.field).filter(Boolean))) {
+      panel.querySelector(`[name="${name}"]`)?.addEventListener("change", applyConditions);
+    }
+    applyConditions();
+
     scrim.addEventListener("click", () => close(null));
     panel.querySelector("[data-cancel]")?.addEventListener("click", () => close(null));
     panel.querySelector("[data-confirm]")?.addEventListener("click", submit);
@@ -201,7 +250,7 @@ function fieldHtml(f) {
   const hint = f.hint ? `<span class="field-hint">${esc(f.hint)}</span>` : "";
 
   if (f.type === "checkbox") {
-    return `<label class="field field-check">
+    return `<label class="field field-check" data-field="${esc(f.name)}">
       <input type="checkbox" id="${id}" name="${esc(f.name)}" ${f.value ? "checked" : ""}>
       <span><span class="field-label">${esc(f.label)}</span>${hint}</span>
     </label>`;
@@ -223,7 +272,7 @@ function fieldHtml(f) {
              ${f.max !== undefined ? `max="${f.max}"` : ""}
              ${f.step !== undefined ? `step="${f.step}"` : ""}>`;
 
-  return `<div class="field">
+  return `<div class="field" data-field="${esc(f.name)}">
     <label class="field-label" for="${id}">${esc(f.label)}</label>
     ${control}
     ${hint}

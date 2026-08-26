@@ -531,7 +531,11 @@ export function missing(row) {
     }
   }
   if (blank(row.hypothesis)) {
-    prepare.push("What do you think the direction is? A guess, labelled as one.");
+    // Only reachable when a thread was opened from outside the window, which
+    // fills this from the aim. Worded as the record it is rather than as a
+    // second "what is the direction": asking that twice is what made the first
+    // version of the form unreadable.
+    prepare.push("Write down what you thought before you asked them, so it survives being wrong.");
   }
   if (blank(row.alreadySeen)) {
     prepare.push("What have you already seen that supports it? Empty is itself the finding.");

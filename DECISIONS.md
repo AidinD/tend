@@ -3,6 +3,46 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-26 - A form asks each question once, and only where it applies
+
+**Found by reading it.** The first version of the growth form asked "The
+direction, in one sentence" at the top and "What do you think the direction is?"
+four fields below, and displayed "Whose need is it?" under an answer of "I do not
+know yet". The first person to open it could not tell whether the top field
+wanted his own description or the other person's answer - which is exactly the
+distinction the two sittings exist to keep clear, undone by the form that
+implements them.
+
+**The duplicate was a real modelling mistake, not a wording slip.** Before the
+conversation the aim IS his guess. The two only become different things
+afterwards, when the aim gets reworded to what they agreed while the guess stays
+as what he thought first. So opening now asks once, labelled as his own view and
+saying out loud that their answer comes later and is kept beside it rather than
+replacing it. That one sentence is stored as both `aim` and `hypothesis`, and the
+reopened form shows the pair, so rewording the aim cannot lose the guess.
+
+The person's page leaves the guess out while it is still word for word the aim.
+Printing the same sentence under two labels reads as the tool having lost track
+of which is which.
+
+**Conditional fields, in the form helper rather than in one form.** A field can
+carry `showIf: { field, equals }` and is hidden until that answer is chosen. The
+alternative was a hint saying "only if the job needs it", which is what was there
+and which nobody reads before being confused by the question above it.
+
+Two details that are the whole reason this lives in the shared helper: a hidden
+field is submitted as EMPTY rather than skipped, because skipping means "leave
+what was there" and would silently keep a need typed under an answer he has since
+changed; and a `required` field that is not being asked cannot block the form.
+
+**The test had to be rewritten too, and it is the interesting part.** The obvious
+check reads the dialog's text for the question. That proves nothing: `textContent`
+carries hidden elements as well, so it passes whatever the form actually shows.
+The check now reads the field's own `hidden` state, before and after choosing the
+answer it belongs to. This is the second check in this feature that started out
+unable to fail - the first matched a `data-act` attribute against `textContent`,
+where an attribute never appears at all.
+
 ## 2026-08-26 - A development plan is a direction with two clocks, not a document
 
 **Decided.** A growth thread is one direction per person: an aim, the observable

@@ -962,12 +962,16 @@ try {
   });
 
   const prepareText = await page.text(".dialog");
-  check("and the 'needs' branch asks what happens if nothing changes", () => {
-    if (!/What happens if nothing changes/.test(prepareText)) {
-      throw new Error("the consequence question is missing from the form");
+  check("and the form says whose sentence the direction is", () => {
+    // The field used to be labelled "The direction, in one sentence" with a
+    // second "what do you think the direction is" further down. Reading it, you
+    // could not tell whether it wanted his description or the other person's
+    // answer - which is exactly the distinction the two sittings exist to keep.
+    if (!/What you think the direction is/.test(prepareText)) {
+      throw new Error("the direction field does not say it is his own view");
     }
-    if (!/this is a wish/.test(prepareText)) {
-      throw new Error("the form does not say what an empty answer means");
+    if (/What do you think the direction is/.test(prepareText)) {
+      throw new Error("the same question is still being asked twice on one screen");
     }
   });
 
@@ -977,12 +981,50 @@ try {
     }
   });
 
+  // Asserted on the field's own hidden state rather than on the dialog's text:
+  // textContent carries hidden elements too, so a check written against the
+  // words would pass whatever the form actually showed.
+  const needHiddenAtFirst = await page.evaluate(
+    "document.querySelector('.dialog [data-field=\"need\"]').hidden"
+  );
+  check("a question that does not apply is not on the screen", () => {
+    if (needHiddenAtFirst !== true) {
+      throw new Error("'whose need is it' is shown under an answer of 'I do not know yet'");
+    }
+  });
+
+  await page.evaluate(`(() => {
+    const el = document.querySelector('.dialog [name="driver"]');
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(el, 'needs');
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await sleep(150);
+
+  const needShown = await page.evaluate(
+    "!document.querySelector('.dialog [data-field=\"need\"]').hidden && " +
+      "!document.querySelector('.dialog [data-field=\"ifNothingChanges\"]').hidden"
+  );
+  check("and appears the moment the answer it belongs to is chosen", () => {
+    if (needShown !== true) {
+      throw new Error("choosing 'the job needs it' did not reveal its own questions");
+    }
+  });
+
+  const consequence = await page.text(".dialog");
+  check("the needs branch asks what happens if nothing changes", () => {
+    if (!/What happens if nothing changes/.test(consequence)) {
+      throw new Error("the consequence question is missing from the form");
+    }
+    if (!/this is a wish/.test(consequence)) {
+      throw new Error("the form does not say what an empty answer means");
+    }
+  });
+
   await page.fillDialog({
     aim: "Leder designgenomgången utan mig i rummet",
     driver: "needs",
     need: "teamet stannar av när jag är borta",
     ifNothingChanges: "jag är kvar som flaskhals och han står still",
-    hypothesis: "han vill leda, men har inte sagt det",
     alreadySeen: "tog över retrot i juni utan att bli tillfrågad",
     offering: "arkitekturgenomgången, och jag slutar skriva migreringsplanen själv"
   });
@@ -1027,12 +1069,34 @@ try {
   await page.waitFor("document.body.textContent.includes('rendering')", "their words");
 
   const filled = await page.text(".panel");
-  check("their words are kept beside his guess rather than replacing it", () => {
+  check("their words reach the thread", () => {
     if (!/hellre gå djupt på rendering/.test(filled)) {
       throw new Error("their words are not shown");
     }
-    if (!/han vill leda, men har inte sagt det/.test(filled)) {
-      throw new Error("the guess was overwritten by what they said");
+  });
+
+  check("the guess is not printed twice while it is still word for word the aim", () => {
+    // One sentence written at the start is both the thread's name and the record
+    // of what he thought. Until the aim is reworded they are the same string, and
+    // showing both would read as the tool having lost track of which is which.
+    if (/My guess before asking/.test(filled)) {
+      throw new Error("the aim is being shown a second time as the guess");
+    }
+  });
+
+  // Rewording the aim is what makes the two diverge, and the guess has to survive
+  // it: that pair is the whole reason the field is kept.
+  await page.click('[data-act="threadPrepare"]');
+  await page.fillDialog({ aim: "Går djupt på rendering och äger den delen själv" });
+  await page.waitFor("document.body.textContent.includes('Går djupt på rendering')", "the reworded aim");
+
+  const reworded = await page.text(".panel");
+  check("rewording the direction keeps what he thought before he asked", () => {
+    if (!/Går djupt på rendering och äger den delen själv/.test(reworded)) {
+      throw new Error("the aim was not reworded");
+    }
+    if (!/Leder designgenomgången utan mig i rummet/.test(reworded)) {
+      throw new Error("the original guess was lost when the aim changed");
     }
   });
 

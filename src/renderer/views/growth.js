@@ -93,12 +93,18 @@ function thread(t) {
     ? `<p class="card-why warn-text">${esc(t.asks)}</p>`
     : "";
 
+  // The guess is left out while it is still word for word the aim, which it is
+  // from the moment a thread is opened until the direction gets reworded. Showing
+  // it then would print the same sentence twice under two labels, which reads as
+  // the tool having lost track of which is which.
+  const guess = String(t.fields.hypothesis ?? "").trim() === String(t.aim ?? "").trim() ? "" : t.fields.hypothesis;
+
   const detail = [
     ["Their words", t.fields.theirWords],
     ["Through", t.fields.assignment],
     ["I will see", t.marker],
     ["I am putting in", t.fields.offering],
-    ["My guess before asking", t.fields.hypothesis],
+    ["My guess before asking", guess],
     ["If nothing changes", t.fields.ifNothingChanges],
     ["Ended because", t.fields.endedWhy]
   ]
@@ -194,17 +200,49 @@ function prepareFields(values = {}, opening = false) {
   /** @type {import("../ui.js").Field[]} */
   const fields = [];
 
+  // Opening asks for the direction ONCE, and the label has to say whose sentence
+  // it is. The first version asked for "the direction" here and "what do you
+  // think the direction is" four fields further down, which is the same question
+  // twice: before the conversation the direction IS his guess, and the two only
+  // become different things afterwards, when the aim may be rewritten to what
+  // they agreed while the guess stays as what he thought first. Asking both made
+  // the whole form unreadable - it left the reader unable to tell whether it
+  // wanted his description or the other person's answer, which is precisely the
+  // distinction the two sittings exist to keep clear.
   if (opening) {
     fields.push({
       name: "aim",
-      label: "The direction, in one sentence",
+      label: "What you think the direction is, in one sentence",
       required: true,
       type: "textarea",
       placeholder: "Runs the design review without me in the room",
       hint:
-        "What they will be able to do, not an area to improve in. Everything else on this form " +
-        "can wait; this cannot, because there is nothing to follow without it."
+        "Yours, before you have asked, and it is meant to be a guess. Their own answer comes in " +
+        "the second sitting and is kept beside this rather than replacing it, so this can change " +
+        "later. Write what they will be able to DO, not an area to improve in."
     });
+  } else {
+    fields.push(
+      {
+        name: "aim",
+        label: "The direction as it stands",
+        required: true,
+        type: "textarea",
+        value: values.aim,
+        hint:
+          "Reword it once you have talked to them, so the thread is named after what you actually " +
+          "agreed rather than after your opening guess."
+      },
+      {
+        name: "hypothesis",
+        label: "What you thought before you asked",
+        type: "textarea",
+        value: values.hypothesis,
+        hint:
+          "Kept on purpose, and worth rereading. This sitting next to what they actually said is " +
+          "how you find out you have been managing an assumption."
+      }
+    );
   }
 
   fields.push(
@@ -219,32 +257,29 @@ function prepareFields(values = {}, opening = false) {
         "plan they read as a disciplinary process with a smile, and you lose both the trust and " +
         "the improvement. Not knowing yet is a real answer."
     },
+    // Both of these belong to one answer above, so neither is on the screen
+    // under any other. Switching back to "they want it" clears them, which is
+    // the honest behaviour: a need typed under a different answer is not a
+    // record of anything.
     {
       name: "need",
       label: "Whose need is it?",
       type: "textarea",
       value: values.need,
       placeholder: "The team stalls whenever I am away",
-      hint: "Only if the job needs it. Concretely enough that you could say it out loud to them."
+      showIf: { field: "driver", equals: "needs" },
+      hint: "Concretely enough that you could say it out loud to them."
     },
     {
       name: "ifNothingChanges",
       label: "What happens if nothing changes?",
       type: "textarea",
       value: values.ifNothingChanges,
+      showIf: { field: "driver", equals: "needs" },
       hint:
         "The uncomfortable one, and it is here rather than in a conversation for a reason: if " +
         "the honest answer is nothing, this is a wish, and calling a wish a need is a thing to " +
         "stop doing before you talk to them. \"You stay where you are\" is a legitimate answer."
-    },
-    {
-      name: "hypothesis",
-      label: "What do you think the direction is?",
-      type: "textarea",
-      value: values.hypothesis,
-      hint:
-        "A guess, and it is kept as one. Later it sits next to what they actually said, which is " +
-        "how you find out whether you have been managing an assumption."
     },
     {
       name: "alreadySeen",
@@ -349,7 +384,11 @@ export const actions = {
     if (!values) {
       return;
     }
-    if (await act("openThread", { person: d.person, ...values }, "Opened.")) {
+    // The one sentence he wrote is both the thread's name and the record of what
+    // he thought before asking. Stored twice on purpose: the aim can be reworded
+    // to whatever they agree on, and the guess must survive that so the two can
+    // be read side by side afterwards.
+    if (await act("openThread", { person: d.person, ...values, hypothesis: values.aim }, "Opened.")) {
       refresh();
     }
   },
