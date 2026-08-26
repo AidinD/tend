@@ -151,6 +151,19 @@ function body(d) {
  */
 const fields = (roster) => [
   { name: "what", label: "What was decided", type: "text", required: true },
+  // The ledger has always modelled a proposal and the window never offered one,
+  // so the only way to record something not yet agreed was to call it decided.
+  {
+    name: "status",
+    label: "Is this decided, or are you proposing it?",
+    type: "select",
+    options: [
+      { value: "recorded", label: "Decided - this is what we are doing" },
+      { value: "proposed", label: "Proposed - waiting for somebody to agree" }
+    ],
+    value: "recorded",
+    hint: "A proposal gets no revisit date. Nothing has been decided yet, so there is nothing to come back to."
+  },
   { name: "because", label: "Why. In a year this is the only field that matters", type: "textarea" },
   { name: "rejected", label: "What was considered and not chosen", type: "textarea" },
   {
@@ -165,7 +178,17 @@ const fields = (roster) => [
       `Only people already in Tend${(roster ?? []).length > 0 ? ": " + (roster ?? []).map((/** @type {any} */ p) => p.name).join(", ") : " - nobody on the roster yet"}. ` +
       "Leave it empty for anybody else and name them in the reason instead."
   },
-  { name: "revisitDays", label: "Come back to it in how many days", type: "number", value: "90" }
+  {
+    name: "revisitDays",
+    label: "Come back to it in how many days",
+    type: "number",
+    value: "90",
+    showIf: { field: "status", equals: "recorded" },
+    hint:
+      "A date is a poor stand-in for a real trigger. When what should bring it back is an event - " +
+      "the next project of a certain kind, a new hire - write the event into the reason and treat " +
+      "this as the backstop that catches it if the event passes unnoticed."
+  }
 ];
 
 export const actions = {
@@ -186,6 +209,7 @@ export const actions = {
           what: v.what,
           because: v.because,
           rejected: v.rejected,
+          status: v.status || "recorded",
           consulted: String(v.consulted ?? "")
             .split(",")
             .map((s) => s.trim())
