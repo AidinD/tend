@@ -493,3 +493,54 @@ describe("reading one thread by id", () => {
     assert.match(failed(api.thread(store, "nope", NOW)), /No growth thread/);
   });
 });
+
+describe("who else hears about it", () => {
+  /** @type {string} */
+  let dir;
+  /** @type {import("../src/storage/store.js").TendStore} */
+  let store;
+  /** @type {string} */
+  let id;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "tend-growth-tell-"));
+    store = openStore({ dataDir: dir, role: "app", host: "test" });
+    ok(api.addPerson(store, { name: "Halvar", relation: "manage-remotely", now: ago(400) }));
+    ok(api.addPerson(store, { name: "Ingeborg", relation: "own-manager", now: ago(900) }));
+    id = ok(api.openThread(store, { person: "Halvar", aim: "Runs the review", now: ago(120) })).id;
+    ok(api.updateThread(store, id, { marker: "Chairs it with me absent", stance: "agreed" }));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("keeps who was told, so the record outlives the promise to tell them", () => {
+    const manager = ok(api.people(store, NOW, "own-manager"))[0];
+    ok(api.logGrowthNote(store, { growth: id, observed: true, tell: manager.id, note: "chaired it", now: NOW }));
+    const seen = ok(api.growth(store, "Halvar", NOW));
+    assert.deepEqual(seen.threads[0].told, ["Ingeborg"]);
+  });
+
+  it("lists each person once however many times they were told", () => {
+    const manager = ok(api.people(store, NOW, "own-manager"))[0];
+    for (const days of [40, 20, 5]) {
+      ok(api.logGrowthNote(store, { growth: id, observed: true, tell: manager.id, at: ago(days), now: NOW }));
+    }
+    assert.deepEqual(ok(api.growth(store, "Halvar", NOW)).threads[0].told, ["Ingeborg"]);
+  });
+
+  it("says nobody was told when nobody was", () => {
+    ok(api.logGrowthNote(store, { growth: id, observed: true, now: NOW }));
+    assert.deepEqual(ok(api.growth(store, "Halvar", NOW)).threads[0].told, []);
+  });
+
+  it("drops somebody who has since been taken off the roster", () => {
+    const manager = ok(api.people(store, NOW, "own-manager"))[0];
+    ok(api.logGrowthNote(store, { growth: id, observed: true, tell: manager.id, now: NOW }));
+    ok(api.removeRow(store, "people", manager.id));
+    // Not a name the tool can no longer resolve, and not a stale copy of one
+    // either: the same rule stakeholders follow.
+    assert.deepEqual(ok(api.growth(store, "Halvar", NOW)).threads[0].told, []);
+  });
+});

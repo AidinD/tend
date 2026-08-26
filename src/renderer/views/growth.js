@@ -106,6 +106,7 @@ function thread(t) {
     ["I am putting in", t.fields.offering],
     ["My guess before asking", guess],
     ["If nothing changes", t.fields.ifNothingChanges],
+    ["Told", (t.told ?? []).join(", ")],
     ["Ended because", t.fields.endedWhy]
   ]
     .filter(([, value]) => String(value ?? "").trim() !== "")
@@ -493,25 +494,65 @@ export const actions = {
     }
   },
 
-  /** @param {Record<string, string>} d */
+  /**
+   * The marker, actually seen. Also the only right moment to ask who else needs
+   * to hear it.
+   *
+   * That question was missing entirely, and it is the one part of this whose
+   * absence is expensive. Development nobody outside the one-to-one ever sees
+   * converts into nothing: no level, no salary, no next assignment. The manager
+   * arguing for somebody in rooms they are not in is the piece of the job only a
+   * manager can do, and the tool was silent about it.
+   *
+   * It belongs here rather than as another field on the form. The day something
+   * actually happened is the day to tell somebody, and this dialog only opens on
+   * a day when something did.
+   *
+   * @param {Record<string, string>} d
+   */
   threadObserved: async (d) => {
+    const [current, roster] = await Promise.all([currentThread(d.id), tend.invoke("people")]);
+    const others = (Array.isArray(roster) ? roster : [])
+      .filter((/** @type {any} */ p) => p.id !== current?.person)
+      .map((/** @type {any} */ p) => ({ value: String(p.id), label: String(p.name) }));
+
     const values = await form({
       title: "I saw it",
       intro:
-        "The marker, actually observed rather than discussed. This is the only evidence in the " +
-        "tool that any of this is working.",
+        "The marker, actually observed rather than discussed. The only evidence in here that any " +
+        "of this is working.",
       fields: [
         { name: "note", label: "What you saw", type: "textarea", placeholder: "Chaired the review on the 14th, I said nothing" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) },
+        {
+          name: "tell",
+          label: "Who else needs to hear this?",
+          type: "select",
+          options: [{ value: "", label: "Nobody, it stays between us" }, ...others],
+          hint:
+            "Growth only you two saw converts into nothing. Picking somebody logs it as a promise, " +
+            "so it cannot quietly not happen."
+        }
       ],
       confirm: "Record it"
     });
     if (!values) {
       return;
     }
-    if (await act("logGrowthNote", { growth: d.id, ...values, observed: true }, "Recorded.")) {
-      refresh();
+    if (!(await act("logGrowthNote", { growth: d.id, ...values, observed: true }, "Recorded."))) {
+      return;
     }
+
+    const tell = String(values.tell ?? "");
+    if (tell !== "") {
+      const said = String(values.note ?? "").trim() || String(current?.marker ?? "");
+      const name = others.find((o) => o.value === tell)?.label ?? "them";
+      // A promise rather than a note to self, deliberately: promises here escalate
+      // past a week and no focus can dampen them, which is exactly the weight this
+      // deserves. If it turns out not to be worth saying, closing it costs a click.
+      await act("logPromise", { person: tell, text: `Tell ${name}: ${said}` }, `Promise to tell ${name} logged.`);
+    }
+    refresh();
   },
 
   /** @param {Record<string, string>} d */

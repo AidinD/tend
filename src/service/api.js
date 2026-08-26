@@ -1815,6 +1815,7 @@ export function growth(store, who, now) {
   const person = found.person;
   const notes = /** @type {any[]} */ (store.rows("growthNotes"));
   const rows = store.rows("growth").filter((r) => r.person === person.id);
+  const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name ?? "")]));
 
   const threads = threadsFor({
     growth: /** @type {any[]} */ (rows),
@@ -1832,6 +1833,18 @@ export function growth(store, who, now) {
       lastTalkedWords: state.lastTalked === null ? "never" : agoWords(state.daysSinceTalked),
       lastObservedWords:
         state.lastObserved === null ? "never" : agoWords(daysBetweenNow(state.lastObserved, now)),
+      // Who has been told, outside the two of them. Listed rather than counted:
+      // the useful question next spring is which of them heard it, and a number
+      // cannot answer that.
+      told: [
+        ...new Set(
+          notes
+            .filter((n) => !n._deleted && n.growth === state.id && String(n.tell ?? "") !== "")
+            .map((n) => names.get(String(n.tell)) ?? "")
+            .filter((name) => name !== "")
+        )
+      ],
+
       // The whole row, so the form reopens where it was left rather than asking
       // again for what he already answered.
       fields: formFields(row),
@@ -2095,10 +2108,14 @@ export function endThread(store, id, { status, why, said }) {
  * @param {string} args.growth Thread id.
  * @param {string} [args.note]
  * @param {boolean} [args.observed]
+ * @param {string} [args.tell] Who outside the conversation was told, or should be.
+ *   Kept on the note as well as turned into a promise, so the record survives the
+ *   promise being closed - "I told his manager in May" is the thing a level
+ *   conversation next spring rests on.
  * @param {number} [args.at]
  * @param {number} args.now
  */
-export function logGrowthNote(store, { growth: threadId, note, observed, at, now }) {
+export function logGrowthNote(store, { growth: threadId, note, observed, tell, at, now }) {
   const row = store.rows("growth").find((r) => r.id === threadId);
   if (!row) {
     return { error: `No growth thread with id "${threadId}".` };
@@ -2115,6 +2132,7 @@ export function logGrowthNote(store, { growth: threadId, note, observed, at, now
     growth: String(threadId),
     note: text(note),
     observed: observed === true,
+    tell: text(tell),
     at: when
   });
   return { id, aim: String(row.aim ?? ""), observed: observed === true };
