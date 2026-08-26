@@ -555,3 +555,59 @@ describe("who else hears about it", () => {
     assert.deepEqual(ok(api.growth(store, "Halvar", NOW)).threads[0].told, []);
   });
 });
+
+describe("emptying a field", () => {
+  /** @type {string} */
+  let dir;
+  /** @type {import("../src/storage/store.js").TendStore} */
+  let store;
+  /** @type {string} */
+  let id;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "tend-growth-clear-"));
+    store = openStore({ dataDir: dir, role: "app", host: "test" });
+    ok(api.addPerson(store, { name: "Halvar", relation: "manage-remotely", now: ago(400) }));
+    id = ok(
+      api.openThread(store, {
+        person: "Halvar",
+        aim: "A direction",
+        alreadySeen: "took over the retro in June",
+        offering: "the architecture review",
+        now: NOW
+      })
+    ).id;
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("clears the stored value when an empty string is sent", () => {
+    // The window used to send nothing for an emptied box, and the service reads
+    // an absent field as "leave what was there" - so text moved out of one field
+    // and into another came silently back, leaving the same sentence in both.
+    ok(api.updateThread(store, id, { alreadySeen: "" }));
+    assert.equal(ok(api.growth(store, "Halvar", NOW)).threads[0].fields.alreadySeen, "");
+  });
+
+  it("still leaves a field alone when it is not mentioned at all", () => {
+    // The other half of the contract, and an agent over MCP relies on it: a patch
+    // names what it changes.
+    ok(api.updateThread(store, id, { offering: "and a room" }));
+    const fields = ok(api.growth(store, "Halvar", NOW)).threads[0].fields;
+    assert.equal(fields.offering, "and a room");
+    assert.equal(fields.alreadySeen, "took over the retro in June");
+  });
+
+  it("clears the horizon when it is sent as null, so it can stop asking", () => {
+    ok(api.updateThread(store, id, { horizon: null }));
+    const state = ok(api.growth(store, "Halvar", NOW)).threads[0];
+    assert.equal(state.fields.horizon, null);
+    assert.equal(state.pastHorizon, false);
+  });
+
+  it("refuses to empty the cadence, since an interval of nothing is not one", () => {
+    assert.match(failed(api.updateThread(store, id, { cadenceDays: 0 })), /positive number of days/);
+  });
+});

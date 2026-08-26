@@ -340,6 +340,50 @@ function askedFields(values) {
   ]);
 }
 
+/**
+ * What a dialog returned, as a patch the service can apply.
+ *
+ * `form` reports an empty box as `undefined`, and the service reads an absent
+ * field as "leave what was there". Together those two reasonable rules mean a
+ * field cannot be emptied: clearing a box and saving puts the old text back
+ * without a word, which is how one real thread ended up with nearly the same
+ * sentence in two fields after its owner moved the text from one to the other.
+ *
+ * So every text field the dialog actually showed is sent, as a string. That also
+ * removes an asymmetry that made the whole form feel unreliable - a field hidden
+ * by `showIf` was already being blanked, while a visible one could not be.
+ *
+ * The two that keep the older rule do so for a reason. A cadence of nothing is
+ * not a cadence, so an empty box leaves the interval alone. An empty horizon IS
+ * meaningful - it says stop asking whether this is still the thing - so it clears.
+ *
+ * @param {import("../ui.js").Field[]} fields
+ * @param {Record<string, any>} values
+ * @returns {Record<string, any>}
+ */
+function patchFrom(fields, values) {
+  /** @type {Record<string, any>} */
+  const patch = {};
+  for (const field of fields) {
+    if (field.type === "note") {
+      continue;
+    }
+    const value = values[field.name];
+    if (field.name === "cadenceDays") {
+      if (value !== undefined) {
+        patch[field.name] = value;
+      }
+      continue;
+    }
+    if (field.name === "horizon") {
+      patch[field.name] = value === undefined ? null : value;
+      continue;
+    }
+    patch[field.name] = field.type === "checkbox" ? value === true : String(value ?? "");
+  }
+  return patch;
+}
+
 export const actions = {
   /** @param {Record<string, string>} d */
   openThread: async (d) => {
@@ -420,16 +464,17 @@ export const actions = {
     if (!current) {
       return;
     }
+    const fields = prepareFields(current.fields);
     const values = await form({
       title: "Prepare",
       intro: "Your side of it. Reopened where you left it rather than asking again.",
-      fields: prepareFields(current.fields),
+      fields,
       confirm: "Save"
     });
     if (!values) {
       return;
     }
-    if (await act("updateThread", { id: d.id, fields: values }, "Saved.")) {
+    if (await act("updateThread", { id: d.id, fields: patchFrom(fields, values) }, "Saved.")) {
       refresh();
     }
   },
@@ -449,16 +494,17 @@ export const actions = {
     if (!current) {
       return;
     }
+    const fields = askedFields(current.fields);
     const values = await form({
       title: "After the conversation",
       intro: "What came back. This overwrites nothing you guessed - the guess is kept beside it.",
-      fields: askedFields(current.fields),
+      fields,
       confirm: "Save"
     });
     if (!values) {
       return;
     }
-    if (!(await act("updateThread", { id: d.id, fields: values }, "Saved."))) {
+    if (!(await act("updateThread", { id: d.id, fields: patchFrom(fields, values) }, "Saved."))) {
       return;
     }
 
