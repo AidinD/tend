@@ -292,6 +292,14 @@ export { RELATIONS, RELATION_OPTIONS } from "../domain/cadence.js";
 export { CONTACT_KINDS, NOTE_CONTACT_KINDS, SUBJECT_KINDS, kindsFor } from "../domain/contact.js";
 export { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
 
+/*
+ * Growth's own vocabulary, for the same reason. The three lists a growth form
+ * offers - what drives the direction, how the person took it, how it ended - are
+ * each a set with a meaning attached to every entry, and a copy of any of them
+ * in the window would eventually offer a choice the service refuses to store.
+ */
+export { DEFAULT_CADENCE_DAYS, DRIVER_OPTIONS, STANCE_OPTIONS } from "../domain/growth.js";
+
 export const LEVEL_OPTIONS = [
   { value: "doing", label: "Doing it myself - still mine, reviewed weekly" },
   { value: "close", label: "Delegated, close follow-up - theirs to drive, reviewed fortnightly" },

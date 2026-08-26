@@ -931,6 +931,211 @@ try {
     }
   });
 
+  /* ----------------------------------------------------------- growth -- */
+
+  step("A direction for somebody");
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor("document.querySelector('.panel-name') !== null", "the person page");
+
+  const beforeThread = await page.text(".panel");
+  check("the person page offers a direction, and says why it is not for everybody", () => {
+    if (!/Open a direction/.test(beforeThread)) {
+      throw new Error("no way to open a direction from the person page");
+    }
+    if (!/not for everybody/.test(beforeThread)) {
+      throw new Error("the empty state does not say the feature is selective");
+    }
+  });
+
+  await page.click('[data-act="openThread"]');
+  const drivers = await page.dialogOptions("driver");
+  check("the form asks whether they want it or the job needs it, before anything else", () => {
+    const values = drivers.map((d) => d.value);
+    for (const expected of ["wants", "needs", "unknown"]) {
+      if (!values.includes(expected)) {
+        throw new Error(`driver "${expected}" is not offered: ${JSON.stringify(values)}`);
+      }
+    }
+  });
+
+  const prepareText = await page.text(".dialog");
+  check("and the 'needs' branch asks what happens if nothing changes", () => {
+    if (!/What happens if nothing changes/.test(prepareText)) {
+      throw new Error("the consequence question is missing from the form");
+    }
+    if (!/this is a wish/.test(prepareText)) {
+      throw new Error("the form does not say what an empty answer means");
+    }
+  });
+
+  check("stage one never asks him what the other person wants", () => {
+    if (/in their words/i.test(prepareText)) {
+      throw new Error("the preparation form is asking a question only they can answer");
+    }
+  });
+
+  await page.fillDialog({
+    aim: "Leder designgenomgången utan mig i rummet",
+    driver: "needs",
+    need: "teamet stannar av när jag är borta",
+    ifNothingChanges: "jag är kvar som flaskhals och han står still",
+    hypothesis: "han vill leda, men har inte sagt det",
+    alreadySeen: "tog över retrot i juni utan att bli tillfrågad",
+    offering: "arkitekturgenomgången, och jag slutar skriva migreringsplanen själv"
+  });
+  await page.waitFor("document.body.textContent.includes('designgenomgången')", "the thread");
+
+  const opened = await page.text(".panel");
+  check("the thread is opened and keeps its Swedish text", () => {
+    if (!/designgenomgången utan mig/.test(opened)) {
+      throw new Error("the aim did not survive");
+    }
+  });
+
+  check("and asks for the observable marker straight away", () => {
+    if (!/see in three months/.test(opened)) {
+      throw new Error("an unfinished thread went quiet instead of asking");
+    }
+  });
+
+  check("it does not offer 'I saw it' while there is nothing to have seen", () => {
+    // Read off the rendered text, not the markup: an attribute never appears in
+    // textContent, so a check written against `data-act` would pass whatever the
+    // page did - which is exactly how a test ends up proving nothing.
+    if (/I saw it/.test(opened)) {
+      throw new Error("observing is offered before a marker exists");
+    }
+  });
+
+  await page.click('[data-act="threadAsked"]');
+  const stances = await page.dialogOptions("stance");
+  check("the second sitting records how it landed, including no interest at all", () => {
+    if (!stances.map((s) => s.value).includes("declined")) {
+      throw new Error(`no way to record a declined direction: ${JSON.stringify(stances)}`);
+    }
+  });
+
+  await page.fillDialog({
+    theirWords: "jag vill hellre gå djupt på rendering",
+    stance: "agreed",
+    assignment: "äger migreringen hela vägen",
+    marker: "Håller genomgången en gång med mig frånvarande"
+  });
+  await page.waitFor("document.body.textContent.includes('rendering')", "their words");
+
+  const filled = await page.text(".panel");
+  check("their words are kept beside his guess rather than replacing it", () => {
+    if (!/hellre gå djupt på rendering/.test(filled)) {
+      throw new Error("their words are not shown");
+    }
+    if (!/han vill leda, men har inte sagt det/.test(filled)) {
+      throw new Error("the guess was overwritten by what they said");
+    }
+  });
+
+  check("and observing becomes possible once there is a marker", () => {
+    if (!/I saw it/.test(filled)) {
+      throw new Error("still no way to record an observation");
+    }
+  });
+
+  // Three conversations, no observation. The reading this whole feature exists
+  // for, and the one no calendar or task list can produce.
+  for (const daysAgo of [70, 45, 20]) {
+    await page.click('[data-act="threadTalked"]');
+    await page.fillDialog({
+      note: "kom upp",
+      at: new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10)
+    });
+    await sleep(200);
+  }
+  await page.waitFor("document.body.textContent.includes('discussed 3')", "the counts");
+
+  const stalled = await page.text(".panel");
+  check("three conversations and nothing observed reads as stalled, not as late", () => {
+    if (!/aim wrong, or is the support missing/.test(stalled)) {
+      throw new Error(`no stall question: ${stalled.slice(0, 400)}`);
+    }
+  });
+
+  check("and both counts are shown, since either alone says nothing", () => {
+    if (!/discussed 3×, seen 0×/.test(stalled)) {
+      throw new Error("the two counts are not shown together");
+    }
+  });
+
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "Now");
+  const nowText = await page.text("#main");
+  check("a stalled direction stays off Now, where everything is a deviation to act on", () => {
+    if (/aim wrong, or is the support missing/.test(nowText)) {
+      throw new Error("the growth question reached Now");
+    }
+  });
+
+  await page.click('.nav-btn[data-view="prep"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "Prep");
+  const growthOnCard = await page.text("#main");
+  check("but it does reach the card you read before talking to them", () => {
+    if (!/Growing/.test(growthOnCard)) {
+      throw new Error("no growth block on the prep card");
+    }
+    if (!/aim wrong, or is the support missing/.test(growthOnCard)) {
+      throw new Error("the question is not on the card");
+    }
+  });
+
+  step("Letting a direction go");
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor("document.querySelector('.panel-name') !== null", "the person page");
+
+  await page.click('[data-act="threadEnd"]');
+  const endings = await page.dialogOptions("status");
+  check("every ending is offered, including stating it as an expectation", () => {
+    const values = endings.map((e) => e.value);
+    for (const expected of ["reached", "dropped", "expectation"]) {
+      if (!values.includes(expected)) {
+        throw new Error(`ending "${expected}" is not offered: ${JSON.stringify(values)}`);
+      }
+    }
+  });
+
+  // Deliberately leaving "I have told them" unchecked, which is the case that
+  // matters: a direction let go in silence is the one that costs the relationship.
+  await page.fillDialog({ status: "dropped", why: "han vill inte, och jobbet kräver det inte", said: false });
+  await sleep(300);
+
+  const ended = await page.text(".panel");
+  check("a let-go direction keeps its reason where it can be read", () => {
+    if (!/han vill inte, och jobbet kräver det inte/.test(ended)) {
+      throw new Error("the reason was not kept");
+    }
+  });
+
+  check("and keeps asking until he confirms he actually said it", () => {
+    if (!/told them you let this go/.test(ended)) {
+      throw new Error("a silent ending was accepted without a word");
+    }
+  });
+
+  await page.click('[data-act="threadSaid"]');
+  await sleep(300);
+  const settled = await page.text(".panel");
+  check("confirming it settles the thread without deleting the decision", () => {
+    if (/told them you let this go/.test(settled)) {
+      throw new Error("still asking after he said he told them");
+    }
+    if (!/han vill inte, och jobbet kräver det inte/.test(settled)) {
+      throw new Error("the reason disappeared once it was settled");
+    }
+  });
+
   /* ------------------------------------------------------------- work -- */
 
   step("Handing work over");

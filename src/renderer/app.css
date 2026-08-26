@@ -1410,3 +1410,56 @@ kbd {
 .ask-foot {
   margin-top: 4px;
 }
+
+/*
+ * A growth thread on a person's page.
+ *
+ * Built on `.line`'s surface rather than on `.card`, because a thread is one
+ * item inside a block and a card is a whole subject. Given its own container
+ * only because it stacks several lines of its own - the aim, the counts, the
+ * question, what has been filled in - and a `.line` is a single row.
+ */
+.thread {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 5px;
+  font-size: 13px;
+  user-select: text;
+}
+
+.thread + .thread {
+  margin-top: 8px;
+}
+
+.thread-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.thread-aim {
+  color: var(--text);
+  font-weight: 600;
+  min-width: 0;
+}
+
+/* The pills sit at the end of the row and never squeeze the aim. */
+.thread-top .line-right {
+  display: flex;
+  gap: 5px;
+}
+
+/* Tighter than a card's, since several of these stack inside one block. */
+.thread .card-why {
+  margin: 5px 0 0;
+}
+
+.thread .prep-list {
+  margin-top: 6px;
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+
+.thread .button-row {
+  margin-top: 9px;
+}

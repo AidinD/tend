@@ -379,3 +379,117 @@ describe("through the service", () => {
     assert.equal(ok(api.growth(store, "Halvar", NOW)).threads[0].talks, 0);
   });
 });
+
+describe("on the prep card", () => {
+  /** @type {string} */
+  let dir;
+  /** @type {import("../src/storage/store.js").TendStore} */
+  let store;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "tend-growth-prep-"));
+    store = openStore({ dataDir: dir, role: "app", host: "test" });
+    // Deliberately in step: no duty, no promise, no topic. The only reason this
+    // person could reach the page is a growth thread.
+    ok(api.addPerson(store, { name: "Halvar", relation: "lead-and-manage", now: ago(5) }));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  /** @param {Record<string, any>} [extra] */
+  function withThread(extra = {}) {
+    const id = ok(
+      api.openThread(store, { person: "Halvar", aim: "Runs the design review without me", now: ago(120) })
+    ).id;
+    ok(api.updateThread(store, id, { marker: "Chairs it with me absent", stance: "agreed", ...extra }));
+    return id;
+  }
+
+  it("keeps somebody off the page when nothing is asking anything", () => {
+    // A complete thread inside its cadence asks nothing. Nobody needs preparing
+    // for that, and a page that lists everybody is a roster.
+    const id = ok(api.openThread(store, { person: "Halvar", aim: "Something", now: NOW })).id;
+    ok(api.updateThread(store, id, { marker: "Chairs it", stance: "agreed" }));
+    const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
+    assert.equal(page.cards.length, 0);
+  });
+
+  it("asks for the marker straight away, so an unfinished thread cannot go quiet", () => {
+    // Opening a direction and never saying what you would see is the most likely
+    // way this feature gets abandoned, so it is the one thing that nags on day
+    // one rather than after a cadence has passed.
+    ok(api.openThread(store, { person: "Halvar", aim: "Something", now: NOW }));
+    const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
+    assert.equal(page.cards.length, 1);
+    assert.match(page.cards[0].why, /see in three months/);
+  });
+
+  it("puts somebody on the page for a thread alone", () => {
+    const id = withThread();
+    for (let i = 0; i < STALL_AFTER_TALKS; i += 1) {
+      ok(api.logGrowthNote(store, { growth: id, at: ago(10 + i), now: NOW }));
+    }
+    const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
+    assert.equal(page.cards.length, 1);
+    assert.equal(page.cards[0].growing.length, 1);
+  });
+
+  it("names the question as the reason they are listed", () => {
+    const id = withThread();
+    for (let i = 0; i < STALL_AFTER_TALKS; i += 1) {
+      ok(api.logGrowthNote(store, { growth: id, at: ago(10 + i), now: NOW }));
+    }
+    const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
+    // Not "1 growth thread" - the question itself, because that is the thing he
+    // cannot work out by looking at the row.
+    assert.match(page.cards[0].why, /aim wrong, or is the support missing/);
+  });
+
+  it("carries both counts, since either one alone says nothing", () => {
+    const id = withThread();
+    ok(api.logGrowthNote(store, { growth: id, at: ago(90), now: NOW }));
+    ok(api.logGrowthNote(store, { growth: id, at: ago(80), observed: true, now: NOW }));
+    const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
+    const growing = page.cards[0].growing[0];
+    assert.equal(growing.talks, 2);
+    assert.equal(growing.observations, 1);
+  });
+
+  it("does not carry an ended thread onto the card", () => {
+    const id = withThread();
+    ok(api.logGrowthNote(store, { growth: id, at: ago(90), now: NOW }));
+    ok(api.endThread(store, id, { status: "reached", why: "chaired it twice", said: true }));
+    const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
+    assert.equal(page.cards.length, 0);
+  });
+});
+
+describe("reading one thread by id", () => {
+  /** @type {string} */
+  let dir;
+  /** @type {import("../src/storage/store.js").TendStore} */
+  let store;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "tend-growth-one-"));
+    store = openStore({ dataDir: dir, role: "app", host: "test" });
+    ok(api.addPerson(store, { name: "Halvar", relation: "lead-and-manage", now: ago(400) }));
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("finds the thread without being told whose it is", () => {
+    const id = ok(api.openThread(store, { person: "Halvar", aim: "A direction", now: NOW })).id;
+    const one = ok(api.thread(store, id, NOW));
+    assert.equal(one.id, id);
+    assert.equal(one.aim, "A direction");
+  });
+
+  it("says so plainly for an id that is not a thread", () => {
+    assert.match(failed(api.thread(store, "nope", NOW)), /No growth thread/);
+  });
+});

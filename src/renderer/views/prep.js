@@ -11,6 +11,7 @@
 
 import { esc, tend } from "../ui.js";
 import { go } from "../app.js";
+import { actions as growthActions, growingBlock } from "./growth.js";
 import {
   briefHtml,
   candidatesHtml,
@@ -176,6 +177,8 @@ function card(c, model) {
 
       ${section("You promised them", c.youPromised, (/** @type {any} */ p) => `${esc(p.text)} <span class="src">open ${esc(p.openFor)}</span>`)}
 
+      ${growingBlock(c)}
+
       ${raising(c)}
 
       ${section("They own", c.theyOwn, (/** @type {any} */ w) => `${esc(w.name)} <span class="src">${esc(w.mandate)} &middot; reviewed ${esc(w.lastReviewed)}</span>`)}
@@ -327,6 +330,10 @@ function draft(c, model) {
 }
 
 export const actions = {
+  // The same dialogs the person's page uses. Logging that a direction came up is
+  // most likely to happen right here, minutes after the conversation.
+  ...growthActions,
+
   /** @param {Record<string, string>} d */
   openPerson: (d) => go("people", { person: d.person }),
   openSettings: () => go("settings"),

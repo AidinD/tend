@@ -37,6 +37,7 @@ import { expandCadences } from "../domain/attention.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { openPromises } from "../domain/promises.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
+import { threadsFor } from "../domain/growth.js";
 import { topicsFor } from "../domain/topics.js";
 import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
@@ -64,6 +65,8 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
   const bindings = store.rows("sources");
   const topicRows = store.rows("topics").filter((t) => (t.status ?? "active") === "active");
   const raised = store.rows("raised");
+  const growthRows = store.rows("growth");
+  const growthNotes = store.rows("growthNotes");
 
   const board = readBoard(jotDir ?? jotDataDir());
   const nib = safeNib(nibDir);
@@ -97,7 +100,25 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       now
     });
 
-    if (drift <= 0 && theirPromises.length === 0 && worthRaising.length === 0) {
+    // Growth threads are the fourth reason to be on this page, and they earn it
+    // the same way topics do: a thread that is asking something is asking it
+    // about a conversation with this person, and the moment before that
+    // conversation is the only moment the answer is actionable.
+    //
+    // Deliberately NOT in Now. Nobody is let down today because a direction
+    // stood still for a month - the person let down by a broken promise is let
+    // down today - and a Now page that shouts about development is a page that
+    // gets skimmed, which would cost far more than this gains. But a thread
+    // whose person never drifts would then never surface anywhere, so it is
+    // allowed to put somebody on this page on its own.
+    const growing = threadsFor({
+      growth: /** @type {any[]} */ (growthRows),
+      notes: /** @type {any[]} */ (growthNotes),
+      person: { id, since: typeof person.since === "number" ? person.since : undefined },
+      now
+    }).filter((t) => t.asks !== null || t.attention !== "ok");
+
+    if (drift <= 0 && theirPromises.length === 0 && worthRaising.length === 0 && growing.length === 0) {
       continue;
     }
 
@@ -131,7 +152,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       // time" as the reason for their being listed is worse than saying nothing.
       // Words here, the compact badge in `behindBy`. "1-1 is +5d" is a badge
       // wearing a sentence's clothes; a reason is read once and has to parse.
-      why: reasonFor({ drift, worst, promises: theirPromises, worthRaising }),
+      why: reasonFor({ drift, worst, promises: theirPromises, worthRaising, growing }),
       behindBy: worst ? driftBadge(worst.drift.driftDays) : null,
       lastSpoke:
         lastTouch === undefined
@@ -173,6 +194,19 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
         text: t.text,
         why: t.why,
         lastRaised: t.everRaised ? agoWords(t.daysSince) : "never"
+      })),
+
+      // The direction, and whether it is moving. Two counts rather than one:
+      // "discussed six times, seen never" is the whole reading, and either
+      // number on its own says nothing.
+      growing: growing.map((t) => ({
+        id: t.id,
+        aim: t.aim,
+        marker: t.marker,
+        asks: t.asks,
+        talks: t.talks,
+        observations: t.observations,
+        lastTalked: t.lastTalked === null ? "never" : agoWords(t.daysSinceTalked)
       })),
 
       driftDays: drift
@@ -246,14 +280,25 @@ function practising(dir) {
  * @param {any} args.worst
  * @param {any[]} args.promises
  * @param {any[]} args.worthRaising
+ * @param {any[]} [args.growing]
  * @returns {string}
  */
-function reasonFor({ drift, worst, promises, worthRaising }) {
+function reasonFor({ drift, worst, promises, worthRaising, growing = [] }) {
   if (drift > 0 && worst) {
     return `${worst.duty.name} is ${humanDays(worst.drift.driftDays)} behind`;
   }
   if (promises.length > 0) {
     return `${promises.length} open promise${promises.length === 1 ? "" : "s"}`;
+  }
+  // Ahead of topics, because a thread asking a question is asking one specific
+  // thing, and "3 topics worth raising" is a count. A named question is the more
+  // useful reason to be looking at somebody's card.
+  const asking = growing.find((/** @type {any} */ t) => t.asks !== null);
+  if (asking) {
+    return asking.asks;
+  }
+  if (growing.length > 0) {
+    return `${growing.length} growth thread${growing.length === 1 ? "" : "s"} not discussed lately`;
   }
   return `${worthRaising.length} topic${worthRaising.length === 1 ? "" : "s"} worth raising`;
 }

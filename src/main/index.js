@@ -87,6 +87,14 @@ const OPERATIONS = {
   decideTopic: (/** @type {any} */ a) => api.decideTopic(store, a.id, a.status, a.overrides),
   markRaised: (/** @type {any} */ a) => api.markRaised(store, { ...a, now: a.now ?? Date.now() }),
 
+  growth: (/** @type {any} */ a) => api.growth(store, a.person, a.now ?? Date.now()),
+  thread: (/** @type {any} */ a) => api.thread(store, a.id, a.now ?? Date.now()),
+  growthQuestions: (/** @type {any} */ a) => api.growthQuestions(store, a.now ?? Date.now()),
+  openThread: (/** @type {any} */ a) => api.openThread(store, { ...a, now: a.now ?? Date.now() }),
+  updateThread: (/** @type {any} */ a) => api.updateThread(store, a.id, a.fields ?? {}),
+  endThread: (/** @type {any} */ a) => api.endThread(store, a.id, a),
+  logGrowthNote: (/** @type {any} */ a) => api.logGrowthNote(store, { ...a, now: a.now ?? Date.now() }),
+
   journal: (/** @type {any} */ a) => api.journal(store, a.now ?? Date.now(), a.days),
   logEntry: (/** @type {any} */ a) => api.logEntry(store, { ...a, now: a.now ?? Date.now() }),
 

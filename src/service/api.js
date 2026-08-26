@@ -2124,3 +2124,33 @@ export function logGrowthNote(store, { growth: threadId, note, observed, at, now
 function text(value) {
   return String(value ?? "").trim();
 }
+
+/**
+ * One thread by id, in the same shape `growth` returns.
+ *
+ * Exists so a dialog can reopen where it was left without the window walking
+ * the whole roster to find which person a thread belongs to. Reads the thread's
+ * own person rather than taking one on trust: an id is enough to identify a
+ * thread, and asking the caller to also know whose it is would be a second fact
+ * to keep in sync.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ * @param {number} now
+ */
+export function thread(store, id, now) {
+  const row = store.rows("growth").find((r) => r.id === id);
+  if (!row) {
+    return { error: `No growth thread with id "${id}".` };
+  }
+  const found = resolvePerson(store, String(row.person ?? ""));
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  const all = growth(store, String(found.person.id), now);
+  const one = (all.threads ?? []).find((t) => t.id === id);
+  if (one === undefined) {
+    return { error: `No growth thread with id "${id}".` };
+  }
+  return one;
+}

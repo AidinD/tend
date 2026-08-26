@@ -357,6 +357,60 @@ export const TOOLS = [
     run: (store, args, now) => api.markRaised(store, { ...args, now })
   },
   {
+    name: "tend_growth",
+    description:
+      "The growth threads on one person: the direction, what he said he would see, and the two " +
+      "counts that matter - how many times it has been discussed and how many times the marker " +
+      "was actually observed. Ended threads come back too, with the reason they ended, because " +
+      "a direction let go six months ago is the answer to why it is no longer discussed. Read " +
+      "this before helping him prepare a one-to-one with somebody he is developing.",
+    inputSchema: {
+      type: "object",
+      properties: { person: { type: "string", description: "Their name." } },
+      required: ["person"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.growth(store, args.person, now)
+  },
+  {
+    name: "tend_growth_questions",
+    description:
+      "Every growth thread across everyone that is asking something: no observable marker yet, " +
+      "the person's own view never recorded, the horizon passed, discussed repeatedly with " +
+      "nothing ever observed, or let go without anybody being told. One question per thread, " +
+      "and the last two are the ones worth reading twice - a thread that stalls is a wrong plan " +
+      "or missing support rather than a late task, and a direction dropped in silence is the " +
+      "one that costs him the relationship.",
+    inputSchema: NO_ARGS,
+    run: (store, _args, now) => api.growthQuestions(store, now)
+  },
+  {
+    name: "tend_log_growth_note",
+    description:
+      "Record that a growth thread came up, and whether the marker was actually seen. Two " +
+      "separate answers on purpose: talking about it moves the conversation clock, seeing it is " +
+      "the only evidence any of it is working, and the gap between the two counts is the whole " +
+      "reading. Opening, changing and ending a thread are deliberately NOT available here - " +
+      "deciding what somebody should be growing towards is his call, made in the window.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        growth: { type: "string", description: "The thread's id, from tend_growth." },
+        note: { type: "string", description: "What was said, or what you saw, in a line." },
+        observed: {
+          type: "boolean",
+          description:
+            "True only if the marker was actually observed rather than discussed. Refused when " +
+            "the thread has no marker yet, since there would be nothing to have seen."
+        },
+        at: { type: "number", description: "When, in milliseconds. Defaults to now." }
+      },
+      required: ["growth"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.logGrowthNote(store, { ...args, now })
+  },
+  {
     name: "tend_workstreams",
     description:
       "Pieces of work with a stated delegation level and an owner, and how long since each " +

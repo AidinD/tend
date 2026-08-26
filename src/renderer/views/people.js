@@ -20,6 +20,7 @@ import {
 } from "../ui.js";
 import { go, refresh } from "../app.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
+import { actions as growthActions, threadsBlock } from "./growth.js";
 
 /**
  * The roster's groups, one per relationship type, in the order the domain
@@ -152,6 +153,7 @@ async function personPage(id) {
 
   const model = await modelStatus();
   const themesKey = `themes:${p.id}`;
+  const growing = await threadsBlock(String(p.id));
 
   // Themes already written by a scheduled pass, listed as themes rather than as
   // observations: an observation is something the user saw, and a theme is
@@ -209,6 +211,7 @@ async function personPage(id) {
       ${themes ? list("Themes", themes, "") : ""}
       ${list("Cadences", cadences, "No duty in the role map applies to this relationship type.")}
       ${list("Open promises", promises, "Nothing outstanding.")}
+      ${growing}
       ${p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
       ${list("Recent contact", contact, "No contact recorded yet.")}
       ${skipped ? list("Booked and did not happen", skipped, "") : ""}
@@ -250,6 +253,11 @@ export async function addPersonDialog() {
 }
 
 export const actions = {
+  // Growth's dialogs are shared with the prep card rather than written twice.
+  // Both surfaces offer the same six things, and a second copy of any of them is
+  // a copy that drifts.
+  ...growthActions,
+
   /** @param {Record<string, string>} d */
   logSkip: async (d) => {
     const values = await form({
