@@ -400,13 +400,32 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   writeEntry: async (d) => {
-    const result = await tend.invoke("journal");
+    const [result, vocab, roster] = await Promise.all([
+      tend.invoke("journal"),
+      tend.invoke("vocabulary"),
+      tend.invoke("people")
+    ]);
     const at = d.at === undefined ? Date.now() : Number(d.at);
     const day = new Date(at).toISOString().slice(0, 10);
     const existing = (result?.entries ?? []).find(
       (/** @type {any} */ e) => new Date(e.at).toISOString().slice(0, 10) === day
     );
     const fields = Array.isArray(result?.fields) ? result.fields : [];
+
+    /*
+     * Who the evening was about, asked only where nothing else can answer it.
+     *
+     * In the work half the store already knows who he spoke to, so asking would
+     * waste the one thing a form has. Here nothing derives it, and without it a
+     * month of evenings is a month of undifferentiated days - and a person's page
+     * can say what he owes them and nothing about how it has been going.
+     *
+     * One checkbox each rather than a list to pick from, because the roster in
+     * this half is short and a tick is cheaper than opening a dropdown at eleven
+     * at night. `data-` names carry the id, so a rename costs nothing.
+     */
+    const named = vocab?.personBlocks?.entries === true && Array.isArray(roster) ? roster : [];
+    const already = new Set(existing?.people ?? []);
 
     const values = await form({
       title: existing ? `Edit ${new Date(at).toLocaleDateString("sv-SE")}` : "How was the day?",
@@ -422,6 +441,24 @@ export const actions = {
           value: existing?.[f.name] ?? "",
           hint: f.hint
         })),
+        ...(named.length === 0
+          ? []
+          : [
+              {
+                name: "whoNote",
+                label: "Who it was about",
+                type: /** @type {const} */ ("note"),
+                value:
+                  "Optional, and it changes nothing about what the entry says - it stays about " +
+                  "your own part in it. It is what makes the evenings show up on their page."
+              },
+              ...named.map((/** @type {any} */ person) => ({
+                name: `with:${person.id}`,
+                label: String(person.name),
+                type: /** @type {const} */ ("checkbox"),
+                value: already.has(String(person.id))
+              }))
+            ]),
         { name: "at", label: "Which day", type: /** @type {const} */ ("date"), value: asDateInput(at) }
       ],
       confirm: "Keep it"
@@ -429,7 +466,19 @@ export const actions = {
     if (!values) {
       return;
     }
-    if (await act("logEntry", values, "Kept.")) {
+
+    /** @type {Record<string, any>} */
+    const payload = { at: values.at };
+    for (const f of fields) {
+      payload[f.name] = values[f.name];
+    }
+    if (named.length > 0) {
+      payload.people = named
+        .map((/** @type {any} */ person) => String(person.id))
+        .filter((/** @type {string} */ id) => values[`with:${id}`] === true);
+    }
+
+    if (await act("logEntry", payload, "Kept.")) {
       refresh();
     }
   },

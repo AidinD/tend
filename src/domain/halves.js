@@ -244,7 +244,7 @@ export function homeViewIn(half) {
  * discovering later that it renders drift over a picture of your family.
  *
  * @param {string} half
- * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, themes: boolean }}
+ * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, themes: boolean, entries: boolean }}
  */
 export function personBlocksIn(half) {
   const isPrivate = half === "private";
@@ -264,6 +264,16 @@ export function personBlocksIn(half) {
     growth: !isPrivate,
     topics: !isPrivate,
     skips: !isPrivate,
-    themes: !isPrivate
+    themes: !isPrivate,
+    /*
+     * The evenings that name them.
+     *
+     * Only in the private half, and the asymmetry is the same rule as everywhere
+     * else: in the work half who he spoke to is already in the store, so the
+     * journal deliberately does not ask. Here nothing derives it, and without it
+     * a person's page can say what he owes them and nothing about how it has been
+     * going.
+     */
+    entries: isPrivate
   };
 }

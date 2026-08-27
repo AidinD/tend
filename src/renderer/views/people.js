@@ -202,6 +202,27 @@ async function personPage(id) {
   const growing = blocks.growth ? await threadsBlock(String(p.id)) : "";
   const waitingOn = blocks.waiting ? await waitingBlock(String(p.id)) : "";
 
+  /*
+   * The evenings that named them.
+   *
+   * The answer to "how has it been going", which promises and waiting cannot
+   * give. Each one is his own writing about his own part - naming who was there
+   * is what makes it findable here, and says nothing about them.
+   */
+  const evenings = blocks.entries
+    ? /** @type {any[]} */ (await tend.invoke("entriesFor", { person: String(p.id) }))
+    : [];
+  const eveningLines = (Array.isArray(evenings) ? evenings : [])
+    .map(
+      (/** @type {any} */ e) => `<div class="line">
+        <span class="line-when">${esc(e.when)}</span>
+        <span class="line-text">${(e.lines ?? [])
+          .map((/** @type {any} */ l) => `<strong>${esc(l.label)}:</strong> ${esc(l.text)}`)
+          .join("<br>")}</span>
+      </div>`
+    )
+    .join("");
+
   // Themes already written by a scheduled pass, listed as themes rather than as
   // observations: an observation is something the user saw, and a theme is
   // something a model claimed. Merging the two would let the second quietly
@@ -271,6 +292,15 @@ async function personPage(id) {
       ${
         blocks.themes
           ? list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")
+          : ""
+      }
+      ${
+        blocks.entries
+          ? list(
+              "Evenings that named them",
+              eveningLines,
+              "None yet. Write the day on The day and tick their name - that is what puts it here."
+            )
           : ""
       }
 

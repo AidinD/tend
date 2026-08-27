@@ -202,6 +202,25 @@ button {
   gap: 2px;
 }
 
+/*
+ * The 2px accent bar on the current entry is a BORDER, not an inset shadow.
+ *
+ * It was `box-shadow: inset 2px 0 0`, which looked identical and left specks
+ * behind. The rail sits at a fractional vertical offset - the header is 44.5px
+ * tall - so the shadow's antialiasing at the rounded corner landed one pixel
+ * OUTSIDE the button's own box. That pixel is not in the rectangle Chromium
+ * repaints when the element changes, so every entry that had ever been current
+ * kept two green flecks at the ends of its corner arcs, for the life of the
+ * window.
+ *
+ * A border is part of the border box. It is painted and cleared with the element,
+ * so there is nothing left to strand. Every entry carries it transparent, so the
+ * label does not move by 2px when one becomes current.
+ *
+ * Worth remembering as a shape rather than as this one bug: an inset shadow on a
+ * rounded box at a fractional position can paint outside the box, and anything
+ * that paints outside its own box can be left behind.
+ */
 .nav-btn {
   display: flex;
   align-items: center;
@@ -210,11 +229,12 @@ button {
   width: 100%;
   background: transparent;
   border: 0;
+  border-left: 2px solid transparent;
   border-radius: var(--r);
-  padding: 8px 10px;
+  padding: 8px 10px 8px 8px;
   color: var(--text-dim);
   text-align: left;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
 .nav-btn:hover {
@@ -225,7 +245,7 @@ button {
 .nav-btn[aria-current="true"] {
   background: var(--accent-soft);
   color: var(--text);
-  box-shadow: inset 2px 0 0 var(--accent);
+  border-left-color: var(--accent);
 }
 
 .nav-count {

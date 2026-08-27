@@ -1891,3 +1891,68 @@ rule being replaced.** One asserted that a privately-marked folder's principles
 were invisible to the work half, which was exactly the bug. Its surviving half -
 that the folder is not bindable from the work half - is the claim worth keeping,
 so it now makes only that.
+
+## 2026-08-27 - An evening may say who it was about, and the accent bar is a border
+
+Three fixes from using the private half: a person's page had nowhere to record
+that anything had happened, the rail left green flecks behind, and the Knowledge
+view offered a work example in the private half.
+
+### Naming who an evening was about
+
+A person's page in the private half could say what was promised them and nothing
+about how it had been going. There is no "log a contact" there on purpose -
+contact feeds cadences and there are none - and no "record an observation",
+because an observation records the other person's state, which is what that
+half's one rule forbids. Which left the honest answer to "how do I log something"
+as "write the day", and the day pointed at nobody.
+
+**So an entry may name people, and only in the private half.** The same rule the
+form has always followed: never ask for what can be derived. In the work half who
+he spoke to is already in the store; here nothing derives it, and without it a
+month of evenings is a month of undifferentiated days.
+
+**It does not weaken the rule the entry is written under.** That rule is about
+what an entry may SAY - the interaction and his own part in it, never the other
+person's state - and naming who was there says nothing about them. A test asserts
+the entry gains no field about them.
+
+**Ids are checked against the roster rather than trusted.** A name removed later
+would otherwise sit in the entry for ever, pointing at nothing, and turn up as a
+blank row on somebody else's page.
+
+**One checkbox per person rather than a list to pick from.** The roster in this
+half is short, and a tick is cheaper than opening a dropdown at eleven at night -
+which is the hour this form is designed around.
+
+### The rail's green flecks
+
+The 2px accent bar on the current entry was `box-shadow: inset 2px 0 0`. The rail
+sits at a fractional vertical offset, so the shadow's antialiasing at the rounded
+corner landed one pixel OUTSIDE the button's own box - and that pixel is not in
+the rectangle Chromium repaints when the element changes. Every entry that had
+ever been current kept two green specks at the ends of its corner arcs, for the
+life of the window.
+
+It is now a `border-left`, transparent on every entry and coloured on the current
+one. A border is part of the border box: painted and cleared with the element,
+with nothing left to strand. Verified by counting non-background pixels in the
+strip left of the buttons - twenty-one before, none after.
+
+Worth carrying as a shape rather than as this one bug: an inset shadow on a
+rounded box at a fractional position can paint outside the box, and anything that
+paints outside its own box can be left behind.
+
+**Two wrong diagnoses came first, and both were stated too confidently.** The
+attribute-not-hiding bug was real and fixed, and it was claimed to be the cause
+of the flecks as well; it was not. Then a stuck hover state on a phantom button
+was reproduced and treated as the same thing; it was not either. What settled it
+was reading the actual pixels rather than the DOM - the flecks were never
+elements, so every DOM probe came back empty and looked like a clean result.
+
+### An example belongs to its half
+
+The Knowledge placeholder is the only instruction anybody reads on that page, and
+it was a work situation in both halves. An example from the wrong half does more
+than look careless: it tells you what sort of question the box wants, so it
+teaches the wrong use of the feature in the half where the feature is newest.

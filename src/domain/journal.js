@@ -71,6 +71,41 @@ export const JOURNAL_FIELDS = /** @type {const} */ ([
 export const REVIEW_WINDOW_DAYS = 30;
 
 /**
+ * Who an entry was about.
+ *
+ * Optional, like everything else here, and only asked where nothing else can
+ * answer it. In the work half who he spoke to is already in the store, so asking
+ * would waste the one thing a form has; in the private half nothing derives it,
+ * and without it a month of evenings is a month of undifferentiated days.
+ *
+ * It does not weaken the rule the private entry is written under. The rule is
+ * about WHAT an entry may say - the interaction and his own part in it, never the
+ * other person's state - and naming who was there says nothing about them. It is
+ * what makes "what has been happening with this person" answerable at all, which
+ * is the question a person's page exists to answer.
+ *
+ * @param {Record<string, any>} entry
+ * @returns {string[]}
+ */
+export function peopleIn(entry) {
+  const raw = entry?.people;
+  return Array.isArray(raw) ? raw.map((id) => String(id)).filter((id) => id !== "") : [];
+}
+
+/**
+ * The entries that name one person, newest first.
+ *
+ * @param {Record<string, any>[]} entries
+ * @param {string} personId
+ * @returns {Record<string, any>[]}
+ */
+export function entriesAbout(entries, personId) {
+  return entries
+    .filter((e) => !e._deleted && hasContent(e) && peopleIn(e).includes(String(personId)))
+    .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0));
+}
+
+/**
  * Is there anything in this entry at all?
  *
  * @param {Record<string, any>} entry

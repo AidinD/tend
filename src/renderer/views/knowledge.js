@@ -8,8 +8,16 @@
  * Two passes, and the first is free. Typing narrows on titles and previews the
  * index already carries - instant, and a word match, so it finds the obvious
  * and misses the rest. Reading the notes properly is a button, because it opens
- * what you wrote about colleagues and that should never happen because a view
- * was rendered.
+ * what you wrote about people and that should never happen because a view was
+ * rendered.
+ *
+ * ## The example has to belong to the half
+ *
+ * The placeholder is the only instruction anybody reads here, and it was a work
+ * situation in both halves - "someone on my team has stopped disagreeing with
+ * me", offered on a page about family. An example from the wrong half does more
+ * than look careless: it tells you what sort of question the box wants, so it
+ * teaches the wrong use of the feature in the half where the feature is newest.
  */
 
 import { esc, tend } from "../ui.js";
@@ -23,27 +31,38 @@ let found = /** @type {any} */ (null);
 const KEY = "knowledge";
 
 export async function render() {
-  const model = await modelStatus();
+  const [model, vocab] = await Promise.all([modelStatus(), tend.invoke("vocabulary")]);
   const answer = resultFor(KEY);
+  const isPrivate = String(vocab?.half ?? "work") === "private";
 
   const head = `
     <div class="view-head">
       <h1 class="view-title">What do I know about this?</h1>
       <p class="view-sub">
         Ask about the situation you are in, not the book you half remember. Your
-        own notes answer - the principles you wrote down and the conversations
-        you had.
+        own notes answer - what you read and wrote down, and ${
+          isPrivate ? "the evenings you wrote up" : "the conversations you had"
+        }.
       </p>
     </div>
 
     <div class="card">
       <div class="ask-row">
         <input class="ask-field" id="situation" type="text" value="${esc(situation)}"
-          placeholder="Someone on my team has stopped disagreeing with me">
+          placeholder="${
+            isPrivate
+              ? "I keep getting short with somebody when I am tired"
+              : "Someone on my team has stopped disagreeing with me"
+          }">
         <button class="act primary" data-act="search">Search</button>
       </div>
       <p class="card-why dim">
         Searching only titles and opening lines. Nothing is opened until you ask for it.
+        ${
+          isPrivate
+            ? "What you have read reaches both halves; notes about people stay in the one they were written in."
+            : ""
+        }
       </p>
     </div>`;
 

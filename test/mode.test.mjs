@@ -36,7 +36,15 @@ import {
   referenceNotes
 } from "../src/service/nib.js";
 import { search } from "../src/service/knowledge.js";
-import { addPerson, person, setRelation, vocabulary } from "../src/service/api.js";
+import {
+  addPerson,
+  entriesFor,
+  logEntry,
+  person,
+  setRelation,
+  vocabulary
+} from "../src/service/api.js";
+import { entriesAbout, peopleIn } from "../src/domain/journal.js";
 import { openStore } from "../src/storage/store.js";
 import { MODE_ENV, MODE_FILE, readMode, windowTitle, writeMode } from "../src/main/mode.js";
 import { checkOwnPart } from "../src/service/model.js";
@@ -549,6 +557,86 @@ describe("reference material is not about either half", () => {
     const dir = writeNib([{ id: "c-books", name: "Books", scope: "P" }]);
     assert.deepEqual(/** @type {any} */ (listNibFolders(dir, "work")).folders, []);
     assert.deepEqual([...SCOPES_IN_HALF.reference], ["", "W", "P"]);
+  });
+});
+
+
+describe("an evening can say who it was about", () => {
+  /** @type {string} */
+  let dir;
+  /** @type {import("../src/storage/store.js").TendStore} */
+  let store;
+  const NOW = Date.parse("2026-08-27T20:00:00Z");
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "tend-entry-people-"));
+    let t = 1;
+    store = openStore({ dataDir: dir, role: "app", half: "private", host: "test", now: () => t++ });
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("puts the evening on their page", () => {
+    /*
+     * The gap this closes. A person's page could say what was promised them and
+     * nothing about how it had been going, and there was nowhere to record an
+     * evening against anybody - so a month of entries was a month of
+     * undifferentiated days.
+     */
+    const id = String(/** @type {any} */ (addPerson(store, { name: "Someone", relation: "partner", now: NOW })).id);
+    ok(logEntry(store, { now: NOW, took: "We built a tower and I got impatient", people: [id] }));
+
+    const theirs = /** @type {any[]} */ (entriesFor(store, "Someone", NOW));
+    assert.equal(theirs.length, 1);
+    assert.equal(theirs[0].lines[0].label, "What took the day");
+    assert.match(theirs[0].lines[0].text, /got impatient/);
+  });
+
+  it("keeps the entry about his own part - naming somebody adds no field about them", () => {
+    // The rule the private journal is written under is about WHAT an entry may
+    // say. Who was there says nothing about them, so the fields are unchanged.
+    const id = String(/** @type {any} */ (addPerson(store, { name: "Someone", relation: "partner", now: NOW })).id);
+    ok(logEntry(store, { now: NOW, took: "A day", people: [id] }));
+
+    const [row] = store.rows("entries");
+    assert.deepEqual(peopleIn(row), [id]);
+    for (const theirs of ["mood", "state", "them", "behaviour"]) {
+      assert.equal(row[theirs], undefined, `an entry gained a field about them: ${theirs}`);
+    }
+  });
+
+  it("drops an id that is not on the roster", () => {
+    // Otherwise a name removed later sits in the entry for ever, pointing at
+    // nothing, and turns up as a blank row on somebody else's page.
+    ok(logEntry(store, { now: NOW, took: "A day", people: ["not-a-person"] }));
+    assert.deepEqual(peopleIn(store.rows("entries")[0]), []);
+  });
+
+  it("leaves an entry that named nobody alone", () => {
+    ok(logEntry(store, { now: NOW, took: "A day" }));
+    assert.deepEqual(peopleIn(store.rows("entries")[0]), []);
+  });
+
+  it("shows the newest evening first, and skips one with every box empty", () => {
+    const rows = [
+      { at: NOW - 3 * 86_400_000, took: "Older", people: ["p1"] },
+      { at: NOW, took: "Newer", people: ["p1"] },
+      { at: NOW - 86_400_000, people: ["p1"] }
+    ];
+    const found = entriesAbout(rows, "p1");
+    assert.deepEqual(
+      found.map((e) => e.took),
+      ["Newer", "Older"]
+    );
+  });
+
+  it("is offered in the private half and not in the work half", () => {
+    // Same rule as everywhere: in the work half the store already knows who he
+    // spoke to, so asking would waste the one thing a form has.
+    assert.equal(personBlocksIn("private").entries, true);
+    assert.equal(personBlocksIn("work").entries, false);
   });
 });
 

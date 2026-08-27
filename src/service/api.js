@@ -30,7 +30,15 @@ import {
   threadsFor
 } from "../domain/growth.js";
 import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
-import { JOURNAL_FIELDS, REVIEW_WINDOW_DAYS, coverage, entriesSince, hasContent } from "../domain/journal.js";
+import {
+  JOURNAL_FIELDS,
+  REVIEW_WINDOW_DAYS,
+  coverage,
+  entriesAbout,
+  entriesSince,
+  hasContent,
+  peopleIn
+} from "../domain/journal.js";
 import { declared, ledger as reviewLedger, ledgerLines, readiness, unread } from "../domain/review.js";
 import {
   defaultRelationIn,
@@ -1815,6 +1823,8 @@ export function vocabulary(store) {
  * @param {string} [args.avoided]
  * @param {string} [args.differently]
  * @param {string} [args.notes]
+ * @param {string[]} [args.people] Who the day was about. Only the private half
+ *   asks - in the work half the store already knows who he spoke to.
  */
 export function logEntry(store, { now, at, ...fields }) {
   const when = typeof at === "number" ? at : now;
@@ -1827,6 +1837,17 @@ export function logEntry(store, { now, at, ...fields }) {
   for (const field of JOURNAL_FIELDS) {
     const value = String(fields[field.name] ?? "").trim();
     entry[field.name] = value === "" ? null : value;
+  }
+
+  // Who the day was about, if the form asked. Ids are checked against the roster
+  // rather than trusted: a name that has been removed since would otherwise sit
+  // in the entry for ever, pointing at nothing, and turn up as a blank row on
+  // somebody else's page.
+  if (fields.people !== undefined) {
+    const roster = new Set(store.rows("people").map((p) => String(p.id)));
+    entry.people = (Array.isArray(fields.people) ? fields.people : [])
+      .map((/** @type {unknown} */ id) => String(id))
+      .filter((/** @type {string} */ id) => roster.has(id));
   }
 
   if (!hasContent(entry)) {
@@ -1869,9 +1890,39 @@ export function journal(store, now, days = REVIEW_WINDOW_DAYS) {
       took: e.took ?? null,
       avoided: e.avoided ?? null,
       differently: e.differently ?? null,
-      notes: e.notes ?? null
+      notes: e.notes ?? null,
+      people: peopleIn(e)
     }))
   };
+}
+
+/**
+ * The evenings that name one person.
+ *
+ * Read by their page. This is the whole reason an entry may name anybody: without
+ * it, "what has been happening with this person" has no answer, and a month of
+ * evenings is a month of undifferentiated days.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} who
+ * @param {number} now
+ */
+export function entriesFor(store, who, now) {
+  const found = resolvePerson(store, who);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  return entriesAbout(store.rows("entries"), found.person.id).map((e) => ({
+    id: String(e.id),
+    at: Number(e.at ?? 0),
+    when: agoWords(Math.max(0, Math.floor((now - Number(e.at ?? now)) / 86_400_000))),
+    // The fields, in the order they are asked, so the page does not have to know
+    // which they are.
+    lines: JOURNAL_FIELDS.filter((f) => String(e[f.name] ?? "").trim() !== "").map((f) => ({
+      label: f.label,
+      text: String(e[f.name])
+    }))
+  }));
 }
 
 /**
