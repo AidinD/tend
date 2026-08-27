@@ -100,6 +100,24 @@ button {
 }
 
 /*
+ * `hidden` means hidden.
+ *
+ * It does not, by default, on anything this stylesheet gives a `display` to:
+ * `[hidden]` is a user-agent rule at the lowest specificity there is, so one
+ * author rule setting `display` silently defeats it. That is how the private
+ * half shipped drawing every work entry in the rail while the code that hid them
+ * reported success - the attribute was set, the buttons were on screen, and the
+ * check that asserted the attribute passed.
+ *
+ * The rail no longer relies on this - it removes the entries outright - and this
+ * rule is here so the next thing to reach for `hidden` is not caught by the same
+ * trap.
+ */
+[hidden] {
+  display: none !important;
+}
+
+/*
  * The private half, said in colour.
  *
  * One variable is overridden and everything that reads the accent follows,

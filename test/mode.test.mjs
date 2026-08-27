@@ -163,6 +163,27 @@ describe("remembering the choice", () => {
 
 
 describe("what each half consists of", () => {
+  it("has an honest answer for a partner's child", () => {
+    /*
+     * The gap this list shipped with. Neither forced answer was true: "Child"
+     * claims a parenthood that is not yours, and "Wider family" claims a
+     * gathering relationship when the real one is closer. The fallback was
+     * "Someone else" - accurate, and saying nothing.
+     *
+     * Asserted rather than left to the list, because the vocabulary is the thing
+     * somebody reads at the moment they are trying to write down that they got
+     * it wrong with a person, and a list that has no word for the relationship is
+     * a list that gets answered wrongly on purpose.
+     */
+    const kind = /** @type {any} */ (PRIVATE_RELATIONS)["partners-child"];
+    assert.ok(kind !== undefined, "there is still no way to name a partner's child");
+    // Not "stepchild": that word carries a standing this relationship may not
+    // have, and the difficulty of it is exactly that the involvement is real and
+    // the standing is not.
+    assert.equal(/step/i.test(kind.label + kind.choice + kind.note), false);
+    assert.match(kind.note, /not yours to set/);
+  });
+
   it("keeps the two relationship vocabularies apart", () => {
     // Not two views of one list. The work types are the input to what somebody is
     // owed; the private ones are labels and drive nothing. Sharing a set would
@@ -279,8 +300,8 @@ describe("the service, per half", () => {
     assert.equal(v.home, "journal");
     assert.equal(v.defaultRelation, "family");
     assert.deepEqual(
-      v.relations.map((r) => r.value).slice(0, 2),
-      ["partner", "child"]
+      v.relations.map((r) => r.value).slice(0, 3),
+      ["partner", "child", "partners-child"]
     );
     rmSync(dir, { recursive: true, force: true });
   });

@@ -191,7 +191,15 @@ try {
       await evaluate(`JSON.stringify({
         mode: document.documentElement.dataset.mode ?? "",
         badge: (document.getElementById('mode-badge') || {}).textContent || "",
-        visible: [...document.querySelectorAll('.nav-btn')].filter(b => !b.hidden).map(b => b.dataset.view)
+        // The BOX, not the attribute. This check read \`b.hidden\` and passed while
+        // every work entry was on screen: the attribute was set and a stylesheet
+        // rule with higher specificity kept them displayed. A check that asks the
+        // element what it thinks rather than what it is is a check that cannot
+        // fail - the fifth of those found in this project.
+        visible: [...document.querySelectorAll('.nav-btn')]
+          .filter(b => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+          .map(b => b.dataset.view),
+        inDocument: [...document.querySelectorAll('.nav-btn')].map(b => b.dataset.view)
       })`)
     )
   );
@@ -246,6 +254,13 @@ try {
       if (!state.visible.includes(kept)) {
         throw new Error(`${kept} should still be there and is not`);
       }
+    }
+    // And gone from the document rather than merely invisible, because a button
+    // that exists can be clicked, styled back, found by a selector, or left
+    // holding a hover highlight that makes it look like the open view.
+    const lingering = state.inDocument.filter((/** @type {string} */ v) => gone.includes(v));
+    if (lingering.length > 0) {
+      throw new Error(`still in the document: ${lingering.join(", ")}`);
     }
   });
 

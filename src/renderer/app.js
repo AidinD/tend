@@ -210,10 +210,27 @@ function applyHalf(answer) {
   };
   document.documentElement.dataset.mode = half.half;
 
+  /*
+   * Removed from the document, not hidden.
+   *
+   * The first version set `hidden`, and the buttons stayed on screen: `[hidden]`
+   * is a user-agent rule at the lowest specificity, and `.nav-btn { display: flex }`
+   * beats it. So the private half drew every work entry, clicking one bounced to
+   * this half's home view, and the last one clicked kept its hover highlight -
+   * looking selected while a different view was open.
+   *
+   * A button that is not in the document cannot be clicked, cannot be styled back
+   * into view by a later rule, cannot be found by a selector, and cannot hold a
+   * hover state. Nothing here is undone later either: the half is chosen at launch
+   * and switching it restarts the app.
+   */
   const ids = new Set(half.views.map((v) => v.id));
-  for (const button of document.querySelectorAll(".nav-btn")) {
-    const view = String(/** @type {HTMLElement} */ (button).dataset.view);
-    /** @type {HTMLElement} */ (button).hidden = ids.size > 0 && !ids.has(view);
+  if (ids.size > 0) {
+    for (const button of [...document.querySelectorAll(".nav-btn")]) {
+      if (!ids.has(String(/** @type {HTMLElement} */ (button).dataset.view))) {
+        button.remove();
+      }
+    }
   }
 
   const badge = document.getElementById("mode-badge");

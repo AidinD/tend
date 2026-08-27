@@ -73,6 +73,26 @@ export const PRIVATE_RELATIONS = /** @type {const} */ ({
     note: "Yours. The one relationship where the asymmetry is the point.",
     choice: "Child"
   },
+  /*
+   * A partner's child, whether or not you live together.
+   *
+   * Added because the first version of this list had no honest answer for it, and
+   * the two it forced were both wrong: "Child" claims a parenthood that is not
+   * yours, and "Wider family" claims a gathering relationship when the real one
+   * is closer than that. The fallback was "Someone else", which is accurate and
+   * says nothing.
+   *
+   * Not called a stepchild. That word carries a formal standing this may not
+   * have, and the whole difficulty of the relationship is that the involvement is
+   * real and the standing is not.
+   */
+  "partners-child": {
+    label: "Partner's child",
+    note:
+      "In your life through your partner rather than through being their parent. Real involvement, " +
+      "no standing, and the terms are not yours to set.",
+    choice: "Partner's child - in your life through your partner"
+  },
   parent: {
     label: "Parent",
     note: "Yours. The relationship most likely to be running on assumptions from twenty years ago.",

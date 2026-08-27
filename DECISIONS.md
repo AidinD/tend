@@ -1816,3 +1816,33 @@ reasoning about it. The relationship dropdown, the person page's buttons and
 blocks, the palette with nothing typed. Two of the checks written from that pass
 had encoded the earlier, wrong design - that the private half has no People view -
 and failed, which is what they are for.
+
+## 2026-08-27 - A view a half does not have is removed from the rail, not hidden
+
+The private half drew every work entry in the rail. Clicking one bounced to this
+half's home view, and the last one clicked kept its hover highlight - looking
+selected while a different view was open.
+
+**Why `hidden` did nothing.** `[hidden] { display: none }` is a user-agent rule
+at the lowest specificity there is, and `.nav-btn { display: flex }` beats it. The
+attribute was set on every work entry and every work entry was on screen at full
+size. There is now also a `[hidden] { display: none !important }` rule, so the
+next thing to reach for the attribute is not caught by the same trap.
+
+**Removed rather than styled away.** A button that is not in the document cannot
+be clicked, cannot be styled back into view by a later rule, cannot be found by a
+selector, and cannot hold a hover state. Nothing here has to be undone later: the
+half is chosen at launch and switching it restarts the app. Hiding would have left
+four of those five failure modes open.
+
+**The check that reported success.** The private-half harness asserted
+`button.hidden` - the attribute, which was correctly set - while the buttons were
+visibly on screen. An element was asked what it thought rather than what it was.
+It now measures the box and also asserts the entries are gone from the document,
+and that version was run against the broken build first and observed to fail.
+
+**Fifth of the kind today, and the third that was mine.** The pattern is now
+written down in memory: a check that reads a property instead of the rendered
+result, an async body under a non-awaiting runner, a selector meaning "wherever it
+happens to be", comparing the wrong two things. The rule that catches all four is
+the same - break the thing and watch the check go red before believing it.
