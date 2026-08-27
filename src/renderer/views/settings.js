@@ -44,15 +44,15 @@ export async function render() {
       <p class="view-sub">Where things are kept, and how notes reach the rest of the app.</p>
     </div>
 
-    ${nibSection(folders, bindings, roster)}
+    ${nibSection(folders, bindings, roster, status)}
     ${modelSection(model)}
     ${dataSection(status)}
     ${aboutSection(status)}
   `;
 }
 
-/** @param {any} folders @param {any} bindings @param {any} roster */
-function nibSection(folders, bindings, roster) {
+/** @param {any} folders @param {any} bindings @param {any} roster @param {any} status */
+function nibSection(folders, bindings, roster, status) {
   const bound = Array.isArray(bindings) ? bindings : [];
 
   const rows = bound
@@ -102,6 +102,16 @@ function nibSection(folders, bindings, roster) {
       <div class="card-top"><h2 class="card-title">How this works</h2></div>
       <p class="card-why">Point a Nib folder at a person, then say which of your Nib tags supplies each kind of contact Tend tracks. Writing a tagged note is then the evidence that the contact happened, with nothing to confirm afterwards - and an untagged note counts as nothing, so a folder can hold every sort of note about somebody.</p>
       <p class="card-why dim">Flagged action points inside those notes become promises here, and ticking one off in Nib closes it here too. Tend only reads Nib.</p>
+      <!--
+        The state of the automatic import, because a background job nobody can
+        see is a background job nobody believes. Without this line the honest
+        move would be to press the button beside it every time, which is the
+        habit the automatic import exists to remove.
+      -->
+      <p class="card-why ${status?.nibWatching ? "dim" : ""}">
+        ${status?.nibWatching ? "Notes import themselves, within a second of being tagged." : "Notes import on a timer only - this window is not watching the notebook."}
+        ${esc(String(status?.nibSync ?? ""))}
+      </p>
       <div class="card-foot">
         <span class="src">${folders.folders.length} folder(s) found in Nib</span>
         <button class="act primary" data-act="bind" ${noPeople ? "disabled" : ""}>Bind a folder</button>

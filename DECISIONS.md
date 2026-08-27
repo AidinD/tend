@@ -1359,3 +1359,64 @@ whoever renders it means the honesty is structural rather than remembered.
 the form is only the means, but a summary needs entries to summarise. Signals
 built on a guess about which patterns exist are worse than no signals, which is
 the same order the topic and stakeholder work followed.
+
+## 2026-08-27 - Notes import themselves, and the manual button stays
+
+Importing from Nib was correct, idempotent and reachable from exactly two
+places: a button in Settings and a command in the palette. It now runs on its
+own, from a watcher on the notebook's `index.json` with a ten-minute sweep
+underneath it, and both buttons stay.
+
+**Why this was the worst bug in the app.** The central claim - "you have not
+spoken to this person in three weeks" - was true only for somebody who
+remembered to press a button. Write the conversation up, tag it, close the
+notebook, and the app went on reporting silence with total confidence. Not a
+wrong answer that looks wrong: a right-looking answer built on a stale copy,
+which is the one failure there is nothing to notice about. Every other
+correctness rule in here - flag in doubt, never suppress a real signal - was
+being undone by the freshness of the data underneath it.
+
+**Why two triggers rather than one.** The watcher is what makes a note tagged a
+moment ago count a moment later. The sweep is not redundancy: a notebook can
+live in a synced folder, where a file arriving from another machine is written
+by a background process whose notifications are not something to stake the app's
+core claim on. A ten-minute floor on staleness costs one small file read per
+sweep and removes a class of "why does it not see my note" that would otherwise
+be unreproducible.
+
+**The directory is watched, not the file.** Nib saves atomically - temporary
+file, then rename - so a watch held on `index.json` follows the file that was
+replaced and goes silent after the first save. Watching the directory and
+filtering on the one filename survives that. The note bodies live in a
+subdirectory and are deliberately not watched: they are rewritten on every save,
+and nothing on the automatic path reads them.
+
+**Why running unattended does not widen what gets read.** Indexing opens
+`index.json` and nothing else, which is why `noteBody` sits alone at the bottom
+of the Nib reader with nothing calling it. Automatic or not, no note body is
+opened without somebody asking by name. The boundary was already in the right
+place; this change leans on it rather than moving it.
+
+**Why the manual buttons stay.** Preview-import answers a different question -
+what WOULD change - and it is the only way to check a new tag mapping without
+committing to it. Import-now is what somebody presses when they do not believe
+the automatic one ran, and taking it away would leave nothing to press.
+
+**Why the state is on screen.** A background job nobody can see is a background
+job nobody believes, and the honest response to not believing it is to press the
+manual button every time - which defeats the whole change. So Settings says when
+the last import ran and what it found, including when it found nothing. "Nothing
+new as of a minute ago" is the message that makes it trustworthy, and it is
+exactly the message a report that only speaks up on changes cannot send.
+
+**Repeated failures are said once.** An unreadable notebook fails identically on
+every sweep, for ever. Reporting each one buries the warning list under one
+message repeated six times an hour, which is the same as having no warning list;
+so a failure is announced when it appears and when its wording changes, and not
+otherwise.
+
+**It never creates the notebook directory.** A missing directory means the
+notebook is not there or is configured elsewhere, and the useful response is to
+say so. Creating it would make a misconfigured path look exactly like an empty
+notebook - the one reading that cannot be recovered from by looking at the
+screen.

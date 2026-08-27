@@ -24,6 +24,7 @@ import * as api from "../service/api.js";
 import * as model from "../service/model.js";
 import * as knowledge from "../service/knowledge.js";
 import * as nib from "../service/nib.js";
+import { describeSync, startNibSync } from "../service/nibsync.js";
 import { seedRoleMap } from "../service/seed.js";
 import { openStore } from "../storage/store.js";
 import { watchEvents } from "../storage/watch.js";
@@ -37,6 +38,33 @@ const warnings = [];
 /** Last thing the updater said, so Settings can show it. */
 let updateStatus = "No update check has run yet.";
 let updateListenersAttached = false;
+
+/**
+ * The job that keeps Tend's copy of Nib current. See service/nibsync.js.
+ *
+ * One per process rather than one per window: it is a property of the store,
+ * and two windows syncing the same notebook twice as often would buy nothing.
+ */
+/** @type {ReturnType<typeof startNibSync> | null} */
+let nibSync = null;
+
+/**
+ * Tell every open window something changed.
+ *
+ * The events watcher in `createWindow` deliberately ignores this process's own
+ * appends, which is right for its job and wrong for this one: an automatic
+ * import writes as the app's own writer, so without this the rows land and no
+ * window has any reason to ask for them.
+ *
+ * @param {string} channel
+ */
+function broadcast(channel) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send(channel);
+    }
+  }
+}
 
 const store = openStore({
   dataDir: dir,
@@ -167,7 +195,12 @@ const OPERATIONS = {
     warnings: warnings.slice(-5),
     version: app.getVersion(),
     packaged: app.isPackaged,
-    updateStatus
+    updateStatus,
+    // Said out loud on the one screen somebody visits to ask whether the import
+    // is working. A background job with no visible state is one you end up
+    // pressing the manual button beside anyway, which defeats the point of it.
+    nibSync: nibSync === null ? "Importing from Nib has not started." : describeSync(nibSync.state()),
+    nibWatching: nibSync?.state().watching ?? false
   })
 };
 
@@ -290,6 +323,19 @@ function checkForUpdates() {
 app.whenReady().then(() => {
   console.log(`[tend] data directory: ${dir} (${source})`);
   createWindow();
+
+  // Before the update check and before anything slow: its first pass is
+  // synchronous, so starting it here means the window's first query already
+  // sees this morning's notes rather than last week's.
+  nibSync = startNibSync({
+    store,
+    onChange: () => broadcast("tend:changed"),
+    onWarning: (msg) => {
+      warnings.push(msg);
+      console.warn(`[tend] ${msg}`);
+    }
+  });
+
   checkForUpdates();
 
   app.on("activate", () => {
@@ -303,4 +349,9 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("will-quit", () => {
+  nibSync?.stop();
+  nibSync = null;
 });
