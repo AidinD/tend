@@ -1900,6 +1900,10 @@ view offered a work example in the private half.
 
 ### Naming who an evening was about
 
+*Superseded within the hour, twice. See "A moment is an event with people in it"
+below for what this became and why. Kept because both wrong turns are worth
+knowing.*
+
 A person's page in the private half could say what was promised them and nothing
 about how it had been going. There is no "log a contact" there on purpose -
 contact feeds cadences and there are none - and no "record an observation",
@@ -1907,23 +1911,7 @@ because an observation records the other person's state, which is what that
 half's one rule forbids. Which left the honest answer to "how do I log something"
 as "write the day", and the day pointed at nobody.
 
-**So an entry may name people, and only in the private half.** The same rule the
-form has always followed: never ask for what can be derived. In the work half who
-he spoke to is already in the store; here nothing derives it, and without it a
-month of evenings is a month of undifferentiated days.
-
-**It does not weaken the rule the entry is written under.** That rule is about
-what an entry may SAY - the interaction and his own part in it, never the other
-person's state - and naming who was there says nothing about them. A test asserts
-the entry gains no field about them.
-
-**Ids are checked against the roster rather than trusted.** A name removed later
-would otherwise sit in the entry for ever, pointing at nothing, and turn up as a
-blank row on somebody else's page.
-
-**One checkbox per person rather than a list to pick from.** The roster in this
-half is short, and a tick is cheaper than opening a dropdown at eleven at night -
-which is the hour this form is designed around.
+The first attempt was a checkbox per person on the DAY's entry.
 
 ### The rail's green flecks
 
@@ -1956,3 +1944,55 @@ The Knowledge placeholder is the only instruction anybody reads on that page, an
 it was a work situation in both halves. An example from the wrong half does more
 than look careless: it tells you what sort of question the box wants, so it
 teaches the wrong use of the feature in the half where the feature is newest.
+
+## 2026-08-27 - A moment is an event with people in it, and the day is still the day
+
+Two wrong shapes preceded this one, both mine, both found by him within minutes
+of use.
+
+**First: people on the day's entry.** The day is a whole-day retrospective, so
+ticking four names put one day's text - which may not be about any of them - onto
+four people's pages. An answer built from that is worse than no answer. He spotted
+it as a question: does the day not mean the whole day?
+
+**Second: a moment tied to one person.** Better, and still wrong. Most of what is
+worth writing down involves several people at once - all the children - and one
+person per moment means writing the same sentence three times. That kind of cost
+does not make a feature slower to use; it stops it being used.
+
+**What it is now.** One event, dated to the day it happened on, naming everybody
+it involved. Written once, shown on each of their pages, and each of them says who
+else was there - because "this was all of you" and "this was you and me" are
+different memories. A day holds as many as it holds.
+
+**Why it is not the day, and the day did not change.** The day stays one entry per
+day, replaced, naming nobody. That rule exists because the pass over it counts
+DAYS: three rows for one Tuesday makes every count wrong and makes a catching-up
+evening look like three days of habit. Two actions on that page, and they are two
+different acts: a retrospective written in the evening, and an event logged when it
+happens.
+
+**Why it is not the work half's observation.** An observation exists to be the
+material a review conversation is built from, so it is about the other person.
+This is the other thing: what happened, and the half of it that was his.
+
+**Two text fields, and the second is the whole point.** `part` is required and
+`what` is not. One box would let the own-part half go unwritten, and the rule this
+half is written under only holds if it gets written - a form is where that becomes
+structural rather than remembered. "I was short with them" is a complete entry;
+"they slammed the door" cannot be saved at all.
+
+**Everybody named must exist, and one unknown name refuses the whole thing.**
+Quietly keeping the ones it recognised would store a moment that reads as complete
+and is missing a person.
+
+**A tie-break on the write time.** Two moments on one day sort equal by date, and
+`sort` is then free to order them however it likes. Found by a test asserting the
+second of two same-day moments came first, which it did not reliably.
+
+**Deliberately not built: splitting a shared moment per person with a model.** He
+raised it, and the multi-person moment removes most of what it was for - one write,
+appearing on each page, saying who else was there. What is left is a real risk: a
+model asked to divide one sentence into per-person prose is inventing attribution,
+which is the plausible-but-wrong record this app refuses everywhere else. If it is
+built, it belongs on the same footing as a brief - shown, and never stored.

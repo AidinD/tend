@@ -34,10 +34,8 @@ import {
   JOURNAL_FIELDS,
   REVIEW_WINDOW_DAYS,
   coverage,
-  entriesAbout,
   entriesSince,
-  hasContent,
-  peopleIn
+  hasContent
 } from "../domain/journal.js";
 import { declared, ledger as reviewLedger, ledgerLines, readiness, unread } from "../domain/review.js";
 import {
@@ -1314,7 +1312,8 @@ export function removeRow(store, collection, id) {
     "growthNotes",
     "waiting",
     "chases",
-    "reviews"
+    "reviews",
+    "moments"
   ];
   if (!removable.includes(collection)) {
     return { error: `Rows in "${collection}" are not removable. Removable: ${removable.join(", ")}.` };
@@ -1823,8 +1822,6 @@ export function vocabulary(store) {
  * @param {string} [args.avoided]
  * @param {string} [args.differently]
  * @param {string} [args.notes]
- * @param {string[]} [args.people] Who the day was about. Only the private half
- *   asks - in the work half the store already knows who he spoke to.
  */
 export function logEntry(store, { now, at, ...fields }) {
   const when = typeof at === "number" ? at : now;
@@ -1839,16 +1836,6 @@ export function logEntry(store, { now, at, ...fields }) {
     entry[field.name] = value === "" ? null : value;
   }
 
-  // Who the day was about, if the form asked. Ids are checked against the roster
-  // rather than trusted: a name that has been removed since would otherwise sit
-  // in the entry for ever, pointing at nothing, and turn up as a blank row on
-  // somebody else's page.
-  if (fields.people !== undefined) {
-    const roster = new Set(store.rows("people").map((p) => String(p.id)));
-    entry.people = (Array.isArray(fields.people) ? fields.people : [])
-      .map((/** @type {unknown} */ id) => String(id))
-      .filter((/** @type {string} */ id) => roster.has(id));
-  }
 
   if (!hasContent(entry)) {
     return { error: "Nothing was written, so there is nothing to keep." };
@@ -1890,39 +1877,183 @@ export function journal(store, now, days = REVIEW_WINDOW_DAYS) {
       took: e.took ?? null,
       avoided: e.avoided ?? null,
       differently: e.differently ?? null,
-      notes: e.notes ?? null,
-      people: peopleIn(e)
+      notes: e.notes ?? null
     }))
   };
 }
 
 /**
- * The evenings that name one person.
+ * One thing that happened, who it involved, and his own part in it.
  *
- * Read by their page. This is the whole reason an entry may name anybody: without
- * it, "what has been happening with this person" has no answer, and a month of
- * evenings is a month of undifferentiated days.
+ * ## Three shapes were tried before this one
+ *
+ * First a checkbox per person on the DAY's entry. Wrong: the day is a whole-day
+ * retrospective, so ticking four names put one day's text - which may not be
+ * about any of them - onto four people's pages.
+ *
+ * Then a moment tied to one person. Also wrong, and he said so straight away:
+ * most of what is worth writing down involves several people at once, and one
+ * person per moment means writing the same sentence three times. Which is the
+ * kind of cost that stops a thing being written at all.
+ *
+ * So: one event, dated to the moment rather than to the day, naming everybody it
+ * involved. Written once, shown on each of their pages. A day holds as many as it
+ * holds.
+ *
+ * ## Why it is not the work half's observation
+ *
+ * An observation exists to be material a review conversation is built from, so it
+ * is about the other person. This is the other thing: what happened, and the half
+ * of it that was his.
+ *
+ * ## Why the two text fields are separate
+ *
+ * `part` is the point of the whole feature, and one box would let it go
+ * unwritten. The rule this half is written under - record the interaction and
+ * your own part in it, never the other person's state - only holds if the second
+ * half actually gets written, and a form is where that becomes structural rather
+ * than remembered. Same reasoning as the growth thread's marker having a field of
+ * its own instead of being expected inside a paragraph.
+ *
+ * `what` may be left out; `part` may not. "I was short with them" is a complete
+ * entry. "They slammed the door" is the exact thing this half refuses to keep.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string[]} [args.people] Who it involved. Ids or names.
+ * @param {string} [args.person] One person, for the button on their own page.
+ * @param {string} args.part What his own part in it was. Required.
+ * @param {string} [args.what] What happened. Optional.
+ * @param {number} [args.at] When. Defaults to now.
+ * @param {number} args.now
+ */
+export function logMoment(store, { people, person, part, what, at, now }) {
+  if (!String(part ?? "").trim()) {
+    return {
+      error:
+        "Say what your own part in it was. That is the half you can change, and it is the only " +
+        "half worth keeping - a note about what somebody else did is the thing this half refuses."
+    };
+  }
+
+  const asked = [...(Array.isArray(people) ? people : []), ...(person ? [person] : [])];
+  if (asked.length === 0) {
+    return { error: "Say who it involved. A moment with nobody in it belongs in the day." };
+  }
+
+  /** @type {string[]} */
+  const ids = [];
+  for (const one of asked) {
+    const found = resolvePerson(store, String(one));
+    if (!found.ok) {
+      return { error: found.error };
+    }
+    if (!ids.includes(found.person.id)) {
+      ids.push(found.person.id);
+    }
+  }
+
+  const when = typeof at === "number" ? at : now;
+  if (isLaterDay(when, now)) {
+    return { error: "That day has not arrived yet." };
+  }
+
+  const id = store.create("moments", {
+    people: ids,
+    what: String(what ?? "").trim() || null,
+    part: String(part).trim(),
+    at: when
+  });
+  return { id, people: ids.length };
+}
+
+/**
+ * Newest first, and deterministic when two share a day.
+ *
+ * A moment is dated to the day, so several in one day sort equal - and `sort` is
+ * then free to return them in whichever order it likes. The tie-break is when the
+ * row was written, which is the only other ordering there is and the one "newest"
+ * means for two things that happened the same afternoon.
+ *
+ * Found by a test asserting the second of two same-day moments came first, which
+ * it did not reliably.
+ *
+ * @param {Record<string, any>} a
+ * @param {Record<string, any>} b
+ */
+function byNewestMoment(a, b) {
+  const day = Number(b.at ?? 0) - Number(a.at ?? 0);
+  return day !== 0 ? day : Number(b._at ?? 0) - Number(a._at ?? 0);
+}
+
+/**
+ * Who a moment involved, read defensively.
+ *
+ * @param {Record<string, any>} moment
+ * @returns {string[]}
+ */
+function momentPeople(moment) {
+  const raw = moment?.people;
+  if (Array.isArray(raw)) {
+    return raw.map((id) => String(id)).filter((id) => id !== "");
+  }
+  // A single-person moment, from the shape this had for one afternoon.
+  return moment?.person ? [String(moment.person)] : [];
+}
+
+/**
+ * The moments involving one person, newest first.
+ *
+ * Each carries who ELSE was there, because a moment written once about three
+ * children reads oddly on one child's page without it - and because "this was all
+ * of you" and "this was you and me" are different memories.
  *
  * @param {import("../storage/store.js").TendStore} store
  * @param {string} who
  * @param {number} now
  */
-export function entriesFor(store, who, now) {
+export function momentsFor(store, who, now) {
   const found = resolvePerson(store, who);
   if (!found.ok) {
     return { error: found.error };
   }
-  return entriesAbout(store.rows("entries"), found.person.id).map((e) => ({
-    id: String(e.id),
-    at: Number(e.at ?? 0),
-    when: agoWords(Math.max(0, Math.floor((now - Number(e.at ?? now)) / 86_400_000))),
-    // The fields, in the order they are asked, so the page does not have to know
-    // which they are.
-    lines: JOURNAL_FIELDS.filter((f) => String(e[f.name] ?? "").trim() !== "").map((f) => ({
-      label: f.label,
-      text: String(e[f.name])
-    }))
-  }));
+  const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name ?? "")]));
+
+  return store
+    .rows("moments")
+    .filter((m) => momentPeople(m).includes(found.person.id))
+    .sort(byNewestMoment)
+    .map((m) => ({
+      id: String(m.id),
+      at: Number(m.at ?? 0),
+      when: agoWords(Math.max(0, Math.floor((now - Number(m.at ?? now)) / 86_400_000))),
+      what: m.what ?? null,
+      part: String(m.part ?? ""),
+      alsoThere: momentPeople(m)
+        .filter((id) => id !== found.person.id)
+        .map((id) => names.get(id) ?? "somebody")
+    }));
+}
+
+/**
+ * Every moment, newest first. For the page you write them from.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ */
+export function moments(store, now) {
+  const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name ?? "")]));
+  return store
+    .rows("moments")
+    .sort(byNewestMoment)
+    .map((m) => ({
+      id: String(m.id),
+      at: Number(m.at ?? 0),
+      when: agoWords(Math.max(0, Math.floor((now - Number(m.at ?? now)) / 86_400_000))),
+      what: m.what ?? null,
+      part: String(m.part ?? ""),
+      who: momentPeople(m).map((id) => names.get(id) ?? "somebody")
+    }));
 }
 
 /**

@@ -689,6 +689,24 @@ button.row:hover {
   min-width: 0;
 }
 
+/*
+ * A footnote inside a line sits under it, not welded to the end of it.
+ *
+ * `.src` is a flex row wherever it is used as a card's footer, and inline inside
+ * a line that made "...when the tower fell" and "with the other one" read as one
+ * run-together sentence. Two facts about the same moment, and the second is
+ * context - so it goes on its own line, dimmer, the way it already reads in the
+ * draft lists.
+ */
+.line-text .src {
+  display: block;
+  margin-top: 2px;
+}
+
+.line-text .src::before {
+  display: none;
+}
+
 .line-right {
   margin-left: auto;
   flex: none;

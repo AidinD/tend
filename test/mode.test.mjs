@@ -36,15 +36,16 @@ import {
   referenceNotes
 } from "../src/service/nib.js";
 import { search } from "../src/service/knowledge.js";
+import * as api from "../src/service/api.js";
 import {
   addPerson,
-  entriesFor,
-  logEntry,
+  logMoment,
+  momentsFor,
   person,
   setRelation,
   vocabulary
 } from "../src/service/api.js";
-import { entriesAbout, peopleIn } from "../src/domain/journal.js";
+
 import { openStore } from "../src/storage/store.js";
 import { MODE_ENV, MODE_FILE, readMode, windowTitle, writeMode } from "../src/main/mode.js";
 import { checkOwnPart } from "../src/service/model.js";
@@ -561,7 +562,7 @@ describe("reference material is not about either half", () => {
 });
 
 
-describe("an evening can say who it was about", () => {
+describe("a moment, and the people it involved", () => {
   /** @type {string} */
   let dir;
   /** @type {import("../src/storage/store.js").TendStore} */
@@ -569,74 +570,132 @@ describe("an evening can say who it was about", () => {
   const NOW = Date.parse("2026-08-27T20:00:00Z");
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "tend-entry-people-"));
+    dir = mkdtempSync(join(tmpdir(), "tend-moments-"));
     let t = 1;
     store = openStore({ dataDir: dir, role: "app", half: "private", host: "test", now: () => t++ });
+    for (const name of ["One", "Two", "Three"]) {
+      addPerson(store, { name, relation: "child", now: NOW });
+    }
   });
 
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("puts the evening on their page", () => {
+  it("is written once and appears on every page it involved", () => {
     /*
-     * The gap this closes. A person's page could say what was promised them and
-     * nothing about how it had been going, and there was nowhere to record an
-     * evening against anybody - so a month of entries was a month of
-     * undifferentiated days.
+     * The version before this tied a moment to one person, and he said what was
+     * wrong with it straight away: most of what is worth writing down involves
+     * several people at once, and one row per person means writing the same
+     * sentence three times. That cost is what stops a thing being written at all.
      */
-    const id = String(/** @type {any} */ (addPerson(store, { name: "Someone", relation: "partner", now: NOW })).id);
-    ok(logEntry(store, { now: NOW, took: "We built a tower and I got impatient", people: [id] }));
+    ok(
+      logMoment(store, {
+        people: ["One", "Two", "Three"],
+        what: "The tower fell over",
+        part: "I got impatient instead of rebuilding it",
+        now: NOW
+      })
+    );
 
-    const theirs = /** @type {any[]} */ (entriesFor(store, "Someone", NOW));
-    assert.equal(theirs.length, 1);
-    assert.equal(theirs[0].lines[0].label, "What took the day");
-    assert.match(theirs[0].lines[0].text, /got impatient/);
-  });
-
-  it("keeps the entry about his own part - naming somebody adds no field about them", () => {
-    // The rule the private journal is written under is about WHAT an entry may
-    // say. Who was there says nothing about them, so the fields are unchanged.
-    const id = String(/** @type {any} */ (addPerson(store, { name: "Someone", relation: "partner", now: NOW })).id);
-    ok(logEntry(store, { now: NOW, took: "A day", people: [id] }));
-
-    const [row] = store.rows("entries");
-    assert.deepEqual(peopleIn(row), [id]);
-    for (const theirs of ["mood", "state", "them", "behaviour"]) {
-      assert.equal(row[theirs], undefined, `an entry gained a field about them: ${theirs}`);
+    assert.equal(store.rows("moments").length, 1, "it was stored more than once");
+    for (const name of ["One", "Two", "Three"]) {
+      const mine = /** @type {any[]} */ (momentsFor(store, name, NOW));
+      assert.equal(mine.length, 1, `${name} cannot see it`);
+      assert.match(String(mine[0].part), /got impatient/);
     }
   });
 
-  it("drops an id that is not on the roster", () => {
-    // Otherwise a name removed later sits in the entry for ever, pointing at
-    // nothing, and turns up as a blank row on somebody else's page.
-    ok(logEntry(store, { now: NOW, took: "A day", people: ["not-a-person"] }));
-    assert.deepEqual(peopleIn(store.rows("entries")[0]), []);
+  it("says who else was there, because that is a different memory", () => {
+    ok(logMoment(store, { people: ["One", "Two"], part: "I was short with them", now: NOW }));
+    const [mine] = /** @type {any[]} */ (momentsFor(store, "One", NOW));
+    assert.deepEqual(mine.alsoThere, ["Two"]);
+
+    ok(logMoment(store, { people: ["One"], part: "Just the two of us", now: NOW }));
+    const [latest] = /** @type {any[]} */ (momentsFor(store, "One", NOW));
+    assert.deepEqual(latest.alsoThere, []);
   });
 
-  it("leaves an entry that named nobody alone", () => {
-    ok(logEntry(store, { now: NOW, took: "A day" }));
-    assert.deepEqual(peopleIn(store.rows("entries")[0]), []);
+  it("refuses one that says only what somebody else did", () => {
+    // The rule this half is written under, made structural. A form is where it
+    // holds and good intentions are not.
+    const refused = logMoment(store, {
+      people: ["One"],
+      what: "They slammed the door",
+      part: "   ",
+      now: NOW
+    });
+    assert.match(String(/** @type {any} */ (refused).error), /your own part/);
+    assert.equal(store.rows("moments").length, 0);
   });
 
-  it("shows the newest evening first, and skips one with every box empty", () => {
-    const rows = [
-      { at: NOW - 3 * 86_400_000, took: "Older", people: ["p1"] },
-      { at: NOW, took: "Newer", people: ["p1"] },
-      { at: NOW - 86_400_000, people: ["p1"] }
-    ];
-    const found = entriesAbout(rows, "p1");
+  it("accepts one that is only his own part", () => {
+    // "I was short with them" is complete and useful. What happened is often
+    // obvious to the person writing it, and demanding it makes the cheap thing
+    // expensive.
+    ok(logMoment(store, { people: ["One"], part: "I was short with them", now: NOW }));
+    assert.equal(/** @type {any[]} */ (momentsFor(store, "One", NOW))[0].what, null);
+  });
+
+  it("refuses one with nobody in it", () => {
+    const refused = logMoment(store, { people: [], part: "Something", now: NOW });
+    assert.match(String(/** @type {any} */ (refused).error), /belongs in the day/);
+  });
+
+  it("refuses somebody who is not here, rather than dropping them quietly", () => {
+    // Silently keeping the ones it recognised would store a moment that reads as
+    // complete and is missing a person.
+    const refused = logMoment(store, { people: ["One", "Nobody"], part: "Something", now: NOW });
+    assert.ok("error" in /** @type {any} */ (refused));
+    assert.equal(store.rows("moments").length, 0);
+  });
+
+  it("counts one person once, however many ways they were named", () => {
+    const id = String(store.rows("people").find((p) => p.name === "One")?.id);
+    ok(logMoment(store, { people: ["One", id], person: "One", part: "Something", now: NOW }));
+    assert.deepEqual(store.rows("moments")[0].people, [id]);
+  });
+
+  it("refuses a day that has not happened", () => {
+    const refused = logMoment(store, {
+      people: ["One"],
+      part: "Something",
+      at: NOW + 3 * 86_400_000,
+      now: NOW
+    });
+    assert.match(String(/** @type {any} */ (refused).error), /has not arrived/);
+  });
+
+  it("holds several on one day, because a day holds more than one moment", () => {
+    // The distinction that started this: the day is one entry replaced, because
+    // the pass over it counts days. A moment is an event, and a day has several.
+    ok(logMoment(store, { people: ["One"], part: "First", now: NOW }));
+    ok(logMoment(store, { people: ["One"], part: "Second", now: NOW }));
+    assert.equal(/** @type {any[]} */ (momentsFor(store, "One", NOW)).length, 2);
+  });
+
+  it("lists them all newest first, for the page they are written from", () => {
+    ok(logMoment(store, { people: ["One"], part: "Older", at: NOW - 3 * 86_400_000, now: NOW }));
+    ok(logMoment(store, { people: ["Two"], part: "Newer", now: NOW }));
+    const all = /** @type {any[]} */ (api.moments(store, NOW));
     assert.deepEqual(
-      found.map((e) => e.took),
+      all.map((m) => m.part),
       ["Newer", "Older"]
     );
+    assert.deepEqual(all[0].who, ["Two"]);
+  });
+
+  it("does not touch the day, which stays about the day and names nobody", () => {
+    // Asserted rather than assumed, because the wrong version of this shipped.
+    ok(api.logEntry(store, { now: NOW, took: "A day" }));
+    assert.equal(store.rows("entries")[0].people, undefined, "the day is naming people again");
   });
 
   it("is offered in the private half and not in the work half", () => {
-    // Same rule as everywhere: in the work half the store already knows who he
-    // spoke to, so asking would waste the one thing a form has.
-    assert.equal(personBlocksIn("private").entries, true);
-    assert.equal(personBlocksIn("work").entries, false);
+    assert.equal(personBlocksIn("private").moments, true);
+    // The work half has observations in that slot, and they are a different
+    // thing: material a review conversation is built from, so about them.
+    assert.equal(personBlocksIn("work").moments, false);
   });
 });
 

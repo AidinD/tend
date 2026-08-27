@@ -273,6 +273,28 @@ async function connect(url) {
     return { width: last, settled: false, waited: Date.now() - started, trace };
   };
 
+  /**
+   * Is the window actually being presented?
+   *
+   * Asked by capturing a frame, because nothing else answers it:
+   * `document.visibilityState` still says "visible" for a window that is
+   * occluded, minimised, or on a locked session, while Chromium's compositor
+   * produces no frames at all.
+   *
+   * Used to add a note to a failure, never to explain one - see the aside beside
+   * the maximise check.
+   *
+   * @returns {Promise<boolean>}
+   */
+  const presented = async () => {
+    try {
+      await send("Page.captureScreenshot", { format: "png" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   /** @param {string} selector */
   const click = async (selector) => {
     const clicked = await evaluate(
@@ -391,6 +413,7 @@ async function connect(url) {
     dialogOptions,
     dismissDialog,
     screenshot,
+    presented,
     close: () => socket.close()
   };
 }
@@ -2169,6 +2192,27 @@ try {
   await page.click('[data-window="maximize"]');
   const restored = await page.settledWidth((width) => width === before);
 
+  /*
+   * Asked only when it went wrong: is this window even being presented?
+   *
+   * This check failed three times in one day with a message blaming the preload
+   * bridge, and every one of those runs had also failed to capture a screenshot -
+   * which happens when the compositor is producing no frames.
+   *
+   * Stated as an aside and never as the cause, which is the whole care in it: a
+   * later run had the window unpresented and the resize working, so being
+   * unpresented does not explain a failure on its own. Replacing the explanation
+   * would trade one misleading message for another; adding the fact cannot
+   * mislead.
+   */
+  const onScreen = maximised.settled && restored.settled ? true : await page.presented();
+  const aside = onScreen
+    ? ""
+    : ". Note: this window is not being presented - occluded, minimised, or a locked session - " +
+      "and a screenshot could not be captured either. That has accompanied every failure of this " +
+      "check so far, and has also been true of a run that passed, so it is a fact rather than the " +
+      "cause.";
+
   check("clicking maximise actually resizes the window, and again restores it", () => {
     if (!start.settled) {
       throw new Error(`the window was still moving before the click: ${start.trace.join(" -> ")}`);
@@ -2176,11 +2220,11 @@ try {
     if (!maximised.settled) {
       if (maximised.trace.length === 1) {
         throw new Error(
-          `width held at ${maximised.width} for ${maximised.waited}ms; the click did not reach the main process`
+          `width held at ${maximised.width} for ${maximised.waited}ms; the click did not reach the main process${aside}`
         );
       }
       throw new Error(
-        `width went ${maximised.trace.join(" -> ")} in ${maximised.waited}ms and never held above ${before}`
+        `width went ${maximised.trace.join(" -> ")} in ${maximised.waited}ms and never held above ${before}${aside}`
       );
     }
     if (!restored.settled) {

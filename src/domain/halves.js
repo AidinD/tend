@@ -244,7 +244,7 @@ export function homeViewIn(half) {
  * discovering later that it renders drift over a picture of your family.
  *
  * @param {string} half
- * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, themes: boolean, entries: boolean }}
+ * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, themes: boolean, moments: boolean }}
  */
 export function personBlocksIn(half) {
   const isPrivate = half === "private";
@@ -266,14 +266,17 @@ export function personBlocksIn(half) {
     skips: !isPrivate,
     themes: !isPrivate,
     /*
-     * The evenings that name them.
+     * Moments: one thing that happened, and his own part in it.
      *
-     * Only in the private half, and the asymmetry is the same rule as everywhere
-     * else: in the work half who he spoke to is already in the store, so the
-     * journal deliberately does not ask. Here nothing derives it, and without it
-     * a person's page can say what he owes them and nothing about how it has been
-     * going.
+     * The private half only, and it is what answers "how has it been going" -
+     * which promises and waiting cannot. The work half has observations for the
+     * same slot, and they are a different thing: material for a review
+     * conversation, and therefore about the other person.
+     *
+     * This started as a checkbox on the day's entry, and that was the wrong
+     * shape: a whole-day retrospective attached to four names put one day's text
+     * on four pages. The day is the day.
      */
-    entries: isPrivate
+    moments: isPrivate
   };
 }

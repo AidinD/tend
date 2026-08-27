@@ -23,6 +23,7 @@ import { act, ask, asDateInput, kindsFor, esc, form, pill, tend } from "../ui.js
 import { go, refresh } from "../app.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 import { actions as growthActions, threadsBlock } from "./growth.js";
+import { actions as journalActions } from "./journal.js";
 import { actions as waitingActions, waitingBlock } from "./waiting.js";
 
 /**
@@ -203,22 +204,29 @@ async function personPage(id) {
   const waitingOn = blocks.waiting ? await waitingBlock(String(p.id)) : "";
 
   /*
-   * The evenings that named them.
+   * Moments: one thing that happened, and his own part in it.
    *
    * The answer to "how has it been going", which promises and waiting cannot
-   * give. Each one is his own writing about his own part - naming who was there
-   * is what makes it findable here, and says nothing about them.
+   * give. His own part is shown first and in full, because it is the half of the
+   * record that is his and the half worth re-reading; what happened sits under it
+   * as context and is often absent, which is fine.
    */
-  const evenings = blocks.entries
-    ? /** @type {any[]} */ (await tend.invoke("entriesFor", { person: String(p.id) }))
+  const moments = blocks.moments
+    ? /** @type {any[]} */ (await tend.invoke("momentsFor", { person: String(p.id) }))
     : [];
-  const eveningLines = (Array.isArray(evenings) ? evenings : [])
+  const momentLines = (Array.isArray(moments) ? moments : [])
     .map(
-      (/** @type {any} */ e) => `<div class="line">
-        <span class="line-when">${esc(e.when)}</span>
-        <span class="line-text">${(e.lines ?? [])
-          .map((/** @type {any} */ l) => `<strong>${esc(l.label)}:</strong> ${esc(l.text)}`)
-          .join("<br>")}</span>
+      (/** @type {any} */ m) => `<div class="line">
+        <span class="line-when">${esc(m.when)}</span>
+        <span class="line-text">${esc(m.part)}${
+          m.what ? `<span class="src">${esc(m.what)}</span>` : ""
+        }${
+          (m.alsoThere ?? []).length > 0
+            ? `<span class="src">with ${esc(m.alsoThere.join(", "))}</span>`
+            : ""
+        }</span>
+        <button class="act tiny danger" data-act="unlogMoment" data-id="${esc(m.id)}"
+          data-what="${esc(m.part)}">Not right</button>
       </div>`
     )
     .join("");
@@ -268,7 +276,12 @@ async function personPage(id) {
           the only one. A promise is owed the same way to somebody you live with,
           and the person let down is let down in the same way.
         -->
-        <button class="act ${blocks.cadences ? "" : "primary"}" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
+        ${
+          blocks.moments
+            ? `<button class="act primary" data-act="logMoment" data-person="${esc(p.id)}">Something happened</button>`
+            : ""
+        }
+        <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
         ${blocks.themes ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>` : ""}
         ${
           blocks.themes && model.available
@@ -295,11 +308,11 @@ async function personPage(id) {
           : ""
       }
       ${
-        blocks.entries
+        blocks.moments
           ? list(
-              "Evenings that named them",
-              eveningLines,
-              "None yet. Write the day on The day and tick their name - that is what puts it here."
+              "Moments",
+              momentLines,
+              "Nothing yet. One thing that happened and your own part in it - which is the half you can change, and the only half worth keeping."
             )
           : ""
       }
@@ -370,6 +383,28 @@ export const actions = {
   // a copy that drifts.
   ...growthActions,
   ...waitingActions,
+
+  /*
+   * Logging a moment is the journal's dialog, opened with this person pre-ticked.
+   *
+   * Shared rather than written twice. It is the same act from two places, and two
+   * copies of a form with a required field and a person picker is two copies that
+   * drift - which this project has paid for four times over in derived lists.
+   */
+  logMoment: (/** @type {Record<string, string>} */ d) => journalActions.logMoment(d),
+
+  /** @param {Record<string, string>} d */
+  unlogMoment: async (d) => {
+    const sure = await ask({
+      title: "Take it back?",
+      body: `"${d.what}" is removed. The log keeps the history; the page stops showing it.`,
+      confirm: "Remove",
+      tone: "danger"
+    });
+    if (sure && (await act("removeRow", { collection: "moments", id: d.id }, "Removed."))) {
+      refresh();
+    }
+  },
 
   /** @param {Record<string, string>} d */
   logSkip: async (d) => {

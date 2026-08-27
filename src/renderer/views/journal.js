@@ -35,7 +35,7 @@
  * nothing here nags, and the pass over it does not get an exception.
  */
 
-import { act, asDateInput, esc, form, tend } from "../ui.js";
+import { act, asDateInput, esc, form, tend, toast } from "../ui.js";
 import { isRunning, modelActions, modelStatus, ownPartHtml, resultFor, reviewHtml, run } from "../model.js";
 import { refresh } from "../app.js";
 
@@ -86,7 +86,18 @@ export async function render() {
             }
           </p>
         </div>
-        <button class="act primary" data-act="writeEntry">Write today</button>
+        <span class="foot-actions">
+          <!--
+            Two actions, and they are two different acts rather than one with a
+            switch. The day is a retrospective written once, in the evening, about
+            where the whole of it went. A moment is an event, logged when it
+            happens, involving specific people - and a day holds as many as it
+            holds. Folding either into the other is what produced the first two
+            wrong versions of this.
+          -->
+          ${isPrivate ? `<button class="act" data-act="logMoment">Log something</button>` : ""}
+          <button class="act primary" data-act="writeEntry">Write today</button>
+        </span>
       </div>
     </div>`;
 
@@ -101,6 +112,7 @@ export async function render() {
 
   if (entries.length === 0) {
     return `${head}
+      ${isPrivate ? await momentsSection() : ""}
       <div class="empty">
         Nothing written yet. The questions are what took the day, what you
         avoided, and what you would do differently - none of them things Tend can
@@ -112,9 +124,54 @@ export async function render() {
 
   return `${head}
     ${coverage}
+    ${isPrivate ? await momentsSection() : ""}
     ${readingSection(cover, model, backlog)}
     ${keptSection(Array.isArray(kept) ? kept : [])}
     ${entries.map((/** @type {any} */ e) => entry(e, fields, isPrivate, model)).join("")}`;
+}
+
+/**
+ * The moments logged, newest first.
+ *
+ * On this page rather than only on people's pages, because this is where he comes
+ * to write about his life - and because a moment involving three of them has no
+ * single page it belongs to. Each one says who it involved; their own pages show
+ * the same rows filtered to them.
+ */
+async function momentsSection() {
+  const rows = /** @type {any[]} */ (await tend.invoke("moments"));
+  const logged = Array.isArray(rows) ? rows : [];
+
+  if (logged.length === 0) {
+    return "";
+  }
+
+  return `<div class="group">
+    <div class="group-head">
+      <span class="group-title">Moments</span>
+      <span class="group-rule"></span>
+      <span class="group-meta">${logged.length}</span>
+    </div>
+    <div class="rows">
+      ${logged
+        .slice(0, 12)
+        .map(
+          (/** @type {any} */ m) => `<div class="row static">
+            <span class="row-name">${esc(m.part)}</span>
+            <span class="row-right">
+              <span class="row-meta">${esc((m.who ?? []).join(", "))}</span>
+              <span class="pill plain">${esc(m.when)}</span>
+            </span>
+          </div>`
+        )
+        .join("")}
+    </div>
+    ${
+      logged.length > 12
+        ? `<p class="card-why dim">${logged.length - 12} more, on the pages of the people they involved.</p>`
+        : ""
+    }
+  </div>`;
 }
 
 /**
@@ -355,6 +412,92 @@ export const actions = {
   readJournal: () => run(REVIEW_KEY, "reviewJournal", {}),
 
   /**
+   * One thing that happened, whoever it involved.
+   *
+   * Reachable from this page rather than only from a person, because most of what
+   * is worth writing down involves more than one of them - and a version that
+   * asked per person meant writing the same sentence three times, which is the
+   * kind of cost that stops a thing being written at all.
+   *
+   * A checkbox each. `data-person` pre-ticks one when this is opened from
+   * somebody's own page.
+   *
+   * @param {Record<string, string>} d
+   */
+  logMoment: async (d) => {
+    const roster = /** @type {any[]} */ (await tend.invoke("people"));
+    const people = Array.isArray(roster) ? roster : [];
+    if (people.length === 0) {
+      toast("Add somebody first - a moment is about the people who were in it.", "bad");
+      return;
+    }
+
+    const values = await form({
+      title: "What happened?",
+      intro:
+        "An event rather than a day, so log as many as the day holds. Your own part in it is the " +
+        "half worth keeping - it is the half you can change, and the only version you could show " +
+        "the person it is about.",
+      fields: [
+        {
+          name: "what",
+          label: "What happened",
+          type: /** @type {const} */ ("textarea"),
+          hint: "Optional. Often obvious to you, and leaving it out costs nothing."
+        },
+        {
+          name: "part",
+          label: "My part in it",
+          type: /** @type {const} */ ("textarea"),
+          required: true,
+          hint: "What you did, chose, felt or avoided. Not what they were like."
+        },
+        {
+          name: "whoNote",
+          label: "Who was in it",
+          type: /** @type {const} */ ("note"),
+          value: "Tick everybody it involved. It is written once and appears on each of their pages."
+        },
+        ...people.map((/** @type {any} */ person) => ({
+          name: `with:${person.id}`,
+          label: String(person.name),
+          type: /** @type {const} */ ("checkbox"),
+          value: String(person.id) === String(d.person ?? "")
+        })),
+        {
+          name: "at",
+          label: "When",
+          type: /** @type {const} */ ("date"),
+          value: asDateInput(Date.now())
+        }
+      ],
+      confirm: "Keep it"
+    });
+    if (!values) {
+      return;
+    }
+
+    const chosen = people
+      .map((/** @type {any} */ person) => String(person.id))
+      .filter((/** @type {string} */ id) => values[`with:${id}`] === true);
+
+    if (chosen.length === 0) {
+      toast("Tick at least one person - a moment with nobody in it belongs in the day.", "bad");
+      return;
+    }
+
+    if (
+      await act(
+        "logMoment",
+        { what: values.what, part: values.part, at: values.at, people: chosen },
+        "Kept."
+      )
+    ) {
+      refresh();
+    }
+  },
+
+  /**
    * Read one entry back against the rule.
    *
    * The whole entry is sent, not one box, because the rule is about what the
@@ -398,34 +541,24 @@ export const actions = {
     }
   },
 
-  /** @param {Record<string, string>} d */
+  /**
+   * Writing the day.
+   *
+   * No people here, deliberately. A checkbox per person was added and taken out
+   * again: this is a whole-day retrospective, so ticking four names put one day's
+   * text - which may not be about any of them - onto four people's pages. What
+   * belongs to a person is a moment, and it lives on their page.
+   *
+   * @param {Record<string, string>} d
+   */
   writeEntry: async (d) => {
-    const [result, vocab, roster] = await Promise.all([
-      tend.invoke("journal"),
-      tend.invoke("vocabulary"),
-      tend.invoke("people")
-    ]);
+    const result = await tend.invoke("journal");
     const at = d.at === undefined ? Date.now() : Number(d.at);
     const day = new Date(at).toISOString().slice(0, 10);
     const existing = (result?.entries ?? []).find(
       (/** @type {any} */ e) => new Date(e.at).toISOString().slice(0, 10) === day
     );
     const fields = Array.isArray(result?.fields) ? result.fields : [];
-
-    /*
-     * Who the evening was about, asked only where nothing else can answer it.
-     *
-     * In the work half the store already knows who he spoke to, so asking would
-     * waste the one thing a form has. Here nothing derives it, and without it a
-     * month of evenings is a month of undifferentiated days - and a person's page
-     * can say what he owes them and nothing about how it has been going.
-     *
-     * One checkbox each rather than a list to pick from, because the roster in
-     * this half is short and a tick is cheaper than opening a dropdown at eleven
-     * at night. `data-` names carry the id, so a rename costs nothing.
-     */
-    const named = vocab?.personBlocks?.entries === true && Array.isArray(roster) ? roster : [];
-    const already = new Set(existing?.people ?? []);
 
     const values = await form({
       title: existing ? `Edit ${new Date(at).toLocaleDateString("sv-SE")}` : "How was the day?",
@@ -441,24 +574,6 @@ export const actions = {
           value: existing?.[f.name] ?? "",
           hint: f.hint
         })),
-        ...(named.length === 0
-          ? []
-          : [
-              {
-                name: "whoNote",
-                label: "Who it was about",
-                type: /** @type {const} */ ("note"),
-                value:
-                  "Optional, and it changes nothing about what the entry says - it stays about " +
-                  "your own part in it. It is what makes the evenings show up on their page."
-              },
-              ...named.map((/** @type {any} */ person) => ({
-                name: `with:${person.id}`,
-                label: String(person.name),
-                type: /** @type {const} */ ("checkbox"),
-                value: already.has(String(person.id))
-              }))
-            ]),
         { name: "at", label: "Which day", type: /** @type {const} */ ("date"), value: asDateInput(at) }
       ],
       confirm: "Keep it"
@@ -466,19 +581,7 @@ export const actions = {
     if (!values) {
       return;
     }
-
-    /** @type {Record<string, any>} */
-    const payload = { at: values.at };
-    for (const f of fields) {
-      payload[f.name] = values[f.name];
-    }
-    if (named.length > 0) {
-      payload.people = named
-        .map((/** @type {any} */ person) => String(person.id))
-        .filter((/** @type {string} */ id) => values[`with:${id}`] === true);
-    }
-
-    if (await act("logEntry", payload, "Kept.")) {
+    if (await act("logEntry", values, "Kept.")) {
       refresh();
     }
   },

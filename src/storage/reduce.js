@@ -104,7 +104,25 @@ export const COLLECTIONS = /** @type {const} */ ([
    * was run. Keeping it is also the only way "is this the same thing as last
    * month" ever becomes answerable.
    */
-  "reviews"
+  "reviews",
+  /**
+   * One thing that happened, who it involved, and the writer's own part in it.
+   *
+   * Dated to the moment rather than to the day, and naming everybody it involved -
+   * most of what is worth writing down involves several people at once, and one
+   * row per person would mean writing the same sentence three times.
+   *
+   * Deliberately not the day, and deliberately not an observation. The day is
+   * about where the whole of it went and names nobody - attaching people to it
+   * put one day's text on four pages, saying nothing about any of them. An
+   * observation is material for a review conversation and is therefore about the
+   * other person, which is what the private half refuses to keep.
+   *
+   * The own-part field is required and the what-happened field is not, which is
+   * the rule made structural: an entry with only "I was short with them" is
+   * complete, and one with only what somebody else did cannot be written.
+   */
+  "moments"
 ]);
 
 /**
