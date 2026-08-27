@@ -18,6 +18,14 @@ import { EventWriter } from "./writer.js";
  * @typedef {object} StoreOptions
  * @property {string} dataDir Root data directory. `events/` is created inside it.
  * @property {"app" | "mcp" | "job"} role Which process this is.
+ * @property {"work" | "private"} [half] Which half of the app this store is.
+ *   Defaults to work, which is what every store was before there were two.
+ *
+ *   Carried here rather than passed down through every call because the half IS
+ *   the store: two directories that are never read across, so the question "which
+ *   vocabulary applies" has exactly one honest answer per store and it is known
+ *   the moment it is opened. Threading a parameter instead would mean every new
+ *   function is one somebody can forget to pass it to.
  * @property {string} [host] Override the machine name (tests).
  * @property {() => number} [now] Clock (tests).
  * @property {(msg: string) => void} [onWarning] Surfaced to the user, not swallowed.
@@ -25,8 +33,9 @@ import { EventWriter } from "./writer.js";
 
 export class TendStore {
   /** @param {StoreOptions} opts */
-  constructor({ dataDir, role, host, now = Date.now, onWarning = () => {} }) {
+  constructor({ dataDir, role, half = "work", host, now = Date.now, onWarning = () => {} }) {
     this.dataDir = dataDir;
+    this.half = half;
     this.eventsDir = join(dataDir, "events");
     this.w = writerId(role, host);
     this.event = makeEventFactory(this.w, now);

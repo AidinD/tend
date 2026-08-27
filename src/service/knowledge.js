@@ -104,13 +104,16 @@ function words(text) {
  * @param {string} [dir]
  * @returns {{ error: string } | { dir: string, matches: any[], searched: number }}
  */
-export function search(situation, dir) {
+export function search(situation, dir, half = "work") {
   const asked = words(situation);
   if (asked.length === 0) {
     return { error: "Say what the situation is, in a sentence." };
   }
 
-  const all = allNibNotes(dir);
+  // Scoped to the half. Without it a question asked in the work half was answered
+  // out of private notes, which is the one direction of that boundary that costs
+  // something.
+  const all = allNibNotes(dir, half);
   if (!all.available) {
     return { error: all.why };
   }

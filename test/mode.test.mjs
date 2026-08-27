@@ -12,12 +12,25 @@
  */
 
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import { MODES, isMode, resolveModeDir } from "../src/domain/paths.js";
+import {
+  PRIVATE_RELATIONS,
+  hasView,
+  homeViewIn,
+  isRelationIn,
+  personBlocksIn,
+  relationOptionsIn,
+  viewsIn
+} from "../src/domain/halves.js";
+import { RELATIONS } from "../src/domain/cadence.js";
+import { SCOPES_IN_HALF, categoriesIn, listNibFolders, principlesInNib } from "../src/service/nib.js";
+import { addPerson, person, setRelation, vocabulary } from "../src/service/api.js";
+import { openStore } from "../src/storage/store.js";
 import { MODE_ENV, MODE_FILE, readMode, windowTitle, writeMode } from "../src/main/mode.js";
 import { checkOwnPart } from "../src/service/model.js";
 import { failed, ok } from "./helpers.mjs";
@@ -145,6 +158,250 @@ describe("remembering the choice", () => {
   it("carries the mode in the window title, where it is readable unfocused", () => {
     assert.equal(windowTitle("work"), "Tend");
     assert.equal(windowTitle("private"), "Tend - private");
+  });
+});
+
+
+describe("what each half consists of", () => {
+  it("keeps the two relationship vocabularies apart", () => {
+    // Not two views of one list. The work types are the input to what somebody is
+    // owed; the private ones are labels and drive nothing. Sharing a set would
+    // end with the app scheduling what he owes his own family.
+    const work = Object.keys(RELATIONS);
+    const priv = Object.keys(PRIVATE_RELATIONS);
+    assert.equal(work.some((r) => priv.includes(r)), false, "a type belongs to both halves");
+    assert.ok(priv.length > 0);
+  });
+
+  it("refuses a management relationship for somebody in the private half", () => {
+    // The bug that started this: the add dialog offered six management
+    // relationships for somebody's family, because the list was a constant in the
+    // renderer rather than a question to the service.
+    assert.equal(isRelationIn("private", "lead-and-manage"), false);
+    assert.equal(isRelationIn("private", "partner"), true);
+    assert.equal(isRelationIn("work", "partner"), false);
+    assert.equal(isRelationIn("work", "lead-and-manage"), true);
+  });
+
+  it("offers each half a scannable choice for every one of its types", () => {
+    for (const half of ["work", "private"]) {
+      for (const option of relationOptionsIn(half)) {
+        assert.ok(option.label.trim().length > 0, `${option.value} has no label`);
+        assert.ok(option.choice.trim().length > 0, `${option.value} has no dropdown wording`);
+        assert.ok(option.note.trim().length > 0, `${option.value} says nothing on a person's page`);
+      }
+    }
+  });
+
+  it("gives the private half only the views that mean something there", () => {
+    const priv = viewsIn("private").map((v) => v.id);
+    for (const gone of ["now", "prep", "focus", "work", "role", "decisions"]) {
+      assert.equal(priv.includes(gone), false, `${gone} is still offered`);
+    }
+    for (const kept of ["people", "journal", "knowledge", "settings"]) {
+      assert.equal(priv.includes(kept), true, `${kept} is missing`);
+    }
+  });
+
+  it("gives the work half every view, so nothing was lost adding the other one", () => {
+    assert.equal(viewsIn("work").length, 10);
+  });
+
+  it("opens each half where that half actually begins", () => {
+    assert.equal(homeViewIn("work"), "now");
+    // Nothing in the private half is late, and the entry is what it is for.
+    assert.equal(homeViewIn("private"), "journal");
+    assert.equal(hasView("private", homeViewIn("private")), true);
+    assert.equal(hasView("work", homeViewIn("work")), true);
+  });
+
+  it("lets a promise through to both halves and a growth thread to neither but work", () => {
+    const priv = personBlocksIn("private");
+    const work = personBlocksIn("work");
+
+    // The one thing that transfers whole: a promise is owed the same way, and the
+    // person let down is let down the same way.
+    assert.equal(priv.promises, true);
+    assert.equal(work.promises, true);
+
+    // A growth thread is a direction you decided somebody should develop in, with
+    // a marker you watch for. Run on your own child, the tool is something else.
+    assert.equal(priv.growth, false);
+    // An observation records the other person's state, which is what the private
+    // journal's one rule forbids.
+    assert.equal(priv.themes, false);
+    assert.equal(priv.cadences, false);
+    assert.equal(priv.skips, false);
+  });
+});
+
+describe("the service, per half", () => {
+  /** @type {string} */
+  let dir;
+
+  /** @param {"work" | "private"} half */
+  const store = (half) => {
+    dir = mkdtempSync(join(tmpdir(), `tend-half-${half}-`));
+    let t = 1;
+    return openStore({ dataDir: dir, role: "app", half, host: "test", now: () => t++ });
+  };
+
+  it("accepts the private vocabulary in the private half and refuses the other", () => {
+    const s = store("private");
+    assert.ok(!("error" in addPerson(s, { name: "Someone", relation: "partner", now: 1 })));
+    const refused = addPerson(s, { name: "Else", relation: "lead-and-manage", now: 1 });
+    assert.match(String(/** @type {any} */ (refused).error), /Valid here: partner/);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("refuses the private vocabulary in the work half", () => {
+    const s = store("work");
+    const refused = addPerson(s, { name: "Someone", relation: "partner", now: 1 });
+    assert.match(String(/** @type {any} */ (refused).error), /Valid here: lead-and-manage/);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("refuses to edit somebody into the other half's vocabulary", () => {
+    const s = store("private");
+    addPerson(s, { name: "Someone", relation: "partner", now: 1 });
+    const refused = setRelation(s, "Someone", "manage-remotely");
+    assert.match(String(/** @type {any} */ (refused).error), /Valid here/);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("tells the window what the half is rather than making it know", () => {
+    // The fifth hand-copied list is the one this removes. The previous four all
+    // ended with the renderer quietly disagreeing with the service about what
+    // existed.
+    const s = store("private");
+    const v = vocabulary(s);
+    assert.equal(v.half, "private");
+    assert.equal(v.home, "journal");
+    assert.equal(v.defaultRelation, "family");
+    assert.deepEqual(
+      v.relations.map((r) => r.value).slice(0, 2),
+      ["partner", "child"]
+    );
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("says on a person's page which blocks that half allows", () => {
+    const s = store("private");
+    addPerson(s, { name: "Someone", relation: "partner", now: 1 });
+    const p = /** @type {any} */ (person(s, "Someone", 1));
+    assert.equal(p.blocks.growth, false);
+    assert.equal(p.blocks.promises, true);
+    assert.match(String(p.relationMeans), /arranged around/);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("the boundary through Nib", () => {
+  /** @type {string} */
+  let nibDir;
+
+  /** @param {{ id: string, name: string, scope: string }[]} categories */
+  const writeNib = (categories) => {
+    nibDir = mkdtempSync(join(tmpdir(), "tend-half-nib-"));
+    mkdirSync(join(nibDir, "notes"), { recursive: true });
+    writeFileSync(
+      join(nibDir, "index.json"),
+      JSON.stringify({
+        version: 2,
+        tags: [{ id: "tag-principle", name: "Principle", color: "", description: "" }],
+        categories: categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          scope: c.scope,
+          subs: [],
+          notes: [
+            {
+              id: `${c.id}-n1`,
+              categoryId: c.id,
+              subId: null,
+              title: `A note in ${c.name}`,
+              preview: "",
+              created: 1,
+              edited: 1,
+              alerts: [],
+              flag: "open",
+              tags: ["tag-principle"]
+            }
+          ]
+        }))
+      }),
+      "utf8"
+    );
+    return nibDir;
+  };
+
+  afterEach(() => {
+    if (nibDir) {
+      rmSync(nibDir, { recursive: true, force: true });
+    }
+  });
+
+  it("marked private never reaches the work half", () => {
+    // The leak, and it needed no mistake to happen - just a principle tag on a
+    // note in a private category.
+    const dir = writeNib([{ id: "c-priv", name: "Family", scope: "P" }]);
+
+    const folders = /** @type {any} */ (listNibFolders(dir, "work"));
+    assert.deepEqual(folders.folders, []);
+
+    // `available` says the notebook HAS a principle tag - which is read from the
+    // catalog rather than from a category, so it stays true. What must be empty
+    // is what was found through it.
+    const principles = /** @type {any} */ (principlesInNib(dir, "work"));
+    assert.deepEqual(principles.practices, [], "a private note answered a work question");
+    assert.deepEqual(principles.actionPoints, []);
+  });
+
+  it("marked work never reaches the private half", () => {
+    const dir = writeNib([{ id: "c-work", name: "Team", scope: "W" }]);
+    const folders = /** @type {any} */ (listNibFolders(dir, "private"));
+    assert.deepEqual(folders.folders, []);
+  });
+
+  it("unmarked reaches both, because unmarked is not a declaration", () => {
+    // The reference material - notes from books about how to behave with people -
+    // is unmarked, and it is neither work-confidential nor family-private.
+    // Scoping it to work took it out of the private half's Knowledge view, which
+    // is the half where that view is the whole point.
+    const dir = writeNib([{ id: "c-any", name: "Books", scope: "" }]);
+
+    for (const half of ["work", "private"]) {
+      const folders = /** @type {any} */ (listNibFolders(dir, half));
+      assert.equal(folders.folders.length, 1, `unmarked is missing from the ${half} half`);
+      assert.equal(/** @type {any} */ (principlesInNib(dir, half)).available, true);
+    }
+  });
+
+  it("filters at the one door, so a caller cannot forget to", () => {
+    // The filter is applied inside `readNibIndex`. Every folder list, note
+    // search, principle read and import goes through it, which is the only
+    // arrangement that survives somebody adding a caller.
+    const categories = [
+      { id: "a", name: "A", scope: "" },
+      { id: "b", name: "B", scope: "W" },
+      { id: "c", name: "C", scope: "P" }
+    ];
+    assert.deepEqual(
+      categoriesIn(categories, "work").map((c) => c.id),
+      ["a", "b"]
+    );
+    assert.deepEqual(
+      categoriesIn(categories, "private").map((c) => c.id),
+      ["a", "c"]
+    );
+  });
+
+  it("defaults an unknown half to work rather than to everything", () => {
+    const categories = [{ id: "c", name: "C", scope: "P" }];
+    // A caller that has not been given a half must not be handed private notes.
+    assert.deepEqual(categoriesIn(categories).map((c) => c.id), []);
+    assert.deepEqual(categoriesIn(categories, "nonsense").map((c) => c.id), []);
+    assert.deepEqual([...SCOPES_IN_HALF.work], ["", "W"]);
   });
 });
 

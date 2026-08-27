@@ -59,6 +59,64 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
 }
 
 /**
+ * Which of Nib's scopes belong to which half of Tend.
+ *
+ * Nib already marks a category as work, private, or neither, and it did before
+ * Tend had two halves - which is why the private half needed no change over
+ * there. What was missing was Tend honouring it.
+ *
+ * ## The leak this closes
+ *
+ * The Nib reader offered every category to every caller. So a note in a private
+ * category, tagged with the principle tag, appeared in the WORK half's knowledge
+ * view. Private content surfacing on the work side is the one direction of this
+ * boundary that actually costs something, and it needed no mistake to happen -
+ * just a tag on a note.
+ *
+ * The other direction is only wrong rather than costly: work folders offered as
+ * bindings for somebody's family, work principles answering a question asked in
+ * the private half.
+ *
+ * ## Why an unmarked category belongs to both
+ *
+ * The first version of this made unmarked mean work, on the grounds that
+ * everything unmarked today is read by the work half. It was wrong in a way that
+ * only showed up against a real notebook: the reference material - notes from
+ * books about how to behave with people - is unmarked, and it is not
+ * work-confidential and not family-private. Scoping it to work would have taken
+ * it out of the private half, silently, in the half where the reference material
+ * is the whole point of the Knowledge view.
+ *
+ * The rule that actually matches what a mark means:
+ *
+ *   Marked private is private. Marked work is work. Unmarked is shared.
+ *
+ * Nothing he has declared private can appear on the work side, which is the
+ * direction that costs something. Nothing he has declared work can appear on the
+ * private side. And an unmarked category is one he has not declared anything
+ * about, so the tool does not guess on his behalf - the honest answer to
+ * "should this be private" is to make marking it easy, not to assume.
+ */
+export const SCOPES_IN_HALF = /** @type {const} */ ({
+  work: ["", "W"],
+  private: ["", "P"]
+});
+
+/**
+ * The categories one half may read.
+ *
+ * @param {any[]} categories
+ * @param {string} [half]
+ * @returns {any[]}
+ */
+export function categoriesIn(categories, half = "work") {
+  const allowed = /** @type {readonly string[]} */ (
+    SCOPES_IN_HALF[/** @type {"work" | "private"} */ (half)] ?? SCOPES_IN_HALF.work
+  );
+  return categories.filter((c) => allowed.includes(String(c?.scope ?? "")));
+}
+
+/**
  * @typedef {object} NibNote
  * @property {string} id
  * @property {string} categoryId
@@ -81,16 +139,24 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
  */
 
 /**
- * Read Nib's index.
+ * Read Nib's index, scoped to one half.
  *
  * Returns `available: false` rather than throwing when Nib is not installed or
  * has never been opened - a perfectly normal state that should not stop Tend
  * from working.
  *
+ * The scope filter is applied HERE rather than in each caller, which is the whole
+ * reason it can be trusted: there is one door into the notebook, and everything
+ * downstream - folder lists, note search, principles, indexing - sees only the
+ * categories its half may see. A filter applied per caller is a filter somebody
+ * adds a caller without.
+ *
  * @param {string} [dir]
+ * @param {string} [half] Which half is asking. Defaults to work, which is what
+ *   every caller was before there were two.
  * @returns {{ available: true, categories: any[], tags?: any[] } | { available: false, why: string }}
  */
-export function readNibIndex(dir = nibDataDir()) {
+export function readNibIndex(dir = nibDataDir(), half = "work") {
   const path = join(dir, "index.json");
   /** @type {string} */
   let raw;
@@ -109,7 +175,11 @@ export function readNibIndex(dir = nibDataDir()) {
     if (!Array.isArray(parsed?.categories)) {
       return { available: false, why: `${path} does not look like a Nib index.` };
     }
-    return { available: true, categories: parsed.categories, tags: parsed.tags };
+    return {
+      available: true,
+      categories: categoriesIn(parsed.categories, half),
+      tags: parsed.tags
+    };
   } catch {
     // Nib writes atomically, so a torn read here is unlikely rather than
     // routine. Still worth not crashing over.
@@ -122,10 +192,11 @@ export function readNibIndex(dir = nibDataDir()) {
  * holds. This is what the binding UI offers.
  *
  * @param {string} [dir]
+ * @param {string} [half]
  * @returns {{ available: false, why: string } | { available: true, folders: NibFolder[], dir: string }}
  */
-export function listNibFolders(dir) {
-  const index = readNibIndex(dir);
+export function listNibFolders(dir, half = "work") {
+  const index = readNibIndex(dir, half);
   if (!index.available) {
     return index;
   }
@@ -163,10 +234,11 @@ export function listNibFolders(dir) {
  * ever wrote about my colleagues".
  *
  * @param {string} [dir]
+ * @param {string} [half]
  * @returns {{ available: false, why: string } | { available: true, dir: string, notes: (NibNote & { trail: string })[] }}
  */
-export function allNibNotes(dir) {
-  const index = readNibIndex(dir);
+export function allNibNotes(dir, half = "work") {
+  const index = readNibIndex(dir, half);
   if (!index.available) {
     return index;
   }
@@ -193,10 +265,11 @@ export function allNibNotes(dir) {
  * renaming a tag over there changes what this screen says and nothing else.
  *
  * @param {string} [dir]
+ * @param {string} [half]
  * @returns {{ available: false, why: string } | { available: true, dir: string, tags: { id: string, name: string, color: string, description: string }[] }}
  */
-export function listNibTags(dir) {
-  const index = readNibIndex(dir);
+export function listNibTags(dir, half = "work") {
+  const index = readNibIndex(dir, half);
   if (!index.available) {
     return index;
   }
@@ -224,14 +297,15 @@ export function listNibTags(dir) {
  * @param {string} categoryId
  * @param {string | null} subId
  * @param {string} [dir]
+ * @param {string} [half]
  * @returns {{ available: false, why: string } | { available: true, dir: string, tags: { id: string, name: string, color: string, description: string, notes: number }[] }}
  */
-export function tagsInFolder(categoryId, subId, dir) {
-  const catalog = listNibTags(dir);
+export function tagsInFolder(categoryId, subId, dir, half = "work") {
+  const catalog = listNibTags(dir, half);
   if (!catalog.available) {
     return catalog;
   }
-  const index = readNibIndex(dir);
+  const index = readNibIndex(dir, half);
   if (!index.available) {
     return { available: false, why: index.why };
   }
@@ -402,7 +476,11 @@ export function kindsFor(note, binding, rules) {
  * }}
  */
 export function indexNib(store, { dir, dry = false } = {}) {
-  const index = readNibIndex(dir);
+  // The store's own half. A binding made before the boundary existed, or one
+  // pointing across it, resolves to no such folder and is skipped with a reason -
+  // which is the right outcome: importing private notes as work contact is the
+  // failure this boundary exists to prevent.
+  const index = readNibIndex(dir, store.half ?? "work");
   if (!index.available) {
     return { error: index.why };
   }
@@ -655,16 +733,17 @@ export function htmlToText(html) {
  * card, and only one of them is something to act on.
  *
  * @param {string} [dir]
+ * @param {string} [half]
  * @returns {{ available: false, why: string }
  *   | { available: true, practices: any[], actionPoints: any[] }}
  */
-export function principlesInNib(dir) {
-  const all = allNibNotes(dir);
+export function principlesInNib(dir, half = "work") {
+  const all = allNibNotes(dir, half);
   if (!all.available) {
     return { available: false, why: all.why };
   }
 
-  const catalog = listNibTags(dir);
+  const catalog = listNibTags(dir, half);
   const tags = catalog.available ? catalog.tags : [];
   const tag =
     tags.find((t) => t.id === "tag-principle") ??

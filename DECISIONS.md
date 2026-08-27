@@ -1720,3 +1720,99 @@ is the only guard on the rule that no signal may have a colleague as its subject
 and its fixture did not produce the new one - so the rule was unenforced on it. The
 fixture was widened and the assertion now names the full set, so adding a signal
 without adding it there fails rather than passing quietly.
+
+## 2026-08-27 - What each half consists of is declared once, and the halves have different vocabularies
+
+The private half's first version was three entries hidden in the rail, and that
+was not a half - it was the work app with some buttons taken away. It now has its
+own vocabulary, its own set of views, its own shape of person page, and its own
+side of the notebook, all declared in `src/domain/halves.js`.
+
+**What went wrong, exactly.** Adding somebody in the private half asked whether
+they were one you lead and manage, manage remotely, lead without managing, are an
+equal lead to, are managed by, or are a stakeholder to. Six management
+relationships offered for somebody's family. And everything behind the hidden
+buttons was still reachable: the palette offered every view in the app, and
+navigating to one this half does not have fell back to the work radar - drawn over
+private data, which is the single failure this whole arrangement exists to
+prevent. Ctrl+K is bound on the window precisely so it works from anywhere, which
+made it the widest hole rather than an edge case.
+
+**The cause was a fifth hand-copied list.** The relationship options were a
+constant compiled into the renderer; which views belong to the private half was a
+hand-written array in the shell. This project has been bitten four times by the
+same shape - a relationship type that existed and was unpickable, a roster group
+missing so everybody with one relationship vanished from the page, a dropdown
+short an option the service accepted. So there is now one declaration and the
+window asks: `vocabulary` returns the half's views, its relationships, where it
+opens, and which blocks a person page may show.
+
+**The store carries its half.** One field, set where the store is opened, because
+the half IS the store - two directories that are never read across, so "which
+vocabulary applies" has exactly one answer per store and it is known the moment it
+opens. Threading a parameter instead would have meant every new function was one
+somebody could forget to pass it to. The service now validates a relationship
+against the half it is being added to, not against the union: a store holds one
+half's people, and accepting the other half's words would put a row in the data
+that every grouping treats as unknown.
+
+**The private relationships carry nothing, deliberately.** Partner, child,
+parent, sibling, wider family, close friend, friend, someone else. They group a
+list and they sit on a person's page. No duty, no cadence, no expectation derived
+from them - because the work half's relationship types are the input to what you
+owe somebody, and reusing that idea here ends with the app telling him what he
+owes his own family on a schedule.
+
+**A person page shows what still means something.** Promises transfer whole: "I
+said I would sort out the bike" is owed exactly as much, and the person let down is
+let down the same way. Waiting on somebody transfers. Cadences and cancellations do
+not, because there is no drift. A growth thread does not, and the reason is not
+squeamishness - it is a direction you have decided somebody should develop in with
+a marker you watch for, and run on your own child the tool has become something
+else. An observation does not, because it records the other person's state, which
+is precisely what the private journal's one rule forbids. Which blocks apply is
+asked from the domain rather than branched on in the renderer, so adding a block
+means deciding which halves it belongs to instead of discovering later that it
+renders drift over a picture of somebody's family.
+
+**The start date is not asked in the private half.** It exists to give a cadence
+something to measure from before there is contact to measure from instead. With no
+cadences it is a question with no consequence, and asking "since when" about a
+parent is its own small absurdity.
+
+### The notebook has two sides, and Tend was reading both
+
+Nib has marked a category as work, private or neither since before Tend had
+halves - which is why the private half needed no change over there. What was
+missing was Tend honouring it.
+
+**The leak.** The Nib reader offered every category to every caller, so a note in
+a private category carrying the principle tag appeared in the WORK half's
+knowledge view. Private content surfacing on the work side is the direction of
+that boundary that actually costs something, and it needed no mistake to happen -
+just a tag on a note.
+
+**Filtered at the one door.** Inside `readNibIndex`, not in each caller. Every
+folder list, note search, principle read and import goes through it, which is the
+only arrangement that survives somebody adding a caller. An unknown or absent half
+defaults to work, so a caller that has not been given one cannot be handed private
+notes.
+
+**Unmarked belongs to both, and the first answer was wrong.** The first version
+made unmarked mean work, reasoning that everything unmarked today is read by the
+work half. Against a real notebook that breaks: the reference material - notes
+from books about how to behave with people - is unmarked, and it is neither
+work-confidential nor family-private. Scoping it to work would have removed it
+from the private half's Knowledge view, silently, in the half where that view is
+the whole point. The rule that matches what a mark means: marked private is
+private, marked work is work, unmarked is shared. Nothing he has declared private
+reaches work; nothing he has declared work reaches private; and an unmarked
+category is one he has declared nothing about, so the tool does not guess - the
+honest answer to "should this be private" is to make marking it easy.
+
+**How the shape was settled.** By driving the running app in the private half over
+the debugging protocol and reading what the page actually said, rather than by
+reasoning about it. The relationship dropdown, the person page's buttons and
+blocks, the palette with nothing typed. Two of the checks written from that pass
+had encoded the earlier, wrong design - that the private half has no People view -
+and failed, which is what they are for.

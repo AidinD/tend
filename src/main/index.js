@@ -87,6 +87,8 @@ function broadcast(channel) {
 const store = openStore({
   dataDir: dir,
   role: "app",
+  // The store IS the half. Everything downstream asks it rather than being told.
+  half: mode,
   onWarning: (msg) => {
     warnings.push(msg);
     console.warn(`[tend] ${msg}`);
@@ -105,6 +107,7 @@ const OPERATIONS = {
   attention: (/** @type {any} */ a) => api.attention(store, a.now ?? Date.now()),
   person: (/** @type {any} */ a) => api.person(store, a.person, a.now ?? Date.now()),
   people: (/** @type {any} */ a) => api.people(store, a.now ?? Date.now(), a.relation),
+  vocabulary: () => api.vocabulary(store),
   promises: (/** @type {any} */ a) => api.promises(store, a.now ?? Date.now()),
   roleMap: (/** @type {any} */ a) => api.roleMap(store, a.now ?? Date.now()),
   prep: (/** @type {any} */ a) => api.prep(store, a.now ?? Date.now()),
@@ -176,12 +179,12 @@ const OPERATIONS = {
   reviewJournal: (/** @type {any} */ a) => model.reviewJournal(store, { ...a, now: a.now ?? Date.now() }),
   checkOwnPart: (/** @type {any} */ a) => model.checkOwnPart({ text: a.text }),
 
-  searchKnowledge: (/** @type {any} */ a) => knowledge.search(a.situation),
+  searchKnowledge: (/** @type {any} */ a) => knowledge.search(a.situation, undefined, mode),
   considerKnowledge: (/** @type {any} */ a) => knowledge.consider(a),
 
-  nibFolders: () => nib.listNibFolders(),
-  nibTags: () => nib.listNibTags(),
-  nibTagsInFolder: (/** @type {any} */ a) => nib.tagsInFolder(a.categoryId, a.subId ?? null),
+  nibFolders: () => nib.listNibFolders(undefined, mode),
+  nibTags: () => nib.listNibTags(undefined, mode),
+  nibTagsInFolder: (/** @type {any} */ a) => nib.tagsInFolder(a.categoryId, a.subId ?? null, undefined, mode),
   setSourceRules: (/** @type {any} */ a) => api.setSourceRules(store, a),
   bindSource: (/** @type {any} */ a) => api.bindSource(store, a),
   sources: (/** @type {any} */ a) => api.sources(store, a.person),

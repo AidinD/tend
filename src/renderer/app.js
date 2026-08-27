@@ -38,14 +38,32 @@ const main = /** @type {HTMLElement} */ (document.getElementById("main"));
 const route = { view: "now", params: {} };
 
 /**
- * Which half this window is looking at.
+ * What this half consists of, answered by the service.
  *
- * Starts as work and is corrected once `status` answers. Held here rather than
- * read back out of the DOM, because the counts run on the first draw and the
- * question they need answered is "does this machinery mean anything here" rather
- * than "what does the document say".
+ * Not a constant in this file, and that is the point. The private half's first
+ * version had a hand-written array of which views belonged in it, which is the
+ * fifth copy of a derived list this project has grown - and the previous four
+ * all ended the same way, with the renderer quietly disagreeing with the service
+ * about what existed. `domain/halves.js` declares it once and this asks.
+ *
+ * Starts as the work half so the very first draw has something to work with, and
+ * is replaced as soon as the answer arrives.
  */
-let mode = "work";
+let half = {
+  half: "work",
+  home: "now",
+  /** @type {{ id: string, name: string, hint: string }[]} */
+  views: [],
+  /** @type {any[]} */
+  relations: [],
+  defaultRelation: "lead-and-manage",
+  personBlocks: {}
+};
+
+/** What the rest of the window reads. */
+export function currentHalf() {
+  return half;
+}
 
 /**
  * Navigate. Views call this rather than touching the route directly.
@@ -54,7 +72,13 @@ let mode = "work";
  * @param {Record<string, any>} [params]
  */
 export function go(view, params = {}) {
-  route.view = /** @type {any} */ (view in VIEWS ? view : "now");
+  // Two gates, not one. `view in VIEWS` only asks whether the module exists -
+  // every view's module exists in both halves - so the old fallback to "now"
+  // drew the work radar over private data whenever anything navigated somewhere
+  // this half does not have. Which the palette did, on every keystroke.
+  const known = view in VIEWS;
+  const here = half.views.length === 0 || half.views.some((v) => v.id === view);
+  route.view = /** @type {any} */ (known && here ? view : half.home);
   route.params = params;
   draw();
 }
@@ -98,7 +122,7 @@ async function updateCounts() {
    * about the app. It would also be six passes over the wrong kind of data on
    * every redraw, forever.
    */
-  if (mode === "private") {
+  if (half.half === "private") {
     return;
   }
 
@@ -164,58 +188,62 @@ document.querySelectorAll("[data-window]").forEach((btn) => {
 });
 
 /**
- * Which views apply in the private half.
- *
- * Not a filter over the same list: the machinery that is missing here is missing
- * because it does not mean anything, rather than because it is turned down.
- * Contact with somebody you live with is continuous, so drift, cadences, duties,
- * prep and a focus budget produce either permanent green or something faintly
- * grotesque. What transfers is the journal, and the reference material you go to
- * with a question.
- *
- * Settings is here because it is the way back out.
- */
-const PRIVATE_VIEWS = ["journal", "knowledge", "settings"];
-
-/**
- * Make the mode impossible to miss, and hide what does not apply.
+ * Make the half impossible to miss, and take away what it does not have.
  *
  * Three signals rather than one, because the failure this guards against is
  * typing something about your family into the work store. The window title
  * carries it outside the app, the accent colour carries it at a glance, and the
  * rail carries it by being visibly shorter.
  *
- * @param {string} chosen
+ * Which views survive is asked, never listed here. See `currentHalf`.
+ *
+ * @param {any} answer What `vocabulary` returned.
  */
-function applyMode(chosen) {
-  mode = chosen;
-  document.documentElement.dataset.mode = chosen;
-  if (chosen !== "private") {
-    return;
-  }
+function applyHalf(answer) {
+  half = {
+    half: String(answer?.half ?? "work"),
+    home: String(answer?.home ?? "now"),
+    views: Array.isArray(answer?.views) ? answer.views : [],
+    relations: Array.isArray(answer?.relations) ? answer.relations : [],
+    defaultRelation: String(answer?.defaultRelation ?? "lead-and-manage"),
+    personBlocks: answer?.personBlocks ?? {}
+  };
+  document.documentElement.dataset.mode = half.half;
+
+  const ids = new Set(half.views.map((v) => v.id));
   for (const button of document.querySelectorAll(".nav-btn")) {
     const view = String(/** @type {HTMLElement} */ (button).dataset.view);
-    if (!PRIVATE_VIEWS.includes(view)) {
-      /** @type {HTMLElement} */ (button).hidden = true;
-    }
+    /** @type {HTMLElement} */ (button).hidden = ids.size > 0 && !ids.has(view);
   }
-  // Landing on a view that is not there would draw a work view over private
-  // data, which is the one thing this whole arrangement exists to prevent.
-  if (!PRIVATE_VIEWS.includes(route.view)) {
-    go("journal");
+
+  const badge = document.getElementById("mode-badge");
+  if (badge) {
+    badge.textContent = half.half === "private" ? "private" : "";
+  }
+
+  // Standing on a view this half does not have would draw a work view over
+  // private data, which is the one thing the whole arrangement exists to
+  // prevent.
+  if (ids.size > 0 && !ids.has(route.view)) {
+    go(half.home);
   }
 }
 
-tend.invoke("status").then((s) => {
+/*
+ * The half, before the first draw finishes.
+ *
+ * Awaited rather than fired and forgotten: until it lands the window believes it
+ * is the work half, and a draw in that gap would put the work radar on screen
+ * over private data for as long as the round trip takes. It is a local call and
+ * the gap is milliseconds, which is exactly the kind of window that works on this
+ * machine and does not on a slower one.
+ */
+Promise.all([tend.invoke("status"), tend.invoke("vocabulary")]).then(([s, v]) => {
   const el = document.getElementById("version");
   if (el && s?.version) {
     el.textContent = s.version;
   }
-  applyMode(String(s?.mode ?? "work"));
-  const badge = document.getElementById('mode-badge');
-  if (badge) {
-    badge.textContent = s?.mode === 'private' ? 'private' : '';
-  }
+  applyHalf(v);
 });
 
 document.addEventListener("click", async (event) => {

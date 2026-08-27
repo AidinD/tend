@@ -233,12 +233,16 @@ try {
     // Absent rather than dampened. A cadence over somebody you live with reads as
     // permanently fine and means nothing, and "you have not spoken to them in
     // three days" about a person in the next room is worse than useless.
-    const gone = ["now", "prep", "focus", "people", "work", "role", "decisions"];
+    // People is here on purpose. The first version of this half left it out, which
+    // is how "Add someone" got reached through Ctrl+K instead - and answered with
+    // six management relationships. A person needs somewhere to be named, and
+    // somewhere to carry what was promised them.
+    const gone = ["now", "prep", "focus", "work", "role", "decisions"];
     const stillThere = gone.filter((v) => state.visible.includes(v));
     if (stillThere.length > 0) {
       throw new Error(`still offered: ${stillThere.join(", ")}`);
     }
-    for (const kept of ["journal", "knowledge", "settings"]) {
+    for (const kept of ["people", "journal", "knowledge", "settings"]) {
       if (!state.visible.includes(kept)) {
         throw new Error(`${kept} should still be there and is not`);
       }
@@ -267,6 +271,132 @@ try {
     // entry is being written is worth more than any amount of reading it back.
     if (!/your own part/.test(sub)) {
       throw new Error(`the page does not state the rule: ${sub.slice(0, 180)}`);
+    }
+  });
+
+  /* ------------------------------------------------------------ Ctrl+K -- */
+
+  /*
+   * The palette, which was the widest hole in the first version of this half.
+   *
+   * It is bound on the window precisely so it works from anywhere, and its list
+   * of views was a constant - so it offered "Go to Now" and "Go to Prep" here,
+   * and going there drew the work radar over private data. Opening it and
+   * pressing Enter was enough.
+   */
+  await evaluate(
+    "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))"
+  );
+  await waitFor("document.querySelector('.palette-input') !== null", "the palette");
+  const offered = JSON.parse(
+    String(
+      await evaluate(
+        `JSON.stringify([...document.querySelectorAll('[class*=palette] button, [class*=palette] li')]
+          .map(e => e.textContent.trim()).filter(Boolean))`
+      )
+    )
+  );
+  await check("Ctrl+K offers only what this half has", () => {
+    const text = offered.join(" | ");
+    for (const gone of ["Go to Now", "Go to Prep", "Go to Focus", "Go to Work", "Go to Role map", "Go to Decisions"]) {
+      if (text.includes(gone)) {
+        throw new Error(`the palette still offers "${gone}"`);
+      }
+    }
+    if (!text.includes("Go to The day")) {
+      throw new Error(`the palette offers nothing from this half: ${text.slice(0, 200)}`);
+    }
+  });
+  await evaluate(
+    "document.querySelector('.palette-input')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))"
+  );
+
+  /* ------------------------------------------------------- adding somebody -- */
+
+  await evaluate("document.querySelector('.nav-btn[data-view=\"people\"]')?.click()");
+  await waitFor("document.querySelector('.view-title') !== null", "the people view");
+  await evaluate("document.querySelector('[data-act=\"addPerson\"]')?.click()");
+  await waitFor("document.querySelector('.dialog') !== null", "the add dialog");
+
+  const dialog = JSON.parse(
+    String(
+      await evaluate(`(() => {
+        const d = document.querySelector('.dialog');
+        const sel = d.querySelector('select');
+        return JSON.stringify({
+          intro: d.querySelector('.dialog-intro')?.textContent ?? '',
+          fields: [...d.querySelectorAll('select, input')].map(e => e.name || e.type),
+          options: sel ? [...sel.options].map(o => o.textContent.trim()) : []
+        });
+      })()`)
+    )
+  );
+  await check("it asks who somebody is, not which management relationship they are", () => {
+    // The report that started this: six management relationships offered for
+    // somebody's family, because the option list was a constant in the renderer.
+    const text = dialog.options.join(" | ");
+    for (const gone of ["Lead and manage", "Manage, don't see", "Stakeholder", "Your manager"]) {
+      if (text.includes(gone)) {
+        throw new Error(`still offered: "${gone}"`);
+      }
+    }
+    if (!text.includes("Partner") || !text.includes("Close friend")) {
+      throw new Error(`the private vocabulary is missing: ${text.slice(0, 200)}`);
+    }
+  });
+  await check("and does not ask when the relationship started, which nothing here measures", () => {
+    // The date exists to give a cadence something to measure from. With no
+    // cadences it is a question with no consequence, and asking it about a parent
+    // is its own small absurdity.
+    if (dialog.fields.includes("since")) {
+      throw new Error(`the dialog still asks: ${JSON.stringify(dialog.fields)}`);
+    }
+  });
+
+  await evaluate(`(() => {
+    const d = document.querySelector('.dialog');
+    const input = d.querySelector('input[name="name"]') || d.querySelector('input');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Testnamn');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const sel = d.querySelector('select');
+    sel.value = 'partner';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await evaluate("document.querySelector('.dialog [data-confirm]')?.click()");
+  await waitFor("document.body.textContent.includes('Testnamn')", "the person on the roster");
+  await evaluate("document.querySelector('[data-act=\"open\"]')?.click()");
+  await waitFor("document.querySelector('.panel-name') !== null", "their page");
+
+  const theirPage = JSON.parse(
+    String(
+      await evaluate(`(() => {
+        const m = document.querySelector('#main');
+        return JSON.stringify({
+          buttons: [...m.querySelectorAll('.button-row .act')].map(b => b.textContent.trim()),
+          blocks: [...m.querySelectorAll('.block-title')].map(b => b.textContent.trim()),
+          role: m.querySelector('.panel-role')?.textContent?.trim() ?? ''
+        });
+      })()`)
+    )
+  );
+  await check("their page carries what transfers and nothing that does not", () => {
+    const shown = [...theirPage.buttons, ...theirPage.blocks].join(" | ");
+
+    // A promise is owed the same way to somebody you live with.
+    if (!shown.includes("I promised something") || !shown.includes("Open promises")) {
+      throw new Error(`promises are missing: ${shown}`);
+    }
+    // A growth thread is a direction you decided somebody should develop in, with
+    // a marker you watch for. An observation records their state, which the
+    // private journal's one rule forbids. Cadences and cancellations feed drift,
+    // and there is none here.
+    for (const gone of ["Cadences", "Log contact", "It did not happen", "Record an observation", "Growing", "What keeps coming up"]) {
+      if (shown.includes(gone)) {
+        throw new Error(`"${gone}" is still on the page`);
+      }
+    }
+    if (!/arranged around/.test(theirPage.role)) {
+      throw new Error(`the relationship note is not the private one: "${theirPage.role}"`);
     }
   });
 

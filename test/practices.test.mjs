@@ -164,7 +164,7 @@ describe("reading a real notebook", () => {
           id: "c1",
           name: "Books",
           color: "",
-          scope: "P",
+          scope: "",
           open: true,
           subs: [{ id: "s1", name: "A book" }],
           notes: [
@@ -195,7 +195,7 @@ describe("reading a real notebook", () => {
           id: "c1",
           name: "Books",
           color: "",
-          scope: "P",
+          scope: "",
           open: true,
           subs: [{ id: "s1", name: "A book" }],
           notes: [note("n1", "Practising this", { tags: ["some-other-id"], flag: "open" })]

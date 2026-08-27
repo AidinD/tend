@@ -1,39 +1,49 @@
 /**
  * People, grouped by relationship rather than by org chart.
  *
- * The grouping is the point. What you owe someone you lead daily is not what
- * you owe someone you manage from two teams away, and a tool that lists them
- * together hides the one gap that matters most here.
+ * The grouping is the point in the work half. What you owe someone you lead
+ * daily is not what you owe someone you manage from two teams away, and a tool
+ * that lists them together hides the one gap that matters most.
+ *
+ * ## Both halves, from one file
+ *
+ * The private half has people too, and this page draws them - with a different
+ * vocabulary and a much shorter person page. What differs is asked rather than
+ * branched on: `vocabulary` says which relationships exist here and `person`
+ * says which blocks this page may show, both from `domain/halves.js`.
+ *
+ * The first version of the private half did none of this, and the symptom was
+ * exact: "Add someone" asked whether this person was one you lead and manage,
+ * manage remotely, or are a stakeholder to. Six management relationships offered
+ * for somebody's family, because the list was a constant compiled into this
+ * file.
  */
 
-import {
-  act,
-  ask,
-  asDateInput,
-  kindsFor,
-  esc,
-  form,
-  pill,
-  RELATION_OPTIONS,
-  RELATIONS,
-  tend
-} from "../ui.js";
+import { act, ask, asDateInput, kindsFor, esc, form, pill, tend } from "../ui.js";
 import { go, refresh } from "../app.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 import { actions as growthActions, threadsBlock } from "./growth.js";
 import { actions as waitingActions, waitingBlock } from "./waiting.js";
 
 /**
- * The roster's groups, one per relationship type, in the order the domain
- * declares them.
+ * This half's vocabulary, asked once per draw.
  *
- * Derived, because the hand-written version of this list was the fourth copy of
- * the same thing and it hid people: it had no row for `stakeholder`, so somebody
- * added with that relationship simply did not appear on the roster at all. No
- * error, no empty group, no trace - the person was in the store and off the
- * page.
+ * Derived rather than written out, because the hand-written version of the group
+ * list was the fourth copy of the same thing and it hid people: it had no row for
+ * one relationship type, so everybody with that type simply did not appear on the
+ * roster. No error, no empty group, no trace - in the store and off the page.
+ *
+ * Asked per draw rather than cached, because it is a local call and a cache here
+ * would be the thing that survives a switch of halves.
  */
-const GROUPS = RELATION_OPTIONS.map((r) => [r.value, RELATIONS[r.value].label]);
+async function vocabulary() {
+  const v = await tend.invoke("vocabulary");
+  return {
+    half: String(v?.half ?? "work"),
+    relations: Array.isArray(v?.relations) ? v.relations : [],
+    defaultRelation: String(v?.defaultRelation ?? "lead-and-manage")
+  };
+}
 
 /** @param {Record<string, any>} params */
 export async function render(params) {
@@ -41,14 +51,19 @@ export async function render(params) {
     return personPage(params.person);
   }
 
-  const roster = await tend.invoke("people");
+  const [roster, vocab] = await Promise.all([tend.invoke("people"), vocabulary()]);
+  const isPrivate = vocab.half === "private";
 
   const header = `
     <div class="view-head">
       <div class="head-row">
         <div>
           <h1 class="view-title">People</h1>
-          <p class="view-sub">Grouped by the relationship, not the org chart.</p>
+          <p class="view-sub">${
+            isPrivate
+              ? "Who they are, and what you have said you would do. Nothing here is on a schedule."
+              : "Grouped by the relationship, not the org chart."
+          }</p>
         </div>
         <button class="act primary" data-act="addPerson">Add someone</button>
       </div>
@@ -56,11 +71,15 @@ export async function render(params) {
 
   if (!Array.isArray(roster) || roster.length === 0) {
     return `${header}<div class="empty">
-      Nobody here yet. Add the people you lead or manage, and the leads you work beside.
+      ${
+        isPrivate
+          ? "Nobody here yet. Adding somebody gives you a place to put what you promised them - and nothing else, because nothing outside work runs on a cadence."
+          : "Nobody here yet. Add the people you lead or manage, and the leads you work beside."
+      }
     </div>`;
   }
 
-  const body = GROUPS.map(([relation, label]) => {
+  const body = vocab.relations.map((/** @type {any} */ { value: relation, label }) => {
     const members = roster.filter((/** @type {any} */ p) => p.relation === relation);
     if (members.length === 0) {
       return "";
@@ -70,11 +89,16 @@ export async function render(params) {
         (/** @type {any} */ p) => `<button class="row" data-act="open" data-person="${esc(p.id)}">
           <span class="row-name">${esc(p.name)}</span>
           <span class="row-right">
-            ${p.availability ? `<span class="pill plain">${esc(p.availability)}</span>` : ""}
+            ${p.availability && !isPrivate ? `<span class="pill plain">${esc(p.availability)}</span>` : ""}
             ${
-              p.worstDrift
-                ? `<span class="row-meta">${esc(p.worstDrift.duty)}</span>${pill(p.worstDrift.urgency)}<span class="pill plain">${esc(p.worstDrift.behindBy)}</span>`
-                : `<span class="row-meta">${p.availability === "away" ? "nothing expected while they are away" : p.availability === "left" ? "history kept, nothing expected" : "no duty applies"}</span>`
+              isPrivate
+                ? // Nothing on the right at all. There is no drift here, and "no
+                  // duty applies" written beside somebody's family is worse than
+                  // an empty row - it answers a question nobody asked.
+                  ""
+                : p.worstDrift
+                  ? `<span class="row-meta">${esc(p.worstDrift.duty)}</span>${pill(p.worstDrift.urgency)}<span class="pill plain">${esc(p.worstDrift.behindBy)}</span>`
+                  : `<span class="row-meta">${p.availability === "away" ? "nothing expected while they are away" : p.availability === "left" ? "history kept, nothing expected" : "no duty applies"}</span>`
             }
           </span>
         </button>`
@@ -152,10 +176,31 @@ async function personPage(id) {
     )
     .join("");
 
+  /*
+   * What this page may show, decided by the half rather than by conditions
+   * scattered down the middle of this function.
+   *
+   * The distinction is not cosmetic. A growth thread is a direction you have
+   * decided somebody should develop in, with a marker you watch for - run that
+   * on your own child and the tool has become something else. An observation is
+   * a record of somebody else's state, which is precisely what the private
+   * journal's one rule forbids. Contact and cancellations feed cadences, and
+   * there are none here.
+   */
+  const blocks = p.blocks ?? {
+    cadences: true,
+    promises: true,
+    waiting: true,
+    growth: true,
+    topics: true,
+    skips: true,
+    themes: true
+  };
+
   const model = await modelStatus();
   const themesKey = `themes:${p.id}`;
-  const growing = await threadsBlock(String(p.id));
-  const waitingOn = await waitingBlock(String(p.id));
+  const growing = blocks.growth ? await threadsBlock(String(p.id)) : "";
+  const waitingOn = blocks.waiting ? await waitingBlock(String(p.id)) : "";
 
   // Themes already written by a scheduled pass, listed as themes rather than as
   // observations: an observation is something the user saw, and a theme is
@@ -195,12 +240,17 @@ async function personPage(id) {
       </div>
 
       <div class="button-row">
-        <button class="act primary" data-act="logContact" data-person="${esc(p.id)}">Log contact</button>
-        <button class="act" data-act="logSkip" data-person="${esc(p.id)}">It did not happen</button>
-        <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
-        <button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>
+        ${blocks.cadences ? `<button class="act primary" data-act="logContact" data-person="${esc(p.id)}">Log contact</button>` : ""}
+        ${blocks.skips ? `<button class="act" data-act="logSkip" data-person="${esc(p.id)}">It did not happen</button>` : ""}
+        <!--
+          The one action that is in both halves, and the primary one where it is
+          the only one. A promise is owed the same way to somebody you live with,
+          and the person let down is let down in the same way.
+        -->
+        <button class="act ${blocks.cadences ? "" : "primary"}" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
+        ${blocks.themes ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>` : ""}
         ${
-          model.available
+          blocks.themes && model.available
             ? isRunning(themesKey)
               ? `<button class="act" disabled>Reading notes…</button>`
               : `<button class="act" data-act="findThemes" data-person="${esc(p.id)}">What keeps coming up</button>`
@@ -210,15 +260,19 @@ async function personPage(id) {
 
       ${resultFor(themesKey) === null ? "" : themesHtml(themesKey, resultFor(themesKey))}
 
-      ${themes ? list("Themes", themes, "") : ""}
-      ${list("Cadences", cadences, "No duty in the role map applies to this relationship type.")}
+      ${blocks.themes && themes ? list("Themes", themes, "") : ""}
+      ${blocks.cadences ? list("Cadences", cadences, "No duty in the role map applies to this relationship type.") : ""}
       ${list("Open promises", promises, "Nothing outstanding.")}
       ${waitingOn}
       ${growing}
-      ${p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
-      ${list("Recent contact", contact, "No contact recorded yet.")}
-      ${skipped ? list("Booked and did not happen", skipped, "") : ""}
-      ${list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")}
+      ${blocks.skips && p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
+      ${blocks.cadences ? list("Recent contact", contact, "No contact recorded yet.") : ""}
+      ${blocks.skips && skipped ? list("Booked and did not happen", skipped, "") : ""}
+      ${
+        blocks.themes
+          ? list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")
+          : ""
+      }
 
       <div class="block danger-zone">
         <button class="act danger" data-act="remove" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Remove ${esc(p.name)}</button>
@@ -233,19 +287,44 @@ async function personPage(id) {
  * @returns {Promise<boolean>} Whether someone was added.
  */
 export async function addPersonDialog() {
+  const vocab = await vocabulary();
+  const isPrivate = vocab.half === "private";
+
   const values = await form({
     title: "Add someone",
-    intro: "The relationship type decides which duties apply to them.",
+    intro: isPrivate
+      ? // No mention of duties, because there are none. The relationship here is a
+        // label: it groups the list and it sits on their page, and nothing is
+        // derived from it. Saying so is the difference between a field somebody
+        // answers carefully and a field somebody answers wrong on purpose.
+        "Who they are, for your own reference. Nothing is scheduled from it."
+      : "The relationship type decides which duties apply to them.",
     fields: [
-      { name: "name", label: "Name", required: true, placeholder: "Their full name" },
-      { name: "relation", label: "How you relate to them", type: "select", options: RELATION_OPTIONS, value: "lead-and-manage" },
+      { name: "name", label: "Name", required: true, placeholder: isPrivate ? "What you call them" : "Their full name" },
       {
-        name: "since",
-        label: "Since when",
-        type: "date",
-        value: asDateInput(Date.now()),
-        hint: "When the relationship started, not today. Leave it as today for someone who just joined; set it back for someone you have had for months, or Tend will think you are perfectly in step with them."
-      }
+        name: "relation",
+        label: isPrivate ? "Who they are" : "How you relate to them",
+        type: "select",
+        // Asked, not compiled in. This is the field that offered six management
+        // relationships for somebody's family.
+        options: vocab.relations.map((/** @type {any} */ r) => ({ value: r.value, label: r.choice })),
+        value: vocab.defaultRelation
+      },
+      // The start date exists to give a cadence something to measure from before
+      // there is contact to measure from instead. With no cadences it is a
+      // question with no consequence, and asking "since when" about a parent is
+      // its own small absurdity.
+      ...(isPrivate
+        ? []
+        : [
+            {
+              name: "since",
+              label: "Since when",
+              type: /** @type {const} */ ("date"),
+              value: asDateInput(Date.now()),
+              hint: "When the relationship started, not today. Leave it as today for someone who just joined; set it back for someone you have had for months, or Tend will think you are perfectly in step with them."
+            }
+          ])
     ],
     confirm: "Add"
   });
@@ -350,7 +429,10 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   edit: async (d) => {
-    const p = await tend.invoke("person", { person: d.person });
+    const [p, editVocab] = await Promise.all([
+      tend.invoke("person", { person: d.person }),
+      vocabulary()
+    ]);
     if (p.error) {
       return;
     }
@@ -363,9 +445,12 @@ export const actions = {
         { name: "name", label: "Name", value: p.name, required: true },
         {
           name: "relation",
-          label: "How you relate to them",
+          label: editVocab.half === "private" ? "Who they are" : "How you relate to them",
           type: "select",
-          options: RELATION_OPTIONS,
+          // The half's own vocabulary. Offering the work list here would let a
+          // private person be edited into a management relationship, and the
+          // service would then refuse the save with a message about duties.
+          options: editVocab.relations.map((/** @type {any} */ r) => ({ value: r.value, label: r.choice })),
           value: p.relation
         },
         {

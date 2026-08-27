@@ -32,6 +32,15 @@ import {
 import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
 import { JOURNAL_FIELDS, REVIEW_WINDOW_DAYS, coverage, entriesSince, hasContent } from "../domain/journal.js";
 import { declared, ledger as reviewLedger, ledgerLines, readiness, unread } from "../domain/review.js";
+import {
+  defaultRelationIn,
+  homeViewIn,
+  isRelationIn,
+  personBlocksIn,
+  relationOptionsIn,
+  relationsIn,
+  viewsIn
+} from "../domain/halves.js";
 import { openPromises } from "../domain/promises.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import {
@@ -201,7 +210,12 @@ export function person(store, query, now) {
     // measures from until there is contact to measure from instead, which
     // makes it the one field somebody sets wrong once and never revisits.
     since: p.since ?? null,
-    relationMeans: isRelation(relation) ? RELATIONS[relation].note : "Unknown relationship type.",
+    relationMeans: relationsIn(store.half)[relation]?.note ?? "Unknown relationship type.",
+    // What this page may show, decided by the half rather than by a chain of
+    // conditions in the renderer. Drift over a picture of your family is the
+    // kind of thing that gets added by accident and noticed by the person it
+    // was drawn for.
+    blocks: personBlocksIn(store.half),
     // Beside the contact history rather than mixed into it: a cancellation is
     // not a conversation, and the two must stay legible as different things.
     skipped: recentSkips(store.rows("skips"), p.id).map((s) => ({
@@ -367,8 +381,16 @@ export function addPerson(store, { name, relation, since, now }) {
   if (!String(name ?? "").trim()) {
     return { error: "A person needs a name." };
   }
-  if (!isRelation(String(relation))) {
-    return { error: `Unknown relationship type "${relation}". Valid: ${Object.keys(RELATIONS).join(", ")}.` };
+  if (!isRelationIn(store.half, String(relation))) {
+    // The half's own vocabulary, not the union of both. A store holds one half's
+    // people, so accepting the other half's words would put a row in the data
+    // that every grouping treats as unknown - present in the store and absent
+    // from the page, which is a failure this roster has already had once.
+    return {
+      error:
+        `Unknown relationship type "${relation}". Valid here: ` +
+        `${Object.keys(relationsIn(store.half)).join(", ")}.`
+    };
   }
   const clash = store.rows("people").find((p) => String(p.name).toLowerCase() === String(name).trim().toLowerCase());
   if (clash) {
@@ -396,8 +418,12 @@ export function setRelation(store, who, relation) {
   if (!found.ok) {
     return { error: found.error };
   }
-  if (!isRelation(String(relation))) {
-    return { error: `Unknown relationship type "${relation}". Valid: ${Object.keys(RELATIONS).join(", ")}.` };
+  if (!isRelationIn(store.half, String(relation))) {
+    return {
+      error:
+        `Unknown relationship type "${relation}". Valid here: ` +
+        `${Object.keys(relationsIn(store.half)).join(", ")}.`
+    };
   }
   store.update("people", found.person.id, { relation });
   return { id: found.person.id, name: found.person.name, was: found.person.relation, now: relation };
@@ -456,8 +482,12 @@ export function updatePerson(store, who, { name, relation, since, awayUntil, lef
   }
 
   if (relation !== undefined) {
-    if (!isRelation(String(relation))) {
-      return { error: `Unknown relationship type "${relation}". Valid: ${Object.keys(RELATIONS).join(", ")}.` };
+    if (!isRelationIn(store.half, String(relation))) {
+      return {
+        error:
+          `Unknown relationship type "${relation}". Valid here: ` +
+          `${Object.keys(relationsIn(store.half)).join(", ")}.`
+      };
     }
     patch.relation = relation;
   }
@@ -1730,6 +1760,36 @@ export function skips(store, who, now) {
       when: agoWords(Math.max(0, Math.floor((now - Number(s.at ?? now)) / 86_400_000)))
     })),
     pattern: skipPattern(skipsFor(rows, id, now, "one-to-one"), "1-1")
+  };
+}
+
+/* ------------------------------------------------------------ vocabulary -- */
+
+/**
+ * What this half consists of.
+ *
+ * One call, answered from `domain/halves.js`, and the reason it exists is a
+ * failure this project has had four times: a list of options written out again
+ * in the renderer, which then quietly disagreed with the service. A
+ * relationship type that existed and was unpickable; a roster group missing so
+ * everybody with one relationship vanished from the page. The private half added
+ * a fifth copy - a hand-written array of which views belong here - and this
+ * removes it.
+ *
+ * So the window asks what the half is rather than knowing. Adding a view or a
+ * relationship type is then one edit in one file.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ */
+export function vocabulary(store) {
+  const half = store.half;
+  return {
+    half,
+    views: viewsIn(half),
+    home: homeViewIn(half),
+    relations: relationOptionsIn(half),
+    defaultRelation: defaultRelationIn(half),
+    personBlocks: personBlocksIn(half)
   };
 }
 

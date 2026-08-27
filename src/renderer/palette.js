@@ -22,21 +22,24 @@
  */
 
 import { CONTACT_KINDS, act, asDateInput, esc, form, tend, toast } from "./ui.js";
-import { go, refresh } from "./app.js";
+import { currentHalf, go, refresh } from "./app.js";
 import { modelStatus } from "./model.js";
 import { looksLikeQuestion, matchPerson, matchesWords, splitAddressed } from "../domain/parse.js";
 
 /** The views, as the palette offers them. */
-const VIEWS = [
-  ["now", "Now", "what needs you"],
-  ["prep", "Prep", "before a conversation"],
-  ["people", "People", "the roster"],
-  ["work", "Work", "projects and delegation"],
-  ["role", "Role map", "what the job is"],
-  ["decisions", "Decisions", "the ledger"],
-  ["focus", "Focus", "the current priority"],
-  ["settings", "Settings", "data, Nib, drafting"]
-];
+/*
+ * The views this palette may offer, and the actions.
+ *
+ * Asked, never listed. The hand-written list that used to be here offered "Go to
+ * Prep" and "Go to Now" in a half that has neither, and navigating there drew the
+ * work radar over private data - which made Ctrl+K the widest hole in the whole
+ * arrangement, since it is bound on the window precisely so it works from
+ * anywhere.
+ *
+ * See src/domain/halves.js. One declaration; the rail, this, and the service all
+ * read it.
+ */
+
 
 /** @type {HTMLElement | null} */
 let host = null;
@@ -217,7 +220,12 @@ async function choose(index) {
  */
 function build(text) {
   if (text === "") {
-    return VIEWS.map(([view, name, hint]) => command(`Go to ${name}`, hint, () => navigate(view)));
+    // The empty palette is the rail, so it has to be the rail of THIS half. It
+    // listed every view in the app, which meant opening Ctrl+K and pressing
+    // Enter in the private half went straight to the work radar.
+    return currentHalf().views.map((view) =>
+      command(`Go to ${view.name}`, view.hint, () => navigate(view.id))
+    );
   }
 
   return [...captures(text), ...commands(text), ...questions(text)];
@@ -291,12 +299,15 @@ function captures(text) {
 function commands(text) {
   /** @type {any[]} */
   const all = [];
+  const here = currentHalf();
+  /** @param {string} view */
+  const inHalf = (view) => here.views.length === 0 || here.views.some((v) => v.id === view);
 
-  for (const [view, name, hint] of VIEWS) {
-    all.push(command(`Go to ${name}`, hint, () => navigate(view)));
+  for (const view of here.views) {
+    all.push(command(`Go to ${view.name}`, view.hint, () => navigate(view.id)));
   }
 
-  all.push(command("Add someone", "a new person on the roster", async () => {
+  all.push(command("Add someone", "a new person here", async () => {
     close();
     const { addPersonDialog } = await import("./views/people.js");
     if (await addPersonDialog()) {
@@ -304,8 +315,13 @@ function commands(text) {
     }
   }));
 
-  all.push(command("Set a focus", "a time-boxed priority", () => navigate("focus")));
-  all.push(command("Record a decision", "with a date it comes back", () => navigate("decisions")));
+  if (inHalf("focus")) {
+    all.push(command("Set a focus", "a time-boxed priority", () => navigate("focus")));
+  }
+  if (inHalf("decisions")) {
+    all.push(command("Record a decision", "with a date it comes back", () => navigate("decisions")));
+  }
+
   all.push(command("Import notes from Nib", "contact and flagged action points", async () => {
     close();
     const result = await act("indexNib", {});
