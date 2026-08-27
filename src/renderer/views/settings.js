@@ -44,11 +44,72 @@ export async function render() {
       <p class="view-sub">Where things are kept, and how notes reach the rest of the app.</p>
     </div>
 
+    ${modeSection(status)}
     ${nibSection(folders, bindings, roster, status)}
     ${modelSection(model)}
     ${dataSection(status)}
     ${aboutSection(status)}
   `;
+}
+
+/**
+ * Which half of life this window is looking at.
+ *
+ * ## Why two stores rather than one with a filter
+ *
+ * A filter is a rule, and a rule is a thing that can be got wrong once. Two
+ * directories that are never read across cannot leak into each other by anybody
+ * forgetting a `where` clause, and the boundary is then a property of the
+ * filesystem instead of a property of the code being careful.
+ *
+ * ## Why switching restarts the app
+ *
+ * Everything under the window - the store, the change watcher, the Nib import -
+ * was opened for the mode the app started in. Swapping them underneath a drawing
+ * view is a sequence with a wrong order, and the cost of the wrong order is
+ * private words written into the work store. A restart has no wrong order.
+ *
+ * It also makes the switch impossible to do by accident, which is the right
+ * amount of friction for this particular button.
+ *
+ * @param {any} status
+ */
+function modeSection(status) {
+  const mode = String(status?.mode ?? "work");
+  const isPrivate = mode === "private";
+
+  return `<div class="group">
+    <div class="group-head">
+      <span class="group-title">Which half</span>
+      <span class="group-rule"></span>
+      <span class="group-meta">${isPrivate ? "private" : "work"}</span>
+    </div>
+    <article class="card">
+      <div class="card-top">
+        <h2 class="card-title">${isPrivate ? "The private half" : "The work half"}</h2>
+      </div>
+      <p class="card-why">
+        ${
+          isPrivate
+            ? "Its own store, read by nothing on the work side and never merged with it. Drift, cadences, duties, prep and a focus budget are not here - contact with somebody you live with is continuous, so a cadence over it would read as permanently fine and mean nothing."
+            : "Everything the app has always been. People you are responsible for, what you owe them, and what has fallen behind."
+        }
+      </p>
+      <p class="card-why dim">
+        ${
+          isPrivate
+            ? "What an entry here records is the interaction and your own part in it - not the other person's state. That is the half you can change, and it is the only version you could show the person it is about."
+            : "The private half keeps family and everything outside work in a separate store. Switching restarts the app, so it cannot happen while you are half-way through a sentence."
+        }
+      </p>
+      <div class="card-foot">
+        <span class="src mono-text">${esc(String(status?.dataDir ?? ""))}</span>
+        <button class="act" data-act="switchMode" data-to="${isPrivate ? "work" : "private"}">
+          ${isPrivate ? "Back to work" : "Switch to private"}
+        </button>
+      </div>
+    </article>
+  </div>`;
 }
 
 /** @param {any} folders @param {any} bindings @param {any} roster @param {any} status */
@@ -420,6 +481,28 @@ export const actions = {
       confirm: "Good"
     });
     refresh();
+  },
+
+  /** @param {Record<string, string>} d */
+  switchMode: async (d) => {
+    const toPrivate = d.to === "private";
+    const sure = await ask({
+      title: toPrivate ? "Switch to the private half?" : "Back to the work half?",
+      body: toPrivate
+        ? "The app restarts and opens a different store. Nothing from the work half is visible there, and nothing written there is ever read here."
+        : "The app restarts and opens the work store again. Nothing written in the private half comes with it.",
+      confirm: toPrivate ? "Switch" : "Switch back"
+    });
+    if (!sure) {
+      return;
+    }
+    // No toast and no refresh: the app is on its way down. A success message
+    // rendered into a window that is about to be replaced is a message nobody
+    // reads, and a failure comes back as an error instead.
+    const result = await tend.invoke("setMode", { mode: d.to });
+    if (result?.error) {
+      toast(String(result.error), "bad");
+    }
   },
 
   openData: async () => {

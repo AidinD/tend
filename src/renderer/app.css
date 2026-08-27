@@ -99,6 +99,40 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The private half, said in colour.
+ *
+ * One variable is overridden and everything that reads the accent follows,
+ * because the accent is already the app's own colour rather than a decoration -
+ * the rail, the primary buttons, the focus ring. A separate private stylesheet
+ * would have been two designs to keep in step, and the one that is not being
+ * looked at is the one that drifts.
+ *
+ * The green is chosen to be unmistakably not the blue at a glance, and to stay
+ * clear of the semantic set: critical, warn and ok have to keep meaning what they
+ * mean in both halves, so the mode may not borrow any of them.
+ */
+:root[data-mode="private"] {
+  --accent: #59b58f;
+  --accent-soft: rgba(89, 181, 143, 0.15);
+}
+
+/*
+ * Empty in work mode, and empty markup draws nothing - so this needs no rule to
+ * hide it. A badge that is always present stops being read, which is the trap
+ * the rail counts are already arranged around.
+ */
+.mode-badge:not(:empty) {
+  padding: 1px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
 .header-right {
   display: flex;
   align-items: center;

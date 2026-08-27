@@ -38,6 +38,16 @@ const main = /** @type {HTMLElement} */ (document.getElementById("main"));
 const route = { view: "now", params: {} };
 
 /**
+ * Which half this window is looking at.
+ *
+ * Starts as work and is corrected once `status` answers. Held here rather than
+ * read back out of the DOM, because the counts run on the first draw and the
+ * question they need answered is "does this machinery mean anything here" rather
+ * than "what does the document say".
+ */
+let mode = "work";
+
+/**
  * Navigate. Views call this rather than touching the route directly.
  *
  * @param {string} view
@@ -78,6 +88,20 @@ async function draw() {
  * being read, so anything at zero shows nothing at all.
  */
 async function updateCounts() {
+  /*
+   * Nothing to count in the private half, and nothing that should be computed
+   * there either.
+   *
+   * Drift, cadences, prep and a focus budget are absent from that half rather
+   * than turned down - see DECISIONS.md - and running them anyway to fill badges
+   * on hidden buttons would make "absent" a statement about the rail instead of
+   * about the app. It would also be six passes over the wrong kind of data on
+   * every redraw, forever.
+   */
+  if (mode === "private") {
+    return;
+  }
+
   const [attention, roster, map, current, cards, ledger] = await Promise.all([
     tend.invoke("attention"),
     tend.invoke("people"),
@@ -139,10 +163,58 @@ document.querySelectorAll("[data-window]").forEach((btn) => {
   });
 });
 
+/**
+ * Which views apply in the private half.
+ *
+ * Not a filter over the same list: the machinery that is missing here is missing
+ * because it does not mean anything, rather than because it is turned down.
+ * Contact with somebody you live with is continuous, so drift, cadences, duties,
+ * prep and a focus budget produce either permanent green or something faintly
+ * grotesque. What transfers is the journal, and the reference material you go to
+ * with a question.
+ *
+ * Settings is here because it is the way back out.
+ */
+const PRIVATE_VIEWS = ["journal", "knowledge", "settings"];
+
+/**
+ * Make the mode impossible to miss, and hide what does not apply.
+ *
+ * Three signals rather than one, because the failure this guards against is
+ * typing something about your family into the work store. The window title
+ * carries it outside the app, the accent colour carries it at a glance, and the
+ * rail carries it by being visibly shorter.
+ *
+ * @param {string} chosen
+ */
+function applyMode(chosen) {
+  mode = chosen;
+  document.documentElement.dataset.mode = chosen;
+  if (chosen !== "private") {
+    return;
+  }
+  for (const button of document.querySelectorAll(".nav-btn")) {
+    const view = String(/** @type {HTMLElement} */ (button).dataset.view);
+    if (!PRIVATE_VIEWS.includes(view)) {
+      /** @type {HTMLElement} */ (button).hidden = true;
+    }
+  }
+  // Landing on a view that is not there would draw a work view over private
+  // data, which is the one thing this whole arrangement exists to prevent.
+  if (!PRIVATE_VIEWS.includes(route.view)) {
+    go("journal");
+  }
+}
+
 tend.invoke("status").then((s) => {
   const el = document.getElementById("version");
   if (el && s?.version) {
     el.textContent = s.version;
+  }
+  applyMode(String(s?.mode ?? "work"));
+  const badge = document.getElementById('mode-badge');
+  if (badge) {
+    badge.textContent = s?.mode === 'private' ? 'private' : '';
   }
 });
 

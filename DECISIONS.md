@@ -1506,3 +1506,165 @@ end-to-end checks that had quietly meant "the first card on the page", and one o
 them kept passing while measuring the wrong element - the worse half of that
 failure. A card that says what it is costs nothing and removes a class of test
 that measures the layout instead of the thing.
+
+## 2026-08-27 - Two stores, one at a time, and the rule that makes the private one safe
+
+The app now opens one of two stores. Work is where everything always was; private
+is a sibling directory that the work half never reads and never merges with.
+Switching restarts the app.
+
+**Why two directories rather than one store with a filter.** A filter is a rule,
+and a rule is a thing that can be got wrong once. Two directories that are never
+read across cannot leak into each other by anybody forgetting a condition
+somewhere, so the boundary becomes a property of the filesystem instead of a
+property of the code continuing to be careful. This was argued the other way
+first and the argument was lost on exactly that point.
+
+**Beside, never inside.** The private directory is derived from the work one by
+appending a suffix, not by nesting under it. Nested, a backup or a sync of the
+work store would quietly carry the private one along - and the entire reason
+there are two is that they never travel together. `TEND_PRIVATE_DIR` moves it
+outright for a different drive or an encrypted volume; there is no second
+variable to set in the normal case, because the first one took an afternoon to
+discover was missing and a second would have the same failure with half the
+visibility.
+
+**Switching restarts the app.** Everything under the window - the store, the
+change watcher, the Nib import - was opened for the mode the app started in.
+Swapping them underneath a drawing view is a sequence that has a wrong order, and
+the cost of the wrong order is private words written into the work store. A
+restart has no wrong order. It also puts the right amount of friction on this
+particular button: this is not a control to flick by accident.
+
+**The remembered mode is configuration, not data.** It lives in the app's own
+per-user directory rather than as a row in either store, because a row would have
+to be written in both to stay true, which is how the two halves start disagreeing.
+Every way of failing to read it resolves to work mode - missing, unparseable,
+half-written, a mode that does not exist - because that is the only fallback that
+cannot put private words in the work store.
+
+**Three signals, not one.** The window title carries the mode outside the app,
+where it is readable in a taskbar; the accent colour carries it at a glance; and
+the rail carries it by being visibly shorter. The badge beside the wordmark is
+empty in work mode rather than saying "work", for the same reason the rail counts
+hide a zero: a label that is always there stops being read, and this one has to
+still be doing its job in six months.
+
+**What is not in the private half, and why it is absent rather than dampened.**
+Drift, cadences, duties, prep, the focus budget, the role map, decisions. Not
+turned down - absent. Contact with somebody you live with is continuous, so a
+cadence over it reads as permanently fine and means nothing, and a "you have not
+spoken to them in three days" about a person in the next room is worse than
+useless. What transfers is the journal, which is the part that was thinnest, and
+the reference material you go to with a question.
+
+**The rule the private journal is written under.** An entry records the
+interaction and his own part in it, never the other person's state. "That went
+badly and I got impatient", not "she was impossible." Three reasons and the third
+is the one that matters: it is the half he can change, it keeps the first-person
+constraint the signals already depend on, and it is the only version of an entry
+he could show the person it is about - which is the test a journal about people
+you live with has to pass, because one day somebody reads it.
+
+**The rule is in the form first and the check second.** The labels and hints say
+the rule while the entry is being written, which is worth more than any amount of
+reading it back afterwards. The check exists for the evenings where good
+intentions do not hold.
+
+**Why the check is a model and not a pattern in code.** "She was impossible" and
+"I could not reach her" are the same sentence at the level of grammar and
+opposite at the level of what they claim. No rule over pronouns separates them,
+and one that tried would flag every mention of another person - which in a
+journal about a family is every sentence. So the check is told the rule in both
+directions: describing what somebody DID or SAID is fine and is often the whole
+point; a claim about what they ARE is what breaks it.
+
+**The check may not rewrite anything.** It returns the phrase and an alternative
+beside it, shown once and thrown away, and the entry on disk is untouched
+whatever it says. An automatic rewrite would replace his words with a model's in
+the one place where the words being his is the entire value, and it would do it
+to the record of a relationship. Structurally rather than by promise: the
+function takes the text and no store, so there is nothing it could write to.
+
+**The clean answer is shown rather than swallowed.** "This all keeps to your own
+part" is the common result and the one worth seeing. A check that only ever speaks
+up when something is wrong reads as an accusation waiting to happen, which is how
+a check about your family stops being run.
+
+**The cheap tier.** One stated rule over a few sentences is exactly that tier's
+shape, and a check that costs real money every evening is a check that gets
+turned off.
+
+**Fixed while here: the instruction that protects Swedish quotes had itself been
+written with the letters stripped** - "keep a, a and o with their diacritics".
+Not a typo but an instruction that cannot do its job, and the failure it lets
+through is a quote that looks like somebody's words while not being them. It now
+contains the letters, and a test asserts that it does, because the stripping is a
+writing habit rather than an encoding fault and can come back through any edit.
+
+## 2026-08-27 - No protocol command in the app harness may wait for ever
+
+Every command the app harness sends over the debugging protocol now has a
+thirty-second ceiling, and the screenshots it takes may fail without failing the
+run.
+
+**The bug.** Each command was a promise registered against a reply id, with
+nothing to settle it if the reply never came. One command reliably does not come:
+capturing a screenshot never answers while the window is not being presented -
+minimised, fully occluded, or a machine that locked while the suite was running.
+Every check would pass, the summary line would never print, and the process sat
+there. Node's own warning was the only clue, and it pointed at the awaiting line
+rather than at the command underneath it.
+
+**Why a hang is worse than a failure.** It looks like slowness, so it gets waited
+on. It produces no output, so there is nothing to read. And it depends on whether
+somebody happened to minimise a window, so it is intermittent and gets blamed on
+the machine. This one wasted a run that had already passed - twice.
+
+**Why the screenshots are allowed to fail.** They are documentation: they end up
+in docs/ and not one check reads them. So a machine that cannot present a window
+must not be able to fail a suite where everything passed. It says why it could not
+capture, on one line, and carries on.
+
+**Why a ceiling rather than only fixing the screenshot.** The screenshot is the
+command that fails today. The property worth having is that no command can wait
+for ever, because the next one to acquire that behaviour would cost the same
+afternoon to find.
+
+**A harness states which half it drives, in the environment.** `TEND_MODE`
+overrides the remembered choice for one launch and writes nothing. Without it a
+run inherits whichever half the real app was last left in, and every check in the
+work suite is written against the work half - the failure would have been a screen
+of red on a machine where nothing was wrong, for a reason nothing in the output
+would mention. It doubles as the way out of a mode you cannot get out of, since
+the switch lives inside a window that might not open.
+
+**Not by giving the work harness its own Electron user directory, which was the
+first attempt and was wrong.** A fresh Chromium profile leaves the window
+unpresented on this machine: maximising it then changes nothing measurable, and
+capturing a screenshot never returns. So the attempt to isolate the mode broke
+two checks with no visible connection to it - and one of those two was the check
+that had just been fixed for hanging, which made the hang fix look like the
+culprit. Reverting the harness to its committed state and watching it pass was
+what separated them. The private harness keeps the flag, because it is testing
+the remembered choice itself and so the file has to live somewhere; it is
+therefore the one harness that may not assert anything about window chrome.
+
+**The private half has its own short harness, because the main one cannot reach
+it.** Switching modes relaunches the app, which would end a run half-way through,
+so `scripts/e2e-private.mjs` launches a second instance that is already in the
+private half and asserts only what differs: the choice survived a launch, the
+store it opened is the private one and is beside the work store rather than inside
+it, the mode is visible without opening anything, and the machinery that means
+nothing over there is not on offer. Everything general about the app is already
+covered by the work suite against the same code.
+
+**Two things that harness taught, both about waiting for the wrong signal.** Its
+checks were written with async bodies and a non-awaiting runner, so an assertion
+inside one rejected into nothing and the line printed ok - the third
+cannot-fail check found in this project, which is why its runner is async even
+where a body is not. And a readiness check on `1` answering proves nothing about
+the DOM: the target appears and the socket opens before the page has a document,
+and a missing document comes back as a reply carrying no value, which looks
+exactly like a command that was never answered. The symptom was a parse error
+pointing at a line that was not the problem.

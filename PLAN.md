@@ -134,10 +134,16 @@ point into Dropbox since it is his private account with only his own access.
   management job title. Describe the role as lead, coaching, or responsibility.
 - Swedish text keeps its å, ä and ö, including inside code and fixtures.
 
-## Next: a private mode, for relationships outside work
+## A private mode, for relationships outside work
 
-Discussed 2026-08-25, to be built. Not decided in DECISIONS.md yet because
-nothing has been built and nothing has met use.
+Discussed 2026-08-25. The first three steps of the build order below - the mode
+switch, the journal on both sides, and the model check that reads an entry back
+against the first-person rule - landed 2026-08-27 and are recorded in
+DECISIONS.md under "Two stores, one at a time". What is left here is the
+reference material and, last, the signals.
+
+The design below stands as written; read it for the reasoning rather than for
+what exists.
 
 The idea is that the model underneath Tend is not work-specific. A person, a
 relationship, things you owe them, a record of contact, promises - none of that

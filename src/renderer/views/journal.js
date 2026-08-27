@@ -19,6 +19,14 @@
  * honesty is structural rather than something a model has to remember to
  * mention.
  *
+ * ## In the private half, the rule is in the form
+ *
+ * An entry there records the interaction and his own part in it, never the other
+ * person's state. The check that reads an entry back against that rule exists,
+ * but the cheaper half of enforcing it is upstream: the labels and hints on the
+ * form say the rule while it is being written, which is worth more than any
+ * amount of reading it back afterwards.
+ *
  * ## Why the reading is a button and not a schedule
  *
  * The entries were always the means and the reading is the product, but a
@@ -28,18 +36,20 @@
  */
 
 import { act, asDateInput, esc, form, tend } from "../ui.js";
-import { isRunning, modelActions, modelStatus, resultFor, reviewHtml, run } from "../model.js";
+import { isRunning, modelActions, modelStatus, ownPartHtml, resultFor, reviewHtml, run } from "../model.js";
 import { refresh } from "../app.js";
 
 /** The key the current reading is held under. One at a time is enough. */
 const REVIEW_KEY = "review:journal";
 
 export async function render() {
-  const [result, kept, model] = await Promise.all([
+  const [result, kept, model, status] = await Promise.all([
     tend.invoke("journal"),
     tend.invoke("reviews"),
-    modelStatus()
+    modelStatus(),
+    tend.invoke("status")
   ]);
+  const isPrivate = String(status?.mode ?? "work") === "private";
 
   if (result?.error) {
     return `<div class="card sev-critical"><div class="card-top">
@@ -56,9 +66,16 @@ export async function render() {
         <div>
           <h1 class="view-title">The day</h1>
           <p class="view-sub">
-            Four boxes, all optional, no reminder and no streak. Missing days is
-            expected - the value is in a month of them rather than in any one, so
-            the only thing that matters is that writing one is cheap.
+            ${
+              isPrivate
+                ? `Four boxes, all optional, no reminder and no streak. One rule, and it is the
+                   whole reason this is safe to write: record what happened and your own part in
+                   it, never the other person's state. That is the half you can change, and it is
+                   the only version you could show the person it is about.`
+                : `Four boxes, all optional, no reminder and no streak. Missing days is
+                   expected - the value is in a month of them rather than in any one, so
+                   the only thing that matters is that writing one is cheap.`
+            }
           </p>
         </div>
         <button class="act primary" data-act="writeEntry">Write today</button>
@@ -89,7 +106,7 @@ export async function render() {
     ${coverage}
     ${readingSection(cover, model)}
     ${keptSection(Array.isArray(kept) ? kept : [])}
-    ${entries.map((/** @type {any} */ e) => entry(e, fields)).join("")}`;
+    ${entries.map((/** @type {any} */ e) => entry(e, fields, isPrivate, model)).join("")}`;
 }
 
 /**
@@ -233,8 +250,10 @@ function keptCard(r) {
  *
  * @param {any} e
  * @param {{ name: string, label: string }[]} fields
+ * @param {boolean} isPrivate
+ * @param {{ available: boolean, why: string | null }} model
  */
-function entry(e, fields) {
+function entry(e, fields, isPrivate = false, model = { available: false, why: null }) {
   const lines = fields
     .filter((f) => String(e[f.name] ?? "") !== "")
     .map(
@@ -260,9 +279,15 @@ function entry(e, fields) {
       <span class="badge">${esc(e.when)}</span>
     </div>
     ${lines}
+    ${isPrivate ? ownPartBlock(e, model) : ""}
     <div class="card-foot">
       <span class="src">Written by you. Read by the pass above, when you ask for it.</span>
       <span class="foot-actions">
+        ${
+          isPrivate && model.available
+            ? `<button class="act" data-act="readBack" data-at="${esc(String(e.at))}">Read it back</button>`
+            : ""
+        }
         <button class="act" data-act="writeEntry" data-at="${esc(String(e.at))}">Edit</button>
         <button class="act danger" data-act="dropEntry" data-id="${esc(e.id)}" data-day="${esc(new Date(e.at).toLocaleDateString("sv-SE"))}">Remove</button>
       </span>
@@ -270,10 +295,63 @@ function entry(e, fields) {
   </article>`;
 }
 
+/**
+ * The own-part check for one day, once it has been asked for.
+ *
+ * Keyed per entry rather than one at a time, so reading two evenings back does
+ * not throw the first away - and so the result sits under the entry it is about
+ * instead of somewhere the reader has to match it up by hand.
+ *
+ * @param {any} e
+ * @param {{ available: boolean, why: string | null }} model
+ */
+function ownPartBlock(e, model) {
+  const key = ownPartKey(e.at);
+  if (isRunning(key)) {
+    return `<p class="src">Reading it back...</p>`;
+  }
+  const result = resultFor(key);
+  if (result === null) {
+    return model.available
+      ? ""
+      : `<p class="src">${esc(String(model.why ?? "No model is reachable, so nothing can read this back."))}</p>`;
+  }
+  return ownPartHtml(key, result);
+}
+
+/** @param {number | string} at */
+function ownPartKey(at) {
+  return `ownpart:${at}`;
+}
+
 export const actions = {
   ...modelActions(),
 
   readJournal: () => run(REVIEW_KEY, "reviewJournal", {}),
+
+  /**
+   * Read one entry back against the rule.
+   *
+   * The whole entry is sent, not one box, because the rule is about what the
+   * writing claims rather than about any single field - and "what took the day"
+   * is exactly where a sentence about somebody else's state ends up.
+   *
+   * @param {Record<string, string>} d
+   */
+  readBack: async (d) => {
+    const journal = await tend.invoke("journal");
+    const at = Number(d.at);
+    const found = (journal?.entries ?? []).find((/** @type {any} */ e) => Number(e.at) === at);
+    if (!found) {
+      return;
+    }
+    const fields = Array.isArray(journal?.fields) ? journal.fields : [];
+    const text = fields
+      .map((/** @type {any} */ f) => (found[f.name] ? `${f.label}: ${found[f.name]}` : ""))
+      .filter((/** @type {string} */ line) => line !== "")
+      .join("\n");
+    await run(ownPartKey(at), "checkOwnPart", { text });
+  },
 
   /** @param {Record<string, string>} d */
   keepReview: async (d) => {

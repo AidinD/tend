@@ -85,3 +85,57 @@ export function resolveDataDir({
   }
   return { dir: defaultUserDataDir({ platform, env, home }), source: "default" };
 }
+
+/**
+ * The two modes, and which store each one is.
+ *
+ * `work` is the directory everything used before there were modes, so nothing
+ * moves and no migration exists. `private` is a sibling directory rather than a
+ * subfolder of it: nested, a backup or a sync of the work store would quietly
+ * carry the private one along, and the whole point of two stores is that they
+ * never travel together.
+ */
+export const MODES = /** @type {const} */ (["work", "private"]);
+
+/** @typedef {(typeof MODES)[number]} Mode */
+
+/** @param {string} v @returns {v is Mode} */
+export const isMode = (v) => MODES.includes(/** @type {any} */ (v));
+
+/**
+ * Where a mode's data lives.
+ *
+ * The private one is derived from the work one by default, so there is no second
+ * environment variable to set and forget. That matters more than it looks: the
+ * first variable took a whole afternoon to discover was missing, and a second
+ * one would have the same failure with half the visibility.
+ *
+ * `TEND_PRIVATE_DIR` overrides it for the cases the default cannot cover - a
+ * different drive, or an encrypted volume.
+ *
+ * @param {Mode} mode
+ * @param {object} [opts]
+ * @param {Record<string, string | undefined>} [opts.env]
+ * @param {NodeJS.Platform} [opts.platform]
+ * @param {string} [opts.home]
+ * @param {(name: string, platform?: NodeJS.Platform) => string | null} [opts.stored]
+ * @returns {{ dir: string, source: "env" | "user-env" | "default" | "beside-work" }}
+ */
+export function resolveModeDir(mode, opts = {}) {
+  const work = resolveDataDir(opts);
+  if (mode !== "private") {
+    return work;
+  }
+
+  const { env = process.env, platform = process.platform, stored = userEnvironment } = opts;
+
+  const override = env.TEND_PRIVATE_DIR?.trim();
+  if (override) {
+    return { dir: override, source: "env" };
+  }
+  const fromRegistry = stored("TEND_PRIVATE_DIR", platform)?.trim();
+  if (fromRegistry) {
+    return { dir: fromRegistry, source: "user-env" };
+  }
+  return { dir: `${work.dir.replace(/[\/]+$/, "")}-private`, source: "beside-work" };
+}

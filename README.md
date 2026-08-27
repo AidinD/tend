@@ -109,6 +109,10 @@ npm run test:app
 ```
 
 ```bash
+npm run test:private
+```
+
+```bash
 npm run typecheck
 ```
 
@@ -127,7 +131,14 @@ npm run release
 `test:app` launches its own Electron instance against a scratch data directory
 and drives it over the Chrome DevTools Protocol - it reads the DOM and clicks by
 selector rather than moving the pointer, so it never fights whoever is using the
-machine. It kills only the process it started.
+machine. It kills only the process it started, and states which half it is
+driving through `TEND_MODE` so a run cannot inherit whichever half the real app
+was last left in.
+
+`test:private` is the same idea for the private half, which the main harness
+cannot reach: switching halves relaunches the app, so a run that switched would
+end itself. It launches a second instance that is already in the private half and
+asserts only what differs there.
 
 The source is plain JavaScript with JSDoc types, checked by `tsc`. No build step
 for the storage layer, deliberately: the MCP server imports it directly.

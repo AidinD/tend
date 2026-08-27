@@ -368,6 +368,72 @@ function ledgerListHtml(l) {
 }
 
 /**
+ * One entry, read back against the rule that keeps it safe to write.
+ *
+ * Deliberately not framed as errors. What comes back is a phrase and an
+ * alternative beside it, and the entry on disk is untouched whatever this says -
+ * a check that rewrote his words would replace them with a model's in the one
+ * place where the words being his is the entire value.
+ *
+ * The clean answer is shown rather than swallowed. "This keeps to your own part"
+ * is the common result and the one worth seeing: a check that only ever speaks
+ * up when something is wrong is a check that reads as an accusation waiting to
+ * happen.
+ *
+ * @param {string} key
+ * @param {any} result
+ */
+export function ownPartHtml(key, result) {
+  const lines = Array.isArray(result?.lines) ? result.lines : [];
+
+  if (lines.length === 0) {
+    return `<div class="draft">
+      <div class="draft-head">
+        <span class="draft-title">Read back</span>
+        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Close</button>
+      </div>
+      <p class="src">${esc(
+        String(result?.ok ?? "").trim() ||
+          "Nothing here describes them rather than your own part in it."
+      )}</p>
+      <div class="draft-foot">${ownPartStamp(result)}</div>
+    </div>`;
+  }
+
+  return `<div class="draft">
+    <div class="draft-head">
+      <span class="draft-title">Read back</span>
+      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Close</button>
+    </div>
+    <p class="src">
+      ${lines.length === 1 ? "One phrase" : `${lines.length} phrases`} describing them rather than
+      your own part. Nothing has been changed - the alternative is only an alternative.
+    </p>
+    <ul class="draft-list">
+      ${lines
+        .map(
+          (/** @type {any} */ l) =>
+            `<li>${esc(l.quote)}${l.instead ? `<span class="src">Could be: ${esc(l.instead)}</span>` : ""}</li>`
+        )
+        .join("")}
+    </ul>
+    <div class="draft-foot">${ownPartStamp(result)}</div>
+  </div>`;
+}
+
+/**
+ * Same rule as everything else a model wrote: which one said it, and that it was
+ * not saved. Written out here rather than reusing `stamp` because that one says
+ * "drafted", and this did not draft anything.
+ *
+ * @param {any} result
+ */
+function ownPartStamp(result) {
+  const cost = typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : "";
+  return `<span class="src">Read by ${esc(result?.model ?? "a model")}${cost}. Your entry is untouched.</span>`;
+}
+
+/**
  * The actions every view with a model button needs, ready to be spread into
  * its own `actions` map.
  *

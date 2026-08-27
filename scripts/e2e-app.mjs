@@ -170,11 +170,41 @@ async function connect(url) {
     }
   });
 
+  /**
+   * How long a single protocol command may take before it is called a failure.
+   *
+   * Generous, because `Runtime.evaluate` occasionally waits on the renderer, and
+   * finite, because the alternative was this harness hanging forever. Every
+   * command used to be a promise with nothing to settle it if the reply never
+   * arrived, and one command reliably does not reply: `Page.captureScreenshot`
+   * never answers while the window is not being presented - minimised, fully
+   * occluded, or on a machine that has just locked. The run then sat there until
+   * somebody noticed, with every check already passed and nothing said.
+   *
+   * A hang is the worst shape a test harness can fail in. It looks like slowness,
+   * so it gets waited on; it produces no output, so there is nothing to read; and
+   * it is intermittent, so it is blamed on the machine.
+   */
+  const COMMAND_MS = 30_000;
+
   /** @param {string} method @param {object} [params] */
   const send = (method, params = {}) =>
     new Promise((done, fail) => {
       const id = nextId++;
-      pending.set(id, { done, fail });
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        fail(new Error(`${method} did not answer within ${COMMAND_MS / 1000}s`));
+      }, COMMAND_MS);
+      pending.set(id, {
+        done: (/** @type {any} */ value) => {
+          clearTimeout(timer);
+          done(value);
+        },
+        fail: (/** @type {any} */ reason) => {
+          clearTimeout(timer);
+          fail(reason);
+        }
+      });
       socket.send(JSON.stringify({ id, method, params }));
     });
 
@@ -327,10 +357,27 @@ async function connect(url) {
     }
   };
 
-  const screenshot = async (/** @type {string} */ path) => {
-    const shot = /** @type {any} */ (await send("Page.captureScreenshot", { format: "png" }));
-    writeFileSync(path, Buffer.from(shot.data, "base64"));
-    return path;
+  /**
+   * A picture, if one can be had.
+   *
+   * Returns null rather than throwing. These screenshots are documentation - they
+   * end up in docs/ - and not one check depends on them, so a machine that cannot
+   * present the window must not be able to fail a run where every check passed.
+   * With the timeout above, the worst case is now thirty seconds and a line
+   * saying why, instead of a harness that never returns.
+   *
+   * @param {string} path
+   * @returns {Promise<string | null>}
+   */
+  const screenshot = async (path) => {
+    try {
+      const shot = /** @type {any} */ (await send("Page.captureScreenshot", { format: "png" }));
+      writeFileSync(path, Buffer.from(shot.data, "base64"));
+      return path;
+    } catch (error) {
+      console.log(`  --   no screenshot: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
   };
 
   return {
@@ -484,7 +531,7 @@ if (packaged && !existsSync(exe)) {
   process.exit(1);
 }
 
-const args = packaged ? [`--remote-debugging-port=${PORT}`] : [root, `--remote-debugging-port=${PORT}`];
+const args = [...(packaged ? [] : [root]), `--remote-debugging-port=${PORT}`];
 console.log(packaged ? "Mode: packaged build" : "Mode: development");
 
 const child = spawn(exe, args, {
@@ -499,6 +546,22 @@ const child = spawn(exe, args, {
     // and the same default-to-real habit is what put a real book title in a
     // Brief fixture earlier today.
     JOT_DATA_DIR: jotScratch,
+    /*
+     * Which half to drive, stated rather than inherited.
+     *
+     * The app remembers the half it was last left in, and every check below is
+     * written against the work one - so a run started after somebody had been in
+     * the private half would fail in a screenful of ways with nothing in the
+     * output naming the cause.
+     *
+     * Said in the environment rather than by giving Electron its own user
+     * directory, which was the first attempt and cost an hour: a fresh Chromium
+     * profile made the window stop being presented, so maximising it did nothing
+     * measurable and capturing a screenshot never returned. Two failures with no
+     * connection to the change that caused them, in the part of the harness that
+     * is hardest to reason about.
+     */
+    TEND_MODE: "work",
     ELECTRON_ENABLE_LOGGING: "0"
   },
   stdio: ["ignore", "pipe", "pipe"]
@@ -1698,6 +1761,45 @@ try {
   await page.click('.nav-btn[data-view="settings"]');
   await page.waitFor("document.querySelector('.view-title') !== null", "settings");
 
+  /*
+   * The mode, before anything else on this page.
+   *
+   * Deliberately only read, never switched: switching relaunches the app, which
+   * would end this run. What has to be true is that a fresh install is in the
+   * work half and looks exactly as it always did - the private half is opt-in,
+   * and a default that ever came up private would be the worst possible bug in
+   * this feature.
+   */
+  const modeState = await page.evaluate(
+    `(() => {
+      const btn = document.querySelector('[data-act="switchMode"]');
+      const badge = document.getElementById('mode-badge');
+      const hidden = [...document.querySelectorAll('.nav-btn')].filter(b => b.hidden).length;
+      return JSON.stringify({
+        mode: document.documentElement.dataset.mode ?? "",
+        offersPrivate: btn === null ? null : btn.dataset.to,
+        badge: badge === null ? "missing" : badge.textContent.trim(),
+        hiddenRailButtons: hidden
+      }); })()`
+  );
+  check("a fresh install is in the work half, and says which half it is in", () => {
+    const m = JSON.parse(String(modeState));
+    if (m.mode !== "work") {
+      throw new Error(`the app came up in "${m.mode}" mode`);
+    }
+    if (m.offersPrivate !== "private") {
+      throw new Error(`the switch offers "${m.offersPrivate}" rather than the private half`);
+    }
+    // Empty in the work half on purpose. A badge that is always there stops
+    // being read, which is the trap the rail counts are already arranged around.
+    if (m.badge !== "") {
+      throw new Error(`the mode badge reads "${m.badge}" in work mode`);
+    }
+    if (m.hiddenRailButtons !== 0) {
+      throw new Error(`${m.hiddenRailButtons} rail entries are hidden in the work half`);
+    }
+  });
+
   const settingsText = await page.evaluate("document.body.textContent");
   check("settings finds the Nib folders", () => {
     if (!/folder\(s\) found in Nib/.test(String(settingsText))) {
@@ -2164,7 +2266,9 @@ try {
   step("Finishing up");
 
   const shot = await page.screenshot(join(root, "docs", "now-view.png"));
-  console.log(`  --   screenshot: ${shot}`);
+  if (shot !== null) {
+    console.log(`  --   screenshot: ${shot}`);
+  }
 
   const rendererErrors = await page.evaluate("JSON.stringify(window.__errors ?? ['__errors missing'])");
   check("no uncaught renderer errors anywhere in that", () => {

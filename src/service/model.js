@@ -84,8 +84,8 @@ const HOUSE_RULES =
   "Never invent a fact that is not in the material you were given - if something " +
   "is not there, leave it out rather than guessing. Never write out a management " +
   "job title; describe the relationship as leading, coaching or being responsible " +
-  "for the work. Keep any Swedish text exactly as written, including a, a and o " +
-  "with their diacritics.";
+  "for the work. Keep any Swedish text exactly as written, including \u00e5, \u00e4 " +
+  "and \u00f6 - a stripped quote looks like somebody's words while not being them.";
 
 /**
  * Whether a model call can be made at all, and why not when it cannot.
@@ -756,6 +756,139 @@ function entryLines(entry) {
     (f) => `  ${f.label}: ${String(entry[f.name]).trim()}`
   );
   return [`--- ${day} ---`, ...boxes].join("\n");
+}
+
+/* ------------------------------------------------------------ own part -- */
+
+const OWN_PART_SCHEMA = {
+  type: "object",
+  properties: {
+    lines: {
+      type: "array",
+      description:
+        "Each place the entry describes the other person rather than the writer's own part in " +
+        "it. Empty when there is none, which is the common answer and the good one.",
+      items: {
+        type: "object",
+        properties: {
+          quote: {
+            type: "string",
+            description: "The phrase as it was written, not a paraphrase of it."
+          },
+          instead: {
+            type: "string",
+            description:
+              "The same event said as the writer's own part - what they did, chose, felt or " +
+              "avoided. A suggestion they are free to ignore, not a correction."
+          }
+        },
+        required: ["quote", "instead"]
+      }
+    },
+    ok: {
+      type: "string",
+      description:
+        "One sentence when the entry already keeps to the writer's own part, naming what it does " +
+        "well. An empty string when it does not."
+    }
+  },
+  required: ["lines", "ok"]
+};
+
+/**
+ * Read a private entry back, against the one rule that makes writing it safe.
+ *
+ * ## The rule
+ *
+ * An entry records the interaction and the writer's own part in it, never the
+ * other person's state. "That went badly and I got impatient", not "she was
+ * impossible."
+ *
+ * Three reasons, and the third is the one that matters. It is the half he can
+ * change. It keeps the first-person constraint the signals already depend on,
+ * where every signal has a subject who can act. And it is the only version of an
+ * entry he could show the person it is about - which is the test a private
+ * journal about people you live with has to pass, because one day somebody will
+ * read it.
+ *
+ * ## Why a model and not a rule in code
+ *
+ * "She was impossible" and "I could not reach her" are the same sentence at the
+ * level of grammar and opposite at the level of what they claim. No pattern over
+ * pronouns separates them, and one that tried would flag every mention of another
+ * person - which in a journal about a family is every sentence.
+ *
+ * ## What it may not do
+ *
+ * Rewrite the entry. It returns what it noticed and a suggestion beside it,
+ * shown once and thrown away; the entry on disk is untouched whatever it says.
+ * An automatic rewrite would replace his words with a model's in the one place
+ * where the words being his is the entire value - and it would do it to the
+ * record of a relationship.
+ *
+ * The cheap tier, deliberately. This is a check against one stated rule over a
+ * few sentences, which is the shape that tier is for, and a check that costs
+ * real money per evening is a check that gets turned off.
+ *
+ * @param {object} args
+ * @param {string} args.text The entry, as written.
+ * @param {typeof ask} [args.askImpl] Test seam.
+ * @returns {Promise<{ error: string } | {
+ *   lines: { quote: string, instead: string }[], ok: string,
+ *   model: string, costUsd: number | null
+ * }>}
+ */
+export async function checkOwnPart({ text, askImpl = ask }) {
+  const written = String(text ?? "").trim();
+  if (written === "") {
+    return { error: "There is nothing written to read back." };
+  }
+
+  const status = modelStatus();
+  if (!status.available) {
+    return { error: String(status.why) };
+  }
+
+  const answer = await askImpl({
+    prompt: [
+      "Here is one end-of-day entry about time with somebody outside work.",
+      "",
+      written.slice(0, MAX_NOTE_CHARS),
+      "",
+      "Where does it describe them rather than the writer's own part in it?"
+    ].join("\n"),
+    model: TIERS.extract,
+    schema: OWN_PART_SCHEMA,
+    system:
+      "You check one journal entry against a single rule the writer set for themselves: an entry " +
+      "records the interaction and their own part in it, never the other person's state or " +
+      "character. \"That went badly and I got impatient\" keeps the rule; \"she was impossible\" " +
+      "breaks it. " +
+      "Describing what somebody DID or SAID is fine and is often the whole point - what breaks " +
+      "the rule is a claim about what they are, what they felt, or why they did it. " +
+      "Report nothing rather than stretching for something; an entry that already keeps the rule " +
+      "is the common case. " +
+      "You are not editing anything. Every suggestion is one they may ignore, so phrase it as an " +
+      "alternative rather than as a correction, and never moralise about the relationship. " +
+      HOUSE_RULES
+  });
+
+  if (!answer.ok) {
+    return { error: answer.reason };
+  }
+
+  const value = answer.value ?? {};
+  return {
+    lines: (Array.isArray(value.lines) ? value.lines : [])
+      .filter((/** @type {any} */ l) => String(l?.quote ?? "").trim() !== "")
+      .map((/** @type {any} */ l) => ({
+        quote: String(l.quote).trim(),
+        instead: String(l.instead ?? "").trim()
+      })),
+    ok: String(value.ok ?? "").trim(),
+    model: answer.model,
+    costUsd: answer.costUsd
+  };
 }
 
 /* ------------------------------------------------------------ questions -- */

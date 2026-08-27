@@ -19,7 +19,8 @@ import electronUpdater from "electron-updater";
 
 const { autoUpdater } = electronUpdater;
 
-import { resolveDataDir } from "../domain/paths.js";
+import { resolveModeDir } from "../domain/paths.js";
+import { readMode, windowTitle, writeMode } from "./mode.js";
 import * as api from "../service/api.js";
 import * as model from "../service/model.js";
 import * as knowledge from "../service/knowledge.js";
@@ -30,7 +31,24 @@ import { openStore } from "../storage/store.js";
 import { watchEvents } from "../storage/watch.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const { dir, source } = resolveDataDir();
+
+/*
+ * Which store this window is looking at.
+ *
+ * Read before anything else opens, because everything else depends on it. The
+ * remembered mode lives in the app's own configuration directory rather than in
+ * either store - see main/mode.js for why a file saying "you were last in
+ * private mode" must not be carried along by a backup of the work directory.
+ *
+ * Chosen once per launch and never changed in place. Switching relaunches the
+ * app, which is a deliberate choice over swapping the store underneath a running
+ * window: the store, the change watcher, the Nib sync and every cached answer in
+ * the renderer would all have to be rebuilt in the right order, and getting that
+ * wrong once means private words written into the work store. A relaunch cannot
+ * be half-done.
+ */
+const mode = readMode(app.getPath("userData"));
+const { dir, source } = resolveModeDir(mode);
 
 /** @type {string[]} */
 const warnings = [];
@@ -155,6 +173,7 @@ const OPERATIONS = {
   detectThemes: (/** @type {any} */ a) => model.detectThemes(store, { ...a, now: a.now ?? Date.now() }),
   answerQuestion: (/** @type {any} */ a) => model.answerQuestion(store, { ...a, now: a.now ?? Date.now() }),
   reviewJournal: (/** @type {any} */ a) => model.reviewJournal(store, { ...a, now: a.now ?? Date.now() }),
+  checkOwnPart: (/** @type {any} */ a) => model.checkOwnPart({ text: a.text }),
 
   searchKnowledge: (/** @type {any} */ a) => knowledge.search(a.situation),
   considerKnowledge: (/** @type {any} */ a) => knowledge.consider(a),
@@ -173,6 +192,29 @@ const OPERATIONS = {
   updateDuty: (/** @type {any} */ a) => api.updateDuty(store, a.id, a.fields ?? {}),
   removeRow: (/** @type {any} */ a) => api.removeRow(store, a.collection, a.id),
   seed: () => seedRoleMap(store),
+
+  /**
+   * Switch which store the app is looking at.
+   *
+   * Remembers the choice, then relaunches. The relaunch is the feature: see the
+   * note beside `readMode` above.
+   */
+  setMode: (/** @type {any} */ a) => {
+    const wanted = String(a.mode ?? "");
+    if (wanted === mode) {
+      return { mode, unchanged: true };
+    }
+    const saved = writeMode(app.getPath("userData"), /** @type {any} */ (wanted));
+    if (!saved.ok) {
+      return { error: saved.why };
+    }
+    // Relaunch rather than reload. Everything below the window - the store, the
+    // watcher, the Nib sync - was opened for the old mode and there is no safe
+    // order in which to swap them all while a view is drawing.
+    app.relaunch();
+    app.quit();
+    return { mode: wanted, relaunching: true };
+  },
 
   openDataDir: async () => {
     const problem = await shell.openPath(dir);
@@ -193,6 +235,7 @@ const OPERATIONS = {
   // their own channels and acts on event.sender instead. See DECISIONS.md.
 
   status: () => ({
+    mode,
     dataDir: dir,
     dataDirFrom: source,
     warnings: warnings.slice(-5),
@@ -236,7 +279,10 @@ function createWindow() {
     frame: false,
     backgroundColor: "#1b1c1f",
     autoHideMenuBar: true,
-    title: "Tend",
+    // The one label that is readable when the app is not focused, in the taskbar
+    // and in a window switcher. A window whose mode you cannot see without
+    // bringing it forward is a window you can type the wrong thing into.
+    title: windowTitle(mode),
     webPreferences: {
       // .mjs, not .js: Electron loads a preload as CommonJS unless the
       // extension says otherwise, regardless of package.json type.
@@ -324,7 +370,7 @@ function checkForUpdates() {
 }
 
 app.whenReady().then(() => {
-  console.log(`[tend] data directory: ${dir} (${source})`);
+  console.log(`[tend] ${mode} mode, data directory: ${dir} (${source})`);
   createWindow();
 
   // Before the update check and before anything slow: its first pass is
