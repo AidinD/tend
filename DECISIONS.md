@@ -1360,6 +1360,9 @@ the form is only the means, but a summary needs entries to summarise. Signals
 built on a guess about which patterns exist are worse than no signals, which is
 the same order the topic and stakeholder work followed.
 
+*Built on 2026-08-27, once there were entries to read. See "The journal gets read,
+on request, and the reading can be kept" below.*
+
 ## 2026-08-27 - Notes import themselves, and the manual button stays
 
 Importing from Nib was correct, idempotent and reachable from exactly two
@@ -1420,3 +1423,86 @@ notebook is not there or is configured elsewhere, and the useful response is to
 say so. Creating it would make a misconfigured path look exactly like an empty
 notebook - the one reading that cannot be recovered from by looking at the
 screen.
+
+## 2026-08-27 - The journal gets read, on request, and the reading can be kept
+
+The end-of-day form has existed for days and the entry it wrote was read by
+nothing. The pass now exists: it reads the entries over a window, names what
+recurs, and returns something that is kept only if he keeps it.
+
+**Why a button rather than a schedule.** Every other design decision on that
+page is about not nagging - no prompt, no streak, no badge in the rail - and a
+reading that appeared unasked on the first of the month would be a verdict
+delivered to somebody who was not asking for one. Nothing on that page gets to
+be an exception, least of all the part that has opinions.
+
+**Why there is a floor, and why it refuses rather than hedges.** Below four
+entries across three separate days the pass will not run. A pattern named from
+two evenings is one evening restated with confidence, and the damage is not that
+it is wrong today: it is that it survives, and gets read next month as a fact
+about how the work went. The spread matters separately from the count because a
+catch-up evening produces four entries about one week, which is one data point
+wearing four. The floor is enforced in the service and again in the window - a
+disabled button with the reason on it, so a refusal is never something you
+discover by pressing.
+
+**Why the counts travel with the prose.** An evening's writing is a memory of a
+day, and a memory of a month of days is worse. So what the store recorded over
+the same window - conversations, promises made and closed, decisions, growth
+threads discussed against markers actually observed, meetings that did not
+happen - goes into the prompt beside the entries, and the model is told to say so
+where the two disagree rather than picking one. "It all went into meetings" reads
+very differently next to four recorded conversations, and only one of those two
+numbers is checkable.
+
+**What the counts deliberately are not.** They are counts, labelled as counts.
+The store has never held hours, and a share-of-week derived from event counts
+would be an invented number with a real-looking denominator. The one thing that
+can be stated honestly about where attention went is what a focus cost, because
+that is measured: mean drift when it was set against mean drift now. Everything
+else stays a count.
+
+**Why the focus is what the entries are set against.** A focus is the only place
+in the app where an intention about where attention *would* go is written down,
+which makes it the only thing "where it actually went" has anything to be
+compared to. When no focus was in force the comparison is left out entirely
+rather than an intention being invented to compare against, and when one covered
+four of thirty days the reading says so - a month held up against a focus that
+barely ran overstates both.
+
+**It asks rather than concludes.** Same rule as the growth threads. A verdict
+about how somebody spent their month is the one output that cannot be argued
+with, and therefore cannot be used.
+
+**A kept reading is stored, where a brief is not.** The reason briefs are thrown
+away is that the facts underneath them move, so a saved one quietly stops
+matching. A review is built from entries about days that are over: it is as true
+next year as it was on the evening it ran. It is also the only way the second
+reading is worth anything - a pattern that has survived three months is a
+different fact from one noticed tonight - and that comparison is impossible if
+each reading is discarded. The coverage is stored *with* it rather than
+recomputed later, because recomputing would answer for a window that has since
+moved.
+
+**Nothing is stored without him having read it.** The pass writes nothing; the
+window shows what came back and keeping it is a separate press. Same shape as
+keeping an extracted promise, and the same reason.
+
+**The floor is applied to the result as well as asked for in the prompt.** A
+minimum stated in a prompt is a request. Anything the model reports as happening
+on a single evening is dropped on the way out, which is where it becomes a rule.
+
+**Over MCP the material is exposed, not the pass.** `tend_journal` hands over the
+entries, the readiness, the recorded counts and the declared focus; the caller
+does its own reading. That is the existing rule on that surface rather than a new
+one - a caller there already is a model, and nesting a second would pay twice for
+a worse answer, because the inner call sees only the entries while the outer one
+sees the conversation. Keeping a reading is deliberately absent from that surface
+too: nothing a model concluded about how his months went should reach the store
+without him having read it.
+
+**The entry cards now say they are entries.** Adding a card above them broke two
+end-to-end checks that had quietly meant "the first card on the page", and one of
+them kept passing while measuring the wrong element - the worse half of that
+failure. A card that says what it is costs nothing and removes a class of test
+that measures the layout instead of the thing.

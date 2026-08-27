@@ -1515,8 +1515,10 @@ try {
     "the entry on the page"
   );
 
+  // `[data-entry]`, not `.card`. The page also carries a reading card, and
+  // "the first card" answered about that one instead the moment it appeared.
   const oneBox = await page.evaluate(
-    `(() => { const card = document.querySelector('.card');
+    `(() => { const card = document.querySelector('[data-entry]');
       return JSON.stringify({
         heads: [...card.querySelectorAll('.prep-head')].map(h => h.textContent.trim()),
         text: card.textContent
@@ -1548,7 +1550,7 @@ try {
   await page.fillDialog({ avoided: "Feedbackrundorna, igen", took: "Sjöhästen hela dagen" });
   await page.waitFor("document.body.textContent.includes('Sjöhästen hela dagen')", "the edit");
 
-  const cardsAfter = await page.evaluate("document.querySelectorAll('.card').length");
+  const cardsAfter = await page.evaluate("document.querySelectorAll('[data-entry]').length");
   check("writing the same day again edits it rather than adding a second", () => {
     if (Number(cardsAfter) !== 1) {
       throw new Error(`${cardsAfter} entries for one day`);
@@ -1565,6 +1567,34 @@ try {
     // reproaches you every evening is one you stop opening.
     if (String(nowAfterJournal).trim() !== "none" && String(nowAfterJournal).trim() !== "") {
       throw new Error(`the rail shows "${nowAfterJournal}"`);
+    }
+  });
+
+  // The reading is the product and the entries were always the means, so the
+  // offer has to be visible from the page - and refused out loud while there is
+  // too little written, rather than being a button that fails when pressed.
+  const reading = await page.evaluate(
+    `(() => { const btn = document.querySelector('[data-act="readJournal"]');
+      const card = btn === null ? null : btn.closest('.card');
+      return JSON.stringify({
+        offered: btn !== null,
+        disabled: btn === null ? null : btn.disabled,
+        why: card === null ? "" : card.textContent
+      }); })()`
+  );
+  check("the page offers to read the entries, and says why it will not yet", () => {
+    const r = JSON.parse(String(reading));
+    if (!r.offered) {
+      throw new Error("no reading is offered at all");
+    }
+    if (r.disabled !== true) {
+      throw new Error("one entry over one day is below the floor and the button was live anyway");
+    }
+    // The floor stated before the press rather than as an error after it. A
+    // refusal you could have seen coming should have been a disabled button
+    // with a reason on it.
+    if (!/four entries/.test(r.why) || !/three separate days/.test(r.why)) {
+      throw new Error(`it does not say what would make a reading possible: ${r.why.slice(0, 220)}`);
     }
   });
 

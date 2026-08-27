@@ -93,7 +93,18 @@ export const COLLECTIONS = /** @type {const} */ ([
    * The count that matters is the chases, not the days.
    */
   "waiting",
-  "chases"
+  "chases",
+  /**
+   * A kept reading of the journal over one closed window of days.
+   *
+   * Stored, where a brief deliberately is not, and the difference is whether the
+   * thing underneath it can change. A brief is built from live facts and starts
+   * going stale the moment it is written; a review is built from entries about
+   * days that are over, so it is as true next year as it was on the evening it
+   * was run. Keeping it is also the only way "is this the same thing as last
+   * month" ever becomes answerable.
+   */
+  "reviews"
 ]);
 
 /**

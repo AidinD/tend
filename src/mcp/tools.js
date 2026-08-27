@@ -357,6 +357,38 @@ export const TOOLS = [
     run: (store, args, now) => api.markRaised(store, { ...args, now })
   },
   {
+    name: "tend_journal",
+    description:
+      "The end-of-day entries over a window, with everything needed to read them honestly: how " +
+      "many there are and how many separate days they cover, what the app recorded over the same " +
+      "window as a checkable counterweight to a memory of a month, and whichever focus was in " +
+      "force with its measured cost. Read it when he asks where his time went, what he keeps " +
+      "avoiding, or whether a focus was worth it. Two things to hold on to: a pattern needs two " +
+      "or more separate evenings, and where the entries and the counts disagree, say so rather " +
+      "than picking one. `readiness` says outright when there is too little written to read - " +
+      "believe it, because a pattern named from two evenings gets remembered next month as a fact.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        days: { type: "number", description: "How far back. Defaults to 30." }
+      },
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.journalMaterial(store, now, args.days)
+  },
+  {
+    name: "tend_reviews",
+    description:
+      "The readings of the journal he kept, newest first, each with the window it covered and how " +
+      "many entries it was built on. Read this before reading the entries again: what makes a " +
+      "second reading worth anything is whether it says the same as the last one, and a pattern " +
+      "that has survived three months is a different fact from one noticed today. Writing a " +
+      "reading is deliberately not on this surface - nothing a model concluded about how his " +
+      "months went enters the store without him having read it first.",
+    inputSchema: NO_ARGS,
+    run: (store) => api.reviews(store)
+  },
+  {
     name: "tend_growth",
     description:
       "The growth threads on one person: the direction, what he said he would see, and the two " +

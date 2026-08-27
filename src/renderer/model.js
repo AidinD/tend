@@ -233,6 +233,141 @@ export function themesHtml(key, result) {
 }
 
 /**
+ * A reading of the journal, before it is kept or thrown away.
+ *
+ * Ordered so the uncomfortable half is not last. Where the days went reads as
+ * information; what kept being avoided is the reason the form exists, and a
+ * section a reader scrolls past is a section that may as well not have run.
+ *
+ * The coverage sits at the top rather than in a footnote. A reading built on six
+ * evenings and one built on twenty-six are different claims, and putting the
+ * number above the prose is what stops them being read in the same voice.
+ *
+ * @param {string} key
+ * @param {any} result
+ */
+export function reviewHtml(key, result) {
+  const wentInto = Array.isArray(result?.wentInto) ? result.wentInto : [];
+  const avoidance = Array.isArray(result?.avoidance) ? result.avoidance : [];
+  const questions = Array.isArray(result?.questions) ? result.questions : [];
+  const cover = result?.coverage ?? {};
+  const nothing = String(result?.nothingToSay ?? "").trim();
+  const worthKeeping =
+    wentInto.length > 0 ||
+    avoidance.length > 0 ||
+    questions.length > 0 ||
+    String(result?.saidVsDid ?? "").trim() !== "";
+
+  /** @param {any[]} items */
+  const list = (items) =>
+    `<ul class="draft-list">${items
+      .map(
+        (/** @type {any} */ i) =>
+          `<li>${esc(i.what)} <span class="pill plain">${esc(String(i.evenings))} evenings</span>` +
+          `${i.evidence ? `<span class="src">${esc(i.evidence)}</span>` : ""}</li>`
+      )
+      .join("")}</ul>`;
+
+  return `<div class="draft">
+    <div class="draft-head">
+      <span class="draft-title">The last ${esc(String(result?.days ?? 30))} days</span>
+      <span class="foot-actions">
+        ${
+          worthKeeping
+            ? `<button class="act tiny primary" data-act="keepReview" data-key="${esc(key)}">Keep this reading</button>`
+            : ""
+        }
+        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Discard</button>
+      </span>
+    </div>
+
+    <p class="src">${esc(String(cover.summary ?? ""))}</p>
+
+    ${
+      nothing
+        ? `<p class="draft-opening">${esc(nothing)}</p>`
+        : ""
+    }
+
+    ${
+      avoidance.length
+        ? `<h4 class="draft-head-small">Kept being avoided</h4>${list(avoidance)}`
+        : nothing
+          ? ""
+          : `<h4 class="draft-head-small">Kept being avoided</h4>
+             <p class="src">Nothing recurs in that box across these evenings. Worth noticing rather than
+             celebrating - it is also what an unanswered box looks like.</p>`
+    }
+
+    ${wentInto.length ? `<h4 class="draft-head-small">Where the days went</h4>${list(wentInto)}` : ""}
+
+    ${
+      String(result?.saidVsDid ?? "").trim()
+        ? `<h4 class="draft-head-small">Against what you said you would do</h4>
+           <p class="draft-note">${esc(result.saidVsDid)}</p>`
+        : ""
+    }
+
+    ${
+      questions.length
+        ? `<h4 class="draft-head-small">Worth asking yourself</h4>
+           <ul class="draft-list">${questions.map((/** @type {string} */ q) => `<li>${esc(q)}</li>`).join("")}</ul>`
+        : ""
+    }
+
+    <!--
+      The counts, last and always. They are what the prose above can be checked
+      against - an evening's writing is a memory of a day, and a memory of a
+      month of days is worse - and a reading with no numbers under it is one that
+      has to be taken on trust.
+    -->
+    ${
+      result?.ledger === null || result?.ledger === undefined
+        ? ""
+        : `<details class="draft-details">
+             <summary>What the app recorded over the same days</summary>
+             <ul class="draft-list">${ledgerListHtml(result.ledger)}</ul>
+           </details>`
+    }
+
+    <div class="draft-foot">
+      <span class="src">Read by ${esc(result?.model ?? "a model")}${
+        typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : ""
+      }. Nothing is saved unless you keep it.</span>
+    </div>
+  </div>`;
+}
+
+/**
+ * The recorded counts, as lines.
+ *
+ * Built here rather than taken from the service so the window does not depend on
+ * a second shape travelling with every review; the numbers are the contract and
+ * the wording is the view's business.
+ *
+ * @param {any} l
+ * @returns {string}
+ */
+function ledgerListHtml(l) {
+  const rows = [
+    [`Days with an entry`, `${l.journalled ?? 0} of ${l.days ?? 0}`],
+    [`Conversations recorded`, String(l.conversations ?? 0)],
+    [`Promises made`, `${l.promisesMade ?? 0}, of which ${l.promisesKept ?? 0} closed`],
+    [`Promises open right now`, String(l.promisesStillOpen ?? 0)],
+    [`Decisions recorded`, String(l.decisions ?? 0)],
+    [
+      `Growth threads discussed`,
+      `${l.growthNotes ?? 0}, marker seen ${l.growthObserved ?? 0}×`
+    ],
+    [`Meetings that did not happen`, String(l.skips ?? 0)],
+    [`Times you chased somebody`, String(l.chases ?? 0)]
+  ];
+  return rows
+    .map(([label, value]) => `<li>${esc(label)}<span class="src">${esc(value)}</span></li>`)
+    .join("");
+}
+
+/**
  * The actions every view with a model button needs, ready to be spread into
  * its own `actions` map.
  *

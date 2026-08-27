@@ -31,6 +31,7 @@ import {
 } from "../domain/growth.js";
 import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
 import { JOURNAL_FIELDS, REVIEW_WINDOW_DAYS, coverage, entriesSince, hasContent } from "../domain/journal.js";
+import { declared, ledger as reviewLedger, ledgerLines, readiness } from "../domain/review.js";
 import { openPromises } from "../domain/promises.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import {
@@ -1269,7 +1270,8 @@ export function removeRow(store, collection, id) {
     "growth",
     "growthNotes",
     "waiting",
-    "chases"
+    "chases",
+    "reviews"
   ];
   if (!removable.includes(collection)) {
     return { error: `Rows in "${collection}" are not removable. Removable: ${removable.join(", ")}.` };
@@ -1805,6 +1807,137 @@ export function journal(store, now, days = REVIEW_WINDOW_DAYS) {
       notes: e.notes ?? null
     }))
   };
+}
+
+/**
+ * Everything needed to read the journal, without a model being involved.
+ *
+ * The window's entries, how thin they are, what the store recorded over the same
+ * days, and whichever focus was declared while it happened.
+ *
+ * This is the whole material the model layer's own pass is built from, exposed
+ * as data on purpose. The MCP surface deliberately carries no model calls - a
+ * caller there already IS one, and nesting a second would pay twice for a worse
+ * answer, since the inner call sees only the entries and the outer one sees the
+ * conversation. So the surface hands over the material and the reading happens
+ * where the context is.
+ *
+ * `readiness` travels with it rather than being left to the caller's judgement.
+ * The floor exists because a pattern named from two evenings is one evening
+ * restated with confidence, and stating it in the data is what makes it a rule
+ * instead of a hope.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ * @param {number} [days]
+ */
+export function journalMaterial(store, now, days = REVIEW_WINDOW_DAYS) {
+  const base = journal(store, now, days);
+  const counts = reviewLedger(
+    {
+      touches: store.rows("touches"),
+      promises: store.rows("promises"),
+      decisions: store.rows("decisions"),
+      growthNotes: store.rows("growthNotes"),
+      skips: store.rows("skips"),
+      chases: store.rows("chases"),
+      entries: store.rows("entries")
+    },
+    now,
+    days
+  );
+  const live = focus(store, now);
+  return {
+    ...base,
+    readiness: readiness(base.coverage),
+    recorded: counts,
+    recordedLines: ledgerLines(counts),
+    declared: declared(
+      store.focus(),
+      now,
+      days,
+      live.active && typeof live.cost === "string" ? live.cost : undefined
+    )
+  };
+}
+
+/**
+ * Keep a reading of the journal.
+ *
+ * The model returns a review and writes nothing; this is what happens if he
+ * decides the reading was worth having. Same shape as keeping an extracted
+ * promise, and for the same reason: nothing a model produced enters the store
+ * without somebody having read it first.
+ *
+ * Kept rather than thrown away - the opposite of a brief - because the entries
+ * underneath a review are about days that are over. A brief goes stale as the
+ * facts move; a review cannot, and comparing this month's reading with last
+ * month's is the only version of this feature that ever gets better with time.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} review The object `reviewJournal` returned.
+ */
+export function keepReview(store, review) {
+  const at = Number(/** @type {any} */ (review)?.at ?? 0);
+  if (!Number.isFinite(at) || at <= 0) {
+    return { error: "That is not a review this app produced." };
+  }
+  const r = /** @type {any} */ (review);
+
+  const wentInto = Array.isArray(r.wentInto) ? r.wentInto : [];
+  const avoidance = Array.isArray(r.avoidance) ? r.avoidance : [];
+  const questions = Array.isArray(r.questions) ? r.questions : [];
+  if (
+    wentInto.length === 0 &&
+    avoidance.length === 0 &&
+    questions.length === 0 &&
+    String(r.saidVsDid ?? "").trim() === ""
+  ) {
+    return { error: "That review found nothing, so there is nothing worth keeping." };
+  }
+
+  const id = store.create("reviews", {
+    at,
+    days: Number(r.days ?? REVIEW_WINDOW_DAYS),
+    // The coverage is kept WITH it rather than recomputed on display. A reading
+    // built on six entries and one built on twenty-six are different claims, and
+    // recomputing later would answer for a window that has since moved.
+    entries: Number(r.coverage?.entries ?? 0),
+    spread: Number(r.coverage?.spread ?? 0),
+    wentInto,
+    avoidance,
+    saidVsDid: String(r.saidVsDid ?? ""),
+    questions,
+    ledger: r.ledger ?? null,
+    declared: r.declared ?? null,
+    source: String(r.model ?? "") === "" ? null : `model:${r.model}`
+  });
+  return { id, kept: true };
+}
+
+/**
+ * The readings that were kept, newest first.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ */
+export function reviews(store) {
+  return store
+    .rows("reviews")
+    .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
+    .map((r) => ({
+      id: String(r.id),
+      at: Number(r.at ?? 0),
+      days: Number(r.days ?? 0),
+      entries: Number(r.entries ?? 0),
+      spread: Number(r.spread ?? 0),
+      wentInto: Array.isArray(r.wentInto) ? r.wentInto : [],
+      avoidance: Array.isArray(r.avoidance) ? r.avoidance : [],
+      saidVsDid: String(r.saidVsDid ?? ""),
+      questions: Array.isArray(r.questions) ? r.questions : [],
+      ledger: r.ledger ?? null,
+      declared: r.declared ?? null,
+      source: r.source ?? null
+    }));
 }
 
 /* -------------------------------------------------------------- growth -- */

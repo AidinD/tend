@@ -44,6 +44,8 @@
 import { ask, resolveClaudeBinary } from "keel/claude";
 
 import { attention, focus, people, promises } from "./api.js";
+import { coverage, entriesSince, JOURNAL_FIELDS, REVIEW_WINDOW_DAYS } from "../domain/journal.js";
+import { declared, ledger, ledgerLines, readiness } from "../domain/review.js";
 import { prep } from "./prep.js";
 import { noteBody, notesIn, readNibIndex } from "./nib.js";
 import { resolvePerson } from "./resolve.js";
@@ -494,6 +496,266 @@ function slug(text) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 40);
+}
+
+/* --------------------------------------------------------------- journal -- */
+
+const REVIEW_SCHEMA = {
+  type: "object",
+  properties: {
+    wentInto: {
+      type: "array",
+      description:
+        "Two to four things the days actually went into, most of the time first. " +
+        "Only what the entries say; never inferred from the counts.",
+      items: {
+        type: "object",
+        properties: {
+          what: { type: "string", description: "What it was, in a few words." },
+          evenings: {
+            type: "integer",
+            description: "How many separate entries mention it. Must be at least two."
+          },
+          evidence: {
+            type: "string",
+            description: "A short phrase from one of the entries, in the words it was written in."
+          }
+        },
+        required: ["what", "evenings", "evidence"]
+      }
+    },
+    avoidance: {
+      type: "array",
+      description:
+        "What was avoided more than once. Empty when nothing recurs - one avoided thing is a " +
+        "Tuesday, not a pattern.",
+      items: {
+        type: "object",
+        properties: {
+          what: { type: "string", description: "What was avoided, in a few words." },
+          evenings: { type: "integer", description: "How many separate entries mention it." },
+          evidence: { type: "string", description: "A short phrase from one of the entries." }
+        },
+        required: ["what", "evenings", "evidence"]
+      }
+    },
+    saidVsDid: {
+      type: "string",
+      description:
+        "Two or three sentences setting the declared focus against what the entries describe. " +
+        "An empty string when no focus was in force, or when the entries say nothing about it."
+    },
+    questions: {
+      type: "array",
+      description: "One to three questions to put to yourself. Questions, never verdicts.",
+      items: { type: "string" }
+    },
+    nothingToSay: {
+      type: "string",
+      description:
+        "When the entries do not support any pattern, say why in one sentence and leave the " +
+        "other fields empty. Otherwise an empty string."
+    }
+  },
+  required: ["wentInto", "avoidance", "saidVsDid", "questions", "nothingToSay"]
+};
+
+/**
+ * Read a month of evenings and say what recurs.
+ *
+ * The entries were always the means and this is the product. What it looks for is
+ * the pair of things that are invisible on the day and obvious across a month:
+ * where the days actually went, and what kept being avoided - the second being
+ * the field the form exists for, and the one no amount of arithmetic can find.
+ *
+ * Three things make it safe to read.
+ *
+ * It refuses below a floor rather than hedging. A pattern named from two evenings
+ * is one evening restated with confidence, and it gets read next month as a fact
+ * about how the work went.
+ *
+ * The counts travel with it. What the store recorded over the same window goes
+ * into the prompt beside the prose, because an evening's writing is a memory of a
+ * day and a memory of a month of days is worse. "It all went into meetings" reads
+ * differently next to four recorded conversations, and only one of those two
+ * numbers is checkable.
+ *
+ * It asks rather than concludes. The same rule as the growth threads: the app is
+ * a mirror, and a verdict about how somebody spent their month is the one output
+ * that cannot be argued with and therefore cannot be used.
+ *
+ * Writes nothing. What comes back is shown, and kept only if he keeps it - see
+ * `keepReview` in the API layer.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {number} args.now
+ * @param {number} [args.days]
+ * @param {typeof ask} [args.askImpl] Test seam.
+ * @returns {Promise<{ error: string } | {
+ *   at: number, days: number, coverage: any, ledger: any, declared: any,
+ *   wentInto: any[], avoidance: any[], saidVsDid: string, questions: string[],
+ *   nothingToSay: string, model: string, costUsd: number | null
+ * }>}
+ */
+export async function reviewJournal(store, { now, days = REVIEW_WINDOW_DAYS, askImpl = ask }) {
+  const window = entriesSince(store.rows("entries"), now, days);
+  const cover = coverage(window, days);
+
+  const enough = readiness(cover);
+  if (!enough.ready) {
+    return { error: enough.why };
+  }
+
+  const status = modelStatus();
+  if (!status.available) {
+    return { error: String(status.why) };
+  }
+
+  const counts = ledger(
+    {
+      touches: store.rows("touches"),
+      promises: store.rows("promises"),
+      decisions: store.rows("decisions"),
+      growthNotes: store.rows("growthNotes"),
+      skips: store.rows("skips"),
+      chases: store.rows("chases"),
+      entries: store.rows("entries")
+    },
+    now,
+    days
+  );
+
+  // The focus is the only place in the app where an intention about where
+  // attention WOULD go is written down, which makes it the only thing "where it
+  // actually went" can be set against. Its cost is measured elsewhere and is
+  // read here rather than recomputed.
+  const intent = declared(store.focus(), now, days, focusSummary(store, now));
+
+  const answer = await askImpl({
+    prompt: [
+      `Here are ${cover.entries} end-of-day entries from the last ${days} days, newest first.`,
+      "Every box in the form is optional, so a short entry is a normal entry rather than a bad one.",
+      "",
+      ...window.filter(hasEntryContent).map((entry) => entryLines(entry)),
+      "",
+      "What the app recorded over the same window, which is checkable where the entries are not:",
+      ...ledgerLines(counts).map((line) => `- ${line}`),
+      "",
+      intent === null
+        ? "No focus was in force over this window, so there is no declared intention to compare against. Leave saidVsDid empty."
+        : `The declared focus over this window was "${intent.name}", in force for ${intent.overlapDays} of the ${days} days` +
+          (intent.budgetOfWeek === null
+            ? ". "
+            : `, budgeted at ${Math.round(intent.budgetOfWeek * 100)}% of the week. `) +
+          `Its measured cost: ${intent.cost}`,
+      "",
+      "Name what recurs. Two or more separate evenings, or leave it out."
+    ]
+      .filter((line) => line !== "")
+      .join("\n"),
+    // The writing tier. This runs a handful of times a month over material
+    // nothing else in the app can read, and the cheap tier's failure mode here is
+    // the expensive one: a fluent paragraph that reads the entries back instead
+    // of finding what crosses them.
+    model: TIERS.write,
+    schema: REVIEW_SCHEMA,
+    system:
+      "You read somebody's end-of-day entries across several weeks and name what recurs across " +
+      "them. You are looking for two things they cannot see for themselves: where the days " +
+      "actually went, and what kept being avoided. " +
+      "A pattern needs two or more separate evenings. Report nothing rather than stretching one " +
+      "evening into a pattern, and use nothingToSay when the entries support nothing. " +
+      "Quote their own words as evidence rather than paraphrasing them. " +
+      "Never pass judgement on them and never conclude anything about what sort of person they " +
+      "are; end with questions they could put to themselves. " +
+      "The counts you are given are the record. Where the entries and the counts disagree, say so " +
+      "plainly rather than picking one. " +
+      HOUSE_RULES
+  });
+
+  if (!answer.ok) {
+    return { error: answer.reason };
+  }
+
+  const value = answer.value ?? {};
+  return {
+    at: now,
+    days,
+    coverage: cover,
+    ledger: counts,
+    declared: intent,
+    // Two or more evenings, enforced here as well as asked for. The same rule as
+    // themes: a floor stated in a prompt is a request, and a floor applied to the
+    // result is a rule.
+    wentInto: recurring(value.wentInto),
+    avoidance: recurring(value.avoidance),
+    saidVsDid: String(value.saidVsDid ?? "").trim(),
+    questions: (Array.isArray(value.questions) ? value.questions : [])
+      .map((/** @type {any} */ q) => String(q ?? "").trim())
+      .filter((/** @type {string} */ q) => q !== ""),
+    nothingToSay: String(value.nothingToSay ?? "").trim(),
+    model: answer.model,
+    costUsd: answer.costUsd
+  };
+}
+
+/**
+ * What the focus in force has cost, in words, or nothing when it cannot be said.
+ *
+ * Read from the same place the Focus view reads it, so the review and the view
+ * cannot disagree about the price of the same decision.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ * @returns {string | undefined}
+ */
+function focusSummary(store, now) {
+  const live = focus(store, now);
+  return live.active && typeof live.cost === "string" ? live.cost : undefined;
+}
+
+/**
+ * Keep only the items that actually crossed more than one evening.
+ *
+ * @param {any} list
+ * @returns {{ what: string, evenings: number, evidence: string }[]}
+ */
+function recurring(list) {
+  return (Array.isArray(list) ? list : [])
+    .filter(
+      (/** @type {any} */ item) =>
+        String(item?.what ?? "").trim() !== "" && Number(item?.evenings ?? 0) >= 2
+    )
+    .map((/** @type {any} */ item) => ({
+      what: String(item.what).trim(),
+      evenings: Number(item.evenings),
+      evidence: String(item.evidence ?? "").trim()
+    }));
+}
+
+/** @param {Record<string, any>} entry */
+function hasEntryContent(entry) {
+  return JOURNAL_FIELDS.some((f) => String(entry[f.name] ?? "").trim() !== "");
+}
+
+/**
+ * One entry, as the labelled boxes it was written in.
+ *
+ * The labels travel with it rather than being flattened into prose, because the
+ * fields are not interchangeable: "what took the day" and "what I avoided" are
+ * different claims, and the entire value of the avoidance field is lost if a
+ * reader cannot tell which box a sentence came out of.
+ *
+ * @param {Record<string, any>} entry
+ * @returns {string}
+ */
+function entryLines(entry) {
+  const day = new Date(Number(entry.at ?? 0)).toISOString().slice(0, 10);
+  const boxes = JOURNAL_FIELDS.filter((f) => String(entry[f.name] ?? "").trim() !== "").map(
+    (f) => `  ${f.label}: ${String(entry[f.name]).trim()}`
+  );
+  return [`--- ${day} ---`, ...boxes].join("\n");
 }
 
 /* ------------------------------------------------------------ questions -- */

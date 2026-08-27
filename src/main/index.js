@@ -131,6 +131,8 @@ const OPERATIONS = {
 
   journal: (/** @type {any} */ a) => api.journal(store, a.now ?? Date.now(), a.days),
   logEntry: (/** @type {any} */ a) => api.logEntry(store, { ...a, now: a.now ?? Date.now() }),
+  reviews: () => api.reviews(store),
+  keepReview: (/** @type {any} */ a) => api.keepReview(store, a.review ?? {}),
 
   logSkip: (/** @type {any} */ a) => api.logSkip(store, { ...a, now: a.now ?? Date.now() }),
   skips: (/** @type {any} */ a) => api.skips(store, a.person, a.now ?? Date.now()),
@@ -152,6 +154,7 @@ const OPERATIONS = {
   extractPromises: (/** @type {any} */ a) => model.extractPromises(store, a),
   detectThemes: (/** @type {any} */ a) => model.detectThemes(store, { ...a, now: a.now ?? Date.now() }),
   answerQuestion: (/** @type {any} */ a) => model.answerQuestion(store, { ...a, now: a.now ?? Date.now() }),
+  reviewJournal: (/** @type {any} */ a) => model.reviewJournal(store, { ...a, now: a.now ?? Date.now() }),
 
   searchKnowledge: (/** @type {any} */ a) => knowledge.search(a.situation),
   considerKnowledge: (/** @type {any} */ a) => knowledge.consider(a),
