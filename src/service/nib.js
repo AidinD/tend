@@ -87,19 +87,44 @@ export function nibDataDir({ env = process.env, platform = process.platform, hom
  * it out of the private half, silently, in the half where the reference material
  * is the whole point of the Knowledge view.
  *
- * The rule that actually matches what a mark means:
+ * The rule for anything about PEOPLE:
  *
  *   Marked private is private. Marked work is work. Unmarked is shared.
  *
  * Nothing he has declared private can appear on the work side, which is the
  * direction that costs something. Nothing he has declared work can appear on the
  * private side. And an unmarked category is one he has not declared anything
- * about, so the tool does not guess on his behalf - the honest answer to
- * "should this be private" is to make marking it easy, not to assume.
+ * about, so the tool does not guess on his behalf.
+ *
+ * ## And the third scope, which is not a half at all
+ *
+ * That rule was shipped and immediately broke the feature it was least supposed
+ * to touch. Against the real notebook, EVERY principle note lives in a
+ * privately-marked category - the reading and the practices - so the work half's
+ * prep cards lost the practice block entirely and its knowledge view had nothing
+ * to search. Twenty-five notes, invisible, with nothing failing anywhere.
+ *
+ * The mark had been read as answering "which half of my life is this about", and
+ * it does not. It answers "is this work". Notes from books, and practices being
+ * worked on, are neither work nor family: they are about HIM. Which is a third
+ * kind of content, and the reason `reference` exists here.
+ *
+ * What makes it safe is that the boundary for reference material is the principle
+ * TAG rather than the folder. A tagged note is one he deliberately marked as a
+ * practice he is working on - a statement about his own behaviour, not a fact
+ * about a colleague or about his family - and only tagged notes cross. Everything
+ * untagged stays inside its half.
  */
 export const SCOPES_IN_HALF = /** @type {const} */ ({
   work: ["", "W"],
-  private: ["", "P"]
+  private: ["", "P"],
+  /**
+   * Every scope, for reads whose boundary is the principle tag instead.
+   *
+   * Never use this for a folder list, a binding, or contact indexing. Those are
+   * about people, and people belong to a half.
+   */
+  reference: ["", "W", "P"]
 });
 
 /**
@@ -648,6 +673,35 @@ export function indexNib(store, { dir, dry = false } = {}) {
   return { contacts, promises, resolved, retracted, moves, bindings: bindings.length, skipped };
 }
 
+/**
+ * The principle-tagged notes, from anywhere.
+ *
+ * The half of the knowledge search that must not be scoped. A question asked in
+ * either half should reach what he has read and what he is practising; what it
+ * must not reach is the other half's notes about people.
+ *
+ * So this returns tagged notes only, and the caller merges them with its own
+ * half's notes. Untagged material stays where it was written.
+ *
+ * @param {string} [dir]
+ * @returns {(NibNote & { trail: string })[]}
+ */
+export function referenceNotes(dir) {
+  const all = allNibNotes(dir, "reference");
+  if (!all.available) {
+    return [];
+  }
+  const catalog = listNibTags(dir, "reference");
+  const tags = catalog.available ? catalog.tags : [];
+  const tag =
+    tags.find((t) => t.id === "tag-principle") ??
+    tags.find((t) => String(t.name).toLowerCase() === "principle");
+  if (tag === undefined) {
+    return [];
+  }
+  return all.notes.filter((note) => note.tags.includes(tag.id));
+}
+
 /* ------------------------------------------------------- reading a body -- */
 
 /**
@@ -722,6 +776,10 @@ export function htmlToText(html) {
  * The principle notes: which are being worked on, and which carry an unfinished
  * action point.
  *
+ * Read across every scope, because reference material is not about either half -
+ * see the note on `SCOPES_IN_HALF`. The principle tag is what bounds this, and
+ * only tagged notes come back.
+ *
  * The tag is found by id first and by name second. The id is what everything
  * else here uses - a tag renamed in Nib must not change what Tend counts - but
  * this one tag is picked out of the catalog by Tend rather than chosen by him in
@@ -738,12 +796,24 @@ export function htmlToText(html) {
  *   | { available: true, practices: any[], actionPoints: any[] }}
  */
 export function principlesInNib(dir, half = "work") {
-  const all = allNibNotes(dir, half);
+  /*
+   * Every scope, and the principle tag is the boundary instead of the folder.
+   *
+   * `half` is accepted and deliberately not used for the filter, so the call
+   * sites do not have to know this - and so that changing the decision means
+   * changing this function rather than hunting for callers.
+   *
+   * What leaves here is only what the tag matched: `activePractices` and
+   * `openActionPoints` both filter by it, and the trail map below is a lookup
+   * used for those notes alone. An untagged note in either half is read into
+   * memory and never returned.
+   */
+  const all = allNibNotes(dir, "reference");
   if (!all.available) {
     return { available: false, why: all.why };
   }
 
-  const catalog = listNibTags(dir, half);
+  const catalog = listNibTags(dir, "reference");
   const tags = catalog.available ? catalog.tags : [];
   const tag =
     tags.find((t) => t.id === "tag-principle") ??

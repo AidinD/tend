@@ -30,11 +30,24 @@
  * about the same situation, and which one helps is not knowable in advance. So
  * the search covers everything and the result says where each came from. The
  * folder trail does the sorting the app would otherwise have to guess at.
+ *
+ * ## What the two halves do to that
+ *
+ * Notes about PEOPLE belong to a half: a question asked at work must not be
+ * answered out of notes about somebody's family, and the reverse is merely
+ * wrong. Reference material belongs to neither - it is about him - so the
+ * principle-tagged notes are read from every scope and merged in.
+ *
+ * Scoping the whole search was tried first and was wrong in a way that only
+ * showed against the real notebook: every principle note there sits in a
+ * privately-marked category, so the work half's search had nothing but colleague
+ * notes to answer from. The tag crosses; untagged material stays where it was
+ * written.
  */
 
 import { ask } from "keel/claude";
 
-import { allNibNotes, noteBody } from "./nib.js";
+import { allNibNotes, noteBody, referenceNotes } from "./nib.js";
 
 /** The model tier used here, matching the rest of the model layer. */
 const TIER = "claude-sonnet-5";
@@ -110,15 +123,19 @@ export function search(situation, dir, half = "work") {
     return { error: "Say what the situation is, in a sentence." };
   }
 
-  // Scoped to the half. Without it a question asked in the work half was answered
-  // out of private notes, which is the one direction of that boundary that costs
-  // something.
+  // This half's notes, plus the reference material from either. See the header.
   const all = allNibNotes(dir, half);
   if (!all.available) {
     return { error: all.why };
   }
 
-  const matches = all.notes
+  const seen = new Set(all.notes.map((note) => String(note.id)));
+  const notes = [
+    ...all.notes,
+    ...referenceNotes(dir).filter((note) => !seen.has(String(note.id)))
+  ];
+
+  const matches = notes
     .map((note) => {
       const title = words(note.title);
       const body = words(`${note.preview} ${note.trail}`);
@@ -145,7 +162,7 @@ export function search(situation, dir, half = "work") {
       edited: hit.note.edited
     }));
 
-  return { dir: all.dir, matches, searched: all.notes.length };
+  return { dir: all.dir, matches, searched: notes.length };
 }
 
 const ANSWER_SCHEMA = {

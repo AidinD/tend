@@ -28,7 +28,14 @@ import {
   viewsIn
 } from "../src/domain/halves.js";
 import { RELATIONS } from "../src/domain/cadence.js";
-import { SCOPES_IN_HALF, categoriesIn, listNibFolders, principlesInNib } from "../src/service/nib.js";
+import {
+  SCOPES_IN_HALF,
+  categoriesIn,
+  listNibFolders,
+  principlesInNib,
+  referenceNotes
+} from "../src/service/nib.js";
+import { search } from "../src/service/knowledge.js";
 import { addPerson, person, setRelation, vocabulary } from "../src/service/api.js";
 import { openStore } from "../src/storage/store.js";
 import { MODE_ENV, MODE_FILE, readMode, windowTitle, writeMode } from "../src/main/mode.js";
@@ -321,7 +328,7 @@ describe("the boundary through Nib", () => {
   /** @type {string} */
   let nibDir;
 
-  /** @param {{ id: string, name: string, scope: string }[]} categories */
+  /** @param {{ id: string, name: string, scope: string, tagged?: boolean }[]} categories */
   const writeNib = (categories) => {
     nibDir = mkdtempSync(join(tmpdir(), "tend-half-nib-"));
     mkdirSync(join(nibDir, "notes"), { recursive: true });
@@ -346,7 +353,7 @@ describe("the boundary through Nib", () => {
               edited: 1,
               alerts: [],
               flag: "open",
-              tags: ["tag-principle"]
+              tags: c.tagged === false ? [] : ["tag-principle"]
             }
           ]
         }))
@@ -362,20 +369,18 @@ describe("the boundary through Nib", () => {
     }
   });
 
-  it("marked private never reaches the work half", () => {
-    // The leak, and it needed no mistake to happen - just a principle tag on a
-    // note in a private category.
+  it("a marked-private folder is not bindable from the work half", () => {
+    // The leak that matters, and it is about PEOPLE: a private folder offered as
+    // a binding for a colleague would import notes about somebody's family as
+    // work contact.
+    //
+    // The principle read deliberately does NOT follow this rule - see
+    // "reference material is not about either half". Scoping that one too was
+    // tried and emptied the work half's practice block completely.
     const dir = writeNib([{ id: "c-priv", name: "Family", scope: "P" }]);
 
     const folders = /** @type {any} */ (listNibFolders(dir, "work"));
     assert.deepEqual(folders.folders, []);
-
-    // `available` says the notebook HAS a principle tag - which is read from the
-    // catalog rather than from a category, so it stays true. What must be empty
-    // is what was found through it.
-    const principles = /** @type {any} */ (principlesInNib(dir, "work"));
-    assert.deepEqual(principles.practices, [], "a private note answered a work question");
-    assert.deepEqual(principles.actionPoints, []);
   });
 
   it("marked work never reaches the private half", () => {
@@ -423,6 +428,127 @@ describe("the boundary through Nib", () => {
     assert.deepEqual(categoriesIn(categories).map((c) => c.id), []);
     assert.deepEqual(categoriesIn(categories, "nonsense").map((c) => c.id), []);
     assert.deepEqual([...SCOPES_IN_HALF.work], ["", "W"]);
+  });
+});
+
+
+describe("reference material is not about either half", () => {
+  /** @type {string} */
+  let nibDir;
+
+  /** @param {{ id: string, name: string, scope: string, tagged?: boolean }[]} categories */
+  const writeNib = (categories) => {
+    nibDir = mkdtempSync(join(tmpdir(), "tend-reference-nib-"));
+    mkdirSync(join(nibDir, "notes"), { recursive: true });
+    writeFileSync(
+      join(nibDir, "index.json"),
+      JSON.stringify({
+        version: 2,
+        tags: [{ id: "tag-principle", name: "Principle", color: "", description: "" }],
+        categories: categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          scope: c.scope,
+          subs: [],
+          notes: [
+            {
+              id: `${c.id}-n1`,
+              categoryId: c.id,
+              subId: null,
+              title: `Listening longer than is comfortable in ${c.name}`,
+              preview: "The silence after the question is where the answer comes.",
+              created: 1,
+              edited: 1,
+              alerts: [{ id: `${c.id}-a1`, text: "Try it in the next one", done: false }],
+              flag: "open",
+              tags: c.tagged === false ? [] : ["tag-principle"]
+            }
+          ]
+        }))
+      }),
+      "utf8"
+    );
+    return nibDir;
+  };
+
+  afterEach(() => {
+    if (nibDir) {
+      rmSync(nibDir, { recursive: true, force: true });
+    }
+  });
+
+  it("reaches a practice the work half would otherwise never see", () => {
+    /*
+     * The regression this exists for, and it shipped. Against the real notebook
+     * EVERY principle note sits in a privately-marked category - the reading and
+     * the practices - so scoping the principle read by half left the work half's
+     * prep cards with no practice block and its knowledge view with nothing to
+     * search. Twenty-five notes, invisible, nothing failing anywhere.
+     */
+    const dir = writeNib([{ id: "c-books", name: "Books", scope: "P" }]);
+
+    const work = /** @type {any} */ (principlesInNib(dir, "work"));
+    assert.equal(work.available, true);
+    assert.equal(work.practices.length, 1, "the work half cannot see the practice");
+    assert.equal(work.actionPoints.length, 1);
+  });
+
+  it("and the private half sees the work half's practices too", () => {
+    const dir = writeNib([{ id: "c-team", name: "Team", scope: "W" }]);
+    const priv = /** @type {any} */ (principlesInNib(dir, "private"));
+    assert.equal(priv.practices.length, 1);
+  });
+
+  it("carries nothing untagged across, whichever half it is in", () => {
+    // The tag is the boundary here, not the folder. An untagged note in a private
+    // category is not reference material and must not answer a work question.
+    const dir = writeNib([
+      { id: "c-fam", name: "Family", scope: "P", tagged: false },
+      { id: "c-team", name: "Team", scope: "W", tagged: false }
+    ]);
+
+    assert.deepEqual(referenceNotes(dir), []);
+    assert.deepEqual(/** @type {any} */ (principlesInNib(dir, "work")).practices, []);
+  });
+
+  it("lets a search reach the reference material without reaching the other half's people", () => {
+    const dir = writeNib([
+      { id: "c-books", name: "Books", scope: "P" },
+      { id: "c-fam", name: "Family", scope: "P", tagged: false },
+      { id: "c-team", name: "Team", scope: "W", tagged: false }
+    ]);
+
+    const asWork = /** @type {any} */ (search("listening longer", dir, "work"));
+    const trails = asWork.matches.map((/** @type {any} */ m) => m.trail);
+
+    // The book note crosses, because he tagged it as a practice.
+    assert.ok(trails.includes("Books"), `the reference material is missing: ${trails.join(", ")}`);
+    // The untagged private note does not, which is the leak that matters.
+    assert.equal(trails.includes("Family"), false, "a private note answered a work question");
+  });
+
+  it("counts what it actually searched, so the number is not a lie", () => {
+    const dir = writeNib([
+      { id: "c-books", name: "Books", scope: "P" },
+      { id: "c-team", name: "Team", scope: "W", tagged: false }
+    ]);
+    // One from this half, one crossing. Reporting the half's count alone would
+    // understate what was read - and this number is shown on the screen.
+    assert.equal(/** @type {any} */ (search("listening", dir, "work")).searched, 2);
+  });
+
+  it("does not count a crossing note twice when it is already in this half", () => {
+    const dir = writeNib([{ id: "c-any", name: "Documents", scope: "" }]);
+    assert.equal(/** @type {any} */ (search("listening", dir, "work")).searched, 1);
+  });
+
+  it("keeps the reference scope out of anything about people", () => {
+    // Folder lists and bindings are about people and must stay per half. If this
+    // ever reads the reference scope, a private folder becomes bindable as work
+    // contact.
+    const dir = writeNib([{ id: "c-books", name: "Books", scope: "P" }]);
+    assert.deepEqual(/** @type {any} */ (listNibFolders(dir, "work")).folders, []);
+    assert.deepEqual([...SCOPES_IN_HALF.reference], ["", "W", "P"]);
   });
 });
 

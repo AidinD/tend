@@ -1846,3 +1846,48 @@ written down in memory: a check that reads a property instead of the rendered
 result, an async body under a non-awaiting runner, a selector meaning "wherever it
 happens to be", comparing the wrong two things. The rule that catches all four is
 the same - break the thing and watch the check go red before believing it.
+
+## 2026-08-27 - Reference material belongs to neither half, and the tag is its boundary
+
+The scope rule shipped earlier today emptied the work half's practice block
+completely. It is fixed by adding a third scope that is not a half: principle
+notes are read from every category, in both halves, and the principle tag rather
+than the folder is what bounds that read.
+
+**How total the regression was.** Against a real notebook, every principle note
+sat in a privately-marked category - the reading and the practices, twenty-five
+notes between them - because marking those private is the obvious thing to do
+with your own reading. So the work half's prep cards lost the practice block
+entirely, and its knowledge view had nothing but colleague notes to search.
+Nothing failed anywhere; the numbers were just zero. It shipped in two releases.
+
+**The mistake underneath it.** The scope mark was read as answering "which half
+of my life is this about". It does not. It answers "is this work". Notes from
+books, and practices being worked on, are neither work nor family - they are
+about the person keeping them, which is a third kind of content that the first
+version had nowhere to put.
+
+**Why the tag makes it safe.** A principle-tagged note is one somebody
+deliberately marked as a practice they are working on: a statement about their
+own behaviour, not a fact about a colleague and not a fact about their family.
+Only tagged notes cross. Untagged material stays inside its half, which is where
+the leak that actually matters lives - a note about somebody's family answering a
+question asked at work.
+
+**What stayed strict, and must.** Folder lists, bindings and contact indexing.
+Those are about people and belong to a half; a private folder offered as a
+binding for a colleague would import notes about somebody's family as work
+contact. A test asserts the reference scope never reaches them.
+
+**The knowledge search reads its own half plus the reference material.** Its
+original design note - that books and people are not separated, because which one
+bears on a situation is not knowable in advance - is what the first scoping
+broke. It now merges the two reads and deduplicates, and reports the count it
+actually searched rather than the half's count, because that number is shown on
+the screen.
+
+**Two tests had to be rewritten rather than repaired, and both had encoded the
+rule being replaced.** One asserted that a privately-marked folder's principles
+were invisible to the work half, which was exactly the bug. Its surviving half -
+that the folder is not bindable from the work half - is the claim worth keeping,
+so it now makes only that.
