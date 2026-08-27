@@ -31,7 +31,7 @@ import {
 } from "../domain/growth.js";
 import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
 import { JOURNAL_FIELDS, REVIEW_WINDOW_DAYS, coverage, entriesSince, hasContent } from "../domain/journal.js";
-import { declared, ledger as reviewLedger, ledgerLines, readiness } from "../domain/review.js";
+import { declared, ledger as reviewLedger, ledgerLines, readiness, unread } from "../domain/review.js";
 import { openPromises } from "../domain/promises.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import {
@@ -95,6 +95,11 @@ export function myAttentionSignals(store, now) {
     people: /** @type {any[]} */ (store.rows("people")),
     touches: /** @type {any[]} */ (store.rows("touches")),
     stakes: /** @type {any[]} */ (store.rows("stakes")),
+    // The journal, and when a pass over it last ran. A month of evenings nobody
+    // has read is a fact about where his attention went, which is what every
+    // signal in that file is.
+    entries: /** @type {any[]} */ (store.rows("entries")),
+    lastReadAt: lastReviewRun(store),
     now
   });
 }
@@ -1847,9 +1852,14 @@ export function journalMaterial(store, now, days = REVIEW_WINDOW_DAYS) {
     days
   );
   const live = focus(store, now);
+  const lastRead = lastReviewRun(store);
   return {
     ...base,
     readiness: readiness(base.coverage),
+    // What has gone unread, which is a different question from what is in the
+    // window: three months nobody has looked at is the state worth saying out
+    // loud, and a thirty-day window reports it as one month's worth.
+    unread: unread(store.rows("entries"), lastRead, now),
     recorded: counts,
     recordedLines: ledgerLines(counts),
     declared: declared(
@@ -1859,6 +1869,54 @@ export function journalMaterial(store, now, days = REVIEW_WINDOW_DAYS) {
       live.active && typeof live.cost === "string" ? live.cost : undefined
     )
   };
+}
+
+/**
+ * Record that a pass over the journal ran.
+ *
+ * Separate from keeping the reading, and the distinction is the whole reason the
+ * nudge can be trusted. Reading a month and deciding it said nothing is a
+ * complete act - the material HAS been read - so a nudge that came back the next
+ * day suggesting a reading would be wrong in the way that matters most for a
+ * nudge, which is that it teaches you to ignore it.
+ *
+ * One row per pass, and keeping the reading fills the same row in rather than
+ * writing a second: the id is derived from when it ran, so a reading and the run
+ * it came from are one thing with two states.
+ *
+ * This is the app recording that an action happened, in the same sense as a
+ * logged contact. It is not the model layer writing findings - the row carries a
+ * timestamp and how much was read, and nothing the model said.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {number} args.at
+ * @param {number} [args.days]
+ * @param {number} [args.entries]
+ * @param {number} [args.spread]
+ */
+export function noteReviewRun(store, { at, days = REVIEW_WINDOW_DAYS, entries = 0, spread = 0 }) {
+  const when = Number(at);
+  if (!Number.isFinite(when) || when <= 0) {
+    return { error: "A reading has to have run at some point." };
+  }
+  const id = `review:${when}`;
+  store.create("reviews", { id, at: when, days, entries, spread, kept: false });
+  return { id };
+}
+
+/**
+ * When a pass last ran, or null if none ever has.
+ *
+ * Reads runs and kept readings alike, because both are evidence the material was
+ * read. Used by the nudge and by nothing else.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @returns {number | null}
+ */
+export function lastReviewRun(store) {
+  const times = store.rows("reviews").map((r) => Number(r.at ?? 0)).filter((t) => t > 0);
+  return times.length === 0 ? null : Math.max(...times);
 }
 
 /**
@@ -1896,8 +1954,14 @@ export function keepReview(store, review) {
     return { error: "That review found nothing, so there is nothing worth keeping." };
   }
 
-  const id = store.create("reviews", {
+  // The same id `noteReviewRun` derived, so keeping a reading fills in the row
+  // for the run it came from. Creating a second row would make one reading look
+  // like two, and the nudge counts rows by their date.
+  const id = `review:${at}`;
+  store.create("reviews", { id, at, kept: false });
+  store.update("reviews", id, {
     at,
+    kept: true,
     days: Number(r.days ?? REVIEW_WINDOW_DAYS),
     // The coverage is kept WITH it rather than recomputed on display. A reading
     // built on six entries and one built on twenty-six are different claims, and
@@ -1923,6 +1987,9 @@ export function keepReview(store, review) {
 export function reviews(store) {
   return store
     .rows("reviews")
+    // Runs that were read and not kept are recorded too - that is what makes the
+    // nudge honest - but they are not readings and have nothing to show.
+    .filter((r) => r.kept === true)
     .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
     .map((r) => ({
       id: String(r.id),

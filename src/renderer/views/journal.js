@@ -43,12 +43,20 @@ import { refresh } from "../app.js";
 const REVIEW_KEY = "review:journal";
 
 export async function render() {
-  const [result, kept, model, status] = await Promise.all([
+  const [result, kept, model, status, mine] = await Promise.all([
     tend.invoke("journal"),
     tend.invoke("reviews"),
     modelStatus(),
-    tend.invoke("status")
+    tend.invoke("status"),
+    tend.invoke("myAttention")
   ]);
+  // The same signal the Now view shows, read here because this is the page you
+  // are already on when you write an evening down - which is the moment a line
+  // about unread material costs nothing and a badge in the rail would be a
+  // reproach.
+  const backlog = (Array.isArray(mine) ? mine : []).find(
+    (/** @type {any} */ s) => s.key === "i-have-written-and-not-read"
+  );
   const isPrivate = String(status?.mode ?? "work") === "private";
 
   if (result?.error) {
@@ -104,7 +112,7 @@ export async function render() {
 
   return `${head}
     ${coverage}
-    ${readingSection(cover, model)}
+    ${readingSection(cover, model, backlog)}
     ${keptSection(Array.isArray(kept) ? kept : [])}
     ${entries.map((/** @type {any} */ e) => entry(e, fields, isPrivate, model)).join("")}`;
 }
@@ -117,8 +125,9 @@ export async function render() {
  *
  * @param {any} cover
  * @param {{ available: boolean, why: string | null }} model
+ * @param {any} [backlog] The unread signal, when there is one.
  */
-function readingSection(cover, model) {
+function readingSection(cover, model, backlog) {
   const current = resultFor(REVIEW_KEY);
   if (current !== null) {
     return `<div class="group">
@@ -151,6 +160,22 @@ function readingSection(cover, model) {
         memory of a month is worse than a memory of a day, and only one of the two
         is checkable.
       </p>
+      <!--
+        What has gone unread, when anything has.
+        A line on the page you are already standing on rather than a badge in the
+        rail: the rail carries no count for this view on purpose, because nothing
+        here is late and a number that is always there becomes a reproach. This
+        appears only when there is actually a month of material nobody has looked
+        at, and says nothing on a quiet month.
+      -->
+      ${
+        backlog === undefined
+          ? ""
+          : `<div class="mine-row">
+               <span class="mine-text">${esc(String(backlog.text))}</span>
+               <span class="src">${esc(String(backlog.detail ?? ""))}</span>
+             </div>`
+      }
       <div class="card-foot">
         <span class="src">${esc(String(cover.summary ?? ""))}</span>
         <button class="act primary" data-act="readJournal" ${tooThin || !model.available || running ? "disabled" : ""}>

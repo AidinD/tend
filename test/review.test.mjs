@@ -19,15 +19,26 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import {
+  LONG_GAP_DAYS,
   MIN_ENTRIES,
   MIN_SPREAD,
   declared,
   ledger,
   ledgerLines,
-  readiness
+  readiness,
+  unread
 } from "../src/domain/review.js";
+import { myAttention } from "../src/domain/myattention.js";
 import { reviewJournal } from "../src/service/model.js";
-import { journalMaterial, keepReview, logEntry, reviews } from "../src/service/api.js";
+import {
+  journalMaterial,
+  keepReview,
+  lastReviewRun,
+  logEntry,
+  myAttentionSignals,
+  noteReviewRun,
+  reviews
+} from "../src/service/api.js";
 import { openStore } from "../src/storage/store.js";
 import { DAY_MS } from "../src/domain/time.js";
 import { failed, ok } from "./helpers.mjs";
@@ -295,13 +306,24 @@ describe("the reading itself", () => {
     assert.equal(result.coverage.spread, 6);
   });
 
-  it("writes nothing on its own", async () => {
+  it("keeps nothing it produced, and records only that it ran", async () => {
     writeEntries(6);
     ok(await reviewJournal(store, { now: NOW, askImpl: stub(answer) }));
 
-    // The rule the whole model layer follows: nothing a model produced enters
-    // the store without somebody having read it first.
-    assert.equal(store.rows("reviews").length, 0);
+    // The rule the whole model layer follows: nothing a model PRODUCED enters
+    // the store without somebody having read it first. So there is no kept
+    // reading here at all.
+    assert.deepEqual(reviews(store), []);
+
+    // What it does write is one row saying the material was read, which is what
+    // lets the nudge stay quiet after a reading somebody chose not to keep. The
+    // row carries a timestamp and how much was read - and nothing the model said.
+    const [row] = store.rows("reviews");
+    assert.equal(row.kept, false);
+    assert.equal(row.entries, 6);
+    for (const field of ["wentInto", "avoidance", "saidVsDid", "questions"]) {
+      assert.equal(row[field], undefined, `the run row carries ${field}`);
+    }
   });
 });
 
@@ -350,6 +372,177 @@ describe("keeping a reading", () => {
   });
 });
 
+
+describe("the nudge for material nobody has read", () => {
+  /** The signal, or undefined when it did not fire. */
+  const nudge = (/** @type {any} */ opts) =>
+    myAttention({ people: [], touches: [], now: NOW, ...opts }).find(
+      (s) => s.key === "i-have-written-and-not-read"
+    );
+
+  /** @param {number} count @param {number} firstDaysAgo */
+  const evenings = (count, firstDaysAgo = 1) =>
+    Array.from({ length: count }, (_, i) => ({
+      id: `e${i}`,
+      at: NOW - (firstDaysAgo + i) * DAY_MS,
+      took: `Day ${i}`
+    }));
+
+  it("says nothing at all on a quiet month", () => {
+    // The failure being designed out. An elapsed-time trigger would fire here,
+    // and firing here is a reproach for not having written - which is exactly
+    // what the journal was built never to produce.
+    assert.equal(nudge({ entries: [], lastReadAt: NOW - 200 * DAY_MS }), undefined);
+  });
+
+  it("says nothing below the floor the pass itself enforces", () => {
+    // Sending somebody to a button the service would refuse is worse than
+    // silence.
+    assert.equal(nudge({ entries: evenings(MIN_ENTRIES - 1) }), undefined);
+  });
+
+  it("says nothing when the entries all landed in one sitting", () => {
+    const oneDay = Array.from({ length: 6 }, (_, i) => ({
+      id: `e${i}`,
+      at: NOW - DAY_MS,
+      took: `Line ${i}`
+    }));
+    assert.equal(nudge({ entries: oneDay }), undefined);
+  });
+
+  it("does not count an entry with every box empty", () => {
+    const blank = evenings(MIN_ENTRIES).map((e) => ({ id: e.id, at: e.at }));
+    assert.equal(nudge({ entries: blank }), undefined);
+  });
+
+  it("fires once there is a month of material and nothing has read it", () => {
+    const signal = nudge({ entries: evenings(9) });
+    assert.ok(signal !== undefined);
+    assert.match(String(signal?.text), /9 evenings and never read them back/);
+  });
+
+  it("speaks in the first person, like every other signal in that file", () => {
+    assert.match(String(nudge({ entries: evenings(9) })?.text), /^I /);
+  });
+
+  it("counts from the last reading rather than from the first entry", () => {
+    const signal = nudge({ entries: evenings(9), lastReadAt: NOW - 5 * DAY_MS });
+    // Four of the nine are older than the reading and have been read.
+    assert.match(String(signal?.text), /4 evenings since I last read them back/);
+  });
+
+  it("goes quiet once a reading has covered the material", () => {
+    // The whole reason the run is recorded separately from the kept reading: a
+    // month read and judged not worth keeping is still a month that was read.
+    assert.equal(nudge({ entries: evenings(9), lastReadAt: NOW }), undefined);
+  });
+
+  it("weighs a long gap higher, but only when there is something to read", () => {
+    const recent = nudge({ entries: evenings(9), lastReadAt: NOW - 5 * DAY_MS });
+    const stale = nudge({
+      entries: evenings(9),
+      lastReadAt: NOW - (LONG_GAP_DAYS + 5) * DAY_MS
+    });
+    assert.ok(Number(stale?.weight) > Number(recent?.weight));
+  });
+
+  it("sits below every signal about a person", () => {
+    // A colleague being neglected outranks a month of my own evenings going
+    // unread, and a list where the two compete on equal terms teaches the wrong
+    // order.
+    const signals = myAttention({
+      people: [
+        { id: "p0", name: "One", relation: "lead-and-manage" },
+        { id: "p1", name: "Two", relation: "lead-and-manage" }
+      ],
+      touches: [],
+      entries: evenings(20),
+      now: NOW
+    });
+    const mine = signals.findIndex((s) => s.key === "i-have-written-and-not-read");
+    assert.ok(mine > 0, "the unread signal came first");
+    assert.equal(signals[0].key, "i-have-not-spoken-to");
+  });
+
+  it("ignores a removed entry", () => {
+    const withDeleted = evenings(MIN_ENTRIES).map((e, i) =>
+      i === 0 ? { ...e, _deleted: true } : e
+    );
+    assert.equal(nudge({ entries: withDeleted }), undefined);
+  });
+});
+
+describe("recording that a pass ran", () => {
+  it("has read nothing before the first pass", () => {
+    assert.equal(lastReviewRun(store), null);
+  });
+
+  it("records a run without it becoming a kept reading", () => {
+    ok(noteReviewRun(store, { at: NOW, entries: 6, spread: 6 }));
+
+    assert.equal(lastReviewRun(store), NOW);
+    // A run is not a reading and has nothing to show.
+    assert.deepEqual(reviews(store), []);
+  });
+
+  it("silences the nudge even when the reading was discarded", () => {
+    writeEntries(9);
+    assert.ok(
+      myAttentionSignals(store, NOW).some((s) => s.key === "i-have-written-and-not-read"),
+      "the nudge should be there before anything has read the entries"
+    );
+
+    ok(noteReviewRun(store, { at: NOW, entries: 9, spread: 9 }));
+
+    assert.equal(
+      myAttentionSignals(store, NOW).some((s) => s.key === "i-have-written-and-not-read"),
+      false
+    );
+  });
+
+  it("fills in the run it came from rather than writing a second row", () => {
+    ok(noteReviewRun(store, { at: NOW, entries: 6, spread: 6 }));
+    ok(
+      keepReview(store, {
+        at: NOW,
+        days: 30,
+        coverage: { entries: 6, spread: 6 },
+        wentInto: [{ what: "The migration", evenings: 4, evidence: "x" }],
+        avoidance: [],
+        questions: [],
+        saidVsDid: "",
+        model: "claude-sonnet-5"
+      })
+    );
+
+    // One reading, not two. The nudge counts rows by their date, so a second row
+    // for the same pass would make one reading look like two.
+    assert.equal(store.rows("reviews").length, 1);
+    assert.equal(reviews(store).length, 1);
+  });
+
+  it("refuses a run with no time on it", () => {
+    assert.match(failed(noteReviewRun(store, { at: 0 })), /run at some point/);
+  });
+
+  it("keeps a reading that was never recorded as a run, since the pass may predate this", () => {
+    ok(
+      keepReview(store, {
+        at: NOW,
+        days: 30,
+        coverage: { entries: 6, spread: 6 },
+        wentInto: [],
+        avoidance: [{ what: "The roadmap", evenings: 3, evidence: "y" }],
+        questions: [],
+        saidVsDid: "",
+        model: "claude-sonnet-5"
+      })
+    );
+    assert.equal(reviews(store).length, 1);
+    assert.equal(lastReviewRun(store), NOW);
+  });
+});
+
 describe("the material, without a model", () => {
   it("hands over the entries, the readiness and the counts in one call", () => {
     writeEntries(6);
@@ -364,6 +557,10 @@ describe("the material, without a model", () => {
     // Nothing was declared, and the field says so rather than being absent -
     // absent reads as "not looked at".
     assert.equal(material.declared, null);
+    // And what has gone unread, which is a different question from what is in
+    // the window.
+    assert.equal(material.unread.entries, 6);
+    assert.equal(material.unread.lastReadAt, null);
   });
 
   it("says outright when there is too little to read", () => {

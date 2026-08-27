@@ -43,7 +43,7 @@
 
 import { ask, resolveClaudeBinary } from "keel/claude";
 
-import { attention, focus, people, promises } from "./api.js";
+import { attention, focus, noteReviewRun, people, promises } from "./api.js";
 import { coverage, entriesSince, JOURNAL_FIELDS, REVIEW_WINDOW_DAYS } from "../domain/journal.js";
 import { declared, ledger, ledgerLines, readiness } from "../domain/review.js";
 import { prep } from "./prep.js";
@@ -677,6 +677,20 @@ export async function reviewJournal(store, { now, days = REVIEW_WINDOW_DAYS, ask
   if (!answer.ok) {
     return { error: answer.reason };
   }
+
+  /*
+   * The material has now been read, whether or not he keeps what came back.
+   *
+   * Recorded here rather than left to the caller, because the nudge that suggests
+   * reading depends on it: a reading that ran, was read and was discarded has to
+   * silence the nudge, or it comes back tomorrow to suggest reading what was just
+   * read - and a nudge that does that gets ignored, along with the rest of them.
+   *
+   * Not a breach of what this file may write. The row is a timestamp and how much
+   * was read; nothing the model said goes into it, and the reading itself is still
+   * returned and kept only if he keeps it.
+   */
+  noteReviewRun(store, { at: now, days, entries: cover.entries, spread: cover.spread });
 
   const value = answer.value ?? {};
   return {

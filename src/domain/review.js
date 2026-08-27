@@ -241,3 +241,51 @@ export function declared(focus, now, days, costSummary) {
     cost: costSummary ?? "The cost of this focus was not measured."
   };
 }
+
+/**
+ * How much has been written that no pass has read.
+ *
+ * Counted from the last time a pass actually RAN, not from the last one that was
+ * kept. Reading a month and deciding it said nothing is a complete act; a nudge
+ * that came back the next day to suggest reading what had just been read would
+ * be wrong in the way that matters most for a nudge, which is that it teaches you
+ * to ignore it.
+ *
+ * Not windowed. The pass reads the last thirty days, but the question here is
+ * whether anything has gone unread at all - three months of entries nobody has
+ * looked at is exactly the state worth saying out loud, and a thirty-day window
+ * would report it as one month's worth.
+ *
+ * @param {Record<string, any>[]} entries
+ * @param {number | null} lastReadAt When a pass last ran, or null if never.
+ * @param {number} now
+ * @returns {{ entries: number, spread: number, lastReadAt: number | null, sinceDays: number | null }}
+ */
+export function unread(entries, lastReadAt, now) {
+  const written = entries.filter(
+    (e) =>
+      !e._deleted &&
+      hasContent(e) &&
+      Number(e.at ?? 0) <= now &&
+      (lastReadAt === null || Number(e.at ?? 0) > lastReadAt)
+  );
+  const days = new Set(
+    written.map((e) => new Date(Number(e.at ?? 0)).toISOString().slice(0, 10))
+  );
+  return {
+    entries: written.length,
+    spread: days.size,
+    lastReadAt,
+    sinceDays: lastReadAt === null ? null : Math.max(0, Math.floor((now - lastReadAt) / DAY_MS))
+  };
+}
+
+/**
+ * How long a gap counts as long.
+ *
+ * Half again the window the pass reads. A month between readings is the rhythm
+ * this is built for - the pass reads thirty days, so running it twice in a week
+ * reads almost the same material twice - and six weeks is where a gap stops being
+ * the rhythm and starts being a habit that lapsed.
+ */
+export const LONG_GAP_DAYS = 45;

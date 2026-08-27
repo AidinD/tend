@@ -1668,3 +1668,55 @@ the DOM: the target appears and the socket opens before the page has a document,
 and a missing document comes back as a reply carrying no value, which looks
 exactly like a command that was never answered. The symptom was a parse error
 pointing at a line that was not the problem.
+
+## 2026-08-27 - A nudge for evenings nobody has read, triggered by material and not by time
+
+There is now one signal about the journal: written evenings that no pass has read.
+It sits with the other first-person signals, it is never critical, and it is not a
+badge in the rail.
+
+**Why time alone would have been the wrong trigger.** The obvious version fires
+on elapsed days - "it has been six weeks since you read your journal". That
+version speaks up loudest on a month where nothing was written, which makes it a
+reproach for not having journalled - precisely what that page was designed never
+to produce. No prompt, no streak, no badge, because a tool that asks every evening
+becomes a tool that is avoided every evening, and then the data stops entirely
+rather than arriving unevenly.
+
+So the unread material is the trigger and time is only an amplifier. It cannot
+fire on a quiet month, because a quiet month has nothing unread; a long gap raises
+the weight once there is already enough to read.
+
+**Its floor is the pass's own floor.** Four entries across three separate days,
+from one place. Suggesting a reading the service would refuse is worse than
+silence: it sends somebody to a disabled button.
+
+**It counts from when a pass RAN, not from when a reading was kept.** This is what
+makes the nudge trustworthy rather than merely correct. Reading a month and
+deciding it said nothing is a complete act - the material has been read - and a
+nudge that came back the next day suggesting a reading would teach him to ignore
+it, and then to ignore the others beside it. So the pass records that it ran, and
+keeping the reading fills in the same row rather than writing a second one.
+
+**Why the pass may write that row.** The model layer's rule is that nothing a
+model PRODUCED enters the store without somebody having read it first, and that
+still holds: the row is a timestamp and how much was read, with none of the prose,
+and the reading itself is still returned and kept only if he keeps it. This is the
+app recording that an action happened, in the same sense as a logged contact. A
+test asserts the run row carries no findings.
+
+**It also appears on the journal page itself.** Same fact, same wording, read from
+the same signal - on the page he is already standing on when he writes an evening
+down, which is the moment a line about unread material costs nothing. Still no
+count in the rail: nothing on that page is late, and a number that is always there
+becomes a reproach.
+
+**It sorts below every signal about a person.** Somebody being neglected outranks a
+month of his own evenings going unread, and a list where those two compete on equal
+terms teaches the wrong order.
+
+**The mechanical first-person check now has to produce every signal.** That test
+is the only guard on the rule that no signal may have a colleague as its subject,
+and its fixture did not produce the new one - so the rule was unenforced on it. The
+fixture was widened and the assertion now names the full set, so adding a signal
+without adding it there fails rather than passing quietly.

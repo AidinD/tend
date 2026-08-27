@@ -31,6 +31,7 @@
  */
 
 import { inScope } from "./people.js";
+import { LONG_GAP_DAYS, MIN_ENTRIES, MIN_SPREAD, unread } from "./review.js";
 import { DAY_MS } from "./time.js";
 
 /** The window every signal looks back over. A month is one review cycle. */
@@ -61,9 +62,18 @@ const CONCENTRATION_OF = 0.2;
  * @param {number} input.now
  * @param {{ id: string, person?: string }[]} [input.stakes] Stakeholder interests,
  *   so an update logged against one counts as contact with the person it is for.
+ * @param {Record<string, any>[]} [input.entries] End-of-day entries.
+ * @param {number | null} [input.lastReadAt] When a pass over them last ran.
  * @returns {Signal[]}
  */
-export function myAttention({ people, touches, now, stakes = [] }) {
+export function myAttention({
+  people,
+  touches,
+  now,
+  stakes = [],
+  entries = [],
+  lastReadAt = null
+}) {
   const since = now - WINDOW_DAYS * DAY_MS;
   // Somebody on leave or already gone is not somebody you are neglecting, and
   // counting them makes every signal here quietly wrong: "I have not spoken to
@@ -152,6 +162,58 @@ export function myAttention({ people, touches, now, stakes = [] }) {
       text: `Everything I know about ${onlyHeardAbout.length} ${onlyHeardAbout.length === 1 ? "person" : "people"} this month came through somebody else.`,
       detail: onlyHeardAbout.join(", "),
       weight: 90 + onlyHeardAbout.length
+    });
+  }
+
+  /* ------------------------------------------- written and never read -- */
+
+  /*
+   * The one signal here that is not about other people at all.
+   *
+   * It belongs anyway, and for the same reason as the rest: it is a first-person
+   * fact about where his attention went. Evenings spent writing something down
+   * that nothing has ever read are attention spent for nothing.
+   *
+   * ## Why the count is the trigger and time only the amplifier
+   *
+   * The obvious version fires on elapsed time - "it has been six weeks since you
+   * read your journal". That version is a reproach for not having written, which
+   * is exactly what the journal was designed never to produce: no prompt, no
+   * streak, no badge in the rail, because a tool that asks every evening becomes a
+   * tool that is avoided every evening and then the data stops entirely rather
+   * than arriving unevenly.
+   *
+   * So the material is the trigger. This cannot fire on a quiet month, because a
+   * quiet month has nothing unread. Time only raises the weight once there is
+   * already enough to read.
+   *
+   * ## Why the floor is the pass's own floor
+   *
+   * Suggesting a reading the pass would refuse to perform is worse than saying
+   * nothing: it sends you to a button that is disabled. The same
+   * four-entries-over-three-days rule gates both, from one place.
+   */
+  const backlog = unread(entries, lastReadAt, now);
+
+  if (backlog.entries >= MIN_ENTRIES && backlog.spread >= MIN_SPREAD) {
+    const long = backlog.sinceDays !== null && backlog.sinceDays >= LONG_GAP_DAYS;
+    const evenings = `${backlog.entries} ${backlog.entries === 1 ? "evening" : "evenings"}`;
+    const days = `${backlog.spread} ${backlog.spread === 1 ? "day" : "days"}`;
+
+    signals.push({
+      key: "i-have-written-and-not-read",
+      text:
+        backlog.lastReadAt === null
+          ? `I have written ${evenings} and never read them back.`
+          : `I have written ${evenings} since I last read them back.`,
+      detail:
+        backlog.lastReadAt === null
+          ? `Across ${days}. The pass over them was always the point; the entries were the means.`
+          : `Across ${days}, and ${backlog.sinceDays} days since the last reading.`,
+      // Under every signal about a person. Somebody being neglected outranks a
+      // month of my own evenings going unread, and a list where those two compete
+      // on equal terms teaches the wrong order.
+      weight: 40 + Math.min(20, backlog.entries) + (long ? 10 : 0)
     });
   }
 

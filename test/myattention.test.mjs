@@ -37,10 +37,31 @@ describe("the line", () => {
         { subject: "p1", kind: "one-to-one", at: daysAgo(8) },
         { subject: "p2", kind: "second-hand", at: daysAgo(4) }
       ],
+      // Enough evenings to make the unread signal fire too. This check is the
+      // only mechanical guard on the first-person rule, so the fixture has to
+      // produce EVERY signal - one that never appears here is one the rule is
+      // not actually being enforced on.
+      entries: Array.from({ length: 6 }, (_, i) => ({
+        id: `e${i}`,
+        at: daysAgo(i + 1),
+        took: `Day ${i}`
+      })),
       now: NOW
     });
 
     assert.ok(signals.length > 0, "the fixture should produce signals at all");
+    // Named rather than counted, so adding a signal without adding it here is a
+    // failure rather than a silent gap.
+    assert.deepEqual(
+      [...signals.map((s) => s.key)].sort(),
+      [
+        "i-have-not-spoken-to",
+        "i-have-only-heard-about",
+        "i-have-written-and-not-read",
+        "my-attention-is-concentrated"
+      ],
+      "the fixture no longer produces every signal, so the rule is unchecked on the missing one"
+    );
     for (const signal of signals) {
       assert.match(
         signal.text,
