@@ -2185,7 +2185,22 @@ try {
   // a number read while the window manager is still moving the frame is not a
   // width, and this check exists to catch a click that never arrived, not to
   // race an animation.
-  const start = await page.settledWidth(() => true);
+  /*
+   * The baseline, and it has to be a width the window could actually have.
+   *
+   * `settledWidth(() => true)` returns as soon as any value holds still for a
+   * step, and during window setup a transient does hold still: one run measured
+   * a baseline of 160px, maximised correctly to the screen's 3440, restored
+   * correctly to 1180 - and failed, because it was comparing against the
+   * transient. The message then said the restore "never came back", which is a
+   * true statement about a number that was never real.
+   *
+   * The floor is the window's own `minWidth` from main/index.js rather than a
+   * number invented here. No width below it is a width this app can have, so
+   * anything below it is something else being measured.
+   */
+  const MIN_WINDOW_WIDTH = 720;
+  const start = await page.settledWidth((width) => width >= MIN_WINDOW_WIDTH);
   const before = start.width;
   await page.click('[data-window="maximize"]');
   const maximised = await page.settledWidth((width) => width > before);
@@ -2215,7 +2230,10 @@ try {
 
   check("clicking maximise actually resizes the window, and again restores it", () => {
     if (!start.settled) {
-      throw new Error(`the window was still moving before the click: ${start.trace.join(" -> ")}`);
+      throw new Error(
+        `the window never held a plausible width before the click: ${start.trace.join(" -> ")}` +
+          `. Anything under ${MIN_WINDOW_WIDTH} is not a width this window can have.${aside}`
+      );
     }
     if (!maximised.settled) {
       if (maximised.trace.length === 1) {

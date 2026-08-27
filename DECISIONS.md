@@ -2045,11 +2045,34 @@ one that earns its keep: it is the only marking of the two halves visible when t
 app is not focused, because a title needs the window fronted to be read and a
 taskbar shows a picture.
 
-**The private mark defaults to a recolour and is meant to be replaced.** The icon
-generator writes a tinted copy of the work mark to `assets/tend-logo-private.png`
-when that file is absent, and never overwrites it - so real artwork dropped there
-wins. Two halves differing only in colour is a weaker signal than two different
-silhouettes, which is why the default says out loud that it is a default.
+**The private mark is a hand holding a heart, where the work mark is a hand
+holding a flame.** Two silhouettes, not two colours - which was the first attempt
+and was the wrong answer to the question. A recoloured copy of the same drawing
+differs only in hue, and hue is the thing that survives least well at 16px and is
+useless to anybody who cannot tell those two hues apart. The generator still
+writes a tint when there is no artwork at all, because a default has to exist, but
+it says out loud that it is one.
+
+**Recoloured on top of the new silhouette anyway.** The two halves now differ on
+both axes, which is the whole reason for a second mark: two windows open at once
+must not be mistakable for each other, and either signal alone can fail - colour
+to a colourblind reader, silhouette to a glance at 16px.
+
+**How the supplied artwork was made usable, because it will happen again.** It
+arrived as a JPEG with its transparency PAINTED - a grey checkerboard baked into
+the pixels - portrait, and mostly empty canvas. Used as it was, the icon would
+have carried grey squares and the mark would have been a thin diagonal smear in
+the taskbar. So: Electron's own decoder for the JPEG, since the icon pipeline
+reads PNG; the background keyed on SATURATION rather than lightness, because the
+mark is one flat colour and a checkerboard is greyscale whatever its brightness;
+then cropped to the mark's own bounding box and padded to a square with an even
+margin.
+
+**It survives 16px better than the work mark does.** Checked rather than assumed,
+by rendering both at 16 and 24 side by side: the heart keeps its notch and the
+hand stays readable, where the flame's counters close up. Which is a small
+vindication of the trade recorded above - a bitmap cannot drop detail for the
+small frames, so the only lever is a silhouette that has less to lose.
 
 **The header falls back to the work mark rather than to a broken image.** The
 artwork is optional, and a missing file must degrade to "looks like the work half"
