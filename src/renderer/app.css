@@ -690,6 +690,71 @@ button.row:hover {
 }
 
 /*
+ * Several answers from one list, one line until it is opened.
+ *
+ * The summary carries who is chosen so the thing does not have to be opened to
+ * be read, and the marker is the app's own chevron rather than the platform's
+ * triangle - `<details>` gives keyboard support for free and its default
+ * disclosure arrow is the one part of it that looks borrowed.
+ */
+.multi {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+
+.multi-summary {
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--text);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multi-summary::-webkit-details-marker {
+  display: none;
+}
+
+.multi-summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-right: 1.5px solid var(--text-faint);
+  border-bottom: 1.5px solid var(--text-faint);
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.multi[open] > .multi-summary::after {
+  transform: rotate(-135deg);
+}
+
+.multi-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 10px 10px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+
+.multi-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.multi-option:hover {
+  color: var(--text);
+}
+
+/*
  * A footnote inside a line sits under it, not welded to the end of it.
  *
  * `.src` is a flex row wherever it is used as a card's footer, and inline inside

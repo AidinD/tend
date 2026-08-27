@@ -73,13 +73,18 @@ export function toast(message, tone = "ok") {
  * @typedef {object} Field
  * @property {string} name
  * @property {string} label
- * @property {"text" | "textarea" | "select" | "number" | "date" | "checkbox" | "note"} [type]
+ * @property {"text" | "textarea" | "select" | "multiselect" | "number" | "date" | "checkbox" | "note"} [type]
  *   `note` shows a value without offering to change it, and submits nothing. For
  *   a fact the form has to put in front of somebody: a record kept on purpose is
  *   not an input, and rendering it as one invites it to be overwritten by the
  *   answer that belonged in the field above.
+ *
+ *   `multiselect` takes several of `options` and answers with an array of their
+ *   values. Collapsed to one line once anything is chosen, because the flat
+ *   checkbox list it replaced grew a row per person and pushed the fields that
+ *   mattered off the bottom of the dialog.
  * @property {string} [hint] Shown under the field. Say why it matters, not what it is.
- * @property {string | number | boolean} [value]
+ * @property {string | number | boolean | string[]} [value]
  * @property {{ value: string, label: string }[]} [options]
  * @property {boolean} [required]
  * @property {string} [placeholder]
@@ -173,11 +178,27 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal", 
         // answer from "the job needs it" back to "they want it" would silently
         // keep the need he had typed under the old answer.
         if (hidden(field)) {
-          values[field.name] = field.type === "checkbox" ? false : "";
+          values[field.name] =
+            field.type === "checkbox" ? false : field.type === "multiselect" ? [] : "";
           continue;
         }
         if (field.type === "checkbox") {
           values[field.name] = /** @type {HTMLInputElement} */ (el).checked;
+          continue;
+        }
+        if (field.type === "multiselect") {
+          // Every box shares the field's name, so this is the whole answer -
+          // read from the panel rather than from the one element `querySelector`
+          // happened to find first.
+          values[field.name] = [
+            ...panel.querySelectorAll(`input[type="checkbox"][name="${field.name}"]`)
+          ]
+            .filter((box) => /** @type {HTMLInputElement} */ (box).checked)
+            .map((box) => /** @type {HTMLInputElement} */ (box).value);
+          if (field.required && values[field.name].length === 0) {
+            showError(`${field.label} is needed.`);
+            return;
+          }
           continue;
         }
         const raw = el.value.trim();
@@ -268,6 +289,30 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal", 
     for (const name of new Set(fields.map((f) => f.showIf?.field).filter(Boolean))) {
       panel.querySelector(`[name="${name}"]`)?.addEventListener("change", applyConditions);
     }
+
+    /*
+     * The collapsed list's summary, kept true as boxes are ticked.
+     *
+     * Without this it says what was chosen when the dialog opened, which is
+     * exactly wrong for a control whose whole purpose is to be closed most of the
+     * time: a line that reads "Nobody chosen yet" over three ticked boxes is a
+     * worse state than having no summary at all.
+     */
+    for (const field of fields.filter((f) => f.type === "multiselect")) {
+      const wrapper = panel.querySelector(`[data-multi="${field.name}"]`);
+      const label = wrapper?.querySelector("[data-multi-summary]");
+      if (wrapper === null || label === null || label === undefined) {
+        continue;
+      }
+      const update = () => {
+        const chosen = [...wrapper.querySelectorAll('input[type="checkbox"]')]
+          .filter((box) => /** @type {HTMLInputElement} */ (box).checked)
+          .map((box) => box.parentElement?.textContent?.trim() ?? "");
+        label.textContent = chosen.length === 0 ? "Nobody chosen yet" : chosen.join(", ");
+      };
+      wrapper.addEventListener("change", update);
+      update();
+    }
     applyConditions();
 
     scrim.addEventListener("click", () => close(null));
@@ -303,6 +348,65 @@ function fieldHtml(f) {
       <input type="checkbox" id="${id}" name="${esc(f.name)}" ${f.value ? "checked" : ""}>
       <span><span class="field-label">${esc(f.label)}</span>${hint}</span>
     </label>`;
+  }
+
+  /*
+   * Several answers from one list, collapsed until it is opened.
+   *
+   * The first version of this was one checkbox per option, laid out flat. With
+   * seven people that is seven rows in a dialog that also holds two text boxes
+   * and a date - the picker became the tallest thing in it, and the two fields
+   * that matter got pushed off the bottom.
+   *
+   * A native `<select multiple>` would be smaller and is the obvious reading of
+   * "a dropdown with multiselect", but it costs ctrl-click: every option after
+   * the first needs a modifier, and clicking one plainly silently clears the
+   * rest. In a form that is filled in a hurry that is a way to lose an answer
+   * without noticing.
+   *
+   * So: a disclosure with checkboxes inside it. One click per person, one line
+   * when closed, and the summary says who is chosen so it does not have to be
+   * opened to be read. `<details>` rather than a scripted popover - it is
+   * keyboard-accessible for free and cannot fight the dialog for clicks.
+   */
+  if (f.type === "multiselect") {
+    const options = f.options ?? [];
+    const chosen = new Set((Array.isArray(f.value) ? f.value : []).map((v) => String(v)));
+    const summary =
+      chosen.size === 0
+        ? "Nobody chosen yet"
+        : options
+            .filter((o) => chosen.has(o.value))
+            .map((o) => o.label)
+            .join(", ");
+
+    return `<div class="field" data-field="${esc(f.name)}">
+      <span class="field-label">${esc(f.label)}</span>
+      <!--
+        Closed, always. It was opened when nothing was chosen yet, on the
+        reasoning that a required field should show its options - and that put the
+        full list back on screen in exactly the case the collapse was for, since
+        nothing is chosen when the form opens. The summary line is the affordance,
+        and the field being required means an empty answer is refused out loud.
+      -->
+      <details class="multi" data-multi="${esc(f.name)}">
+        <summary class="multi-summary">
+          <span data-multi-summary>${esc(summary)}</span>
+        </summary>
+        <div class="multi-options">
+          ${options
+            .map(
+              (o) => `<label class="multi-option">
+                <input type="checkbox" name="${esc(f.name)}" value="${esc(o.value)}"
+                  ${chosen.has(o.value) ? "checked" : ""}>
+                <span>${esc(o.label)}</span>
+              </label>`
+            )
+            .join("")}
+        </div>
+      </details>
+      ${hint}
+    </div>`;
   }
 
   const control =

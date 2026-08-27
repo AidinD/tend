@@ -168,15 +168,36 @@ const fields = (roster) => [
   { name: "rejected", label: "What was considered and not chosen", type: "textarea" },
   {
     name: "consulted",
-    label: "Who was consulted (comma separated)",
-    type: "text",
-    // Only people Tend already knows. Adding somebody to the roster just to name
-    // them here would be worse than leaving it empty: everyone on the roster is
-    // counted by the attention signals, so a dozen colleagues you have no duties
-    // toward turns "I have not spoken to 11 of 13 people this month" into noise.
+    label: "Who was consulted",
+    /*
+     * Picked from the roster, not typed.
+     *
+     * It was a comma-separated text box with the valid names listed in the hint,
+     * and it cost a whole filled-in decision: the service refuses a name it does
+     * not know, and at the time the dialog closed on that refusal and took four
+     * fields of prose with it. `attempt` fixed the second half of that failure -
+     * the form stays open now - but the first half was always the field's fault.
+     * A name that cannot be mistyped cannot be rejected.
+     *
+     * It also removes the hint that had to list the roster inside the label,
+     * which was a derived list rendered as prose - the shape this project keeps
+     * being bitten by.
+     */
+    type: "multiselect",
+    options: (roster ?? []).map((/** @type {any} */ p) => ({
+      value: String(p.name),
+      label: String(p.name)
+    })),
+    value: [],
+    // Only people Tend already knows, and the list is now the enforcement rather
+    // than a warning. Adding somebody to the roster just to name them here would
+    // be worse than leaving it empty: everyone on the roster is counted by the
+    // attention signals, so a dozen colleagues you have no duties toward turns
+    // "I have not spoken to 11 of 13 people this month" into noise.
     hint:
-      `Only people already in Tend${(roster ?? []).length > 0 ? ": " + (roster ?? []).map((/** @type {any} */ p) => p.name).join(", ") : " - nobody on the roster yet"}. ` +
-      "Leave it empty for anybody else and name them in the reason instead."
+      (roster ?? []).length > 0
+        ? "Anybody not on this list belongs in the reason instead - adding them to the roster to name them here would make every attention signal noisier."
+        : "Nobody on the roster yet, so name whoever it was in the reason instead."
   },
   {
     name: "revisitDays",
@@ -210,10 +231,7 @@ export const actions = {
           because: v.because,
           rejected: v.rejected,
           status: v.status || "recorded",
-          consulted: String(v.consulted ?? "")
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s !== ""),
+          consulted: Array.isArray(v.consulted) ? v.consulted : [],
           revisitDays: Number(v.revisitDays) || 90
         });
         return result?.error ? String(result.error) : null;
@@ -277,7 +295,10 @@ export const actions = {
         ...f,
         value:
           f.name === "consulted"
-            ? current.consulted.join(", ")
+            ? // The array, so the ticks come back ticked. Joining it into a string
+              // here silently emptied the field on every edit once the control
+              // stopped being a text box.
+              (current.consulted ?? [])
             : f.name === "revisitDays"
               ? "90"
               : String(current[f.name] ?? "")
@@ -293,10 +314,7 @@ export const actions = {
         what: values.what,
         because: values.because,
         rejected: values.rejected,
-        consulted: String(values.consulted ?? "")
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s !== ""),
+        consulted: Array.isArray(values.consulted) ? values.consulted : [],
         revisitDays: Number(values.revisitDays) || 90
       }
     });

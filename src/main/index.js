@@ -8,6 +8,7 @@
  */
 
 import { BrowserWindow, app, ipcMain, shell } from "electron";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,6 +50,14 @@ const here = dirname(fileURLToPath(import.meta.url));
  */
 const mode = readMode(app.getPath("userData"));
 const { dir, source } = resolveModeDir(mode);
+
+/**
+ * The private half's window icon, built by scripts/generate-icon.mjs.
+ *
+ * Resolved relative to this file so it works both from source and from inside
+ * the packaged asar, where `resources/` sits beside `src/`.
+ */
+const privateIcon = join(here, "..", "..", "resources", "icon-private.ico");
 
 /** @type {string[]} */
 const warnings = [];
@@ -286,6 +295,19 @@ function createWindow() {
     frame: false,
     backgroundColor: "#1b1c1f",
     autoHideMenuBar: true,
+    /*
+     * The private half's own icon.
+     *
+     * The one marking of the two halves that is visible when the app is not
+     * focused: a title needs the window fronted to be read, a taskbar shows an
+     * icon. With both halves open at once it is what tells them apart at a
+     * glance, which is the same job the accent colour does inside the window.
+     *
+     * Passed only when the file is there. An `icon` pointing at nothing gives a
+     * window with no icon at all, which is worse than the packaged default -
+     * and in development there is no packaged default to fall back to.
+     */
+    ...(mode === "private" && existsSync(privateIcon) ? { icon: privateIcon } : {}),
     // The one label that is readable when the app is not focused, in the taskbar
     // and in a window switcher. A window whose mode you cannot see without
     // bringing it forward is a window you can type the wrong thing into.

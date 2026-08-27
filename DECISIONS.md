@@ -1996,3 +1996,67 @@ appearing on each page, saying who else was there. What is left is a real risk: 
 model asked to divide one sentence into per-person prose is inventing attribution,
 which is the plausible-but-wrong record this app refuses everywhere else. If it is
 built, it belongs on the same footing as a brief - shown, and never stored.
+
+## 2026-08-27 - Several people are picked from one collapsed list, and each half has its own mark
+
+### The picker
+
+A checkbox per person put seven rows in a dialog that also holds two text boxes
+and a date. The picker became the tallest thing in it and the two fields that
+matter went off the bottom.
+
+**Not a native `<select multiple>`,** which is the obvious reading of "a dropdown
+with multiselect" and would have been smaller still. It costs ctrl-click: every
+option after the first needs a modifier, and clicking one plainly clears the rest
+without saying so. In a form filled in a hurry that is a way to lose an answer
+and not notice.
+
+**A `<details>` disclosure with checkboxes inside.** One click per person, one
+line when closed, and the summary names who is chosen so it does not have to be
+opened to be read. Native rather than a scripted popover: keyboard support comes
+free and it cannot fight the dialog for clicks.
+
+**Collapsed always, including when nothing is chosen.** The first version opened
+it in that case, reasoning that a required field should show its options - which
+put the full list back on screen in exactly the situation the collapse was for,
+since nothing is chosen when a form opens. The summary line is the affordance and
+the field being required means an empty answer is refused out loud.
+
+**The summary is recomputed as boxes are ticked.** Without that it reports what
+was chosen when the dialog opened, and "Nobody chosen yet" sitting above three
+ticked boxes is a worse state than no summary at all.
+
+### And the decision ledger's consulted field
+
+It was a comma-separated text box with the valid names listed in its hint. That
+cost a whole filled-in decision earlier the same day: the service refuses a name
+it does not know, and the dialog closed on the refusal and took four fields of
+prose with it. `attempt` fixed the second half of that failure - the form stays
+open now - but the first half was always the field's fault. **A name that cannot
+be mistyped cannot be rejected.**
+
+It also removes a derived list rendered as prose inside a hint, which is the shape
+this project keeps being bitten by.
+
+### A mark per half
+
+The header mark and the window icon both follow the half. The window icon is the
+one that earns its keep: it is the only marking of the two halves visible when the
+app is not focused, because a title needs the window fronted to be read and a
+taskbar shows a picture.
+
+**The private mark defaults to a recolour and is meant to be replaced.** The icon
+generator writes a tinted copy of the work mark to `assets/tend-logo-private.png`
+when that file is absent, and never overwrites it - so real artwork dropped there
+wins. Two halves differing only in colour is a weaker signal than two different
+silhouettes, which is why the default says out loud that it is a default.
+
+**The header falls back to the work mark rather than to a broken image.** The
+artwork is optional, and a missing file must degrade to "looks like the work half"
+instead of to "looks broken". The private harness asserts the mark LOADED as well
+as which file it points at, because a check that only read the `src` would pass
+over a broken image.
+
+**The window icon is passed only when the file exists.** An `icon` pointing at
+nothing gives a window with no icon at all, which is worse than the packaged
+default - and in development there is no packaged default to fall back to.

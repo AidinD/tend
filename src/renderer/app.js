@@ -238,6 +238,26 @@ function applyHalf(answer) {
     badge.textContent = half.half === "private" ? "private" : "";
   }
 
+  /*
+   * The mark, per half.
+   *
+   * A fourth signal, and the one that reads fastest - a shape is recognised
+   * before a word is. The window icon carries the same distinction outside the
+   * app, which is the only place any of this is visible when it is not focused.
+   *
+   * Falls back to the work mark if the private file is missing rather than
+   * showing a broken image: the artwork is optional, and a missing default must
+   * degrade to "looks like the work half" rather than to "looks broken".
+   */
+  const mark = document.getElementById("brand-mark");
+  if (mark instanceof HTMLImageElement && half.half === "private") {
+    mark.onerror = () => {
+      mark.onerror = null;
+      mark.src = "assets/tend-logo.png";
+    };
+    mark.src = "assets/tend-logo-private.png";
+  }
+
   // Standing on a view this half does not have would draw a work view over
   // private data, which is the one thing the whole arrangement exists to
   // prevent.

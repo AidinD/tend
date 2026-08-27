@@ -419,8 +419,9 @@ export const actions = {
    * asked per person meant writing the same sentence three times, which is the
    * kind of cost that stops a thing being written at all.
    *
-   * A checkbox each. `data-person` pre-ticks one when this is opened from
-   * somebody's own page.
+   * One collapsed list rather than a checkbox per person: seven rows pushed the
+   * two fields that matter off the bottom of the dialog. `data-person` pre-ticks
+   * one when this is opened from somebody's own page.
    *
    * @param {Record<string, string>} d
    */
@@ -453,17 +454,17 @@ export const actions = {
           hint: "What you did, chose, felt or avoided. Not what they were like."
         },
         {
-          name: "whoNote",
+          name: "who",
           label: "Who was in it",
-          type: /** @type {const} */ ("note"),
-          value: "Tick everybody it involved. It is written once and appears on each of their pages."
+          type: /** @type {const} */ ("multiselect"),
+          required: true,
+          options: people.map((/** @type {any} */ person) => ({
+            value: String(person.id),
+            label: String(person.name)
+          })),
+          value: d.person ? [String(d.person)] : [],
+          hint: "Written once, and it appears on each of their pages."
         },
-        ...people.map((/** @type {any} */ person) => ({
-          name: `with:${person.id}`,
-          label: String(person.name),
-          type: /** @type {const} */ ("checkbox"),
-          value: String(person.id) === String(d.person ?? "")
-        })),
         {
           name: "at",
           label: "When",
@@ -477,9 +478,7 @@ export const actions = {
       return;
     }
 
-    const chosen = people
-      .map((/** @type {any} */ person) => String(person.id))
-      .filter((/** @type {string} */ id) => values[`with:${id}`] === true);
+    const chosen = Array.isArray(values.who) ? values.who : [];
 
     if (chosen.length === 0) {
       toast("Tick at least one person - a moment with nobody in it belongs in the day.", "bad");

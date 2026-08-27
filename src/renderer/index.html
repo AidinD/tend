@@ -23,7 +23,8 @@
              drawings that can drift. Helm does it this way for the same reason.
              The file is large on purpose - it is the source the .ico frames are
              resampled from - and the browser scales it down for this row. -->
-        <img class="brand-mark" src="assets/tend-logo.png" alt="" width="22" height="22" />
+        <!-- The src is replaced in the private half. See applyHalf in app.js. -->
+        <img class="brand-mark" id="brand-mark" src="assets/tend-logo.png" alt="" width="22" height="22" />
         <span class="wordmark">Tend</span>
         <!--
           Only ever filled in private mode, and empty markup the rest of the

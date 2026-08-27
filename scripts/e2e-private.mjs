@@ -415,6 +415,84 @@ try {
     }
   });
 
+  /* ------------------------------------------------------- the mark -- */
+
+  const mark = JSON.parse(
+    String(
+      await evaluate(`(() => {
+        const m = document.getElementById('brand-mark');
+        if (m === null) { return JSON.stringify({ missing: true }); }
+        return JSON.stringify({
+          file: (m.currentSrc || m.src).split('/').pop(),
+          loaded: m.complete && m.naturalWidth > 0
+        });
+      })()`)
+    )
+  );
+  await check("the mark is this half's own, and it actually loaded", () => {
+    // A fourth signal, and the one read fastest: a shape is recognised before a
+    // word is. Asserting it LOADED matters as much as which file it points at -
+    // the fallback to the work mark exists so a missing file degrades to "looks
+    // like the work half" rather than to a broken image, and a broken image would
+    // otherwise pass a check that only read the src.
+    if (mark.missing) {
+      throw new Error("there is no brand mark in the header at all");
+    }
+    if (mark.file !== "tend-logo-private.png") {
+      throw new Error(`the header shows ${mark.file}`);
+    }
+    if (!mark.loaded) {
+      throw new Error(`${mark.file} did not load`);
+    }
+  });
+
+  /* ------------------------------------- the moment's person picker -- */
+
+  await evaluate("document.querySelector('.nav-btn[data-view=\"journal\"]')?.click()");
+  await waitFor("document.querySelector('.view-title') !== null", "the day");
+  await evaluate("document.querySelector('[data-act=\"logMoment\"]')?.click()");
+  await waitFor("document.querySelector('.dialog') !== null", "the moment dialog");
+
+  const picker = JSON.parse(
+    String(
+      await evaluate(`(() => {
+        const d = document.querySelector('.dialog');
+        const multi = d.querySelector('[data-multi]');
+        return JSON.stringify({
+          exists: multi !== null,
+          open: multi === null ? null : multi.open,
+          summary: multi === null ? '' : multi.querySelector('[data-multi-summary]').textContent.trim(),
+          loose: d.querySelectorAll('.field-check').length,
+          fitsWithoutScrolling: d.scrollHeight <= d.clientHeight + 1
+        });
+      })()`)
+    )
+  );
+  await check("the people are picked from one collapsed list, not a row each", () => {
+    // A checkbox per person put seven rows in a dialog that also holds two text
+    // boxes and a date, and the two fields that matter went off the bottom.
+    if (!picker.exists) {
+      throw new Error("there is no collapsed picker");
+    }
+    if (picker.open) {
+      throw new Error("it starts open, which puts the whole list back on screen");
+    }
+    if (picker.loose > 0) {
+      throw new Error(`${picker.loose} loose checkbox rows are still in the dialog`);
+    }
+    if (!picker.fitsWithoutScrolling) {
+      throw new Error("the dialog still has to be scrolled to reach the bottom");
+    }
+    if (!/Nobody chosen/.test(picker.summary)) {
+      throw new Error(`the closed summary reads "${picker.summary}"`);
+    }
+  });
+
+  await evaluate(
+    "document.querySelector('.dialog [data-cancel]')?.click()"
+  );
+  await waitFor("document.querySelector('.dialog') === null", "the dialog to close");
+
   const errors = JSON.parse(String(await evaluate("JSON.stringify(window.__errors ?? [])")));
   await check("no uncaught renderer errors in any of that", () => {
     if (errors.length > 0) {
