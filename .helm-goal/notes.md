@@ -13,52 +13,7 @@ iteration needs; no further exploratio
 
 [... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-deliberately, not accidentally - extend the fixture/assertion together.
-
-## Domain module: src/domain/reflection.js (NEW FILE)
-
-Style: doc-comment in house voice mirroring growth.js's "Why this is not a
-development plan" / journal.js's "Nice to have, not a discipline" sections.
-Cover: fixed short prompts vs open textarea; one log row per reflection, no
-status/lifecycle (a log, not a thread - contrast with growth.js's threads);
-never critical (same line topics and growth draw, per growth.js's "Why nothing
-here is ever critical"); explicitly distinct from journal.js/review.js (those
-record interactions with OTHER people and the owner's part in them; this is
-self-directed, about the owner's own week, names nobody) and distinct from
-moments (moments are one event with named people; this has no people at all).
-
-Suggested shape, modeled on journal.js's JOURNAL_FIELDS:
-  export const REFLECTION_FIELDS = [
-    { name: "wellDone", label: "What went well?", hint: "..." },
-    { name: "differently", label: "What would you do differently?", hint: "..." },
-    { name: "notes", label: "Anything else", hint: "Optional, clearly secondary." }
-  ];
-(field names are this iteration's suggestion; PLAN should finalize wording to
-match the goal's suggested prompts exactly: "What went well?" / "What would
-you do differently?" / one clearly-secondary optional field.)
-
-Row shape per the goal: one row = { id, at, wellDone, differently, notes?
-}. No status, no lifecycle - unlike growth (row+notes) or waiting
-(row+chases), only ONE collection is needed.
-
-Needed pure exports (no store access in this file, matching every other
-domain module's "nothing here touches the store" rule):
-- hasContent(row) - true if any REFLECTION_FIELDS value is non-blank, mirrors
-  journal.js's hasContent exactly.
-- A cadence constant, e.g. REFLECTION_CADENCE_DAYS = 7, used both by the
-  myattention.js nudge and any UI copy about "about once a week."
-- Possibly a small "how many days since the last one, and is it due" pure
-  function (mirrors signals.js's shape minus severity), OR leave that inline
-  in myattention.js / api.js - PLAN's call, keep it minimal since this is a
-  much smaller feature than signals/growth.
-
-No severity/drift machinery (no cadence.js imports) - a reflection nudge is
-plain arithmetic, not a cadence with stretch/focus interaction.
-
-## Storage: src/storage/reduce.js
-
-Add "reflections" to the COLLECTIONS array (it currently ends with "moments"
-around line 125, each entry preceded by a one-line/short-paragraph comment
+raph comment
 explaining why it exists and how it differs from neighbors - same voice
 needed here). Only ONE new collection (no companion notes/chases table).
 Suggested comment, contrasting with "entries" (the day, never prompted, about
@@ -332,3 +287,18 @@ Key learnings:
 - test/journal.test.mjs mirrors both domain-level pure-function tests and service-level 'through the store' tests in one file - this is the template for the new test/reflection.test.mjs; logMoment's own tests actually live in test/mode.test.mjs (private-mode tests), showing test placement in this repo follows feature relevance rather than a strict one-file-per-service-function rule.
 - The em-dash linter rejected the first draft of plan.md; had to rewrite entirely with hyphens instead of em dashes throughout (the project's CLAUDE.md explicitly bans em dashes).
 - scripts/e2e-app.mjs's journal section (lines ~1577-1660) is the concrete template for the new E2E reflection flow, including the nav-count-absent check pattern.
+
+## Iteration 3 — success
+
+Summary: Add src/domain/reflection.js (fixed-prompt weekly reflection fields, hasContent, cadence constant) as step 1 of the reflection feature plan, and bump package.json to 0.1.71.
+
+Key changes:
+- Created src/domain/reflection.js with REFLECTION_FIELDS (wellDone, differently, notes), REFLECTION_CADENCE_DAYS=7, and hasContent(row), plus a house-style doc comment explaining why this is not a diary, not a growth thread, not the day/moment, and never critical.
+- Bumped package.json version 0.1.70 -> 0.1.71 per project convention (bump patch every commit).
+- Verified npm run typecheck and npm test both pass (617/617 tests green) with the new file in place; the module is not yet imported anywhere else (that wiring is later plan steps).
+
+Key learnings:
+- This was step 1 of .helm-goal/plan.md's 10-step build order; steps 2-10 (storage collection, service layer, myattention nudge, halves/view registration, renderer view, unit tests, E2E flow, DECISIONS.md entry, final verification) remain, each intended as its own small implement iteration per the plan's explicit instruction not to batch steps.
+- Confirmed via grep for the em-dash character that none slipped into the new file's prose (project CLAUDE.md forbids em dashes; used ' - ' throughout).
+- src/domain/reflection.js deliberately has no 'days since / is due' helper - per the plan, that arithmetic belongs in myattention.js (step 4), keeping this file symmetric with journal.js's minimalism.
+- Next iteration should do step 2: add 'reflections' to COLLECTIONS in src/storage/reduce.js (with the contrast comment vs. entries/moments) and add 'reflections' to removeRow()'s removable list in src/service/api.js (around line 1298-1317), then rerun npm test.
