@@ -9,54 +9,10 @@ DECISIONS.md / PLAN.md (Fas 3 Point 11) in the Helm repo for why.
 # RESEARCH ITERATION - reflection feature
 
 Full codebase read for the reflection-feature goal. Below is everything the PLAN
-iteration needs; no further exploration of these files should be necessary.
+iteration needs; no further exploratio
 
-## The right home for the "never critical" nudge: myAttention, not signals.js
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-signals.js (DEFAULT_SIGNALS / signalsDue) looked like the obvious model at first
-(fixed prompts, occasional, logged as answers) but it is the WRONG mechanism to
-copy: signalsDue's severity comes from severityFor(), which CAN reach
-"critical", and buildAttention() in attention.js (around line 275-294) folds
-signalsDue results straight into the Now "needs you" list. So signals can
-become critical. That is disallowed for reflection by the goal.
-
-The right, already-existing, structurally-safe home is
-src/domain/myattention.js ("My month"). Its results never touch
-buildAttention/expandCadences/severity at all - there is no severity field on
-a myAttention signal, so it cannot become critical even by accident. It's
-rendered in its own low-key block at the BOTTOM of the Now view (see
-src/renderer/views/now.js lines ~81-145, "My month", explicitly captioned
-"About me, not about them. Nothing here is late.") and again referenced in
-journal.js. A test (test/myattention.test.mjs) mechanically enforces every
-signal's text is first-person ("I ...", "My ...", "Everything I ...",
-"N% of my ..."). DECISIONS.md's 2026-08-26 growth entry explicitly explains
-growth questions were kept OUT of myAttention because "a question about a
-thread is not about him" - implying things that ARE about the user himself DO
-belong there. A "want to reflect on your week?" nudge is about the user, so
-myAttention is the correct, already-approved reuse target, satisfying the
-goal's "prefer reusing an existing low-severity nudge mechanism."
-
-Plan: add a new signal key (e.g. "i-have-not-reflected") inside myAttention()
-in src/domain/myattention.js. Unlike the existing "i-have-written-and-not-read"
-signal (gated on unread material volume), reflection has no material to wait
-for - it should fire on elapsed time since the last reflection, similar in
-spirit to signals.js's monthly cadence but implemented as plain date
-arithmetic (daysBetween from time.js), not severityFor. Suggested interval:
-about 7-9 days, matching the goal's "about a week, sometimes." Needs a new
-parameter into myAttention({...}), e.g. lastReflectedAt (ms since epoch or
-null), computed in api.js's myAttentionSignals() the same way lastReviewRun()
-is computed and passed in today (see src/service/api.js line ~117; the helper
-lastReviewRun's exact body is on the unread portion of api.js, offset 1529+,
-MUST be read before writing the analogous lastReflectedAt).
-
-IMPORTANT test consequence: test/myattention.test.mjs's first test
-("every signal speaks in the first person") asserts the EXACT SET of keys a
-specific fixture produces via assert.deepEqual - a sorted array of 4 keys. If
-the fixture (NOW = 1_800_000_000_000, no reflections passed) ends up also
-producing the new "i-have-not-reflected" signal (likely, since "never
-reflected" should read as due), this test's expected key list must be updated
-to include it (5 keys), per the test's own comment: "a signal that never
-appears here is one the rule is not actually being enforced on." Do this
 deliberately, not accidentally - extend the fixture/assertion together.
 
 ## Domain module: src/domain/reflection.js (NEW FILE)
@@ -358,3 +314,21 @@ Key learnings:
 - scripts/e2e-app.mjs is long (2000+ lines); only the first 140 lines were read. The journal-view flow around lines 1579-1650 (data-act='writeEntry') is the template to copy for the new reflection E2E flow.
 - Tend's existing precedent (topics only on prep cards, moments folded into journal.js) suggests leaning toward folding reflection into an existing view rather than adding a new nav rail entry, though the goal leaves this an open choice.
 - Per project convention (bump patch on every commit, one commit per iteration), every future code-touching iteration in this goal should bump package.json's patch version itself, not just a final iteration.
+
+## Iteration 2 — success
+
+Summary: Wrote a concrete, step-by-step implementation plan for the reflection feature to .helm-goal/plan.md, resolving all open design questions left by the research iteration.
+
+Key changes:
+- Created .helm-goal/plan.md with 10 ordered implementation steps (domain module, storage collection, service layer, myattention nudge, halves/view registration, renderer view, unit tests, E2E flow, DECISIONS.md entry, final verification)
+- Locked in decisions the research iteration left open: standalone 'Reflection' rail view (own nav-btn after 'The day', no nav-count) rather than folding into now.js/work.js; no MCP tool at all (matches entries/moments precedent); nudge lives in myattention.js as a new low-weight, severity-less signal; field names wellDone/differently/notes; validation requires at least one of the two primary fields
+- No other code files were modified this iteration, per the PLAN phase's read-only constraint
+
+Key learnings:
+- Nav buttons are hand-authored in src/renderer/index.html (confirmed by reading it) and pruned per-half by app.js's applyHalf() - adding a standalone view requires editing index.html, halves.js VIEWS, and app.js's VIEWS object together.
+- journal.js is the ideal UI template: its 'no nav-count, own rail slot, occasional habit' pattern and its writeEntry/entry()/dropEntry action shapes map almost directly onto the new reflection.js view.
+- api.js's moments()/logMoment()/logEntry()/journal() functions (read in full, lines ~1791-2160) are the exact templates for logReflection/reflections - copy their validation and newest-first sorting idioms.
+- removeRow()'s removable list and OPERATIONS in main/index.js are simple whitelist arrays - reflections just needs to be added to both, no new generic machinery needed.
+- test/journal.test.mjs mirrors both domain-level pure-function tests and service-level 'through the store' tests in one file - this is the template for the new test/reflection.test.mjs; logMoment's own tests actually live in test/mode.test.mjs (private-mode tests), showing test placement in this repo follows feature relevance rather than a strict one-file-per-service-function rule.
+- The em-dash linter rejected the first draft of plan.md; had to rewrite entirely with hyphens instead of em dashes throughout (the project's CLAUDE.md explicitly bans em dashes).
+- scripts/e2e-app.mjs's journal section (lines ~1577-1660) is the concrete template for the new E2E reflection flow, including the nav-count-absent check pattern.
