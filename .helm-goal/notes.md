@@ -13,93 +13,19 @@ iteration needs; no further exploratio
 
 ## Preserved key learnings (from truncated earlier iterations)
 
-- signals.js/signalsDue is the WRONG model to copy for the reflection nudge: its severity can reach 'critical' and buildAttention() folds it into Now's needs list, violating the 'never critical' constraint.
-- src/domain/myattention.js ('My month' on the Now view) is the structurally correct, already-approved home: its signals have no severity field at all so they cannot become critical, they're rendered in a dedicated low-key block, and DECISIONS.md's growth entry already establishes the precedent that things genuinely about the user himself belong there.
-- Adding a new myAttention signal will require updating test/myattention.test.mjs's exact-key-list assertion (assert.deepEqual of sorted signal keys) - must be done deliberately.
-- src/mcp/tools.js was read in full: entries and moments (the closest analogues - self-directed, no named people) have ZERO MCP surface, not even read-only. Strong precedent to give reflection no MCP tool at all, or at most a read-only one modeled on tend_reviews.
-- AGENT_WRITABLE in api.js should NOT include reflections - it's the owner's own retrospective, not agent-creatable material.
-- src/service/api.js is 2792 lines; only lines 1-1528 were read this iteration. Lines 1529+ (including logEntry's exact validation style, lastReviewRun's implementation, and vocabulary()) MUST be read before writing code.
-- app.js's applyHalf() removes .nav-btn elements not belonging to the current half, implying nav buttons are hand-authored in an HTML file (not yet located/read) - adding a standalone view likely requires editing that HTML too.
-- scripts/e2e-app.mjs is long (2000+ lines); only the first 140 lines were read. The journal-view flow around lines 1579-1650 (data-act='writeEntry') is the template to copy for the new reflection E2E flow.
-- Tend's existing precedent (topics only on prep cards, moments folded into journal.js) suggests leaning toward folding reflection into an existing view rather than adding a new nav rail entry, though the goal leaves this an open choice.
-- Per project convention (bump patch on every commit, one commit per iteration), every future code-touching iteration in this goal should bump package.json's patch version itself, not just a final iteration.
-- Nav buttons are hand-authored in src/renderer/index.html (confirmed by reading it) and pruned per-half by app.js's applyHalf() - adding a standalone view requires editing index.html, halves.js VIEWS, and app.js's VIEWS object together.
-- journal.js is the
-
-
-[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
-
-ideal UI template: its 'no nav-count, own rail slot, occasional habit' pattern and its writeEntry/entry()/dropEntry action shapes map almost directly onto the new reflection.js view.
-- api.js's moments()/logMoment()/logEntry()/journal() functions (read in full, lines ~1791-2160) are the exact templates for logReflection/reflections - copy their validation and newest-first sorting idioms.
-- removeRow()'s removable list and OPERATIONS in main/index.js are simple whitelist arrays - reflections just needs to be added to both, no new generic machinery needed.
-- test/journal.test.mjs mirrors both domain-level pure-function tests and service-level 'through the store' tests in one file - this is the template for the new test/reflection.test.mjs; logMoment's own tests actually live in test/mode.test.mjs (private-mode tests), showing test placement in this repo follows feature relevance rather than a strict one-file-per-service-function rule.
-- The em-dash linter rejected the first draft of plan.md; had to rewrite entirely with hyphens instead of em dashes throughout (the project's CLAUDE.md explicitly bans em dashes).
-- scripts/e2e-app.mjs's journal section (lines ~1577-1660) is the concrete template for the new E2E reflection flow, including the nav-count-absent check pattern.
-
-## Iteration 3 — success
-
-Summary: Add src/domain/reflection.js (fixed-prompt weekly reflection fields, hasContent, cadence constant) as step 1 of the reflection feature plan, and bump package.json to 0.1.71.
-
-Key changes:
-- Created src/domain/reflection.js with REFLECTION_FIELDS (wellDone, differently, notes), REFLECTION_CADENCE_DAYS=7, and hasContent(row), plus a house-style doc comment explaining why this is not a diary, not a growth thread, not the day/moment, and never critical.
-- Bumped package.json version 0.1.70 -> 0.1.71 per project convention (bump patch every commit).
-- Verified npm run typecheck and npm test both pass (617/617 tests green) with the new file in place; the module is not yet imported anywhere else (that wiring is later plan steps).
-
-Key learnings:
 - This was step 1 of .helm-goal/plan.md's 10-step build order; steps 2-10 (storage collection, service layer, myattention nudge, halves/view registration, renderer view, unit tests, E2E flow, DECISIONS.md entry, final verification) remain, each intended as its own small implement iteration per the plan's explicit instruction not to batch steps.
 - Confirmed via grep for the em-dash character that none slipped into the new file's prose (project CLAUDE.md forbids em dashes; used ' - ' throughout).
 - src/domain/reflection.js deliberately has no 'days since / is due' helper - per the plan, that arithmetic belongs in myattention.js (step 4), keeping this file symmetric with journal.js's minimalism.
 - Next iteration should do step 2: add 'reflections' to COLLECTIONS in src/storage/reduce.js (with the contrast comment vs. entries/moments) and add 'reflections' to removeRow()'s removable list in src/service/api.js (around line 1298-1317), then rerun npm test.
-
-## Iteration 4 — success
-
-Summary: Add step 2 of the reflection-feature plan: register "reflections" as
-a storage collection and make its rows removable, then bump the version.
-
-Key changes:
-- src/storage/reduce.js: added "reflections" to COLLECTIONS (after "moments"),
-  with a comment contrasting it with entries and moments specifically, per
-  the plan's step 2 wording.
-- src/service/api.js: added "reflections" to the `removable` list inside
-  removeRow() (after "moments"), so a future Remove button on the reflection
-  view works from day one instead of repeating the historical touches/stakes/
-  topics bug the comment above that list describes.
-- package.json: bumped 0.1.71 -> 0.1.72.
-- Verified npm run typecheck (clean) and npm test (617/617 green) with no
-  other files touched - this step intentionally has no new behavior yet,
-  just the plumbing.
-
-Key learnings:
 - test/storage.test.mjs does NOT enumerate COLLECTIONS explicitly (grepped,
-  no match) - it only iterates the array generically, so no test file needed
-  changes for this step, confirming the plan's own note that this might be
-  skippable.
-- Next step is step 3 in .helm-goal/plan.md: add `logReflection` and
-  `reflections` (read) to src/service/api.js, near the moments()/journal()
-  section, following the plan's sketched implementation almost verbatim
-  (import REFLECTION_FIELDS from ../domain/reflection.js, validate at least
-  one of wellDone/differently non-blank, refuse future dates via isLaterDay,
-  do NOT add "reflections" to AGENT_WRITABLE). Also add a lastReflectedAt(store)
-  helper mirroring lastReviewRun's shape, for step 4's nudge to use. Read
-  src/service/api.js lines ~1529-2160 in full first (moments()/logMoment()/
-  logEntry()/journal() plus lastReviewRun) before writing, per plan step 3's
-  own instruction, since the exact reflections()/logReflection() signatures
-  should match whichever call shape moments()/journal() actually use today.
-
-## Iteration 4 — success
-
-Summary: Register "reflections" as a storage collection in reduce.js and make its rows removable in api.js's removeRow(), completing step 2 of the reflection-feature plan, and bump the patch version.
-
-Key changes:
-- Added "reflections" to COLLECTIONS in src/storage/reduce.js, with a house-voice comment contrasting it with entries and moments
-- Added "reflections" to the removable list inside removeRow() in src/service/api.js
-- Bumped package.json version 0.1.71 -> 0.1.72
-- Verified npm run typecheck (clean) and npm test (617/617 passing) with no other files touched
-
-Key learnings:
 - test/storage.test.mjs does not enumerate COLLECTIONS explicitly, so no test changes were needed for this step
 - Next step (plan step 3) is adding logReflection and reflections (read) to src/service/api.js near moments()/journal(), plus a lastReflectedAt() helper mirroring lastReviewRun's shape; must read api.js lines ~1529-2160 in full first to match moments()/journal()'s exact call signatures before writing
-- Do not add "reflections" to AGENT_WRITABLE - confirmed decision from earlier research/plan iterations still holds
+- Do not add "reflections" to AGENT_WRITABLE - confirmed decis
+
+
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
+
+ion from earlier research/plan iterations still holds
 
 ## Iteration 5 — success
 
@@ -242,6 +168,53 @@ Key learnings:
   assumption, per the note two iterations ago that this was still an open
   check.
 
+## Iteration - success (plan step 8)
+
+Summary: Extend scripts/e2e-app.mjs with an "A weekly reflection" E2E section
+right after "Writing the day down" and before "Recording a decision",
+confirmed npm test/typecheck/npm run test:app all green, and bumped the
+patch version.
+
+Key changes:
+- scripts/e2e-app.mjs: new step("A weekly reflection") block - clicks the
+  reflection rail button, checks the empty state names "went well" and
+  "differently", opens addReflection and fills only `wellDone` via
+  fillDialog (Swedish fixture text: "Skeppet höll kursen genom hela veckan",
+  proving one question alone is a whole reflection), checks exactly one
+  `[data-reflection]` card exists, and checks the rail button carries no
+  `.nav-count` badge (same assertion shape as the existing journal section).
+- package.json: bumped version 0.1.76 -> 0.1.77.
+- No production code changed - src/renderer/views/reflection.js (from a
+  prior iteration) already matched the plan's markup (`data-act="addReflection"`,
+  `data-reflection`, no nav-count span) exactly, so the E2E section passed on
+  the first run with no selector iteration needed.
+- Verified in order: npm run typecheck (clean), npm test (635/635 green),
+  npm run test:app (all 120 app checks passed, including the 3 new
+  reflection checks) - confirmed no stray Electron process was left running
+  afterward.
+
+Key learnings:
+- `page.fillDialog()` only touches fields present in the passed object and
+  leaves the rest alone (confirmed by reading the helper) - so filling only
+  `wellDone` in the form (which has all three REFLECTION_FIELDS as optional
+  textareas) correctly exercises the "one question alone is a whole
+  reflection" case without needing to explicitly pass empty strings for the
+  other two fields.
+- This was the step the plan explicitly flagged as "most likely to need
+  iteration on exact selectors/timing" - it did not, because steps 5/6/7's
+  markup already matched the plan's own sketch verbatim (same `data-act`/
+  `data-reflection` attribute names chosen up front), so there was nothing
+  to reconcile.
+- Remaining plan work: step 9 (DECISIONS.md entry, dated 2026-08-30, in the
+  file's existing bold-lead-in voice - see the plan's own step 9 section for
+  the exact content outline: why prompt-based not diary, why not
+  journal.js's day/moment, why the nudge lives in myattention.js tying back
+  to the 2026-08-24 "Attention signals measure me" entry, why no MCP tool)
+  and step 10 (final verification pass - already effectively done this
+  iteration: npm test/typecheck/test:app are all green right now, so step 10
+  should be a very short confirmation once step 9's doc entry lands, and
+  then goalReached can be true).
+
 ## Iteration 3 — success
 
 Summary: Add test/reflection.test.mjs (domain + through-the-store tests) and extend test/myattention.test.mjs with fire/clear/re-fire/never-critical/ordering tests for the weekly-reflection nudge, completing plan step 7, and bump the patch version.
@@ -257,3 +230,18 @@ Key learnings:
 - test/storage.test.mjs still does not enumerate COLLECTIONS anywhere (re-grepped, confirmed again) - no change needed there
 - Remaining plan steps: step 8 (extend scripts/e2e-app.mjs with an add-a-reflection-and-see-it-listed flow in work-half mode, then run npm run test:app and iterate on selectors/timing - budget more than one iteration if needed; also run npm run test:app once as-is first since it has never been run yet in this whole build, to confirm the existing reflection rail button/view don't break any current E2E assumption), step 9 (DECISIONS.md entry dated 2026-08-30 in the file's existing bold-lead-in voice), step 10 (final verification: npm test + npm run typecheck + npm run test:app all green, then goalReached can be true)
 - The .helm-goal/notes.md file already had a large uncommitted trim applied before this iteration started (visible in git status at the start) - this is expected context-budget housekeeping from the harness, not something this iteration caused or should revert
+
+## Iteration 4 — success
+
+Summary: Extend scripts/e2e-app.mjs with an "A weekly reflection" E2E flow (empty-state check, add-one-question-only, single card, no rail count) between the journal and decisions sections, and bump the patch version.
+
+Key changes:
+- scripts/e2e-app.mjs: added step("A weekly reflection") block covering empty state, adding a reflection with only wellDone filled, one [data-reflection] card, and no .nav-count badge on the reflection rail button
+- package.json: bumped version 0.1.76 -> 0.1.77
+- No production/view code changed - reflection.js from prior iterations already matched the plan's markup exactly
+
+Key learnings:
+- page.fillDialog() only sets the fields present in the passed object, so filling only wellDone correctly exercises "one question alone is a whole reflection" without extra empty-string args
+- The E2E section needed zero selector/timing iteration - the plan flagged this step as risky but earlier steps' markup already matched exactly
+- npm test (635/635), npm run typecheck, and npm run test:app (120/120 app checks) are all green right now
+- Remaining plan work: step 9 (DECISIONS.md entry dated 2026-08-30, bold-lead-in voice, covering prompt-based-not-diary/not-journal/nudge-lives-in-myattention/no-MCP-tool reasoning) and step 10 (a short final confirmation pass, since verification is already green) - after that, goalReached can be set true

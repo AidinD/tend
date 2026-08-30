@@ -1684,6 +1684,44 @@ try {
     }
   });
 
+  step("A weekly reflection");
+
+  await page.click('.nav-btn[data-view="reflection"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the reflection view");
+
+  const emptyReflection = await page.text("#main");
+  check("an empty reflection page names the two questions it asks", () => {
+    if (!/went well/i.test(emptyReflection) || !/differently/i.test(emptyReflection)) {
+      throw new Error(`the empty state does not name the two questions: ${emptyReflection.slice(0, 200)}`);
+    }
+  });
+
+  // One question answered, the other left out - this is still a whole
+  // reflection. The two questions are not a pair of required fields.
+  await page.click('[data-act="addReflection"]');
+  await page.fillDialog({ wellDone: "Skeppet höll kursen genom hela veckan" });
+  await page.waitFor(
+    "document.body.textContent.includes('Skeppet höll kursen genom hela veckan')",
+    "the reflection on the page"
+  );
+
+  const reflectionCards = await page.evaluate("document.querySelectorAll('[data-reflection]').length");
+  check("a reflection with only one question answered is still kept", () => {
+    if (Number(reflectionCards) !== 1) {
+      throw new Error(`${reflectionCards} reflection cards, expected 1`);
+    }
+  });
+
+  const railCountReflection = await page.evaluate(
+    `(() => { const b = document.querySelector('.nav-btn[data-view="reflection"] .nav-count');
+      return b === null ? "none" : b.textContent; })()`
+  );
+  check("the rail carries no count for it either, same reasoning as the day", () => {
+    if (String(railCountReflection).trim() !== "none" && String(railCountReflection).trim() !== "") {
+      throw new Error(`the rail shows "${railCountReflection}"`);
+    }
+  });
+
   step("Recording a decision");
 
   await page.click('.nav-btn[data-view="decisions"]');
