@@ -13,52 +13,18 @@ iteration needs; no further exploratio
 
 ## Preserved key learnings (from truncated earlier iterations)
 
-- This was step 1 of .helm-goal/plan.md's 10-step build order; steps 2-10 (storage collection, service layer, myattention nudge, halves/view registration, renderer view, unit tests, E2E flow, DECISIONS.md entry, final verification) remain, each intended as its own small implement iteration per the plan's explicit instruction not to batch steps.
-- Confirmed via grep for the em-dash character that none slipped into the new file's prose (project CLAUDE.md forbids em dashes; used ' - ' throughout).
-- src/domain/reflection.js deliberately has no 'days since / is due' helper - per the plan, that arithmetic belongs in myattention.js (step 4), keeping this file symmetric with journal.js's minimalism.
-- Next iteration should do step 2: add 'reflections' to COLLECTIONS in src/storage/reduce.js (with the contrast comment vs. entries/moments) and add 'reflections' to removeRow()'s removable list in src/service/api.js (around line 1298-1317), then rerun npm test.
-- test/storage.test.mjs does NOT enumerate COLLECTIONS explicitly (grepped,
-- test/storage.test.mjs does not enumerate COLLECTIONS explicitly, so no test changes were needed for this step
-- Next step (plan step 3) is adding logReflection and reflections (read) to src/service/api.js near moments()/journal(), plus a lastReflectedAt() helper mirroring lastReviewRun's shape; must read api.js lines ~1529-2160 in full first to match moments()/journal()'s exact call signatures before writing
-- Do not add "reflections" to AGENT_WRITABLE - confirmed decis
-
-
-[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
-
-ion from earlier research/plan iterations still holds
-
-## Iteration 5 — success
-
-Summary: Add service-layer logReflection, reflections, and lastReflectedAt functions to src/service/api.js (step 3 of the reflection-feature plan), and bump the patch version.
-
-Key changes:
-- src/service/api.js: imported REFLECTION_FIELDS from ../domain/reflection.js and added a new reflection banner section with logReflection (validates at least one of wellDone/differently is non-blank, refuses future dates via isLaterDay, stores via store.create('reflections', row)), reflections(store, now, { limit, since }) returning newest-first mapped rows with an agoWords 'when' string, and lastReflectedAt(store) mirroring lastReviewRun's shape
-- Did NOT add 'reflections' to AGENT_WRITABLE, per the locked-in plan decision
-- package.json: bumped version 0.1.72 -> 0.1.73
-- Verified npm run typecheck (clean) and npm test (617/617 passing) with no other files touched
-
-Key learnings:
 - logEntry/journal (journal.js's log/read pair) and lastReviewRun were the exact templates used, per the plan's own citation - copied their validation idiom (trim-and-null-if-blank per field, isLaterDay guard) and their agoWords-based 'when' mapping almost verbatim
 - No new tests were added this iteration - plan step 7 explicitly owns test/reflection.test.mjs and the myattention.test.mjs extensions as its own step, so this iteration deliberately stayed service-layer-only per the 'do not batch several steps' instruction; existing 617 tests still pass unchanged since nothing wired these new exports into any UI/nudge path yet
 - Next step is plan step 4: the myattention.js nudge signal (reflections param, i-have-not-reflected signal, low weight, no severity field) plus wiring myAttentionSignals(store, now) in api.js to pass reflections: store.rows('reflections') into myAttention(...), and adding logReflection/reflections to src/main/index.js's OPERATIONS map
 - reflections() signature chosen as (store, now, { limit, since } = {}) to match the plan's sketch exactly, distinct from moments(store, now) which takes no options
-
-## Iteration 1 — success
-
-Summary: Add the never-critical weekly-reflection nudge signal to src/domain/myattention.js, wire reflections data through src/service/api.js's myAttentionSignals and src/main/index.js's OPERATIONS (logReflection/reflections), and bump the patch version.
-
-Key changes:
-- src/domain/myattention.js: added a reflections param to myAttention(), a new i-have-not-reflected signal (weight 20, lowest of all signals, no severity field, first-person text) gated so it never fires until real app usage (a touch or entry) is at least REFLECTION_CADENCE_DAYS old, and clears once a reflection has been logged inside the cadence window
-- src/service/api.js: myAttentionSignals now passes reflections: store.rows('reflections') into myAttention(...)
-- src/main/index.js: added logReflection and reflections to OPERATIONS, mirroring the existing logMoment/moments pair
-- test/myattention.test.mjs: updated the 'every signal speaks in the first person' fixture's expected key list to include the new i-have-not-reflected key (the fixture's touches/entries happen to be old enough to trigger it)
-- package.json: bumped version 0.1.73 -> 0.1.74
-- Verified npm test (617/617 green) and npm run typecheck (clean)
-
-Key learnings:
 - This was step 4 of .helm-goal/plan.md. Step 3's service-layer functions (logReflection/reflections/lastReflectedAt) were already fully implemented in a prior iteration exactly per the plan's sketch, so this iteration only needed the myattention.js signal plus the one-line api.js wiring and the main/index.js OPERATIONS entries.
 - The nudge's text must start with 'I ' (or 'My '/'Everything I '/'N% of my ') to satisfy the existing first-person regex assertion in myattention.test.mjs - an initial draft worded as 'It has been N days since I last reflected...' would have silently violated that rule; final wording is 'I have not reflected on the week in N days.'
-- Adding any new myAttention signal requires updating the exact sorted-key-list assertion in test/myattention.test.mjs's 'every signal speaks in the first person' test, since that fixture's touches/entries (max age 9 days) happen to be old enough to trigger the new cadence gate and no reflections are in the fixture - this was expected per earlier iterations' notes and confirmed by actually running the suite.
+- Adding any new myAttention signal requires updating the exact sorted-key-list assertion in test/myatt
+
+
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
+
+ention.test.mjs's 'every signal speaks in the first person' test, since that fixture's touches/entries (max age 9 days) happen to be old enough to trigger the new cadence gate and no reflections are in the fixture - this was expected per earlier iterations' notes and confirmed by actually running the suite.
 - Verified by hand-tracing every other test case in myattention.test.mjs that none of them accidentally cross the REFLECTION_CADENCE_DAYS=7 gate with the new signal (all other fixtures use touches/entries no older than 6 days, or the new signal sorts below the signal under test via weight so .find()/[0] assertions are unaffected) - no other test file needed changes.
 - Next step is plan step 5: half/view registration - add the 'reflection' entry to VIEWS in src/domain/halves.js (work-half only, after 'journal'), add a rail button in src/renderer/index.html after the journal button with no nav-count span, and register the new view module in src/renderer/app.js's VIEWS object and imports. Read src/renderer/app.js's exact import style for the journal view first before writing the new import line.
 - Remaining plan steps after that: step 6 (src/renderer/views/reflection.js, new file), step 7 (test/reflection.test.mjs plus further myattention.test.mjs cases for fire/clear/never-critical), step 8 (E2E flow in scripts/e2e-app.mjs), step 9 (DECISIONS.md entry), step 10 (final verification pass). None of these were touched this iteration.
@@ -245,3 +211,18 @@ Key learnings:
 - The E2E section needed zero selector/timing iteration - the plan flagged this step as risky but earlier steps' markup already matched exactly
 - npm test (635/635), npm run typecheck, and npm run test:app (120/120 app checks) are all green right now
 - Remaining plan work: step 9 (DECISIONS.md entry dated 2026-08-30, bold-lead-in voice, covering prompt-based-not-diary/not-journal/nudge-lives-in-myattention/no-MCP-tool reasoning) and step 10 (a short final confirmation pass, since verification is already green) - after that, goalReached can be set true
+
+## Iteration 5 — success
+
+Summary: Added the DECISIONS.md entry for the reflection feature, bumped the patch version, and ran the full verification pass (unit tests, typecheck, and the Electron E2E harness), completing plan steps 9 and 10 and finishing the reflection feature build.
+
+Key changes:
+- DECISIONS.md: added a new dated entry '2026-08-30 - A weekly reflection is three fixed questions, not a diary field', covering why prompt-based not diary, why not the day/moment, why the nudge lives in myattention.js (tying back to the 2026-08-24 'Attention signals measure me' entry), and why there is no MCP tool (mirrors entries/moments precedent) - written in the file's existing bold-lead-in voice with no real names or situations
+- package.json: bumped version 0.1.77 -> 0.1.78
+- Verified npm test (635/635 green), npm run typecheck (clean), and npm run test:app (all 120 app checks passed, including the 'A weekly reflection' E2E section added in a prior iteration)
+
+Key learnings:
+- All 10 plan steps are now complete: domain module, storage collection, service layer, myattention.js nudge (never-critical), view/rail registration, unit tests, E2E flow, DECISIONS.md entry, and this final verification pass - nothing remains from .helm-goal/plan.md.
+- A background `npm run test:app` invocation that gets stopped mid-run via TaskStop can leave orphaned electron.exe child processes for a few seconds since the script's own cleanup (child.kill()) only runs at the end of a normal completion; checked with `tasklist`/`Get-CimInstance Win32_Process` and confirmed they exited on their own shortly after - worth a follow-up tasklist check rather than assuming TaskStop cascaded cleanly.
+- Avoid launching a second full `npm run test:app` run just to grep for one section's output - it duplicates a ~2 minute Electron E2E run; the first synchronous run's full output (or piping to a file and reading it) is enough to confirm a specific section executed.
+- The goal's MCP item (point 6) is satisfied by the plan's explicit, reasoned decision NOT to add a tool (mirrors the zero MCP surface of the existing entries/moments collections) - this is a deliberate resolution of 'if that pattern is applied consistently', not a skipped step.

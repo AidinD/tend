@@ -3,6 +3,54 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-30 - A weekly reflection is three fixed questions, not a diary field
+
+**Decided.** A new `reflections` collection holds one flat row per entry -
+`wellDone`, `differently`, an optional `notes`, nothing else. No status, no
+lifecycle, no severity. `logReflection` requires at least one of the two
+primary questions to carry something; `notes` alone is refused, because
+notes is secondary to the two questions the feature exists to ask, not a way
+around them.
+
+**Why not a diary.** The same reasoning `growth.js` already gives for why it
+is not a development plan, one size down: an open textarea invites a
+paragraph, the paragraph invites another one next week, and a few months in
+it is a diary - which is exactly the document this app keeps refusing to
+become, because a document written once and revisited only by scrolling back
+through it is not a tool. Two or three fixed questions in fixed boxes instead
+of one blank box, so the shape of the answer is decided once, in code, and
+not re-invented every week under whatever mood produced that week's box.
+
+**Why not the day, and not a moment.** `journal.js`'s day entry is nightly,
+never prompted, and about everywhere the day went. A moment names other
+people and is about one event. A reflection names nobody, is gently
+prompted rather than nightly, and asks a narrower question over a longer,
+looser stretch of time - not "where did the day go" but "how did it go, and
+what would he do differently". Three different subjects, three different
+cadences, three separate places to keep them rather than one field trying to
+serve all three.
+
+**Why the nudge lives where attention signals already live.** The soft "it
+has been a while, want to reflect" reminder is a new signal in
+`src/domain/myattention.js`, alongside the signals decided on 2026-08-24 in
+"Attention signals measure me, and the line is in the code". That entry's
+line is exactly the one this feature needs: something genuinely about the
+owner himself, never a colleague, belongs in the file that only ever
+measures him, not in `attention.js`'s severity machinery that ranks what is
+late for somebody else. The signal has no severity field, the same
+mechanical guarantee the rest of that file relies on rather than a comment
+promising restraint, so it can never reach a "Now" list or a critical nudge
+- it can only ever show up quietly, at the bottom, easy to ignore, exactly
+like the three signals already there.
+
+**Why no MCP tool.** `entries` and `moments` - the two existing collections
+that are self-directed and name no other person - have no MCP surface at
+all, not even read-only, and a reflection is the same shape, arguably more
+private since it is explicitly about the owner's own performance. Nothing
+the job-running surface needs from an agent requires reading or writing it,
+so it stays out of `tend_*` entirely rather than gaining a tool nobody asked
+for.
+
 ## 2026-08-26 - A form asks each question once, and only where it applies
 
 **Found by reading it.** The first version of the growth form asked "The
