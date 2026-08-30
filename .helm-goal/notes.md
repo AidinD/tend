@@ -280,3 +280,10 @@ Key learnings:
 - class='act danger' (not 'act tiny danger') is the convention for a full-size, non-per-row danger button, matching people.js's existing Remove button
 - Plan Steps 1-8 are now all complete. Remaining: Step 9 (E2E coverage in scripts/e2e-app.mjs for the full archive/unarchive/bulk flow - search for 'awayUntil' there first to find the closest existing round-trip check to copy), Step 10 (DECISIONS.md entry, mechanism-only wording, no real names), Step 11 (final verification pass: npm test, npm run typecheck, npm run test:app)
 - npm test: 635/635 pass; npm run typecheck: clean after this change
+
+## Iteration 7 — DISCARDED (success:false)
+
+Summary: Iteration failed with a process error: Iteration timed out after 900000ms
+
+Key learnings:
+- Iteration 7 hard-failed: Iteration timed out after 900000ms

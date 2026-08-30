@@ -2323,6 +2323,255 @@ try {
     }
   });
 
+  /* ------------------------------------------------------- archiving -- */
+
+  // Archiving is the answer to "this stopped being mine" - a job change, a
+  // project ending, somebody leaving. The whole point is that it is NOT a
+  // delete: the person drops out of every forward-looking view while every
+  // 1-1, promise and decision about them stays readable. So each check here
+  // is a round trip, not a one-way assertion - anything that leaves has to be
+  // able to come back, because a one-way archive is a delete with a nicer name.
+  //
+  // This runs last on purpose. The bulk action at the end empties every active
+  // list, so nothing after it would have data to walk through.
+
+  step("Archiving what you have left behind");
+
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor("document.querySelector('.card') !== null", "the Now view");
+  const nowBeforeArchive = await page.texts(".card-title");
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  const rosterBeforeArchive = await page.texts(".row-name");
+  await page.click('[data-act="open"]');
+  await page.waitFor('document.querySelector(\'[data-act="archive"]\') !== null', "the person page");
+
+  await page.click('[data-act="archive"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the archive confirmation");
+  const archiveIntro = await page.text(".dialog-intro");
+  check("archiving asks first, and says the history survives it", () => {
+    // Deliberately not asserting the exact wording - that is copy, and a test
+    // that pins copy gets edited to match rather than read. What must be true
+    // is that the dialog explains reversibility somewhere, because this is the
+    // moment somebody decides whether they dare press it.
+    if (archiveIntro.trim() === "") {
+      throw new Error("the confirmation had no body text at all");
+    }
+    if (!/revers|back|stays|any time/i.test(archiveIntro)) {
+      throw new Error(`nothing in the dialog says this can be undone: "${archiveIntro}"`);
+    }
+  });
+  await page.fillDialog({});
+  await sleep(400);
+
+  const flipped = await page.evaluate(
+    "document.querySelector('[data-act=\"unarchive\"]') !== null && document.querySelector('[data-act=\"archive\"]') === null"
+  );
+  check("the person's own page stays reachable, and now offers to undo it", () => {
+    if (String(flipped) !== "true") {
+      throw new Error("the page still offers Archive, so nothing changed or the page went away");
+    }
+  });
+
+  const panelAfterArchive = await page.text(".panel-name");
+  check("and it still shows whose page it is, rather than an empty shell", () => {
+    if (panelAfterArchive.trim() === "") {
+      throw new Error("the person page rendered without a name");
+    }
+  });
+
+  await page.click('.nav-btn[data-view="now"]');
+  await sleep(400);
+  const nowAfterArchive = await page.texts(".card-title");
+  check("an archived person stops being reported as work that is owed", () => {
+    const named = (/** @type {string[]} */ list) => list.filter((c) => /Testperson/.test(c)).length;
+    if (named(nowBeforeArchive) === 0) {
+      throw new Error("nothing was reported before archiving, so this proves nothing");
+    }
+    if (named(nowAfterArchive) !== 0) {
+      throw new Error(`still reported after archiving: ${JSON.stringify(nowAfterArchive)}`);
+    }
+  });
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.group') !== null", "the roster");
+  const archivedGroupCount = await page.evaluate(
+    "String(document.querySelectorAll('.archived-group .row-name').length)"
+  );
+  check("they are findable again in an archived group, not simply gone", () => {
+    if (Number(archivedGroupCount) < 1) {
+      throw new Error("the roster has no archived group, so an archived person is unreachable");
+    }
+  });
+
+  await page.click('.archived-group [data-act="unarchive"]');
+  await sleep(400);
+  const rosterAfterUndo = await page.texts(".row-name");
+  check("unarchiving puts them back on the roster", () => {
+    if (rosterAfterUndo.length !== rosterBeforeArchive.length) {
+      throw new Error(
+        `roster went from ${rosterBeforeArchive.length} to ${rosterAfterUndo.length} names across the round trip`
+      );
+    }
+  });
+
+  /* -- the same round trip for the two things that are not people ------- */
+
+  await page.click('.nav-btn[data-view="work"]');
+  await page.waitFor('document.querySelector(\'[data-act="archiveProject"]\') !== null', "the Work view");
+  const projectsBefore = await page.evaluate(
+    "String(document.querySelectorAll('[data-act=\"archiveProject\"]').length)"
+  );
+  const streamsBefore = await page.evaluate(
+    "String(document.querySelectorAll('[data-act=\"archiveStream\"]').length)"
+  );
+
+  await page.click('[data-act="archiveProject"]');
+  await page.fillDialog({});
+  await sleep(400);
+  const projectsAfter = await page.evaluate(
+    "String(document.querySelectorAll('[data-act=\"archiveProject\"]').length)"
+  );
+  const projectUndo = await page.evaluate(
+    "String(document.querySelectorAll('.archived-group [data-act=\"unarchiveProject\"]').length)"
+  );
+  check("a project leaves the active list and turns up in an archived one", () => {
+    if (Number(projectsBefore) === 0) {
+      throw new Error("there were no projects to archive, so this proves nothing");
+    }
+    if (Number(projectsAfter) !== Number(projectsBefore) - 1) {
+      throw new Error(`active projects went ${projectsBefore} -> ${projectsAfter}`);
+    }
+    if (Number(projectUndo) < 1) {
+      throw new Error("no archived project row offers Unarchive");
+    }
+  });
+
+  await page.click('.archived-group [data-act="unarchiveProject"]');
+  await sleep(400);
+  const projectsRestored = await page.evaluate(
+    "String(document.querySelectorAll('[data-act=\"archiveProject\"]').length)"
+  );
+  check("and comes back when the work does", () => {
+    if (Number(projectsRestored) !== Number(projectsBefore)) {
+      throw new Error(`projects ended at ${projectsRestored}, started at ${projectsBefore}`);
+    }
+  });
+
+  await page.click('[data-act="archiveStream"]');
+  await page.fillDialog({});
+  await sleep(400);
+  const streamsAfter = await page.evaluate(
+    "String(document.querySelectorAll('[data-act=\"archiveStream\"]').length)"
+  );
+  const streamUndo = await page.evaluate(
+    "String(document.querySelectorAll('.archived-group [data-act=\"unarchiveStream\"]').length)"
+  );
+  check("a workstream does the same round trip", () => {
+    if (Number(streamsBefore) === 0) {
+      throw new Error("there were no workstreams to archive, so this proves nothing");
+    }
+    if (Number(streamsAfter) !== Number(streamsBefore) - 1) {
+      throw new Error(`active workstreams went ${streamsBefore} -> ${streamsAfter}`);
+    }
+    if (Number(streamUndo) < 1) {
+      throw new Error("no archived workstream row offers Unarchive");
+    }
+  });
+
+  await page.click('.archived-group [data-act="unarchiveStream"]');
+  await sleep(400);
+
+  /* -- the bulk trigger, which is the one that sounds frightening ------- */
+
+  // The per-item dialogs above are checked for shape only. This one is checked
+  // for its actual words, because it is the button that reads like a delete-
+  // everything and is the one place where being wrong about what it does is
+  // expensive rather than annoying.
+
+  await page.click('.nav-btn[data-view="settings"]');
+  await page.waitFor('document.querySelector(\'[data-act="archiveEverything"]\') !== null', "Settings");
+  await page.click('[data-act="archiveEverything"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the bulk confirmation");
+  const bulkIntro = await page.text(".dialog-intro");
+  check("the bulk action states, before you confirm, that nothing is deleted", () => {
+    if (bulkIntro.trim() === "") {
+      throw new Error("the bulk confirmation had no body text at all");
+    }
+    if (!/not deleted|nothing is deleted/i.test(bulkIntro)) {
+      throw new Error(`it never says nothing is deleted: "${bulkIntro}"`);
+    }
+    if (!/brought back|individually|archived list/i.test(bulkIntro)) {
+      throw new Error(`it never says the items can be brought back: "${bulkIntro}"`);
+    }
+  });
+  await page.fillDialog({});
+  await sleep(600);
+
+  await page.click('.nav-btn[data-view="people"]');
+  await sleep(400);
+  const activeAfterBulk = await page.evaluate(
+    "String(document.querySelectorAll('.group:not(.archived-group) .row-name').length)"
+  );
+  const archivedAfterBulk = await page.evaluate(
+    "String(document.querySelectorAll('.archived-group .row-name').length)"
+  );
+  check("afterwards the roster holds nobody active, and everybody archived", () => {
+    if (Number(activeAfterBulk) !== 0) {
+      throw new Error(`${activeAfterBulk} people are still listed as active`);
+    }
+    if (Number(archivedAfterBulk) === 0) {
+      throw new Error("nobody is in the archived group either, so the rows went somewhere else");
+    }
+  });
+
+  await page.click('.nav-btn[data-view="work"]');
+  await sleep(400);
+  const workActiveAfterBulk = await page.evaluate(
+    "String(document.querySelectorAll('[data-act=\"archiveProject\"]').length + document.querySelectorAll('[data-act=\"archiveStream\"]').length)"
+  );
+  check("and Work has nothing active left either", () => {
+    if (Number(workActiveAfterBulk) !== 0) {
+      throw new Error(`${workActiveAfterBulk} projects/workstreams are still active`);
+    }
+  });
+
+  await page.click('.nav-btn[data-view="now"]');
+  await sleep(400);
+  const nowAfterBulk = await page.texts(".card-title");
+  check("Now stops asking for anything, rather than reporting on archived people", () => {
+    const named = (/** @type {string[]} */ list) => list.filter((c) => /Testperson/.test(c)).length;
+    if (named(nowAfterBulk) !== 0) {
+      throw new Error(`still asking about archived people: ${JSON.stringify(nowAfterBulk)}`);
+    }
+  });
+
+  // The reason this mechanism exists at all: the record has to outlive the
+  // relationship. If an archived person's page came back empty, archiving
+  // would be a delete and the whole design would be a lie.
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.archived-group') !== null", "the archived group");
+  await page.click('.archived-group [data-act="open"]');
+  await page.waitFor("document.querySelector('.panel-name') !== null", "an archived person's page");
+  const archivedName = await page.text(".panel-name");
+  const archivedBody = await page.evaluate(
+    "String(document.querySelector('.panel')?.textContent ?? '')"
+  );
+  check("an archived person's page still resolves, with their history intact", () => {
+    if (archivedName.trim() === "") {
+      throw new Error("the page rendered without a name");
+    }
+    if (archivedBody.length < 200) {
+      throw new Error(`the page came back nearly empty (${archivedBody.length} chars)`);
+    }
+  });
+  check("and the history is the part that survived, not just the name", () => {
+    if (!/promise|1-1|decision|contact|logged|thread/i.test(archivedBody)) {
+      throw new Error("nothing on the page refers to anything that was recorded about them");
+    }
+  });
+
   /* ------------------------------------------------------------- exit -- */
 
   step("Finishing up");

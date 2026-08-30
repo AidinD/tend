@@ -3,6 +3,52 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-30 - Archive is a date on a row, not a delete
+
+**Decided.** People, projects and workstreams carry `archivedAt`, a plain
+timestamp. Every view that looks forward - the roster, Now, prep, attention
+nudges, duty cadences, the Work lists - reads it and skips the row. Nothing else
+changes shape: the append-only log is untouched, no historical row is mutated,
+and no row is removed. Unarchiving clears the timestamp and the row comes back
+where it was.
+
+**Why a whole mechanism for something a delete would have covered.** The store's
+one design principle is that nothing is destroyed, and this is the exact case
+that tests it. When a piece of work ends or a responsibility moves on, the
+forward-looking half of the app is wrong until the rows stop counting - but the
+backward-looking half is the part worth keeping, and it is at its most valuable
+precisely then. A clear-everything button would have been three lines and would
+have thrown away the year of record that made the app worth opening.
+
+**Why a date rather than a flag.** The same reason `awayUntil` and `leftAt` are
+dates: it says when, and "when" is the question anyone asks about an archived
+row six months later. A boolean answers "is it archived" and nothing else, and
+the answer is dated anyway in the log, so the flag would only be a worse copy of
+something already recorded.
+
+**Rejected: folding this into `leftAt` or `_deleted`.** Both were already there
+and neither fits. `leftAt` is a period with a return baked into the cadence
+maths - `notBefore` restarts the clock - so a row is expected back and the
+absence is temporary by construction. `_deleted` has no restore path at all and
+leaves a row unresolvable by id, which breaks every historical reference that
+points at it. Archiving had to be simpler than the first, because there is
+nothing to compute and no clock to restart, and more reversible than the second,
+because the whole point is that the record stays addressable. Sharing an
+implementation with either would have meant one of them growing a mode flag, and
+a mode flag on a mechanism this load-bearing is how the next reader gets it
+wrong.
+
+**Rejected: hiding archived rows completely.** An archived row that cannot be
+found again is a delete with a longer name. Each list keeps a closed-by-default
+archived group, and an archived person's page still resolves with their full
+history - it is reachable, just not asked about.
+
+**The bulk trigger is the same function in a loop.** One call archives everything
+currently active, reusing the per-item function rather than taking a shortcut
+through the store, so there is no second code path that could archive things
+differently from the buttons. It confirms first, and the confirmation says
+plainly that nothing is deleted and that each row can be brought back on its own.
+
 ## 2026-08-26 - A form asks each question once, and only where it applies
 
 **Found by reading it.** The first version of the growth form asked "The
