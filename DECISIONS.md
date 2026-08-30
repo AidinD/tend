@@ -48,6 +48,28 @@ currently active, reusing the per-item function rather than taking a shortcut
 through the store, so there is no second code path that could archive things
 differently from the buttons. It confirms first, and the confirmation says
 plainly that nothing is deleted and that each row can be brought back on its own.
+## 2026-08-30 - Opening a direction asks one question, not six
+
+**The form asked for more than the system ever required.** The service layer
+has only ever required `aim` to open a growth thread; driver, whose need it is,
+what happens if nothing changes, what has already been seen, and what is being
+put in were all optional there from the start. The open dialog asked for all of
+them anyway, up front, before the thread even existed.
+
+**Two mechanisms already existed to carry the rest, so the form did not need
+to.** `missing()` already turns an unanswered question into a "still to
+prepare" line on the thread's own card, and the "Prepare" dialog already
+reopens the exact same fields, pre-filled, at any later time. Asking six
+questions before a thread can be created duplicated work the tool already did
+elsewhere, and asked it at the one moment - before any conversation has
+happened - when most of the answers are least likely to be known.
+
+**So opening now asks one sentence: what the direction looks like before you
+have asked.** Everything else waits for "Prepare" on the card, whenever there
+is an actual answer rather than a guess filled in to get past a required
+field. The alternative - keeping all six fields but making only one required -
+was rejected because an optional field on a form still reads as a question
+the tool expects an answer to right now.
 
 ## 2026-08-26 - A form asks each question once, and only where it applies
 
