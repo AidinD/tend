@@ -732,6 +732,35 @@ button.row:hover {
   transform: rotate(-135deg);
 }
 
+/*
+ * The "show archived" group on the People and Work views: same `<details>`
+ * reasoning as `.multi` above, styled as a `.group` rather than a boxed
+ * panel since it sits among the other groups on the page, not inside a
+ * form.
+ */
+.archived-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.archived-summary::-webkit-details-marker {
+  display: none;
+}
+
+.archived-summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--text-faint);
+  border-bottom: 1.5px solid var(--text-faint);
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.archived-group[open] > .archived-summary::after {
+  transform: rotate(-135deg);
+}
+
 .multi-options {
   display: flex;
   flex-direction: column;

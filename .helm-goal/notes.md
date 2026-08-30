@@ -13,61 +13,22 @@ Current version in package.json: `0.1.70`. Bump to `0.1.71` for this change
 
 ## Preserved key learnings (from truncated earlier iterations)
 
-- Deliberately did NOT add archivedPeople()/archivedProjects()/archivedWorkstreams() sibling list functions or the archive*/unarchive*/archiveEverythingActive functions - plan explicitly scopes those to Step 4; a draft archivedPeople() was written then reverted to keep this iteration's diff to pure read-path filtering
-- Did NOT add an archivedAt/archived flag to the objects returned by people()/projects()/workstreams() - every row those functions return is now always unarchived by construction, so the field would be dead weight there; the archived-vs-not distinction belongs on the rows returned by Step 4's archived* sibling functions instead
-- myattention.js needed no changes - myAttention() already filters people via inScope internally and its viaStake translation only recognises stakes whose person is in that already-filtered set, so archived people are invisible to it for free (confirms research notes' prediction)
-- findSubject() and setDelegationLevel() in api.js were deliberately left unfiltered - they are single-row lookups for editing/recording history against a subject, not listings, and an archived row must stay fully writable-to since keeping history intact requires that
-- npm test (617/617) and npm run typecheck both pass clean after this step; no new tests added yet since Step 5 (unit tests) comes after Step 4's new API surface exists
-
-
-[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
-
-)`/`projects()`/`workstreams()` but `person()` still resolves and reports `archivedAt`, unarchiving restores visibility, and `archiveEverythingActive` run twice in a row archives everything the first time and nothing the second time (`{people: 0, projects: 0, workstreams: 0}`).
-- Bumped package.json version 0.1.72 -> 0.1.73.
-
-Key learnings:
 - Discovered while sanity-checking: `addPerson` in the work half rejects relation `"peer"` - valid work-half relations are `lead-and-manage`, `lead-only`, `manage-remotely`, `equal-lead`, `own-manager`, `stakeholder` (from `src/domain/halves.js` `relationsIn`). Future unit tests (plan Step 5) need a valid relation constant like `"equal-lead"`, not an invented one - check `test/service.test.mjs`'s existing fixtures for whatever they already use rather than guessing again.
 - `resolvePerson`/`resolveProject`/`resolveWorkstream` all accept an id directly (checked before the fuzzy-name match), so `archivePerson(store, id, {now})` etc. correctly resolve by the id the renderer/MCP would pass, not just by name - confirmed by the sanity script.
 - Local variable names `people`/`projects`/`workstreams` inside `archiveEverythingActive` shadow the exported functions of the same name in the same module - this is valid JS (function-scoped shadowing) and `tsc --noEmit` raised no complaint; flagging only so a future reviewer doesn't think it's a bug.
 - Did NOT add any new unit tests yet - this iteration is plan Step 4 (service layer plus wiring only); the plan's Step 5 explicitly comes next and should add `test/service.test.mjs`-style coverage for all of the above (idempotency, unarchive, bulk, archived-listing shape) plus the MCP absence test (`/archive/i` should match no `TOOLS` entry in `src/mcp/tools.js`, mirroring the existing `/decide|accept|activate/i` assertion near the decideDuty test in that file, around line 302).
 - `npm test` (617/617, unchanged - no new tests added this iteration) and `npm run typecheck` both pass clean.
 - Next iteration should do plan Step 5: unit tests in `test/service.test.mjs` (or a new `test/archive.test.mjs` if that reads cleaner - check the existing file's size/organization first) covering everything listed in the plan's Step 5, plus the MCP absence test. After that, Steps 6-8 are the three renderer iterations (person/work archive buttons plus banners, archived-browse groups in People/Work views, Settings bulk action), then Step 9 (E2E), Step 10 (DECISIONS.md entry), Step 11 (final verification pass).
-
-## Iteration 5 — success
-
-Summary: Implemented plan Step 4: added the archive/unarchive/bulk-archive/archived-listing service functions to src/service/api.js, wired them into src/main/index.js's OPERATIONS whitelist, and documented their deliberate absence from the MCP tool surface.
-
-Key changes:
-- Added archivePerson/archiveProject/archiveWorkstream and unarchivePerson/unarchiveProject/unarchiveWorkstream to src/service/api.js, each idempotent (already:true no-op if already in that state), using resolvePerson/resolveProject/resolveWorkstream for the existing error style
-- Added archiveEverythingActive(store, {now}) as a thin wrapper looping all three collections and calling the per-item archive functions, counting only rows that actually changed
-- Added archivedPeople/archivedProjects/archivedWorkstreams sibling list functions returning only archived rows (id, name, archivedAt, newest first)
-- Wired all ten new functions into src/main/index.js's OPERATIONS whitelist with a comment explaining they are operations (not MCP tools), grouped after the projects: entry
-- Extended src/mcp/tools.js's header comment to explicitly name archive/unarchive/bulk as deliberately excluded from the MCP surface, same rationale as decideDuty
-- Bumped package.json version 0.1.72 -> 0.1.73
-- Appended Iteration 5 notes to .helm-goal/notes.md with what was done, a discovered gotcha, and the concrete next step
-
-Key learnings:
 - addPerson in the work half rejects relation "peer" - valid values are lead-and-manage, lead-only, manage-remotely, equal-lead, own-manager, stakeholder (from src/domain/halves.js relationsIn) - use one of these in future test fixtures for this work
 - Manually sanity-checked (throwaway script, deleted before finishing, not committed) that archiving is idempotent and preserves the original archivedAt on a second call, unarchive restores visibility in people()/projects()/workstreams(), person() still resolves an archived person and reports archivedAt, and archiveEverythingActive run twice archives everything the first time and nothing the second time
 - Local variable names people/projects/workstreams inside archiveEverythingActive shadow the exported functions of the same name in the same module scope - valid JS, tsc raised no complaint, not a bug, just worth flagging for a future reader
 - npm test (617/617) and npm run typecheck both pass clean; no new unit tests were added this iteration since that is scoped to plan Step 5
 - Next iteration should do plan Step 5: add unit tests (test/service.test.mjs or a new test/archive.test.mjs) covering idempotency, unarchive, bulk archive, archived-listing shape, and history staying intact, plus an MCP absence test asserting no TOOLS entry matches /archive/i (mirror the existing /decide|accept|activate/i assertion near decideDuty's test, around line 302 in test/service.test.mjs). After that: Steps 6-8 (renderer: person/work buttons, archived-browse views, Settings bulk action), Step 9 (E2E), Step 10 (DECISIONS.md entry), Step 11 (final verification pass)
 
-## Iteration 6 - success (plan Step 5)
 
-Summary: Added `test/archive.test.mjs`, a new dedicated test file (18 tests)
-covering every item in the plan's Step 5 checklist for the service layer,
-plus the MCP absence test.
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-Key changes:
-- New file `test/archive.test.mjs`, following `test/service.test.mjs`'s
-  exact conventions (`mkdtempSync`/`openStore`/`ok`/`failed` from
-  `test/helpers.mjs`, one duty + one person/project/workstream fixture per
-  `beforeEach`, a 200-day-silent person as the "would surface if not
-  archived" control). Covers: archiving removes a row from
-  `people()`/`projects()`/`workstreams()` while `person()` keeps resolving
-  it and reports `archivedAt`; archiving removes cadence drift from
-  `api.attention()`'s `needsYou`/`nudges` while an open promise and a
+ `needsYou`/`nudges` while an open promise and a
   logged touch made against the archived person stay in the store
   untouched and still readable from `person().openPromises`/
   `.recentContact`; archiving removes the person from `prep()`'s cards
@@ -279,3 +240,42 @@ Key learnings:
 - Renderer action name archiveStream (not archiveWorkstream) matches this file's existing naming convention for workstream-targeting actions (removeStream, setLevel), even though the underlying OPERATIONS call is archiveWorkstream - confirmed both archiveProject/archiveWorkstream ops take {id} via src/main/index.js
 - npm test: 635/635 pass (no new tests needed since E2E coverage is Step 9's job). npm run typecheck: clean
 - Next iteration should do plan Step 7: "Archived (n)" collapsible groups at the bottom of People view (both halves) and Work view, rendered from archivedPeople()/archivedProjects()/archivedWorkstreams() (already wired into OPERATIONS since iteration 5), wiring up people.js's existing actions.unarchive and new actions.unarchiveProject/actions.unarchiveStream in work.js. Watch that people.js's render() early-return for an empty roster still shows the archived group when one exists.
+
+## Iteration 4 — success (plan Step 7 — archived-browse / "show archived" view)
+
+Summary: Added a closed-by-default "Archived" `<details>` group at the bottom of the People view and two ("Archived projects" / "Archived workstreams") at the bottom of the Work view, each listing rows from `archivedPeople()`/`archivedProjects()`/`archivedWorkstreams()` with an Unarchive button, completing plan Step 7.
+
+Key changes:
+- `src/renderer/views/people.js`: `render()` now also fetches `archivedPeople` (Promise.all alongside `people`/`vocabulary`) and appends `archivedGroupHtml(archived)` after the body — including in the `roster.length === 0` empty-state branch, per the reminder left in iteration 3's notes, so an entirely-archived roster still shows "everyone is one click away" instead of just "Nobody here yet". New private function `archivedGroupHtml(archived)`: returns `""` when there is nothing archived (no empty group ever renders), otherwise a `<details class="group archived-group">` with a `<summary class="group-head archived-summary">` (title/rule/count, same three spans the other groups use) and one static row per archived person showing name, an "archived YYYY-MM-DD" pill, a "View" button (`data-act="open"`, reuses the *existing* `actions.open`) and an "Unarchive" button (`data-act="unarchive"`, reuses the *existing* `actions.unarchive` from iteration 2 — no new action needed in this file). Clicking "View" navigates to the same `personPage()` archived people already resolve correctly on (banner + Unarchive button, from iteration 2).
+- `src/renderer/views/work.js`: `render()` now also fetches `archivedProjects`/`archivedWorkstreams`. New private function `archivedGroupHtml(title, archived, unarchiveAct)` (a work.js-local copy, not shared with people.js's — the row shape agrees (name + archivedAt) but the unarchive action name differs per collection and there's no "View" button since neither collection has a detail page, confirmed by re-reading the whole file before editing). Two calls render "Archived projects" (unarchive act `unarchiveProject`) and "Archived workstreams" (unarchive act `unarchiveStream`) after the three existing groups. New actions `actions.unarchiveProject` and `actions.unarchiveStream` added (same no-confirmation shape as people.js's `actions.unarchive`: `act("unarchiveProject"/"unarchiveWorkstream", {id}, ...)` then `refresh()`).
+- `src/renderer/app.css`: added `.archived-summary` / `.archived-group[open] > .archived-summary::after` rules mirroring the existing `.multi-summary` disclosure-chevron treatment (hides the native `::-webkit-details-marker`, draws the app's own chevron, rotates it open) — reused the `.group`/`.group-head`/`.group-title`/`.group-rule`/`.group-meta` classes already in place for the header row itself, only the chevron/cursor/marker-removal needed new rules.
+- Bumped `package.json` version `0.1.76` -> `0.1.77`.
+
+Verification: `npm test` — 635/635 pass (renderer-only change; no new unit tests, per the plan E2E coverage for this is Step 9, not this step). `npm run typecheck` — clean, no errors.
+
+Key learnings:
+- Confirmed via `src/service/api.js` that `archivedPeople(store, now)` returns `{id, name, relation, archivedAt}[]`, and `archivedProjects`/`archivedWorkstreams(store, now)` return `{id, name, archivedAt}[]` — no `relation` field on the latter two, which is why work.js's archived rows don't show a relation/type pill, just the date.
+- `<details>`/`<summary>` is this codebase's established disclosure pattern (already used for the multiselect form field) — reused rather than inventing a new "show archived" toggle button wired through `refresh()`; the open/closed state needs no JS at all.
+- The People archived group needed the "View" button (person pages already existed and already handle `archivedAt` correctly since iteration 2), but Work's archived groups do not, since work.js has no per-project/workstream detail page — confirmed by re-reading the file rather than trusting iteration 3's note as gospel.
+- Did not add any new service/domain code this iteration — everything needed (`archivedPeople`/`archivedProjects`/`archivedWorkstreams` in OPERATIONS, the row shapes) already existed from iterations 5/6.
+- Plan Steps 1-7 are now all complete. Remaining: Step 8 (Settings bulk "I left this job" action — a new section in `src/renderer/views/settings.js` calling `archiveEverythingActive`, with its own confirmation dialog stating what it will/won't do), Step 9 (E2E coverage in `scripts/e2e-app.mjs` for the whole archive/unarchive/bulk flow — this should probably wait until Step 8 lands, since the goal's E2E section explicitly wants the bulk action covered too), Step 10 (DECISIONS.md entry, general/mechanism-only wording, no real names), Step 11 (final verification: `npm test`, `npm run typecheck`, `npm run test:app`).
+- Next iteration should do plan Step 8: read `src/renderer/views/settings.js`'s existing section shape (e.g. `dataSection`/`modeSection`, a `.group` with one `.card`) before writing the new section, follow the same `ask({title, body, confirm, tone: "danger"})` -> `act("archiveEverythingActive", {}, ...)` -> `refresh()` shape used throughout people.js/work.js's own archive actions, and build the success toast text from the returned `{people, projects, workstreams}` counts (e.g. `` `${people} people, ${projects} projects, ${workstreams} workstreams archived.` ``) rather than a generic "Archived." message, since the whole point of this button is the user seeing what it actually did.
+
+## Iteration 4 — success
+
+Summary: Added the "show archived" browse-and-unarchive view (a closed-by-default Archived details group on People, and Archived-projects/Archived-workstreams groups on Work) with View/Unarchive actions, completing plan Step 7.
+
+Key changes:
+- src/renderer/views/people.js: render() now fetches archivedPeople and appends a new archivedGroupHtml(archived) group after the body (and in the empty-roster branch too), showing name, archived-date pill, View (reuses existing actions.open) and Unarchive (reuses existing actions.unarchive) per row
+- src/renderer/views/work.js: render() now fetches archivedProjects/archivedWorkstreams and appends two archivedGroupHtml(title, archived, unarchiveAct) groups (Archived projects, Archived workstreams) at the bottom; added new actions.unarchiveProject and actions.unarchiveStream (no-confirmation, matching the existing unarchive shape)
+- src/renderer/app.css: added .archived-summary / .archived-group[open] rules mirroring the existing .multi-summary disclosure-chevron treatment for the new details-based groups
+- Bumped package.json version 0.1.76 -> 0.1.77
+- Appended Iteration 4 notes to .helm-goal/notes.md documenting the change and pointing the next iteration at plan Step 8 (Settings bulk 'I left this job' action)
+
+Key learnings:
+- archivedPeople() returns {id, name, relation, archivedAt}[]; archivedProjects()/archivedWorkstreams() return {id, name, archivedAt}[] (no relation field) - confirmed by reading src/service/api.js directly
+- <details>/<summary> is this codebase's established disclosure pattern (already used for the multiselect form field) - reused it rather than inventing a new toggle; no new JS needed for open/closed state
+- People's archived group needed a View button since person pages already handle archivedAt correctly (from iteration 2); Work's archived groups don't need one since work.js has no per-project/workstream detail page (confirmed by re-reading the whole file)
+- No new service/domain code was needed this iteration - archivedPeople/archivedProjects/archivedWorkstreams were already wired into OPERATIONS from earlier iterations
+- npm test: 635/635 pass; npm run typecheck: clean
+- Plan Steps 1-7 are now complete. Remaining: Step 8 (Settings bulk archive action calling archiveEverythingActive), Step 9 (E2E in scripts/e2e-app.mjs - should cover the whole flow including Step 8's bulk action, so do it after Step 8 lands), Step 10 (DECISIONS.md entry, mechanism-only, no real names), Step 11 (final verification: npm test, npm run typecheck, npm run test:app)

@@ -52,7 +52,11 @@ export async function render(params) {
     return personPage(params.person);
   }
 
-  const [roster, vocab] = await Promise.all([tend.invoke("people"), vocabulary()]);
+  const [roster, vocab, archived] = await Promise.all([
+    tend.invoke("people"),
+    vocabulary(),
+    tend.invoke("archivedPeople")
+  ]);
   const isPrivate = vocab.half === "private";
 
   const header = `
@@ -70,6 +74,14 @@ export async function render(params) {
       </div>
     </div>`;
 
+  // Its own group rather than a filter on the roster above: an archived
+  // person is not a kind of active person, and mixing the two into one
+  // list is how "who is active" quietly stops being a question this page
+  // answers. Rendered even when the active roster is empty - the whole
+  // roster archived one afternoon should not read as "nobody here", it
+  // should read as "everybody is one click away".
+  const archivedGroup = archivedGroupHtml(archived);
+
   if (!Array.isArray(roster) || roster.length === 0) {
     return `${header}<div class="empty">
       ${
@@ -77,7 +89,7 @@ export async function render(params) {
           ? "Nobody here yet. Adding somebody gives you a place to put what you promised them - and nothing else, because nothing outside work runs on a cadence."
           : "Nobody here yet. Add the people you lead or manage, and the leads you work beside."
       }
-    </div>`;
+    </div>${archivedGroup}`;
   }
 
   const body = vocab.relations.map((/** @type {any} */ { value: relation, label }) => {
@@ -111,7 +123,43 @@ export async function render(params) {
     </div>`;
   }).join("");
 
-  return header + body;
+  return header + body + archivedGroup;
+}
+
+/**
+ * The "show archived" path: a closed-by-default group at the bottom of the
+ * roster, not a fourth relationship group above - an archived person is not
+ * currently anyone you lead, manage or live beside, and listing them
+ * alongside people who are would make the roster answer "who is active"
+ * wrong. `<details>` rather than a toggle button wired to `refresh()`: the
+ * open/closed state is free, and it needs no action of its own - only
+ * `actions.open` and `actions.unarchive`, both of which already exist.
+ *
+ * @param {any[] | {error: string}} archived
+ */
+function archivedGroupHtml(archived) {
+  const rows = Array.isArray(archived) ? archived : [];
+  if (rows.length === 0) {
+    return "";
+  }
+  const items = rows
+    .map(
+      (/** @type {any} */ p) => `<div class="row static">
+        <span class="row-name">${esc(p.name)}</span>
+        <span class="row-right">
+          <span class="pill plain">archived ${esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10))}</span>
+          <button class="act tiny" data-act="open" data-person="${esc(p.id)}">View</button>
+          <button class="act tiny" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Unarchive</button>
+        </span>
+      </div>`
+    )
+    .join("");
+  return `<details class="group archived-group">
+    <summary class="group-head archived-summary">
+      <span class="group-title">Archived</span><span class="group-rule"></span><span class="group-meta">${rows.length}</span>
+    </summary>
+    <div class="rows">${items}</div>
+  </details>`;
 }
 
 /** @param {string} id */

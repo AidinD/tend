@@ -11,11 +11,13 @@ import { act, ask, asDateInput, DEFAULT_STAKE_DAYS, esc, form, LEVEL_OPTIONS, pi
 import { refresh } from "../app.js";
 
 export async function render() {
-  const [projects, streams, roster, stakes] = await Promise.all([
+  const [projects, streams, roster, stakes, archivedProjects, archivedStreams] = await Promise.all([
     tend.invoke("projects"),
     tend.invoke("workstreams"),
     tend.invoke("people"),
-    tend.invoke("stakeholders")
+    tend.invoke("stakeholders"),
+    tend.invoke("archivedProjects"),
+    tend.invoke("archivedWorkstreams")
   ]);
 
   const header = `
@@ -110,7 +112,51 @@ export async function render() {
       ${noPeople}
       ${streamCards ? `<div class="stack">${streamCards}</div>` : `<div class="empty">Nothing handed over yet. A workstream is a piece of work with an owner and a stated level of hand-over.</div>`}
     </div>
+    ${archivedGroupHtml("Archived projects", archivedProjects, "unarchiveProject")}
+    ${archivedGroupHtml("Archived workstreams", archivedStreams, "unarchiveStream")}
   `;
+}
+
+/**
+ * The "show archived" path for projects and workstreams: closed by default,
+ * at the bottom of the view, well below the lists that answer "what is
+ * active" - same reasoning as `archivedGroupHtml` in `people.js`, and kept
+ * as its own copy rather than a shared import because the two files agree
+ * on the shape (a name and a date) but not on the id field's meaning, and a
+ * shared helper would have to take the unarchive action name as a parameter
+ * either way.
+ *
+ * Neither projects nor workstreams have a detail page to click through to
+ * (confirmed: this view only ever renders them as rows/cards), so there is
+ * no "View" button here, unlike the archived-people group - Unarchive is
+ * the only thing to do with a row here until it is active again.
+ *
+ * @param {string} title
+ * @param {any[] | {error: string}} archived
+ * @param {string} unarchiveAct
+ */
+function archivedGroupHtml(title, archived, unarchiveAct) {
+  const rows = Array.isArray(archived) ? archived : [];
+  if (rows.length === 0) {
+    return "";
+  }
+  const items = rows
+    .map(
+      (/** @type {any} */ r) => `<div class="row static">
+        <span class="row-name">${esc(r.name)}</span>
+        <span class="row-right">
+          <span class="pill plain">archived ${esc(new Date(Number(r.archivedAt)).toISOString().slice(0, 10))}</span>
+          <button class="act tiny" data-act="${esc(unarchiveAct)}" data-id="${esc(r.id)}" data-name="${esc(r.name)}">Unarchive</button>
+        </span>
+      </div>`
+    )
+    .join("");
+  return `<details class="group archived-group">
+    <summary class="group-head archived-summary">
+      <span class="group-title">${esc(title)}</span><span class="group-rule"></span><span class="group-meta">${rows.length}</span>
+    </summary>
+    <div class="rows">${items}</div>
+  </details>`;
 }
 
 /**
@@ -405,6 +451,13 @@ export const actions = {
   },
 
   /** @param {Record<string, string>} d */
+  unarchiveProject: async (d) => {
+    if (await act("unarchiveProject", { id: d.id }, `${d.name} unarchived.`)) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
   removeProject: async (d) => {
     const sure = await ask({
       title: `Remove ${d.name}?`,
@@ -431,6 +484,13 @@ export const actions = {
       tone: "danger"
     });
     if (sure && (await act("archiveWorkstream", { id: d.id }, `${d.name} archived.`))) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  unarchiveStream: async (d) => {
+    if (await act("unarchiveWorkstream", { id: d.id }, `${d.name} unarchived.`)) {
       refresh();
     }
   },
