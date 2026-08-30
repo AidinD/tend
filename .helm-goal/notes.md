@@ -200,3 +200,14 @@ Key learnings:
 - package.json version is 0.1.70, needs bumping to 0.1.71 on commit
 - DECISIONS.md is newest-first with a fixed preamble; new entry goes directly after the preamble, before the existing 2026-08-26 entry
 - No other docs/scripts reference the old 4-question dialog besides growth.js and e2e-app.mjs themselves
+
+## Iteration 2 — success
+
+Summary: Wrote a concrete, step-by-step implementation plan to .helm-goal/plan.md covering the prepareFields fix, intro text shortening, growth.test.mjs check, e2e-app.mjs restructuring, stale-reference grep, DECISIONS.md entry, version bump, and full verification.
+
+Key changes:
+- Created .helm-goal/plan.md with 9 concrete steps (no other files touched)
+
+Key learnings:
+- Must avoid em dash character (U+2014) anywhere in written files per house rule enforced by the Write tool itself; use plain hyphens/commas/semicolons instead
+- package.json version confirmed still 0.1.70 at plan time, so Step 7 should bump to 0.1.71 unless an earlier implement step already did it
