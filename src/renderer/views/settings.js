@@ -48,6 +48,7 @@ export async function render() {
     ${nibSection(folders, bindings, roster, status)}
     ${modelSection(model)}
     ${dataSection(status)}
+    ${archiveSection()}
     ${aboutSection(status)}
   `;
 }
@@ -204,6 +205,32 @@ function dataSection(status) {
       <div class="card-foot">
         <span class="src">This folder holds notes about named colleagues. It stays on your machine.</span>
         <button class="act" data-act="openData">Open the folder</button>
+      </div>
+    </article>
+  </div>`;
+}
+
+/**
+ * The bulk "I left this job" action.
+ *
+ * One button, for the moment none of the per-item Archive buttons are the
+ * right shape for: every person, project and workstream that is currently
+ * active, archived in a single call. It is not a separate rule from those
+ * per-item buttons - it calls the exact same reversible archive underneath,
+ * one row at a time - so the card says plainly what that means: nothing is
+ * deleted, and every one of them can be brought back individually from its
+ * own archived list.
+ */
+function archiveSection() {
+  return `<div class="group">
+    <div class="group-head"><span class="group-title">Leaving a job</span><span class="group-rule"></span></div>
+    <article class="card">
+      <div class="card-top"><h2 class="card-title">Archive everyone and everything active</h2></div>
+      <p class="card-why">For the moment a job ends. Archives every person, project and workstream that is currently active - all at once, instead of one at a time.</p>
+      <p class="card-why dim">Nothing is deleted. Every 1-1, promise, decision and growth thread stays exactly as it is. Each one can be brought back on its own, whenever it is relevant again, from its archived list.</p>
+      <div class="card-foot">
+        <span class="src">Reversible one at a time. Safe to run again - anything already archived is left untouched.</span>
+        <button class="act danger" data-act="archiveEverything">Archive everything active</button>
       </div>
     </article>
   </div>`;
@@ -507,6 +534,28 @@ export const actions = {
 
   openData: async () => {
     await act("openDataDir", {});
+  },
+
+  archiveEverything: async () => {
+    const sure = await ask({
+      title: "Archive everyone and everything active?",
+      body:
+        "Archives every person, project and workstream that is currently active, in one go. " +
+        "Nothing is deleted - every 1-1, promise, decision and growth thread stays exactly as " +
+        "it is, and each one can be brought back individually, whenever it is relevant again, " +
+        "from its archived list.",
+      confirm: "Archive everything",
+      tone: "danger"
+    });
+    if (!sure) {
+      return;
+    }
+    const result = await act("archiveEverythingActive", {});
+    if (!result) {
+      return;
+    }
+    toast(`${result.people} people, ${result.projects} projects, ${result.workstreams} workstreams archived.`);
+    refresh();
   },
 
   checkUpdate: async () => {

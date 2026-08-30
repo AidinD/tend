@@ -13,122 +13,17 @@ Current version in package.json: `0.1.70`. Bump to `0.1.71` for this change
 
 ## Preserved key learnings (from truncated earlier iterations)
 
-- Discovered while sanity-checking: `addPerson` in the work half rejects relation `"peer"` - valid work-half relations are `lead-and-manage`, `lead-only`, `manage-remotely`, `equal-lead`, `own-manager`, `stakeholder` (from `src/domain/halves.js` `relationsIn`). Future unit tests (plan Step 5) need a valid relation constant like `"equal-lead"`, not an invented one - check `test/service.test.mjs`'s existing fixtures for whatever they already use rather than guessing again.
-- `resolvePerson`/`resolveProject`/`resolveWorkstream` all accept an id directly (checked before the fuzzy-name match), so `archivePerson(store, id, {now})` etc. correctly resolve by the id the renderer/MCP would pass, not just by name - confirmed by the sanity script.
-- Local variable names `people`/`projects`/`workstreams` inside `archiveEverythingActive` shadow the exported functions of the same name in the same module - this is valid JS (function-scoped shadowing) and `tsc --noEmit` raised no complaint; flagging only so a future reviewer doesn't think it's a bug.
-- Did NOT add any new unit tests yet - this iteration is plan Step 4 (service layer plus wiring only); the plan's Step 5 explicitly comes next and should add `test/service.test.mjs`-style coverage for all of the above (idempotency, unarchive, bulk, archived-listing shape) plus the MCP absence test (`/archive/i` should match no `TOOLS` entry in `src/mcp/tools.js`, mirroring the existing `/decide|accept|activate/i` assertion near the decideDuty test in that file, around line 302).
-- `npm test` (617/617, unchanged - no new tests added this iteration) and `npm run typecheck` both pass clean.
-- Next iteration should do plan Step 5: unit tests in `test/service.test.mjs` (or a new `test/archive.test.mjs` if that reads cleaner - check the existing file's size/organization first) covering everything listed in the plan's Step 5, plus the MCP absence test. After that, Steps 6-8 are the three renderer iterations (person/work archive buttons plus banners, archived-browse groups in People/Work views, Settings bulk action), then Step 9 (E2E), Step 10 (DECISIONS.md entry), Step 11 (final verification pass).
-- addPerson in the work half rejects relation "peer" - valid values are lead-and-manage, lead-only, manage-remotely, equal-lead, own-manager, stakeholder (from src/domain/halves.js relationsIn) - use one of these in future test fixtures for this work
-- Manually sanity-checked (throwaway script, deleted before finishing, not committed) that archiving is idempotent and preserves the original archivedAt on a second call, unarchive restores visibility in people()/projects()/workstreams(), person() still resolves an archived person and reports archivedAt, and archiveEverythingActive run twice archives everything the first time and nothing the second time
-- Local variable names people/projects/workstreams inside archiveEverythingActive shadow the exported functions of the same name in the same module scope - valid JS, tsc raised no complaint, not a bug, just worth flagging for a future reader
-- npm test (617/617) and npm run typecheck both pass clean; no new unit tests were added this iteration since that is scoped to plan Step 5
-- Next iteration should do plan Step 5: add unit tests (test/service.test.mjs or a new test/archive.test.mjs) covering idempotency, unarchive, bulk archive, archived-listing shape, and history staying intact, plus an MCP absence test asserting no TOOLS entry matches /archive/i (mirror the existing /decide|accept|activate/i assertion near decideDuty's test, around line 302 in test/service.test.mjs). After that: Steps 6-8 (renderer: person/work buttons, archived-browse views, Settings bulk action), Step 9 (E2E), Step 10 (DECISIONS.md entry), Step 11 (final verification pass)
-
-
-[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
-
- `needsYou`/`nudges` while an open promise and a
-  logged touch made against the archived person stay in the store
-  untouched and still readable from `person().openPromises`/
-  `.recentContact`; archiving removes the person from `prep()`'s cards
-  explicitly (not just via drift); idempotency (`already: true`, original
-  `archivedAt` preserved on a second call, for a person, project and
-  workstream); unarchive restores visibility in the listings, attention and
-  prep; unarchiving an already-active row is a harmless no-op;
-  `archivePerson`/`unarchivePerson` on an unknown id return `{error}`;
-  `archivedPeople`/`archivedProjects`/`archivedWorkstreams` return exactly
-  the archived rows; a stake naming an archived person or an archived
-  project drops out of `api.stakeholders()`; `archiveEverythingActive`
-  archives every active row across all three collections in one call, is
-  safe to run twice (second run returns `{people:0, projects:0,
-  workstreams:0}`), and does not disturb the `archivedAt` of a row that
-  was already archived before the bulk call; and the MCP absence test
-  (`TOOLS.find((t) => /archive/i.test(t.name))` is `undefined`).
-- No other files touched - this iteration is test-only, per the plan's
-  Step 5 scope.
-- Bumped `package.json` version `0.1.73` -> `0.1.74`.
-
-Verification: `npm test` - 635/635 pass (617 existing + 18 new), 0 fail.
-`npm run typecheck` - clean after one fix (see learnings below).
-
-Key learnings:
 - `api.stakeholders(store, now, project?)` returns `Record<string,
-  any>[] | {error: string}` (it can error only when a `project` filter
-  argument is given and does not resolve) - even though my calls never
-  pass a `project` arg and can never hit that branch, `tsc` still infers
-  the union return type from the function signature and rejects
-  `.length` on it directly. Fixed by following `test/stakes.test.mjs`'s
-  own existing convention for this exact function:
-  `/** @type {any[]} */ (api.stakeholders(store, NOW)).length`. Worth
-  remembering for any future test that calls `stakeholders()` without
-  narrowing via `Array.isArray(...)` first.
-- Confirmed `namedStakes()` (src/domain/stakes.js) already filters by
-  identity (`byPerson.has(...)`/`byProject.has(...)`), and
-  `api.stakeholders()` already passes it only
-  `!isArchived(...)`-filtered people/projects (done in iteration 4/5) - so
-  the stake-archival behaviour needed NO new production code this
-  iteration, only a test proving it. No duty of `subjectKind: "stake"` is
-  needed to exercise `api.stakeholders()`; that function reads `stakes`
-  rows directly and has nothing to do with `expandCadences`/duties. (An
-  earlier draft of the test added such a duty out of habit copied from
-  `attention.js` reasoning - removed it since it exercised nothing.)
-- `prep(store, now, opts?)` returns `{cards, dropped}`, not a bare array -
-  `.cards` is the field to assert against (confirmed by reading
-  `src/service/prep.js`'s return statement directly, not just the plan's
-  prose).
-- `api.attention(store, now)` returns `{needsYou, nudges, heldBackByFocus,
-  allInStep, focus}` - `needsYou[i].what` is the summarised title
-  (`summariseItem` in api.js maps `AttentionItem.title` to `.what`), not
-  `.title` - matters for anyone writing a new attention-shaped assertion
-  by pattern-matching the domain-layer `AttentionItem` typedef instead of
-  the service-layer wrapper.
-- Did NOT touch `test/service.test.mjs` itself - a new dedicated file read
-  cleaner than growing the already-395-line `service.test.mjs` further,
-  and the plan explicitly allowed either ("test/service.test.mjs or a new
-  test/archive.test.mjs"). The MCP absence test lives in
-  `test/archive.test.mjs` rather than being duplicated in
-  `service.test.mjs`.
-- Next iteration should start plan Step 6: renderer per-item Archive/
-  Unarchive buttons. Read `src/renderer/views/people.js`'s
-  `actions.remove` (danger-zone block) and `src/renderer/views/work.js`'s
-  `actions.removeProject`/`actions.removeStream` first for the exact
-  `ask()`/`act()` shape to copy, and `src/renderer/ui.js` for the
-  `ask({title, body, confirm, tone})`/`act(op, args, successText)`
-  signatures (both already confirmed accurate against the current code by
-  earlier research iterations, but re-check line numbers since renderer
-  files were not touched by iterations 3-6 and may have shifted only
-  trivially, if at all). Keep this iteration scoped to just the person
-  page's Archive/Unarchive button plus the "Archived" banner (using
-  `p.archivedAt` already returned by `api.person()`) - defer the
-  project/workstream buttons (Step 6's second half) and the archived-browse
-  views (Step 7) and Settings bulk action (Step 8) to their own iterations,
-  per the plan's own note that "Steps 6-8 touch three different view files;
-  each can be its own iteration."
-
-## Iteration 1 — success
-
-Summary: Added test/archive.test.mjs with 18 unit tests covering the archive/unarchive/bulk-archive/archived-listing service functions (idempotency, history preservation, attention/prep exclusion, MCP absence), completing plan Step 5.
-
-Key changes:
-- New file test/archive.test.mjs: 18 tests covering archivePerson/archiveProject/archiveWorkstream, unarchive counterparts, archivedPeople/archivedProjects/archivedWorkstreams, archiveEverythingActive, stake filtering, and MCP tool-surface absence
-- Bumped package.json version 0.1.73 -> 0.1.74
-- Appended Iteration 6 notes to .helm-goal/notes.md documenting what was tested and pointing the next iteration at plan Step 6 (renderer Archive/Unarchive button on the person page)
-
-Key learnings:
 - api.stakeholders(store, now, project?) has a union return type ({error} | array) per its JSDoc even though the archive tests never hit the error branch - use the existing test/stakes.test.mjs convention `/** @type {any[]} */ (api.stakeholders(...))` to satisfy tsc
 - namedStakes()/api.stakeholders() already filtered archived people/projects (done in iterations 4-5), so the stake-archival tests needed no new production code, only proof - no subjectKind:'stake' duty is needed since stakeholders() reads stakes rows directly, unrelated to expandCadences
 - prep(store, now, opts?) returns {cards, dropped} (use .cards); api.attention() items use .what (not .title) since summariseItem() renames AttentionItem.title to .what for the service-layer wrapper
 - Full suite is now 635/635 passing (617 existing + 18 new); npm run typecheck clean
 - Next iteration: plan Step 6, renderer - start with just the person page's Archive/Unarchive button + Archived banner in src/renderer/views/people.js (copy actions.remove's ask()/act() shape), deferring project/workstream buttons, archived-browse views, and Settings bulk action to their own iterations per the plan's own guidance
 
-## Iteration 2 - success (plan Step 6, person page only)
 
-Summary: Added the person page's Archive/Unarchive button plus an "Archived on ..." banner in src/renderer/views/people.js, the first of the three renderer steps.
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-Key changes:
-- src/renderer/views/people.js `personPage()`: new `<div class="block">` inserted between the existing content and the `.danger-zone` block (deliberately its own block, not inside danger-zone, with a comment explaining why - Archive is reversible and Remove is not, and putting them side by side risked the two being confused). When `p.archivedAt` is set it renders a one-line banner ("Archived on YYYY-MM-DD. They stop appearing in Now, prep, attention nudges and duty cadences - everything already on this page stays exactly as it is.") plus an "Unarchive `<name>`" button; otherwise it renders an "Archive `<name>`" button. Date is formatted the same way `observations` already does on this same page (`new Date(...).toISOString().slice(0, 10)`), matching the existing convention that the renderer does not do "N days ago" math itself for a one-off date - that lives in `api.js` via `agoWords`, which was not worth threading through for one banner line.
-- `actions.archive`: `ask({title, body, confirm: "Archive", tone: "danger"})` with plain-language wording (mirrors the goal's own required wording: stops appearing in Now/prep/attention/cadences, history stays, reversible) then `act("archivePerson", {id: d.person}, ...)` then `refresh()`. Placed right before `actions.remove`, matching the button order in the template.
+wording: stops appearing in Now/prep/attention/cadences, history stays, reversible) then `act("archivePerson", {id: d.person}, ...)` then `refresh()`. Placed right before `actions.remove`, matching the button order in the template.
 - `actions.unarchive`: no confirmation dialog (restoring visibility is not destructive - matches the plan's Step 6 text, which specifies a dialog only for Archive) - just `act("unarchivePerson", {id: d.person}, ...)` then `refresh()`.
 - Bumped package.json version 0.1.74 -> 0.1.75. (package-lock.json's own top-level "version" field is already stale at 0.1.8 from before this whole body of work started and no earlier archive iteration touched it either - left as-is, consistent with that existing pattern.)
 
@@ -279,3 +174,109 @@ Key learnings:
 - No new service/domain code was needed this iteration - archivedPeople/archivedProjects/archivedWorkstreams were already wired into OPERATIONS from earlier iterations
 - npm test: 635/635 pass; npm run typecheck: clean
 - Plan Steps 1-7 are now complete. Remaining: Step 8 (Settings bulk archive action calling archiveEverythingActive), Step 9 (E2E in scripts/e2e-app.mjs - should cover the whole flow including Step 8's bulk action, so do it after Step 8 lands), Step 10 (DECISIONS.md entry, mechanism-only, no real names), Step 11 (final verification: npm test, npm run typecheck, npm run test:app)
+
+## Iteration 5 - success (plan Step 8 - Settings bulk "I left this job" action)
+
+Summary: Added the Settings bulk archive section and its confirmation-gated
+action in `src/renderer/views/settings.js`, completing plan Step 8.
+
+Key changes:
+- `src/renderer/views/settings.js`: new private function `archiveSection()`
+  (no params - unlike the other section functions it needs no data fetched
+  in `render()`, since the button doesn't display any current counts, only
+  what happened after it runs), following `dataSection`'s single-`.group`/
+  single-`.card` shape. Title "Leaving a job", placed in `render()`'s
+  template right after `${dataSection(status)}` (both sections are about
+  the shape of the stored data, so this reads naturally next to it) and
+  before `${aboutSection(status)}`.
+- Card body states, per the goal's exact wording requirement: archives
+  every person/project/workstream currently active, in one call; nothing
+  is deleted, every 1-1/promise/decision/growth thread stays intact; each
+  one is individually reversible from its own archived list; safe to press
+  again since an already-archived row is left untouched. Button is
+  `class="act danger"` (the same full-size danger-button class
+  `people.js`'s "Remove" button uses, confirmed by grep - not `tiny`, since
+  this is not a per-row action), `data-act="archiveEverything"`.
+- `actions.archiveEverything`: `ask({title, body, confirm: "Archive
+  everything", tone: "danger"})` restating the same plain-language
+  guarantees (a native `confirm()` was never considered - this file, like
+  every other renderer view, only ever uses `ask()`/`form()` from `ui.js`),
+  then on confirm `act("archiveEverythingActive", {})` with **no** success
+  string passed to `act()` itself (so it does not toast a generic message),
+  followed by a hand-built `toast()` call using the returned `{people,
+  projects, workstreams}` counts, e.g. "3 people, 1 projects, 0 workstreams
+  archived." (no pluralisation logic added - the plan's own example string
+  didn't specify one and every other numeric toast in this file, e.g.
+  `index`'s "N contact record(s)", already handles the s/no-s question with
+  `(s)`, not full pluralisation; a bare count followed by the plural noun
+  read as acceptable placeholder English and matching an existing sibling
+  convention seemed better than inventing a third convention for one
+  string - reconsider only if this reads badly in the actual E2E run in
+  Step 9), then `refresh()`.
+- Confirmed via `src/renderer/ui.js`'s `toast(message, tone = "ok")` that
+  the default tone is `"ok"`, not `"good"` - grepped the whole renderer for
+  existing `toast(..., "...")` call sites and found only `"bad"` ever used
+  explicitly elsewhere, so the success toast here omits the tone argument
+  entirely rather than inventing a `"good"` tone that doesn't exist as a
+  convention anywhere else in the codebase (this was a self-caught mistake
+  mid-iteration, not something a previous iteration's notes flagged).
+- Bumped `package.json` version `0.1.77` -> `0.1.78`.
+
+Verification: `npm test` - 635/635 pass (no new unit tests - this is a
+renderer-only change, E2E coverage for the whole archive/unarchive/bulk
+flow is Step 9, not this step). `npm run typecheck` - clean, no errors.
+
+Key learnings:
+- `archiveEverythingActive(store, {now})` (in `src/service/api.js`, wired
+  into `src/main/index.js`'s `OPERATIONS` since iteration 5's service-layer
+  work) already existed with exactly the plan's documented shape - a thin
+  loop over `archivePerson`/`archiveProject`/`archiveWorkstream` returning
+  `{people, projects, workstreams}` counts of rows that were *actually*
+  archived (already-archived rows are excluded from the count via each
+  per-item function's own `.already` flag) - no service-layer changes were
+  needed this iteration, confirmed by reading the existing function body
+  before writing the renderer call.
+- `test/archive.test.mjs` already has unit-test coverage of
+  `archiveEverythingActive`'s idempotency (calling it twice archives
+  nothing new the second time) from an earlier iteration's Step 5 work -
+  did not duplicate that here, this iteration only added the UI trigger.
+- Plan Steps 1-8 are now all complete. Remaining: Step 9 (E2E coverage in
+  `scripts/e2e-app.mjs` for the full archive/unarchive/bulk-archive UI flow
+  - person round-trip, project/workstream round-trip, and the Settings
+  bulk action including asserting the confirmation dialog's body text is
+  present, per the plan's explicit callout that this is the one place the
+  goal requires wording to be checked), Step 10 (DECISIONS.md entry - "why
+  archive-not-delete, why the append-only log was never touched", general
+  mechanism-only terms, no real names, modeled on the existing 2026-08-25
+  "Away and gone are dates on a person, not a delete" entry's shape), Step
+  11 (final verification pass: `npm test`, `npm run typecheck`, `npm run
+  test:app`, confirm the version was bumped and DECISIONS.md has the entry
+  - this should be its own iteration at the very end, after Steps 9 and 10
+  land, not combined with either).
+- Next iteration should do plan Step 9: search `scripts/e2e-app.mjs` for
+  `awayUntil` first (per the plan's own pointer) to find the closest
+  existing round-trip check to copy the shape of, before writing any new
+  `check(label, fn)` blocks. Use a scratch `TEND_DATA_DIR` exactly as that
+  file's existing convention does. This step is the first one that will
+  actually exercise `people.js`/`work.js`/`settings.js`'s new buttons end
+  to end via CDP, so it may surface a UI bug the unit-test-only iterations
+  2-5 could not have caught (e.g. a `data-act` name mismatch between the
+  template and the `actions` object) - read the rendered HTML carefully
+  rather than assuming the wiring is correct just because typecheck passed.
+
+## Iteration 5 — success
+
+Summary: Added the Settings bulk "I left this job" archive action (archiveSection + actions.archiveEverything in src/renderer/views/settings.js), completing plan Step 8.
+
+Key changes:
+- src/renderer/views/settings.js: new archiveSection() rendering a 'Leaving a job' card with a full-size danger 'Archive everything active' button, wired into render()'s template between dataSection and aboutSection
+- src/renderer/views/settings.js: new actions.archiveEverything - ask() confirmation dialog stating nothing is deleted and it's reversible per-item, then act('archiveEverythingActive', {}) with no built-in success toast, followed by a hand-built toast showing the returned {people, projects, workstreams} counts, then refresh()
+- Bumped package.json version 0.1.77 -> 0.1.78
+- Appended Iteration 5 notes to .helm-goal/notes.md documenting the change and pointing the next iteration at plan Step 9 (E2E coverage)
+
+Key learnings:
+- archiveEverythingActive(store, {now}) already existed in src/service/api.js (from an earlier iteration) with exactly the plan's shape - no service-layer changes needed this iteration, just the UI trigger
+- ui.js's toast(message, tone='ok') default tone is 'ok', not 'good' - grepped the whole renderer and found only 'bad' ever used explicitly elsewhere, so the success toast omits the tone argument rather than inventing a nonexistent 'good' convention
+- class='act danger' (not 'act tiny danger') is the convention for a full-size, non-per-row danger button, matching people.js's existing Remove button
+- Plan Steps 1-8 are now all complete. Remaining: Step 9 (E2E coverage in scripts/e2e-app.mjs for the full archive/unarchive/bulk flow - search for 'awayUntil' there first to find the closest existing round-trip check to copy), Step 10 (DECISIONS.md entry, mechanism-only wording, no real names), Step 11 (final verification pass: npm test, npm run typecheck, npm run test:app)
+- npm test: 635/635 pass; npm run typecheck: clean after this change
