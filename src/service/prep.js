@@ -34,6 +34,7 @@
  */
 
 import { expandCadences } from "../domain/attention.js";
+import { isArchived } from "../domain/archive.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { openPromises } from "../domain/promises.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
@@ -75,6 +76,14 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
   const cards = [];
 
   for (const person of people) {
+    // Archived is checked explicitly rather than relied on to fall out through
+    // drift, because drift only happens to read as zero when nothing crossed
+    // this person - an archived person with an old open promise would
+    // otherwise still earn a card, which is exactly the clutter archiving is
+    // for.
+    if (isArchived(person)) {
+      continue;
+    }
     const id = String(person.id);
     const theirs = cadences.filter((c) => c.subject.id === id);
 
@@ -122,7 +131,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       continue;
     }
 
-    const owned = workstreams.filter((w) => String(w.owner ?? "") === id);
+    const owned = workstreams.filter((w) => String(w.owner ?? "") === id && !isArchived(w));
     // Both the project and the workstream's own name.
     //
     // Only projects at first, which missed every case where the workstream is

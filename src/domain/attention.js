@@ -24,6 +24,7 @@ import { driftBadge, humanDays } from "./time.js";
 import { appliesWhileLeaving, hasLeft, inScope, isLeaving, notBefore } from "./people.js";
 import { namedStakes, stakeInterval } from "./stakes.js";
 import { isUnspecified, reviewInterval } from "./workstreams.js";
+import { isArchived } from "./archive.js";
 
 /**
  * @typedef {object} AttentionItem
@@ -149,19 +150,24 @@ export function expandCadences(state, now) {
     }
   };
 
-  // Somebody away or already gone is skipped entirely rather than shown as
-  // behind. See src/domain/people.js for why that is not the same as removing
-  // them: the history is the valuable part, and a flag somebody has to remember
-  // to unset is a flag that stays set.
-  cross(
-    live("people").filter((p) => inScope(p, now)),
-    "person"
-  );
-  cross(live("projects"), "project");
-  cross(live("workstreams"), "workstream");
+  // Somebody away, already gone, or archived is skipped entirely rather than
+  // shown as behind. See src/domain/people.js and src/domain/archive.js for
+  // why neither is the same as removing them: the history is the valuable
+  // part, and a flag somebody has to remember to unset is a flag that stays
+  // set.
+  const activePeople = live("people").filter((p) => inScope(p, now));
+  const activeProjects = live("projects").filter((p) => !isArchived(p));
+  const activeWorkstreams = live("workstreams").filter((w) => !isArchived(w));
+
+  cross(activePeople, "person");
+  cross(activeProjects, "project");
+  cross(activeWorkstreams, "workstream");
   // Named here rather than stored on the row, so renaming a person or a project
-  // cannot leave a card showing a spelling nobody uses any more.
-  cross(namedStakes(live("stakes"), live("people"), live("projects")), "stake");
+  // cannot leave a card showing a spelling nobody uses any more. Built from the
+  // active lists above, not `live(...)` directly: a stake naming an archived
+  // person or project resolves nobody here and `namedStakes` drops it, which is
+  // the same "nothing to act on" reasoning it already applies to a removed row.
+  cross(namedStakes(live("stakes"), activePeople, activeProjects), "stake");
 
   return out.sort((a, b) => compareDrift(a.drift, b.drift));
 }
@@ -253,7 +259,12 @@ export function buildAttention(state, now) {
     // something you can act on today. Deliberately still true until their last
     // day passes: a promise to a person leaving next week is exactly the
     // promise to keep. The row itself is never touched.
-    if (person && hasLeft(person, now)) {
+    //
+    // Archived reads the same way here: whatever changed on the owner's side
+    // to make this person no longer live, a card demanding action on them
+    // still is not something today can resolve. The promise itself is
+    // untouched and reappears the moment they are unarchived.
+    if (person && (hasLeft(person, now) || isArchived(person))) {
       continue;
     }
     const who = person ? subjectName(person) : "someone";
@@ -297,7 +308,7 @@ export function buildAttention(state, now) {
   // ground Grove names: the responsibility has moved and the information has
   // not. Flag it as its own thing rather than letting it look like tidy-up.
   for (const w of live("workstreams")) {
-    if (!isUnspecified(w)) {
+    if (isArchived(w) || !isUnspecified(w)) {
       continue;
     }
     const owner = w.owner ? people.find((p) => p.id === w.owner) : null;

@@ -30,6 +30,7 @@ import {
   threadsFor
 } from "../domain/growth.js";
 import { availability, hasLeft, inScope, isAway } from "../domain/people.js";
+import { isArchived } from "../domain/archive.js";
 import {
   JOURNAL_FIELDS,
   REVIEW_WINDOW_DAYS,
@@ -233,6 +234,10 @@ export function person(store, query, now) {
     skipPattern: skipPattern(skipsFor(store.rows("skips"), p.id, now, "one-to-one"), "1-1"),
     awayUntil: p.awayUntil ?? null,
     leftAt: p.leftAt ?? null,
+    // Kept resolvable and readable even when archived - only the aggregate
+    // views (the roster below, Now, prep) stop showing them. The person page
+    // must still open and every historical record on it must still render.
+    archivedAt: p.archivedAt ?? null,
     availability: availability(p, now),
     cadences,
     openPromises: promises,
@@ -253,6 +258,11 @@ export function people(store, now, relation) {
   const cadences = expandCadences(store.state(), now);
   return store
     .rows("people")
+    // Archived people are the whole point of archiving: they stop cluttering
+    // the roster. A dedicated "show archived" path is added alongside
+    // archivePerson/unarchivePerson rather than a parameter here, so this
+    // function's contract stays "everyone active" for its existing callers.
+    .filter((p) => !isArchived(p))
     .filter((p) => !relation || p.relation === relation)
     .map((p) => {
       const theirs = cadences.filter((c) => c.subject.id === p.id);
@@ -351,7 +361,10 @@ export function focus(store, now) {
  */
 export function projects(store, now) {
   const cadences = expandCadences(store.state(), now).filter((c) => c.subjectKind === "project");
-  return store.rows("projects").map((p) => {
+  // Archived projects stop appearing here for the same reason archived people
+  // stop appearing on the roster: this is the default listing, not the whole
+  // record.
+  return store.rows("projects").filter((p) => !isArchived(p)).map((p) => {
     const worst = cadences.filter((c) => c.subject.id === p.id)[0];
     return {
       id: p.id,
@@ -837,7 +850,10 @@ export function workstreams(store, now) {
   const projects = new Map(store.rows("projects").map((p) => [String(p.id), String(p.name)]));
   const touches = store.rows("touches");
 
-  return store.rows("workstreams").map((w) => {
+  // Archived workstreams stop appearing in the default listing, same as
+  // archived people and projects - the delegation-review cadence they carry
+  // is exactly the kind of nagging archiving exists to stop.
+  return store.rows("workstreams").filter((w) => !isArchived(w)).map((w) => {
     const last = touches
       .filter((t) => t.subject === w.id && t.kind === "delegation-review")
       .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))[0];
@@ -1567,7 +1583,14 @@ export function stakeholders(store, now, project) {
   }
 
   const touches = store.rows("touches");
-  const named = namedStakes(store.rows("stakes"), store.rows("people"), store.rows("projects"));
+  // Only active people and projects reach `namedStakes`, so a stake pointing
+  // at an archived one resolves nobody and is dropped by the same "nothing to
+  // act on" rule it already applies to a removed row.
+  const named = namedStakes(
+    store.rows("stakes"),
+    store.rows("people").filter((p) => !isArchived(p)),
+    store.rows("projects").filter((p) => !isArchived(p))
+  );
   const projects = new Map(store.rows("projects").map((p) => [String(p.id), String(p.name ?? "")]));
   const people = new Map(store.rows("people").map((p) => [String(p.id), String(p.name ?? "")]));
 

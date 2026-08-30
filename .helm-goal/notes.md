@@ -13,83 +13,7 @@ Current version in package.json: `0.1.70`. Bump to `0.1.71` for this change
 
 [... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-ived(w))` added;
-    no existing helper covers these.
-  - `namedStakes(live("stakes"), live("people"), live("projects"))`: a stake
-    tied to an archived person or project should probably stop generating
-    cadence noise too, even though `stakes` itself is not one of the three
-    archivable collections. Open question for the plan phase: filter stakes
-    whose `person`/`project` is archived, at this cross() call, rather than
-    adding `archivedAt` to stakes themselves.
-  - `buildAttention`'s promise loop already has a `hasLeft(person, now)`
-    skip - needs a matching `isArchived` skip (a promise to an archived
-    person must not show as "needs you" even though the promise row itself
-    is untouched).
-  - `buildAttention`'s "unspecified workstream" loop (`for (const w of
-    live("workstreams"))`) needs the same `!isArchived(w)` filter.
-
-**`src/domain/myattention.js`**: `here = people.filter((p) => inScope(p,
-  now))` is covered for free once `inScope` excludes archived (section 3).
-  No workstream/project logic in this file.
-
-**`src/service/prep.js`**: `for (const person of people)` where `people =
-  store.rows("people")` has **no `inScope` filtering at all today** (drift
-  happens to read as 0 for an away/left person because `expandCadences`
-  already excluded them, but open promises/topics/growth are NOT filtered by
-  scope in this file currently - this looks like a pre-existing gap, not
-  something in scope to fix here, but archived people MUST be excluded
-  explicitly per the goal's requirement, so add an early `continue` for
-  archived people at the top of the loop, not just rely on drift being 0).
-  Also `owned = workstreams.filter((w) => owner === id)` for the "they own"
-  block - filter out archived workstreams there too, so an archived
-  workstream doesn't clutter a prep card's review reminders.
-
-**`src/service/api.js`**:
-  - `people(store, now, relation)` (roster/default listing): must exclude
-    archived by default. Needs an opt-in path for "show archived" (a new
-    param, or a separate function, see section 7 UI notes; precedent for a
-    grouped-by-status return shape already exists in `roleMap`, which returns
-    `{active, proposed, declined}` - a similar `{active, archived}` shape, or
-    a boolean option threaded through, are both plausible; decide in the plan
-    phase).
-  - `projects(store, now)` / `workstreams(store, now)`: same, default list
-    must exclude archived, with an explicit path to see archived ones.
-  - `person(store, query, now)`: **no change needed**, see section 1;
-    resolution still works, only the returned shape might usefully gain
-    something like `archived: true`/`archivedAt` so the person page can show
-    an "Archived" banner and offer Unarchive instead of Archive.
-  - `stakeholders(store, now, project)`: reads `namedStakes` over
-    `store.rows("stakes"/"people"/"projects")` with no archived filtering;
-    same question as attention.js's stake crossing - decide once, apply in
-    both places (maybe a shared helper: `liveStakes(stakes, people,
-    projects)`).
-  - New functions needed: `archivePerson(store, id, {now})`,
-    `unarchivePerson(store, id)`, `archiveProject`/`unarchiveProject`,
-    `archiveWorkstream`/`unarchiveWorkstream`, all following the
-    look-up-then-`store.update`-then-return-summary shape used by e.g.
-    `resolvePromise`/`updateThread`/`setDelegationLevel`. **Idempotency
-    requirement from the goal (re-runnable bulk action)**: archiving an
-    already-archived row must be a no-op, not an error, and should NOT
-    overwrite the existing `archivedAt` timestamp with a new `now` (re-running
-    the bulk action a week later must not make everyone look freshly archived
-    today). So `archivePerson` etc. should short-circuit: `if
-    (isArchived(found.person)) return {id, name, archivedAt:
-    found.person.archivedAt, already: true}` before calling `store.update`.
-    Same symmetric no-op for `unarchive*` on an already-active row.
-  - New bulk function: `archiveEverythingActive(store, {now})`: thin
-    wrapper that calls the three per-item archive functions over every
-    currently-non-archived row in `people`/`projects`/`workstreams` (reusing
-    `store.rows(...)` which already excludes `_deleted`, and skipping
-    already-archived rows via the idempotency check above, or just calling
-    archivePerson/etc. for every row and letting their own no-op guards
-    handle it). Return a summary count, e.g. `{people: n, projects: n,
-    workstreams: n}`.
-
-### 6. MCP surface - recommend NOT adding archive/unarchive tools
-
-Strong existing precedent that *structural/roster decisions* are
-deliberately kept off the MCP surface, matching the project rule "Agents
-create, they do not restructure" (see CLAUDE.md) and the file header comment
+he file header comment
 in `src/mcp/tools.js` ("Writing may add, never restructure... It cannot
 decide what the job is - `decideDuty` is not on this list, deliberately"):
   - `decideDuty` (accept/decline a proposed duty): app-only, not in `TOOLS`.
@@ -341,3 +265,39 @@ Key learnings:
 - npm test (617/617) and npm run typecheck both pass clean after this change - inScope's new archived check is safe against the existing suite since no row has archivedAt set anywhere yet
 - archivedAt is not yet read/written anywhere else in the codebase - attention.js, myattention.js, prep.js and api.js still need step 3's explicit filtering (people are covered for free via inScope, but projects/workstreams have no equivalent helper and need direct filtering at each call site)
 - Next iteration should do plan Step 3: filter archived projects/workstreams in attention.js's expandCadences/buildAttention, add an early continue for archived people in prep.js plus filter owned workstreams, and exclude archived rows (while adding archivedAt/archived to each returned row) in api.js's people()/projects()/workstreams()/person(); also decide+implement the stakes-filtering question at the namedStakes() call sites. Do not add archive/unarchive/bulk functions yet (that's step 4).
+
+## Iteration 4 - success (plan Step 3)
+
+Summary: Filtered archived people/projects/workstreams out of every read path that currently assumes every row is live - expandCadences, buildAttention, prep.js, and api.js's people()/projects()/workstreams() - while person() gained a readable archivedAt field and stays fully resolvable when archived.
+
+Key changes:
+- src/domain/attention.js: expandCadences now filters live("projects") and live("workstreams") through !isArchived(...) before crossing them with duties (people were already covered via inScope from step 2); the namedStakes(...) call now receives the same filtered active people/projects arrays rather than raw live(...), so a stake naming an archived person or project resolves nobody and is dropped by namedStakes's own existing "nothing to act on" rule - no change needed inside stakes.js itself. buildAttention's promise loop now skips a promise whose person is archived (alongside the existing hasLeft skip), and the "unspecified workstream" loop skips archived workstreams too.
+- src/service/prep.js: added an early continue for an archived person at the top of the per-person loop (explicit, not relying on drift happening to read as zero - an archived person with an old open promise would otherwise still earn a card), and owned now also filters out archived workstreams.
+- src/service/api.js: people(), projects(), and workstreams() now filter out archived rows from their default listing (each with a one-line comment on why, matching the file's existing comment density). person(store, query, now)'s return object gained archivedAt: p.archivedAt ?? null - resolution and every other field is unchanged, so the person page and its history keep working when the person is archived. stakeholders() now passes store.rows("people").filter(!isArchived) and the equivalent for projects into namedStakes(...), same reasoning as the attention.js change.
+- Bumped package.json version 0.1.71 -> 0.1.72.
+
+Key learnings:
+- Deliberately did NOT add archivedPeople()/archivedProjects()/archivedWorkstreams() sibling list functions, or the archivePerson/unarchivePerson/archiveEverythingActive functions, in this iteration - the plan explicitly scopes those to step 4 ("do NOT yet add the new archive/unarchive/list-with-archived functions, that is step 4"). I drafted an archivedPeople() function mid-iteration and then reverted it back out to keep this iteration's diff to pure read-path filtering, per the plan's own step boundary - worth remembering so the next iteration doesn't find a half-added sibling function and wonder if step 4 was started.
+- Did NOT add a per-row archivedAt/archived flag to the objects returned by people()/projects()/workstreams() (the plan's step 3 text suggested this "regardless of which show-archived UI shape is picked"), because every row in each of those three functions' output is now always unarchived by construction (archived rows are filtered out before .map(...) runs) - the field would always read null/false there and buy nothing. The renderer only needs an archived-vs-not distinction on rows that come from the archived listing (step 4's sibling functions), where it should naturally have archivedAt set already since that is how those rows will be selected in the first place. If a future iteration decides differently after seeing the archived-list shape, that is a fine small deviation - just note it here.
+- myattention.js's myAttention() needed NO changes: it already filters people through inScope internally (here = people.filter(inScope)), and the viaStake translation only recognises a stake whose person is in names (built from here), so a stake tied to an archived person is already invisible to it. Confirms the research notes' prediction that step 2 alone handles this file.
+- findSubject() (api.js, used when logging a touch/contact against a project/workstream/stake by name) and setDelegationLevel() were deliberately left resolving by id/name with NO archived filter - these are single-row lookups for editing/recording, not listings, and an archived row must stay fully writable-to (adding history to it is exactly what "history stays intact" requires) even though it should not surface as something needing attention. Do not add filtering there.
+- Verification: npm test 617/617 pass (no new tests added yet - existing suite only, per the plan's instruction to test step 3 against the existing suite before new API surface exists), npm run typecheck clean.
+- Next iteration should do plan Step 4: add archivePerson/archiveProject/archiveWorkstream, unarchivePerson/unarchiveProject/unarchiveWorkstream, archiveEverythingActive, and the three archived* list-sibling functions to src/service/api.js, then wire all of them into src/main/index.js's OPERATIONS map (a hand-written whitelist - each needs its own explicit line, see the plan's step 4 for the exact style to copy). Do not add unit tests for these yet unless a step naturally produces a small one to sanity-check idempotency - the plan puts the fuller test suite in step 5, after step 4's functions all exist.
+
+## Iteration 4 — success
+
+Summary: Filtered archived people/projects/workstreams out of every read path that currently assumes every row is live (expandCadences, buildAttention, prep.js, and api.js's people()/projects()/workstreams()/stakeholders()), while person() gained a readable archivedAt field and stays fully resolvable when archived, completing plan Step 3.
+
+Key changes:
+- src/domain/attention.js: expandCadences filters archived projects/workstreams before crossing with duties, and passes only active people/projects into namedStakes so stakes tied to archived rows drop out naturally; buildAttention skips promises for archived people and skips archived workstreams in the unspecified-delegation loop
+- src/service/prep.js: early continue for archived people at the top of the per-person loop; owned workstreams filtered to exclude archived ones
+- src/service/api.js: people()/projects()/workstreams() now exclude archived rows from their default listing; person() returns archivedAt without any filtering change; stakeholders() filters archived people/projects before calling namedStakes()
+- Bumped package.json version 0.1.71 -> 0.1.72
+- Appended Iteration 4 notes to .helm-goal/notes.md documenting the change and the concrete next step (plan Step 4: archive/unarchive/archiveEverythingActive + archived* list functions + OPERATIONS wiring)
+
+Key learnings:
+- Deliberately did NOT add archivedPeople()/archivedProjects()/archivedWorkstreams() sibling list functions or the archive*/unarchive*/archiveEverythingActive functions - plan explicitly scopes those to Step 4; a draft archivedPeople() was written then reverted to keep this iteration's diff to pure read-path filtering
+- Did NOT add an archivedAt/archived flag to the objects returned by people()/projects()/workstreams() - every row those functions return is now always unarchived by construction, so the field would be dead weight there; the archived-vs-not distinction belongs on the rows returned by Step 4's archived* sibling functions instead
+- myattention.js needed no changes - myAttention() already filters people via inScope internally and its viaStake translation only recognises stakes whose person is in that already-filtered set, so archived people are invisible to it for free (confirms research notes' prediction)
+- findSubject() and setDelegationLevel() in api.js were deliberately left unfiltered - they are single-row lookups for editing/recording history against a subject, not listings, and an archived row must stay fully writable-to since keeping history intact requires that
+- npm test (617/617) and npm run typecheck both pass clean after this step; no new tests added yet since Step 5 (unit tests) comes after Step 4's new API surface exists
