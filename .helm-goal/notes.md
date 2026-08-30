@@ -292,3 +292,23 @@ Key learnings:
 - No new tests were added this iteration - plan step 7 explicitly owns test/reflection.test.mjs and the myattention.test.mjs extensions as its own step, so this iteration deliberately stayed service-layer-only per the 'do not batch several steps' instruction; existing 617 tests still pass unchanged since nothing wired these new exports into any UI/nudge path yet
 - Next step is plan step 4: the myattention.js nudge signal (reflections param, i-have-not-reflected signal, low weight, no severity field) plus wiring myAttentionSignals(store, now) in api.js to pass reflections: store.rows('reflections') into myAttention(...), and adding logReflection/reflections to src/main/index.js's OPERATIONS map
 - reflections() signature chosen as (store, now, { limit, since } = {}) to match the plan's sketch exactly, distinct from moments(store, now) which takes no options
+
+## Iteration 1 — success
+
+Summary: Add the never-critical weekly-reflection nudge signal to src/domain/myattention.js, wire reflections data through src/service/api.js's myAttentionSignals and src/main/index.js's OPERATIONS (logReflection/reflections), and bump the patch version.
+
+Key changes:
+- src/domain/myattention.js: added a reflections param to myAttention(), a new i-have-not-reflected signal (weight 20, lowest of all signals, no severity field, first-person text) gated so it never fires until real app usage (a touch or entry) is at least REFLECTION_CADENCE_DAYS old, and clears once a reflection has been logged inside the cadence window
+- src/service/api.js: myAttentionSignals now passes reflections: store.rows('reflections') into myAttention(...)
+- src/main/index.js: added logReflection and reflections to OPERATIONS, mirroring the existing logMoment/moments pair
+- test/myattention.test.mjs: updated the 'every signal speaks in the first person' fixture's expected key list to include the new i-have-not-reflected key (the fixture's touches/entries happen to be old enough to trigger it)
+- package.json: bumped version 0.1.73 -> 0.1.74
+- Verified npm test (617/617 green) and npm run typecheck (clean)
+
+Key learnings:
+- This was step 4 of .helm-goal/plan.md. Step 3's service-layer functions (logReflection/reflections/lastReflectedAt) were already fully implemented in a prior iteration exactly per the plan's sketch, so this iteration only needed the myattention.js signal plus the one-line api.js wiring and the main/index.js OPERATIONS entries.
+- The nudge's text must start with 'I ' (or 'My '/'Everything I '/'N% of my ') to satisfy the existing first-person regex assertion in myattention.test.mjs - an initial draft worded as 'It has been N days since I last reflected...' would have silently violated that rule; final wording is 'I have not reflected on the week in N days.'
+- Adding any new myAttention signal requires updating the exact sorted-key-list assertion in test/myattention.test.mjs's 'every signal speaks in the first person' test, since that fixture's touches/entries (max age 9 days) happen to be old enough to trigger the new cadence gate and no reflections are in the fixture - this was expected per earlier iterations' notes and confirmed by actually running the suite.
+- Verified by hand-tracing every other test case in myattention.test.mjs that none of them accidentally cross the REFLECTION_CADENCE_DAYS=7 gate with the new signal (all other fixtures use touches/entries no older than 6 days, or the new signal sorts below the signal under test via weight so .find()/[0] assertions are unaffected) - no other test file needed changes.
+- Next step is plan step 5: half/view registration - add the 'reflection' entry to VIEWS in src/domain/halves.js (work-half only, after 'journal'), add a rail button in src/renderer/index.html after the journal button with no nav-count span, and register the new view module in src/renderer/app.js's VIEWS object and imports. Read src/renderer/app.js's exact import style for the journal view first before writing the new import line.
+- Remaining plan steps after that: step 6 (src/renderer/views/reflection.js, new file), step 7 (test/reflection.test.mjs plus further myattention.test.mjs cases for fire/clear/never-critical), step 8 (E2E flow in scripts/e2e-app.mjs), step 9 (DECISIONS.md entry), step 10 (final verification pass). None of these were touched this iteration.

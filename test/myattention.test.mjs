@@ -55,6 +55,7 @@ describe("the line", () => {
     assert.deepEqual(
       [...signals.map((s) => s.key)].sort(),
       [
+        "i-have-not-reflected",
         "i-have-not-spoken-to",
         "i-have-only-heard-about",
         "i-have-written-and-not-read",

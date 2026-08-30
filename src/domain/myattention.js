@@ -31,8 +31,9 @@
  */
 
 import { inScope } from "./people.js";
+import { REFLECTION_CADENCE_DAYS } from "./reflection.js";
 import { LONG_GAP_DAYS, MIN_ENTRIES, MIN_SPREAD, unread } from "./review.js";
-import { DAY_MS } from "./time.js";
+import { DAY_MS, daysBetween } from "./time.js";
 
 /** The window every signal looks back over. A month is one review cycle. */
 export const WINDOW_DAYS = 30;
@@ -64,6 +65,7 @@ const CONCENTRATION_OF = 0.2;
  *   so an update logged against one counts as contact with the person it is for.
  * @param {Record<string, any>[]} [input.entries] End-of-day entries.
  * @param {number | null} [input.lastReadAt] When a pass over them last ran.
+ * @param {{ at?: number }[]} [input.reflections] Weekly-ish look-backs already written.
  * @returns {Signal[]}
  */
 export function myAttention({
@@ -72,7 +74,8 @@ export function myAttention({
   now,
   stakes = [],
   entries = [],
-  lastReadAt = null
+  lastReadAt = null,
+  reflections = []
 }) {
   const since = now - WINDOW_DAYS * DAY_MS;
   // Somebody on leave or already gone is not somebody you are neglecting, and
@@ -215,6 +218,54 @@ export function myAttention({
       // on equal terms teaches the wrong order.
       weight: 40 + Math.min(20, backlog.entries) + (long ? 10 : 0)
     });
+  }
+
+  /* ------------------------------------------------- not reflected on -- */
+
+  /*
+   * The second signal here with no colleague in it at all - see "written and
+   * never read" above for why that still belongs in this file. This one
+   * ranks under it on purpose: an unread journal at least has content sitting
+   * there; this is only the absence of a habit, which is a smaller thing than
+   * a month of evenings going unread.
+   *
+   * A brand-new install has nothing to reflect on yet - a week that has not
+   * happened is not a gap, and nagging about it on day one would be exactly
+   * the reproach `reflection.js` says this feature must never become. So this
+   * only fires once there is evidence of at least a cadence's worth of use:
+   * some touch or journal entry older than REFLECTION_CADENCE_DAYS.
+   */
+  const earliestActivity = [...touches, ...entries]
+    .map((r) => Number(r.at ?? 0))
+    .filter((t) => t > 0)
+    .reduce(
+      (min, t) => (min === null || t < min ? t : min),
+      /** @type {number | null} */ (null)
+    );
+
+  const inUseLongEnough =
+    earliestActivity !== null && daysBetween(earliestActivity, now) >= REFLECTION_CADENCE_DAYS;
+
+  if (inUseLongEnough) {
+    const lastReflectedAt = reflections.length
+      ? Math.max(...reflections.map((r) => Number(r.at ?? 0)))
+      : null;
+    const daysSinceLast = lastReflectedAt === null ? null : daysBetween(lastReflectedAt, now);
+
+    if (lastReflectedAt === null || (daysSinceLast !== null && daysSinceLast >= REFLECTION_CADENCE_DAYS)) {
+      signals.push({
+        key: "i-have-not-reflected",
+        text:
+          lastReflectedAt === null
+            ? "I have not written a weekly reflection yet."
+            : `I have not reflected on the week in ${daysSinceLast} days.`,
+        detail: "A short look back: what went well, what I would do differently.",
+        // Under everything above - somebody being neglected, or my own
+        // journal going unread, both outrank a reminder that is about a
+        // habit rather than a fact I already have sitting in front of me.
+        weight: 20
+      });
+    }
   }
 
   return signals.sort((a, b) => b.weight - a.weight);

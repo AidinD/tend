@@ -116,6 +116,9 @@ export function myAttentionSignals(store, now) {
     // signal in that file is.
     entries: /** @type {any[]} */ (store.rows("entries")),
     lastReadAt: lastReviewRun(store),
+    // Whether a weekly reflection has ever been written, and when. See the
+    // "not reflected on" signal in myattention.js.
+    reflections: /** @type {any[]} */ (store.rows("reflections")),
     now
   });
 }
