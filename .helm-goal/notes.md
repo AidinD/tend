@@ -13,130 +13,7 @@ Current version in package.json: `0.1.70`. Bump to `0.1.71` for this change
 
 [... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-he file header comment
-in `src/mcp/tools.js` ("Writing may add, never restructure... It cannot
-decide what the job is - `decideDuty` is not on this list, deliberately"):
-  - `decideDuty` (accept/decline a proposed duty): app-only, not in `TOOLS`.
-  - `decideTopic`: same.
-  - `decideDecision`/recording a decision: same; and there is a **test that
-    locks this in**: `test/ledger.test.mjs` asserts `tend_log_decision` /
-    `tend_decide_decision` / `tend_record_decision` do not exist in `TOOLS`
-    (`names.includes(forbidden) === false`). `test/service.test.mjs` has an
-    equivalent assertion for duties: `TOOLS.find((t) =>
-    /decide|accept|activate/i.test(t.name))` must be `undefined`.
-
-Archiving a person/project/workstream is the same *kind* of action as
-accepting a duty or recording a decision: it changes what the roster/role
-map/Now *means* going forward, not a fact an agent observed. So the
-recommended plan is: **do not add archive/unarchive to `src/mcp/tools.js`**,
-and add a test mirroring the two above (e.g. assert no tool name matches
-`/archive/i`) to lock the decision in the same way the codebase already does
-for duties/decisions. This directly answers goal point 6 ("match existing
-conventions, don't invent a new shape"): the existing convention for this
-*class* of mutation is exclusion, not a new tool shape.
-
-### 7. Renderer / UI - concrete integration points
-
-Dialog helpers (`src/renderer/ui.js`), confirmed shape, use these directly.
-No native `confirm()`/`prompt()` exists anywhere in `src/renderer` and none
-should be added:
-```js
-ask({ title, body, confirm, tone })       // -> Promise<boolean>, tone: "danger" for destructive
-form({ title, intro, fields, confirm })   // -> Promise<Record<string,any>|null>
-act(opName, payload, successToastText)    // -> calls tend.invoke(op, payload), toasts on error, returns null on error
-```
-Existing "Remove" buttons follow the exact pattern to copy for "Archive":
-`src/renderer/views/people.js` `actions.remove` (person page, "danger zone"
-block near the bottom) and `src/renderer/views/work.js`
-`removeProject`/`removeStream` (three "Remove" buttons: projects list rows,
-stakeholders rows, workstream cards). Add "Archive" buttons beside "Remove"
-in all three places (person page, project rows, workstream cards), each:
-`ask({title: "Archive X?", body: "<plain-language: what will and will not
-happen>", confirm: "Archive", tone: "danger"})` then `act("archivePerson"/
-"archiveProject"/"archiveWorkstream", {id}, "Archived.")` then `refresh()`.
-
-For "show archived" / unarchive path (goal point 5): `src/domain/halves.js`
-`VIEWS` currently has no archive-related entry; the **Work** view
-(`halves: ["work"]` only) is where projects/workstreams live, and **People**
-(`halves: ["work", "private"]`) is where people live. Confirmed people ARE
-private-half-relevant (the private half has its own people, e.g. family),
-so the People archive/unarchive UI must work correctly in both halves, but
-Work (projects/workstreams) is work-half only by construction (confirmed:
-`work.js`/`prep.js`/`attention.js` are the only readers of the `projects`/
-`workstreams` collections; `journal.js` and `knowledge.js`, the two
-private-half views besides People/Settings, never touch them). So:
-  - People: add an "Archived" toggle/section within the existing People view
-    (grouped like the relationship groups already are), reachable in both
-    halves, or a small "Archived (n)" link near the "Add someone" button.
-  - Work: same idea for projects/workstreams within the existing Work view.
-  - Simpler alternative matching `roleMap`'s pattern (`{active, proposed,
-    declined}` groups already rendered together in `role.js`): make the
-    existing People/Work views render an "Archived" group alongside the
-    live ones (collapsed/at the bottom) rather than a whole separate route,
-    likely less new plumbing than a new entry in `halves.js` `VIEWS`. Decide
-    in the plan phase; both are legitimate, `halves.js`'s comment already
-    warns against a *fifth* hand-written derived list, so whichever is
-    chosen should still derive from one place if it needs its own list of
-    views/sections.
-  - Settings (`src/renderer/views/settings.js`) is where the bulk "I left
-    this job" action belongs (goal point 5, explicit). Follow the existing
-    `<div class="group">`/`<article class="card">` section pattern (see
-    `modeSection`/`dataSection` for the shape): a new section, its own
-    `ask({..., tone: "danger"})` confirm dialog whose body states in plain
-    words: archives everyone/everything currently active; does not delete
-    any history; fully reversible one at a time. Then `act
-    ("archiveEverythingActive", {}, "...")` then `refresh()`.
-
-### 8. Tests - conventions confirmed, ready to copy
-
-- Unit/domain/service tests: `node:test` `describe`/`it`,
-  `beforeEach`/`afterEach` opening a fresh `openStore` over a `mkdtempSync`
-  scratch dir, `ok(result)`/`failed(result)` helpers from `test/helpers.mjs`
-  to unwrap the `{error}`-or-success union. See `test/service.test.mjs`,
-  `test/people.test.mjs` (the latter already tests `removeRow` directly,
-  a good template for archive/unarchive tests: idempotency, "still shows up
-  in history", cadence exclusion via `expandCadences`).
-- MCP absence test pattern: `test/ledger.test.mjs` (around lines 135-140) and
-  `test/service.test.mjs` (around lines 302-307, quoted above in section 6):
-  copy this shape for a new "archive tools are not exposed over MCP"
-  assertion.
-- E2E (`scripts/e2e-app.mjs`): `check(label, fn)` harness, CDP-driven,
-  `TEND_DATA_DIR` scratch dir via `mkdtempSync`. The closest existing
-  end-to-end analogue to copy for archive/unarchive is the away/leave
-  round-trip check (search for `awayUntil` in that file): open person, then
-  `fillDialog` a status field, then assert they disappear from a computed
-  list, then clear the field via edit again, then assert they reappear. A
-  new archive check should follow: click Archive on a person/project/
-  workstream, confirm dialog, assert gone from roster/Now/prep listing,
-  open "show archived", assert visible there with an Unarchive action,
-  click it, assert back in the normal listing. Also add a check for the
-  Settings bulk action: open Settings, trigger "I left this job", assert the
-  confirmation dialog wording, confirm, assert roster/Now/Work are now empty
-  of active items, assert history/person pages still resolve.
-
-### 9. Version/commit notes
-
-- `package.json` version is currently `0.1.70` at research time. Bump patch
-  on whatever commit(s) land this work, per CLAUDE.md rule (bump on every
-  commit, never touch minor/major without asking).
-- DECISIONS.md entries are dated `## YYYY-MM-DD - <sentence-case title>`,
-  each with bolded lead-ins (`**Decided.**`, `**Why.**`, `**Rejected:
-  ...**`). Newest entries currently dated `2026-08-27`; today's date per the
-  environment is `2026-08-30`, use that for the new entry. The 2026-08-25
-  "Away and gone are dates on a person, not a delete" entry is the closest
-  voice/shape template (has its own "Rejected: hiding a promise the moment a
-  resignation is known" subsection): model the new entry's shape on it, but
-  do not name any person or describe the owner's real situation (per the
-  goal's constraint); write only about the mechanism in general terms.
-
-### 10. Open questions to settle in the PLAN phase (not yet decided)
-
-1. Exact shape of "list with archived included": a boolean option threaded
-   through `people()`/`projects()`/`workstreams()`, or a `{active,
-   archived}` grouped return (mirrors `roleMap`'s `{active, proposed,
-   declined}`), or dedicated `archivedPeople()`/etc. functions. Recommend
-   the grouped-return shape for consistency with `roleMap`, but either is
-   acceptable; pick one and use it consistently across all three
+e
    collections and their MCP/renderer callers.
 2. Whether stakes tied to an archived person/project get filtered out of
    cadence crossing too (recommended: yes, since a stake for a project
@@ -301,3 +178,42 @@ Key learnings:
 - myattention.js needed no changes - myAttention() already filters people via inScope internally and its viaStake translation only recognises stakes whose person is in that already-filtered set, so archived people are invisible to it for free (confirms research notes' prediction)
 - findSubject() and setDelegationLevel() in api.js were deliberately left unfiltered - they are single-row lookups for editing/recording history against a subject, not listings, and an archived row must stay fully writable-to since keeping history intact requires that
 - npm test (617/617) and npm run typecheck both pass clean after this step; no new tests added yet since Step 5 (unit tests) comes after Step 4's new API surface exists
+
+## Iteration 5 - success (plan Step 4)
+
+Summary: Added the archive/unarchive/bulk service functions and the three archived-listing siblings to src/service/api.js, wired them into src/main/index.js's OPERATIONS whitelist, and noted their deliberate absence from the MCP tool surface in src/mcp/tools.js's header comment.
+
+Key changes:
+- src/service/api.js: added `archivedPeople`/`archivedProjects`/`archivedWorkstreams` (each: rows where `isArchived(row)`, mapped to `{id, name, archivedAt}` (plus `relation` for people), newest-archived first) placed right after `people()`/`projects()`/`workstreams()` respectively. Added `archivePerson`/`archiveProject`/`archiveWorkstream` (resolve via `resolvePerson`/`resolveProject`/`resolveWorkstream`, `{error}` on a bad id, `{..., already: true}` no-op if already archived, otherwise `store.update(collection, id, {archivedAt: now})`) placed after `updatePerson`/`addProject`/`addWorkstream` respectively, and matching `unarchivePerson`/`unarchiveProject`/`unarchiveWorkstream` (`store.update(collection, id, {archivedAt: null})`, `null` not `undefined`, matching `updatePerson`'s clear convention). Added `archiveEverythingActive(store, {now})` after the workstream archive functions: loops all three collections, calls the matching `archive*` function on every row, counts only the ones where the result was NOT `already: true`, returns `{people, projects, workstreams}`.
+- src/main/index.js: added the six archive/unarchive lines plus the three archived-listing lines plus `archiveEverythingActive` to `OPERATIONS`, grouped right after `projects:` with a comment explaining why they're operations (not decisions like decideDuty) yet still absent from MCP.
+- src/mcp/tools.js: extended the existing "writing may add, never restructure" paragraph in the file header to explicitly name archive/unarchive/bulk as excluded, for the same reason `decideDuty` is excluded (taking someone off the roster is the user's call, even though archiving is reversible and adds no history).
+- Manually sanity-checked (via a throwaway script, deleted before finishing - not left in the repo) that: archiving is idempotent (second call returns `already: true` with the *original* `archivedAt`, does not overwrite it), archived rows drop out of `people()`/`projects()`/`workstreams()` but `person()` still resolves and reports `archivedAt`, unarchiving restores visibility, and `archiveEverythingActive` run twice in a row archives everything the first time and nothing the second time (`{people: 0, projects: 0, workstreams: 0}`).
+- Bumped package.json version 0.1.72 -> 0.1.73.
+
+Key learnings:
+- Discovered while sanity-checking: `addPerson` in the work half rejects relation `"peer"` - valid work-half relations are `lead-and-manage`, `lead-only`, `manage-remotely`, `equal-lead`, `own-manager`, `stakeholder` (from `src/domain/halves.js` `relationsIn`). Future unit tests (plan Step 5) need a valid relation constant like `"equal-lead"`, not an invented one - check `test/service.test.mjs`'s existing fixtures for whatever they already use rather than guessing again.
+- `resolvePerson`/`resolveProject`/`resolveWorkstream` all accept an id directly (checked before the fuzzy-name match), so `archivePerson(store, id, {now})` etc. correctly resolve by the id the renderer/MCP would pass, not just by name - confirmed by the sanity script.
+- Local variable names `people`/`projects`/`workstreams` inside `archiveEverythingActive` shadow the exported functions of the same name in the same module - this is valid JS (function-scoped shadowing) and `tsc --noEmit` raised no complaint; flagging only so a future reviewer doesn't think it's a bug.
+- Did NOT add any new unit tests yet - this iteration is plan Step 4 (service layer plus wiring only); the plan's Step 5 explicitly comes next and should add `test/service.test.mjs`-style coverage for all of the above (idempotency, unarchive, bulk, archived-listing shape) plus the MCP absence test (`/archive/i` should match no `TOOLS` entry in `src/mcp/tools.js`, mirroring the existing `/decide|accept|activate/i` assertion near the decideDuty test in that file, around line 302).
+- `npm test` (617/617, unchanged - no new tests added this iteration) and `npm run typecheck` both pass clean.
+- Next iteration should do plan Step 5: unit tests in `test/service.test.mjs` (or a new `test/archive.test.mjs` if that reads cleaner - check the existing file's size/organization first) covering everything listed in the plan's Step 5, plus the MCP absence test. After that, Steps 6-8 are the three renderer iterations (person/work archive buttons plus banners, archived-browse groups in People/Work views, Settings bulk action), then Step 9 (E2E), Step 10 (DECISIONS.md entry), Step 11 (final verification pass).
+
+## Iteration 5 — success
+
+Summary: Implemented plan Step 4: added the archive/unarchive/bulk-archive/archived-listing service functions to src/service/api.js, wired them into src/main/index.js's OPERATIONS whitelist, and documented their deliberate absence from the MCP tool surface.
+
+Key changes:
+- Added archivePerson/archiveProject/archiveWorkstream and unarchivePerson/unarchiveProject/unarchiveWorkstream to src/service/api.js, each idempotent (already:true no-op if already in that state), using resolvePerson/resolveProject/resolveWorkstream for the existing error style
+- Added archiveEverythingActive(store, {now}) as a thin wrapper looping all three collections and calling the per-item archive functions, counting only rows that actually changed
+- Added archivedPeople/archivedProjects/archivedWorkstreams sibling list functions returning only archived rows (id, name, archivedAt, newest first)
+- Wired all ten new functions into src/main/index.js's OPERATIONS whitelist with a comment explaining they are operations (not MCP tools), grouped after the projects: entry
+- Extended src/mcp/tools.js's header comment to explicitly name archive/unarchive/bulk as deliberately excluded from the MCP surface, same rationale as decideDuty
+- Bumped package.json version 0.1.72 -> 0.1.73
+- Appended Iteration 5 notes to .helm-goal/notes.md with what was done, a discovered gotcha, and the concrete next step
+
+Key learnings:
+- addPerson in the work half rejects relation "peer" - valid values are lead-and-manage, lead-only, manage-remotely, equal-lead, own-manager, stakeholder (from src/domain/halves.js relationsIn) - use one of these in future test fixtures for this work
+- Manually sanity-checked (throwaway script, deleted before finishing, not committed) that archiving is idempotent and preserves the original archivedAt on a second call, unarchive restores visibility in people()/projects()/workstreams(), person() still resolves an archived person and reports archivedAt, and archiveEverythingActive run twice archives everything the first time and nothing the second time
+- Local variable names people/projects/workstreams inside archiveEverythingActive shadow the exported functions of the same name in the same module scope - valid JS, tsc raised no complaint, not a bug, just worth flagging for a future reader
+- npm test (617/617) and npm run typecheck both pass clean; no new unit tests were added this iteration since that is scoped to plan Step 5
+- Next iteration should do plan Step 5: add unit tests (test/service.test.mjs or a new test/archive.test.mjs) covering idempotency, unarchive, bulk archive, archived-listing shape, and history staying intact, plus an MCP absence test asserting no TOOLS entry matches /archive/i (mirror the existing /decide|accept|activate/i assertion near decideDuty's test, around line 302 in test/service.test.mjs). After that: Steps 6-8 (renderer: person/work buttons, archived-browse views, Settings bulk action), Step 9 (E2E), Step 10 (DECISIONS.md entry), Step 11 (final verification pass)

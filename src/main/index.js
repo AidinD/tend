@@ -125,6 +125,25 @@ const OPERATIONS = {
   focus: (/** @type {any} */ a) => api.focus(store, a.now ?? Date.now()),
   projects: (/** @type {any} */ a) => api.projects(store, a.now ?? Date.now()),
 
+  // Archiving is a status flag on an existing row, not a decision about the
+  // role map or the duties owed - so unlike decideDuty/decideTopic below it
+  // is a plain operation here, and (see the MCP tool list) not exposed there
+  // at all: an agent may add to a person's history, but taking them off the
+  // roster is the user's call.
+  archivedPeople: (/** @type {any} */ a) => api.archivedPeople(store, a.now ?? Date.now()),
+  archivePerson: (/** @type {any} */ a) => api.archivePerson(store, a.id, { now: a.now ?? Date.now() }),
+  unarchivePerson: (/** @type {any} */ a) => api.unarchivePerson(store, a.id),
+  archivedProjects: (/** @type {any} */ a) => api.archivedProjects(store, a.now ?? Date.now()),
+  archiveProject: (/** @type {any} */ a) => api.archiveProject(store, a.id, { now: a.now ?? Date.now() }),
+  unarchiveProject: (/** @type {any} */ a) => api.unarchiveProject(store, a.id),
+  archivedWorkstreams: (/** @type {any} */ a) => api.archivedWorkstreams(store, a.now ?? Date.now()),
+  archiveWorkstream: (/** @type {any} */ a) => api.archiveWorkstream(store, a.id, { now: a.now ?? Date.now() }),
+  unarchiveWorkstream: (/** @type {any} */ a) => api.unarchiveWorkstream(store, a.id),
+  // The "I left this job" button in Settings. See api.archiveEverythingActive
+  // for why this is a wrapper over the six operations above rather than its
+  // own code path.
+  archiveEverythingActive: (/** @type {any} */ a) => api.archiveEverythingActive(store, { now: a.now ?? Date.now() }),
+
   addPerson: (/** @type {any} */ a) => api.addPerson(store, { ...a, now: a.now ?? Date.now() }),
   setRelation: (/** @type {any} */ a) => api.setRelation(store, a.person, a.relation),
   updatePerson: (/** @type {any} */ a) => api.updatePerson(store, a.person, a.fields ?? {}),

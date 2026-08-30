@@ -281,6 +281,28 @@ export function people(store, now, relation) {
 }
 
 /**
+ * The people the roster hides. `people()` and this are deliberately two
+ * functions rather than one with a flag: each keeps a contract that never
+ * changes shape ("everyone active" / "everyone archived"), so nothing that
+ * already calls `people()` has to learn about an option it never asks for.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ */
+export function archivedPeople(store, now) {
+  return store
+    .rows("people")
+    .filter((p) => isArchived(p))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      relation: p.relation,
+      archivedAt: p.archivedAt
+    }))
+    .sort((a, b) => b.archivedAt - a.archivedAt);
+}
+
+/**
  * @param {import("../storage/store.js").TendStore} store
  * @param {number} now
  */
@@ -378,6 +400,21 @@ export function projects(store, now) {
       urgency: worst ? worst.drift.trueSeverity : "ok"
     };
   });
+}
+
+/**
+ * The projects `projects()` hides. See `archivedPeople` for why this is a
+ * sibling function rather than a flag on `projects()`.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ */
+export function archivedProjects(store, now) {
+  return store
+    .rows("projects")
+    .filter((p) => isArchived(p))
+    .map((p) => ({ id: p.id, name: p.name, archivedAt: p.archivedAt }))
+    .sort((a, b) => b.archivedAt - a.archivedAt);
 }
 
 /* -------------------------------------------------------------- writing -- */
@@ -546,6 +583,56 @@ export function updatePerson(store, who, { name, relation, since, awayUntil, lef
 }
 
 /**
+ * Stop a person cluttering Now, prep, attention and the roster, without
+ * touching anything that has ever been recorded about them.
+ *
+ * Deliberately not folded into `updatePerson`: archiving is a distinct action
+ * with its own confirmation in the UI, and a caller that only means to rename
+ * somebody should not be able to archive them by way of an unrelated field.
+ *
+ * Idempotent, on purpose - the bulk "I left this job" action re-runs this over
+ * everyone, and a second run over somebody already archived must be free
+ * rather than an error or a reset of when they were archived.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ * @param {object} args
+ * @param {number} args.now
+ */
+export function archivePerson(store, id, { now }) {
+  const found = resolvePerson(store, id);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  if (isArchived(found.person)) {
+    return { id: found.person.id, name: found.person.name, archivedAt: found.person.archivedAt, already: true };
+  }
+  store.update("people", found.person.id, { archivedAt: now });
+  return { id: found.person.id, name: found.person.name, archivedAt: now };
+}
+
+/**
+ * The other half of `archivePerson`. `null`, not `undefined`, clears the
+ * field in the event log - the same convention `updatePerson` uses for
+ * `awayUntil`/`leftAt`, because an event that means "no longer true" has to
+ * say so rather than omit the field and leave a reader to guess why.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ */
+export function unarchivePerson(store, id) {
+  const found = resolvePerson(store, id);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  if (!isArchived(found.person)) {
+    return { id: found.person.id, name: found.person.name, already: true };
+  }
+  store.update("people", found.person.id, { archivedAt: null });
+  return { id: found.person.id, name: found.person.name };
+}
+
+/**
  * @param {import("../storage/store.js").TendStore} store
  * @param {object} args
  * @param {string} args.name
@@ -565,6 +652,44 @@ export function addProject(store, { name, since, now }) {
     since: typeof since === "number" ? since : now
   });
   return { id, added: name };
+}
+
+/**
+ * See `archivePerson` - same shape, same idempotency guarantee, for a project.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ * @param {object} args
+ * @param {number} args.now
+ */
+export function archiveProject(store, id, { now }) {
+  const found = resolveProject(store, id);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  if (isArchived(found.project)) {
+    return { id: found.project.id, name: found.project.name, archivedAt: found.project.archivedAt, already: true };
+  }
+  store.update("projects", found.project.id, { archivedAt: now });
+  return { id: found.project.id, name: found.project.name, archivedAt: now };
+}
+
+/**
+ * See `unarchivePerson`.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ */
+export function unarchiveProject(store, id) {
+  const found = resolveProject(store, id);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  if (!isArchived(found.project)) {
+    return { id: found.project.id, name: found.project.name, already: true };
+  }
+  store.update("projects", found.project.id, { archivedAt: null });
+  return { id: found.project.id, name: found.project.name };
 }
 
 /**
@@ -876,6 +1001,21 @@ export function workstreams(store, now) {
 }
 
 /**
+ * The workstreams `workstreams()` hides. See `archivedPeople` for why this is
+ * a sibling function rather than a flag on `workstreams()`.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ */
+export function archivedWorkstreams(store, now) {
+  return store
+    .rows("workstreams")
+    .filter((w) => isArchived(w))
+    .map((w) => ({ id: w.id, name: w.name, archivedAt: w.archivedAt }))
+    .sort((a, b) => b.archivedAt - a.archivedAt);
+}
+
+/**
  * @param {number} at
  * @param {number} now
  */
@@ -933,6 +1073,89 @@ export function addWorkstream(store, { name, owner, project, level, now }) {
     since: now
   });
   return { id, added: name, level: level ?? "not set" };
+}
+
+/**
+ * See `archivePerson` - same shape, same idempotency guarantee, for a
+ * workstream.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ * @param {object} args
+ * @param {number} args.now
+ */
+export function archiveWorkstream(store, id, { now }) {
+  const found = resolveWorkstream(store, id);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  if (isArchived(found.workstream)) {
+    return {
+      id: found.workstream.id,
+      name: found.workstream.name,
+      archivedAt: found.workstream.archivedAt,
+      already: true
+    };
+  }
+  store.update("workstreams", found.workstream.id, { archivedAt: now });
+  return { id: found.workstream.id, name: found.workstream.name, archivedAt: now };
+}
+
+/**
+ * See `unarchivePerson`.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ */
+export function unarchiveWorkstream(store, id) {
+  const found = resolveWorkstream(store, id);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  if (!isArchived(found.workstream)) {
+    return { id: found.workstream.id, name: found.workstream.name, already: true };
+  }
+  store.update("workstreams", found.workstream.id, { archivedAt: null });
+  return { id: found.workstream.id, name: found.workstream.name };
+}
+
+/**
+ * The "I left this job" moment: everything active, archived in one call.
+ *
+ * A thin wrapper over `archivePerson`/`archiveProject`/`archiveWorkstream` and
+ * nothing more - a bulk action is not a separate code path with its own rules,
+ * it is the same reversible per-item archive, applied to everyone and
+ * everything that is not already archived. That is also what makes it safe to
+ * press again by mistake: an already-archived row is skipped by the per-item
+ * function's own idempotency guard, so a second run reports zero and changes
+ * nothing.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {number} args.now
+ */
+export function archiveEverythingActive(store, { now }) {
+  let people = 0;
+  let projects = 0;
+  let workstreams = 0;
+
+  for (const p of store.rows("people")) {
+    if (!archivePerson(store, p.id, { now }).already) {
+      people += 1;
+    }
+  }
+  for (const p of store.rows("projects")) {
+    if (!archiveProject(store, p.id, { now }).already) {
+      projects += 1;
+    }
+  }
+  for (const w of store.rows("workstreams")) {
+    if (!archiveWorkstream(store, w.id, { now }).already) {
+      workstreams += 1;
+    }
+  }
+
+  return { people, projects, workstreams };
 }
 
 /**

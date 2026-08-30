@@ -13,7 +13,12 @@
  *
  *   Writing may add, never restructure. An agent can log a promise, a contact
  *   or an observation. It can *propose* a duty. It cannot decide what the job
- *   is - `decideDuty` is not on this list, deliberately.
+ *   is - `decideDuty` is not on this list, deliberately. Taking a person,
+ *   project or workstream off the roster is the same kind of decision, so
+ *   `archivePerson`/`archiveProject`/`archiveWorkstream` (and their unarchive
+ *   and bulk counterparts) are not here either - even though archiving is
+ *   reversible and adds no history of its own, it changes what the roster
+ *   *is*, which stays the user's call.
  *
  * The app's model layer is deliberately absent here, and that is not an
  * oversight. A caller on this surface already *is* a model: handing it a tool
