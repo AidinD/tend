@@ -317,6 +317,20 @@ async function personPage(id) {
           : ""
       }
 
+      <!--
+        Own block, not inside danger-zone: archiving is reversible and does
+        not belong beside Remove, which is not. Confusing the two would put
+        the one destructive action a click away from the one that is not.
+      -->
+      <div class="block">
+        ${
+          p.archivedAt
+            ? `<p class="card-why dim">Archived on ${esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10))}. They stop appearing in Now, prep, attention nudges and duty cadences - everything already on this page stays exactly as it is.</p>
+               <button class="act" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Unarchive ${esc(p.name)}</button>`
+            : `<button class="act" data-act="archive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Archive ${esc(p.name)}</button>`
+        }
+      </div>
+
       <div class="block danger-zone">
         <button class="act danger" data-act="remove" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Remove ${esc(p.name)}</button>
       </div>
@@ -632,6 +646,34 @@ export const actions = {
   /** @param {Record<string, string>} d */
   resolvePromise: async (d) => {
     if (await act("resolvePromise", { id: d.id, as: "resolved" }, "Closed.")) {
+      refresh();
+    }
+  },
+
+  /**
+   * Reversible, unlike `remove` below - so it gets its own, gentler dialog
+   * rather than reusing the danger-zone one.
+   *
+   * @param {Record<string, string>} d
+   */
+  archive: async (d) => {
+    const sure = await ask({
+      title: `Archive ${d.name}?`,
+      body: "They stop appearing in Now, prep, attention nudges and duty cadences. Every 1-1, promise, decision and growth thread about them stays exactly as it is and can be looked at again. Fully reversible - unarchive them any time from their page.",
+      confirm: "Archive",
+      tone: "danger"
+    });
+    if (!sure) {
+      return;
+    }
+    if (await act("archivePerson", { id: d.person }, `${d.name} archived.`)) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  unarchive: async (d) => {
+    if (await act("unarchivePerson", { id: d.person }, `${d.name} unarchived.`)) {
       refresh();
     }
   },
