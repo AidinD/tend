@@ -9,72 +9,11 @@ DECISIONS.md / PLAN.md (Fas 3 Point 11) in the Helm repo for why.
 ## RESEARCH iteration (archive mechanism) - findings and recommended plan
 
 Current version in package.json: `0.1.70`. Bump to `0.1.71` for this change
-(patch-per-commit; if implementation spans multiple commits, bump on each).
+(patch-per-
 
-### 1. Storage layer - how it actually works (confirmed by reading reduce.js/store.js)
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-- `COLLECTIONS` in `src/storage/reduce.js` is a whitelist array (`"people"`,
-  `"projects"`, `"workstreams"`, etc.). Adding `archivedAt` needs **no change
-  here** - rows are untyped bags of fields (`Record<string, any> & {id, _by,
-  _at, ...}`), so `archivedAt` just becomes a field written via the existing
-  generic `create`/`update` event verbs. No new collection, no new event verb.
-- `store.create(collection, fields)` calls emit `${collection}.create`.
-  `store.update(collection, id, fields)` emits `${collection}.update`
-  (last-write-wins per field, via `Object.assign` in `applyEvent`).
-  `store.remove(collection, id)` emits `${collection}.delete`, which sets
-  `_deleted: true` on the row (reduce.js `applyEvent`, action `"delete"`).
-  **There is no restore/undelete verb anywhere** - `_deleted` is one-way in
-  practice today, even though the log technically retains the delete event.
-- `store.rows(collection)` (via `rows(state, collection)` in reduce.js) filters
-  out `_deleted` rows. **It does NOT know about `archivedAt` and must not be
-  taught to** - archived rows must stay fully readable through `store.rows()`
-  so history (touches, promises, decisions, growth, evidence) keeps resolving
-  against them. Filtering-by-archived has to happen at each *call site* that
-  builds a live view (attention, prep, cadence crossing, default listings),
-  not inside the generic row reader.
-- `resolvePerson`/`resolveProject`/`resolveWorkstream` (`src/service/resolve.js`)
-  all read via `store.rows(...)`, so they filter `_deleted` but will **still
-  resolve an archived row** (archived is not the same as deleted). This is
-  exactly the behaviour the goal wants: `api.person(store, query, now)` (the
-  person page) needs zero changes to keep working for an archived person -
-  resolution already passes through untouched. Same would apply to a
-  project/workstream detail view, if one exists.
-
-### 2. `_deleted` (existing "Remove") vs `archivedAt` (new) - they must stay distinct
-
-The "Remove" button already on people/projects/workstreams/etc
-(`api.removeRow`, wired in `people.js`/`work.js` renderer views) sets
-`_deleted: true`. Its own confirm copy already claims "Nothing is destroyed
-... can be recovered" - but there is **no actual restore path** anywhere in
-service/UI/MCP today. It also makes the row **unresolvable by name/id**
-(`resolvePerson` etc. would 404 it), unlike an archived row.
-
-So `_deleted` and `archivedAt` are two different, deliberately separate
-mechanisms:
-- `_deleted` = "Remove": a full tombstone, currently one-way from the user's
-  perspective, row disappears even from lookup-by-id.
-- `archivedAt` = "Archive": reversible, explicit, row stays fully resolvable
-  and its person/project page keeps working; only *default/aggregate* views
-  (roster, Now, prep, cadence expansion) hide it, and there is an explicit
-  "show archived" path back.
-
-Do not merge them, do not make Remove imply Archive or vice versa. Both
-should keep existing separately (Remove stays exactly as it is today).
-
-### 3. Existing precedent worth citing in the DECISIONS.md entry
-
-`src/domain/people.js` already solves *almost* this exact problem for one
-collection: `awayUntil`/`leftAt` are **dates on a person, not a delete**
-(see the file's own header comment, and the DECISIONS.md entry dated
-2026-08-25, "Away and gone are dates on a person, not a delete" - the
-closest existing analogue in voice/shape to the archive decision to be
-written). `hasLeft`/`isAway`/`inScope`/`notBefore`/`availability` in that
-file are the pattern: a date field, absent means normal, present means a
-status that suppresses cadences/promises while keeping history untouched.
-
-**Important distinction to keep in the design**: `leftAt`/`awayUntil` are
-person-specific and carry notice-period/return-date semantics
-(`appliesWhileLeaving`, "clock restarts from return"). `archivedAt` is a
+m return"). `archivedAt` is a
 simpler, symmetric, three-collection, purely-boolean-in-effect status (no
 "period", no "return date" logic) triggered by an explicit user action, with
 its own bulk trigger ("I left this job"). They should NOT be unified into one
@@ -357,3 +296,20 @@ Key learnings:
 - No PersonRow/ProjectRow/WorkstreamRow JSDoc typedefs exist anywhere today, and there's no dedicated src/domain/projects.js file - plan phase should not over-engineer new typedef files just for this.
 - package.json version is currently 0.1.70; bump to 0.1.71+ per commit during implementation. Today's date (2026-08-30) should be used for the new DECISIONS.md entry, modeled on the 2026-08-25 'Away and gone are dates on a person, not a delete' entry's voice/shape.
 - Left several concrete open questions for the plan phase in notes.md section 10 (list-with-archived return shape, whether stakes tied to archived people/projects get filtered too, exact placement of the 'show archived' UI, whether project/workstream row shapes need an archived flag added).
+
+## Iteration 2 — success
+
+Summary: Wrote a concrete, 11-step implementation plan for the archive mechanism to .helm-goal/plan.md, grounded in direct reads of the actual current code rather than just prior research notes.
+
+Key changes:
+- Created .helm-goal/plan.md with an ordered, implement-iteration-sized step list: domain archive.js + inScope extension, service-layer read-path filtering, archive/unarchive/bulk service functions + OPERATIONS wiring, unit tests, four renderer steps (person/work buttons, archived-browse views, Settings bulk action), E2E coverage, DECISIONS.md entry, final verification pass
+- No source code changes made this iteration (plan-only phase, as required)
+
+Key learnings:
+- Verified against actual code (not just prior notes): store.rows() in src/storage/reduce.js filters only _deleted, never archivedAt - confirmed safe to leave as-is so resolvePerson/resolveProject/resolveWorkstream keep resolving archived rows by id, which history and the person/project page depend on
+- src/main/index.js's OPERATIONS map is a hand-written whitelist, NOT auto-generated from api.js exports - every new archive/unarchive/bulk/list-archived function needs an explicit new line added there, following the existing style; this detail was not nailed down in the prior research notes
+- Confirmed exact renderer conventions to copy: ask()/form()/act() in src/renderer/ui.js, the actions.remove (people.js) / removeProject+removeStream (work.js) button+confirm pattern, and settings.js's group/card section function style (e.g. dataSection, switchMode) - quoted concretely in the plan so implement iterations don't need to re-derive them
+- Confirmed MCP absence-test precedent's exact location and assertion shape in test/service.test.mjs (~line 302, /decide|accept|activate/i pattern) to mirror for a new /archive/i absence test
+- Plan resolves the open question on list-with-archived shape: three new sibling functions archivedPeople/archivedProjects/archivedWorkstreams (not a boolean param or {active,archived} grouped return), since people()/projects()/workstreams() already have several existing callers expecting today's flat array shape
+- Plan resolves the stakes-filtering open question: filter namedStakes(...) inputs at call sites in attention.js and api.stakeholders rather than adding archivedAt to the stakes collection itself
+- Confirmed store.update(collection, id, {archivedAt: null}) is the correct way to clear (matches existing updatePerson convention of null-means-clear, not undefined)
