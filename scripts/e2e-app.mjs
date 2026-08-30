@@ -84,6 +84,12 @@ const jotScratch = mkdtempSync(join(tmpdir(), "tend-app-jot-"));
 let failures = 0;
 let checks = 0;
 
+// The step the run is currently inside, and whether it ever reached a verdict.
+// Both exist only for the exit guard installed further down, which is the one
+// thing that can speak for a run that ends without printing a summary.
+let currentStep = "attaching to the app";
+let summarised = false;
+
 /** @param {number} ms */
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
@@ -110,6 +116,7 @@ function check(label, fn) {
 
 /** @param {string} label */
 function step(label) {
+  currentStep = label;
   console.log(`\n  — ${label}`);
 }
 
@@ -608,6 +615,28 @@ child.on("error", (err) => {
 
 /** @type {Awaited<ReturnType<typeof connect>> | null} */
 let page = null;
+
+// A harness that can stop in the middle without failing is worse than no harness.
+// A run once hung on a screenshot, printed a warning about an unsettled top-level
+// await, and ended with no failing check and no summary - and the re-run went
+// green, so the only evidence the gate had been cut short was a warning nobody was
+// looking for. Anything that ends this process before the summary is a failure now,
+// and it names the step it died in.
+//
+// Installed here rather than at the top of the file on purpose: the refusals above
+// this line - a busy port, a missing packaged build - exit deliberately, and those
+// are not a run that died.
+process.on("exit", (code) => {
+  if (summarised) {
+    return;
+  }
+  console.error(`
+The run ended during "${currentStep}" without reaching the end.`);
+  console.error(`Node exited with ${code} and printed no summary, so nothing here passed.`);
+  if (code === 0) {
+    process.exitCode = 1;
+  }
+});
 
 try {
   const target = await findPage(() => exitedBecause);
@@ -2661,6 +2690,7 @@ try {
   }
 }
 
+summarised = true;
 console.log(
   failures === 0 ? `\nAll ${checks} app checks passed.` : `\n${failures} of ${checks} check(s) failed.`
 );
