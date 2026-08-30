@@ -13,66 +13,16 @@ Current version in package.json: `0.1.70`. Bump to `0.1.71` for this change
 
 ## Preserved key learnings (from truncated earlier iterations)
 
-- store.rows() already filters _deleted but must NOT be taught about archivedAt - archived rows must stay resolvable via resolvePerson/resolveProject/resolveWorkstream so history and the person/project page keep working; only aggregate views (roster, Now, prep, cadence expansion) need explicit archived-filtering at each call site.
-- _deleted (existing 'Remove') has no restore path anywhere today and makes rows unresolvable by id; archivedAt must stay a distinct, separate, genuinely reversible mechanism - do not merge the two.
-- src/domain/people.js's leftAt/awayUntil + inScope() is the closest existing precedent (and has a matching DECISIONS.md entry dated 2026-08-25) - extending inScope() with an isArchived() check covers people for free in attention.js/myattention.js/growthQuestions, but projects/workstreams have no equivalent helper and need direct filtering at each call site (expandCadences, buildAttention's unspecified-workstream loop, prep.js's owned-workstreams list, api.js's default list endpoints).
-- prep.js currently has NO inScope-style filtering for people at all (relies on drift happening to be 0) - archived people must be explicitly skipped there, not just left to fall out via drift.
-- Strong existing convention (decideDuty, decideTopic, decideDecision) deliberately excludes structural/roster-changing operations from the MCP tool surface, with tests in ledger.test.mjs and service.test.mjs asserting specific tool names/patterns do NOT exist. Recommend archive/unarchive follow the same exclusion, with a matching absence test, rather than adding new MCP tools.
-- No native confirm()/prompt() exists anywhere in src/renderer; ask({title,body,confirm,tone})/form({title,intro,fields,confirm})/act(op,payload,toast) are the exact conventions to reuse for Archive buttons and the Settings bulk 'I left this job' action.
-- People are relevant to both work and private halves (halves.js VIEWS), but projects/workstreams are confirmed work-half-only (only work.js/prep.js/attention.js read those collections) - archive UI for people needs to work in both halves, projects/workstreams only in the work half.
-- No PersonRow/ProjectRow/WorkstreamRow JSDoc typedefs exist anywhere today, and there's no dedicated src/domain/projects.js file - plan phase should not over-engineer new typedef files just for this.
-- package.json version is currently 0.1.70; bump to 0.1.71+ per commit during implementation. Today's date (2026-08-30) should be used for the new DECISIONS.md entry, modeled on the 2026-08-25 'Away and gone are dates on a person, not a delete' entry's voice/shape.
-- Left several concrete open questions for the plan phase in notes.md section 10 (list-with-archived return shape, whether stakes tied to archived people/projects get filtered too, exact placement of the 'show archived' UI, whether project/workstream row shapes need an archived flag added).
-- Verified against actual code (not just prior notes): store.rows() in src/storage/reduce.js filters only _deleted, never archivedAt - confirmed safe to leave as-is so resolvePerson/resolveProject/resolveWorkstream keep resolving archived rows by id, which history and the person/project page depend on
-- src/main/index.js's OPERATIONS map is a hand-written whitelist, NOT auto-generated from api.js exports - every new archive/unarchive/bulk/list-archived function needs an explicit new line added there, following the existing style; this detail was not nailed down in the prior research notes
-- Confirmed exact renderer conventions to copy: ask()/form()/act() in src/renderer/ui.js, the actions.remove (people.js) / removeProject+removeStream (work.js) button+confirm pattern, and settings.js's group/card section function style (e.g. dataSection, switchMode) - quoted concretely in the plan so implement iterations don't need to re-derive them
-- Confirmed MCP absence-test precedent's exact location and assertion shape in test/service.test.mjs (~line 302, /decide|accept|activate/i pattern) to mirror for a new /archive/i absence test
-- Plan resolves the open question on list-with-archived shape: three new sibling functions archivedPeople/archivedProjects/archivedWorkstreams (not a boolean param or {active,archived} grouped return), since people()/projects()/workstreams() already have several existing callers expecting today's flat array shape
-- Plan resolves the stakes-filtering open question: filter namedStakes(...) inputs at call sites in attention.js and api.stakeholders rather than adding archivedAt to the stakes collection itself
-- Confirmed store.update(collection, id, {archivedAt: null}) is the correct way to clear (matches existing updatePerson convention of null-means-clear, not undefined)
-- `inScope` is called from `src/domain/attention.js` and
-- npm test (617/617) and npm run typecheck both pass clean after this change - inScope's new archived check is safe against the existing suite since no row has archivedAt set anywhere yet
-- archivedAt is not yet read/written anywhere else in the codebase - attention.js, myattention.js, prep.js and api.js still need step 3's explicit filtering (people are covered for free via inScope, but projects/workstreams have no equivalent helper and need direct filtering at each call site)
-- Next iteration should do plan Step 3: filter archived projects/workstreams in attention.js's expandCadences/buildAttention, add an early continue for archived people in prep.js plus filter owned workstreams, and exclude archived rows (while adding archivedAt/archived to each returned row) in api.js's people()/projects()/workstreams()/person(); also decide+implement the stakes-filtering question at the namedStakes() call sites. Do not add archive/unarchive/bulk functions yet (that's step 4).
-- Deliberately did NOT add archivedPeople()/archivedProjects()/archivedWorkstreams() sibling list functions, or the archivePerson/unarchivePerson/archiveEverythingActive functions, in this iteration - the plan explicitly scopes those to step 4 ("do NOT yet add the new archive/unarchive/list-with-archived functions, that is step 4"). I drafted an archivedPeople() function mid-iteration and then reverted it back out to keep this iteration's diff to pure read-path filtering, per the plan's own step boundary - worth remembering so the next iteration doesn't find a half-added sibling function and wonder if step 4 was started.
-- Did NOT add a per-row archivedAt/archived flag to the objects returned by people()/projects()/workstreams() (the plan's step 3 text suggested this "regardless of which show-archived UI shape is picked"), because every row in each of those three functions' output is now always unarchived by construction (archived rows are filtered out before .map(...) runs) - the field would always read null/false there and buy nothing. The renderer only needs an archived-vs-not distinction on rows that come from the archived listing (step 4's sibling functions), where it should na
-
-
-[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
-
-turally have archivedAt set already since that is how those rows will be selected in the first place. If a future iteration decides differently after seeing the archived-list shape, that is a fine small deviation - just note it here.
-- myattention.js's myAttention() needed NO changes: it already filters people through inScope internally (here = people.filter(inScope)), and the viaStake translation only recognises a stake whose person is in names (built from here), so a stake tied to an archived person is already invisible to it. Confirms the research notes' prediction that step 2 alone handles this file.
-- findSubject() (api.js, used when logging a touch/contact against a project/workstream/stake by name) and setDelegationLevel() were deliberately left resolving by id/name with NO archived filter - these are single-row lookups for editing/recording, not listings, and an archived row must stay fully writable-to (adding history to it is exactly what "history stays intact" requires) even though it should not surface as something needing attention. Do not add filtering there.
-- Verification: npm test 617/617 pass (no new tests added yet - existing suite only, per the plan's instruction to test step 3 against the existing suite before new API surface exists), npm run typecheck clean.
-- Next iteration should do plan Step 4: add archivePerson/archiveProject/archiveWorkstream, unarchivePerson/unarchiveProject/unarchiveWorkstream, archiveEverythingActive, and the three archived* list-sibling functions to src/service/api.js, then wire all of them into src/main/index.js's OPERATIONS map (a hand-written whitelist - each needs its own explicit line, see the plan's step 4 for the exact style to copy). Do not add unit tests for these yet unless a step naturally produces a small one to sanity-check idempotency - the plan puts the fuller test suite in step 5, after step 4's functions all exist.
-
-## Iteration 4 — success
-
-Summary: Filtered archived people/projects/workstreams out of every read path that currently assumes every row is live (expandCadences, buildAttention, prep.js, and api.js's people()/projects()/workstreams()/stakeholders()), while person() gained a readable archivedAt field and stays fully resolvable when archived, completing plan Step 3.
-
-Key changes:
-- src/domain/attention.js: expandCadences filters archived projects/workstreams before crossing with duties, and passes only active people/projects into namedStakes so stakes tied to archived rows drop out naturally; buildAttention skips promises for archived people and skips archived workstreams in the unspecified-delegation loop
-- src/service/prep.js: early continue for archived people at the top of the per-person loop; owned workstreams filtered to exclude archived ones
-- src/service/api.js: people()/projects()/workstreams() now exclude archived rows from their default listing; person() returns archivedAt without any filtering change; stakeholders() filters archived people/projects before calling namedStakes()
-- Bumped package.json version 0.1.71 -> 0.1.72
-- Appended Iteration 4 notes to .helm-goal/notes.md documenting the change and the concrete next step (plan Step 4: archive/unarchive/archiveEverythingActive + archived* list functions + OPERATIONS wiring)
-
-Key learnings:
 - Deliberately did NOT add archivedPeople()/archivedProjects()/archivedWorkstreams() sibling list functions or the archive*/unarchive*/archiveEverythingActive functions - plan explicitly scopes those to Step 4; a draft archivedPeople() was written then reverted to keep this iteration's diff to pure read-path filtering
 - Did NOT add an archivedAt/archived flag to the objects returned by people()/projects()/workstreams() - every row those functions return is now always unarchived by construction, so the field would be dead weight there; the archived-vs-not distinction belongs on the rows returned by Step 4's archived* sibling functions instead
 - myattention.js needed no changes - myAttention() already filters people via inScope internally and its viaStake translation only recognises stakes whose person is in that already-filtered set, so archived people are invisible to it for free (confirms research notes' prediction)
 - findSubject() and setDelegationLevel() in api.js were deliberately left unfiltered - they are single-row lookups for editing/recording history against a subject, not listings, and an archived row must stay fully writable-to since keeping history intact requires that
 - npm test (617/617) and npm run typecheck both pass clean after this step; no new tests added yet since Step 5 (unit tests) comes after Step 4's new API surface exists
 
-## Iteration 5 - success (plan Step 4)
 
-Summary: Added the archive/unarchive/bulk service functions and the three archived-listing siblings to src/service/api.js, wired them into src/main/index.js's OPERATIONS whitelist, and noted their deliberate absence from the MCP tool surface in src/mcp/tools.js's header comment.
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-Key changes:
-- src/service/api.js: added `archivedPeople`/`archivedProjects`/`archivedWorkstreams` (each: rows where `isArchived(row)`, mapped to `{id, name, archivedAt}` (plus `relation` for people), newest-archived first) placed right after `people()`/`projects()`/`workstreams()` respectively. Added `archivePerson`/`archiveProject`/`archiveWorkstream` (resolve via `resolvePerson`/`resolveProject`/`resolveWorkstream`, `{error}` on a bad id, `{..., already: true}` no-op if already archived, otherwise `store.update(collection, id, {archivedAt: now})`) placed after `updatePerson`/`addProject`/`addWorkstream` respectively, and matching `unarchivePerson`/`unarchiveProject`/`unarchiveWorkstream` (`store.update(collection, id, {archivedAt: null})`, `null` not `undefined`, matching `updatePerson`'s clear convention). Added `archiveEverythingActive(store, {now})` after the workstream archive functions: loops all three collections, calls the matching `archive*` function on every row, counts only the ones where the result was NOT `already: true`, returns `{people, projects, workstreams}`.
-- src/main/index.js: added the six archive/unarchive lines plus the three archived-listing lines plus `archiveEverythingActive` to `OPERATIONS`, grouped right after `projects:` with a comment explaining why they're operations (not decisions like decideDuty) yet still absent from MCP.
-- src/mcp/tools.js: extended the existing "writing may add, never restructure" paragraph in the file header to explicitly name archive/unarchive/bulk as excluded, for the same reason `decideDuty` is excluded (taking someone off the roster is the user's call, even though archiving is reversible and adds no history).
-- Manually sanity-checked (via a throwaway script, deleted before finishing - not left in the repo) that: archiving is idempotent (second call returns `already: true` with the *original* `archivedAt`, does not overwrite it), archived rows drop out of `people()`/`projects()`/`workstreams()` but `person()` still resolves and reports `archivedAt`, unarchiving restores visibility, and `archiveEverythingActive` run twice in a row archives everything the first time and nothing the second time (`{people: 0, projects: 0, workstreams: 0}`).
+)`/`projects()`/`workstreams()` but `person()` still resolves and reports `archivedAt`, unarchiving restores visibility, and `archiveEverythingActive` run twice in a row archives everything the first time and nothing the second time (`{people: 0, projects: 0, workstreams: 0}`).
 - Bumped package.json version 0.1.72 -> 0.1.73.
 
 Key learnings:
@@ -247,3 +197,85 @@ Key learnings:
 - work.js has no per-project/workstream detail page (confirmed via grep) - it only renders list rows with removeProject/removeStream buttons, so the next iteration's Archive button only needs the not-archived branch there; the Unarchive branch belongs to Step 7's archived-browse group
 - npm test 635/635 pass, npm run typecheck clean after this change
 - package-lock.json's own version field is already stale (0.1.8) from before this work started and was left untouched, consistent with prior iterations
+
+## Iteration 3 - success (plan Step 6, second half - work.js)
+
+Summary: Added Archive buttons beside `removeProject` (project rows) and
+`removeStream` (workstream cards) in `src/renderer/views/work.js`, completing
+plan Step 6 (both People's and Work's per-item Archive UI now exist).
+
+Key changes:
+- `src/renderer/views/work.js` project rows: new `<button class="act tiny"
+  data-act="archiveProject" ...>Archive</button>` placed between "Log a
+  look" and the existing "Remove" button.
+- `src/renderer/views/work.js` workstream cards: new `<button class="act"
+  data-act="archiveStream" ...>Archive</button>` placed between "Log a
+  review" and the existing "Remove" button. (Action name is `archiveStream`
+  in the renderer, matching this file's existing `removeStream`/`setLevel`
+  naming for workstream actions, even though the underlying operation it
+  calls is `archiveWorkstream`, same indirection the file already uses
+  elsewhere, e.g. `removeStream` calls `removeRow` with `collection:
+  "workstreams"`, not an op literally named `removeStream`.)
+- `actions.archiveProject` and `actions.archiveStream`: both follow
+  `actions.archive`'s shape from `people.js` (an `ask()` confirmation with
+  `tone: "danger"`, since reversibility does not make it a no-confirmation
+  action - it still changes what shows up everywhere; wording states what
+  stops appearing, what stays intact, and that it is reversible from the
+  archived list), then `act("archiveProject"/"archiveWorkstream", {id:
+  d.id}, ...)` then `refresh()`. Confirmed via `src/main/index.js`'s
+  OPERATIONS map that both ops take `{id}` (same shape as `archivePerson`).
+- Did NOT add `unarchiveProject`/`unarchiveStream` actions or buttons this
+  iteration: per iterations 2/3's own prior finding (re-confirmed by
+  reading the current `work.js` top to bottom before editing), this file
+  has no per-project/workstream detail page, only list rows rendered from
+  the default `projects()`/`workstreams()` calls, which already exclude
+  archived rows entirely (Step 3). An "Unarchive" button has nothing to
+  attach to until Step 7's archived-browse group exists and renders rows
+  from `archivedProjects()`/`archivedWorkstreams()`, adding the action now
+  would be dead code with no caller.
+- Bumped `package.json` version `0.1.75` -> `0.1.76`.
+
+Verification: `npm test` - 635/635 pass (renderer-only change, no new unit
+tests - E2E coverage for this button is plan Step 9). `npm run typecheck` -
+clean, no errors.
+
+Key learnings:
+- Both plan Step 6 halves are now done (people.js in iteration 2, work.js
+  in this iteration). Step 6 as a whole is complete.
+- Next iteration should do plan Step 7: the "show archived" / browse-and-
+  unarchive view - an "Archived (n)" collapsible group at the bottom of
+  both the People view (`render()` in `people.js`, both halves since
+  archived people exist in private mode too) and the Work view (`render()`
+  in `work.js`, work-only), rendered from `archivedPeople()`/
+  `archivedProjects()`/`archivedWorkstreams()` (already wired into
+  OPERATIONS since iteration 5), each row showing name plus an "Unarchive"
+  button. This is where `actions.unarchive` (people.js, already exists from
+  iteration 2, just needs a caller now) and new `actions.unarchiveProject`/
+  `actions.unarchiveStream` (work.js, do not exist yet, add them, same
+  no-confirmation shape as people.js's `actions.unarchive`) get wired up.
+  After Step 7: Step 8 (Settings bulk "I left this job" action), Step 9
+  (E2E in scripts/e2e-app.mjs), Step 10 (DECISIONS.md entry), Step 11
+  (final verification pass: npm test, npm run typecheck, npm run test:app).
+- Reminder for Step 7: `people.js`'s `render()` currently returns early
+  with an empty-state block when `roster.length === 0` (line ~73-81),
+  make sure the archived group (if any archived people exist) still shows
+  even when the active roster is empty, otherwise archiving everyone via
+  Step 8's bulk action would make the People view claim "Nobody here yet"
+  while hiding the fact that everyone is one Unarchive click away.
+
+## Iteration 3 — success
+
+Summary: Added per-item Archive buttons for projects and workstreams in src/renderer/views/work.js (archiveProject/archiveStream actions with confirmation dialogs), completing plan Step 6.
+
+Key changes:
+- src/renderer/views/work.js: added an "Archive" button to project rows (data-act="archiveProject") and workstream cards (data-act="archiveStream"), placed before the existing "Remove" button in each
+- src/renderer/views/work.js: added actions.archiveProject and actions.archiveStream, each showing an ask() confirmation dialog (tone: danger) with plain-language wording, then calling act("archiveProject"/"archiveWorkstream", {id}, ...) and refresh()
+- Bumped package.json version 0.1.75 -> 0.1.76
+- Appended Iteration 3 notes to .helm-goal/notes.md documenting the change and pointing the next iteration at plan Step 7 (archived-browse view with Unarchive buttons)
+
+Key learnings:
+- Plan Step 6 is now fully complete: people.js's Archive/Unarchive button plus banner (iteration 2) plus work.js's Archive buttons (this iteration)
+- work.js has no per-project/workstream detail page, only list rows from the already-archived-filtered projects()/workstreams() calls, so Unarchive buttons have nowhere to live yet; they belong entirely to Step 7's archived-browse group, not Step 6
+- Renderer action name archiveStream (not archiveWorkstream) matches this file's existing naming convention for workstream-targeting actions (removeStream, setLevel), even though the underlying OPERATIONS call is archiveWorkstream - confirmed both archiveProject/archiveWorkstream ops take {id} via src/main/index.js
+- npm test: 635/635 pass (no new tests needed since E2E coverage is Step 9's job). npm run typecheck: clean
+- Next iteration should do plan Step 7: "Archived (n)" collapsible groups at the bottom of People view (both halves) and Work view, rendered from archivedPeople()/archivedProjects()/archivedWorkstreams() (already wired into OPERATIONS since iteration 5), wiring up people.js's existing actions.unarchive and new actions.unarchiveProject/actions.unarchiveStream in work.js. Watch that people.js's render() early-return for an empty roster still shows the archived group when one exists.

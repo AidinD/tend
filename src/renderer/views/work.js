@@ -41,6 +41,7 @@ export async function render() {
           <span class="row-meta">last looked at ${esc(p.lastLookedAt)}</span>
           ${p.behindBy ? pill(p.urgency) : ""}
           <button class="act tiny" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Log a look</button>
+          <button class="act tiny" data-act="archiveProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Archive</button>
           <button class="act tiny danger" data-act="removeProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>
         </span>
       </div>`
@@ -76,6 +77,7 @@ export async function render() {
           <span class="src">${esc(w.owner ?? "nobody named")}${w.project ? ` · ${esc(w.project)}` : ""} · reviewed ${esc(w.lastReviewed)}</span>
           <button class="act primary" data-act="setLevel" data-id="${esc(w.id)}">${w.unspecified ? "Set the level" : "Change level"}</button>
           <button class="act" data-act="review" data-id="${esc(w.id)}" data-name="${esc(w.name)}">Log a review</button>
+          <button class="act" data-act="archiveStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">Archive</button>
           <button class="act danger" data-act="removeStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">Remove</button>
         </div>
       </article>`
@@ -381,6 +383,27 @@ export const actions = {
     }
   },
 
+  /**
+   * Reversible, unlike `removeProject` below - so it gets its own, gentler
+   * dialog rather than reusing the danger-zone one. There is no per-project
+   * detail page to hold an "archived" banner or an Unarchive button, so
+   * both live in the archived group at the bottom of this view once one
+   * exists.
+   *
+   * @param {Record<string, string>} d
+   */
+  archiveProject: async (d) => {
+    const sure = await ask({
+      title: `Archive ${d.name}?`,
+      body: "It stops appearing in this list, in Now and in attention nudges. Every check-in, stake and review already logged against it stays exactly as it is and can be looked at again. Fully reversible from the archived list.",
+      confirm: "Archive",
+      tone: "danger"
+    });
+    if (sure && (await act("archiveProject", { id: d.id }, `${d.name} archived.`))) {
+      refresh();
+    }
+  },
+
   /** @param {Record<string, string>} d */
   removeProject: async (d) => {
     const sure = await ask({
@@ -390,6 +413,24 @@ export const actions = {
       tone: "danger"
     });
     if (sure && (await act("removeRow", { collection: "projects", id: d.id }, "Removed."))) {
+      refresh();
+    }
+  },
+
+  /**
+   * Reversible, unlike `removeStream` below - see `archiveProject`'s
+   * comment above, same reasoning applies here.
+   *
+   * @param {Record<string, string>} d
+   */
+  archiveStream: async (d) => {
+    const sure = await ask({
+      title: `Archive ${d.name}?`,
+      body: "It stops appearing in this list, in Now and in attention nudges. Every review already logged against it stays exactly as it is and can be looked at again. Fully reversible from the archived list.",
+      confirm: "Archive",
+      tone: "danger"
+    });
+    if (sure && (await act("archiveWorkstream", { id: d.id }, `${d.name} archived.`))) {
       refresh();
     }
   },
