@@ -13,35 +13,7 @@ iteration needs; no further exploratio
 
 [... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-raph comment
-explaining why it exists and how it differs from neighbors - same voice
-needed here). Only ONE new collection (no companion notes/chases table).
-Suggested comment, contrasting with "entries" (the day, never prompted, about
-everywhere the day went) and "moments" (one interaction with named people):
-
-  A short, prompted look back at how the last week or so went - what went
-  well, what he would do differently. Not the day, which is a nightly
-  retrospective that never prompts and is about everywhere the day went; not
-  a moment, which is one interaction with named people. This is about
-  himself, occasional by design, and asks two or three fixed questions rather
-  than inviting a diary.
-
-Also add "reflections" to api.js's removeRow() removable list (currently
-lines ~1294-1317 in the read portion) - the comment already on that list
-explains a past bug where forgetting a collection there left a dead Remove
-button; do not repeat that mistake.
-
-## Service layer: src/service/api.js - NOT FULLY READ (only lines 1-1528 of
-2792 total). MUST read lines 1529-2792 before writing code, specifically:
-- The exact implementation of logEntry (to mirror validation style for
-  logReflection - journal.js's philosophy is "everything optional, including
-  all of it," which is DIFFERENT from logMoment's "part is required" rule;
-  decide whether logReflection requires at least one field non-blank the way
-  logEvidence/logMoment refuse pure-empty writes, or allows a fully-empty row
-  the way logEntry apparently might. Recommend: require at least one of the
-  two primary fields non-blank, matching hasContent's spirit, returning
-  { error: "..." } otherwise - consistent with logEvidence's "Evidence needs
-  text" and logMoment's "part in it" required-field pattern, since a
+n it" required-field pattern, since a
   fully-blank reflection row is pointless in a way a fully-blank day entry
   arguably still marks "a day happened."
 - lastReviewRun's exact body (referenced at line 117 and 2097) - copy its
@@ -302,3 +274,53 @@ Key learnings:
 - Confirmed via grep for the em-dash character that none slipped into the new file's prose (project CLAUDE.md forbids em dashes; used ' - ' throughout).
 - src/domain/reflection.js deliberately has no 'days since / is due' helper - per the plan, that arithmetic belongs in myattention.js (step 4), keeping this file symmetric with journal.js's minimalism.
 - Next iteration should do step 2: add 'reflections' to COLLECTIONS in src/storage/reduce.js (with the contrast comment vs. entries/moments) and add 'reflections' to removeRow()'s removable list in src/service/api.js (around line 1298-1317), then rerun npm test.
+
+## Iteration 4 — success
+
+Summary: Add step 2 of the reflection-feature plan: register "reflections" as
+a storage collection and make its rows removable, then bump the version.
+
+Key changes:
+- src/storage/reduce.js: added "reflections" to COLLECTIONS (after "moments"),
+  with a comment contrasting it with entries and moments specifically, per
+  the plan's step 2 wording.
+- src/service/api.js: added "reflections" to the `removable` list inside
+  removeRow() (after "moments"), so a future Remove button on the reflection
+  view works from day one instead of repeating the historical touches/stakes/
+  topics bug the comment above that list describes.
+- package.json: bumped 0.1.71 -> 0.1.72.
+- Verified npm run typecheck (clean) and npm test (617/617 green) with no
+  other files touched - this step intentionally has no new behavior yet,
+  just the plumbing.
+
+Key learnings:
+- test/storage.test.mjs does NOT enumerate COLLECTIONS explicitly (grepped,
+  no match) - it only iterates the array generically, so no test file needed
+  changes for this step, confirming the plan's own note that this might be
+  skippable.
+- Next step is step 3 in .helm-goal/plan.md: add `logReflection` and
+  `reflections` (read) to src/service/api.js, near the moments()/journal()
+  section, following the plan's sketched implementation almost verbatim
+  (import REFLECTION_FIELDS from ../domain/reflection.js, validate at least
+  one of wellDone/differently non-blank, refuse future dates via isLaterDay,
+  do NOT add "reflections" to AGENT_WRITABLE). Also add a lastReflectedAt(store)
+  helper mirroring lastReviewRun's shape, for step 4's nudge to use. Read
+  src/service/api.js lines ~1529-2160 in full first (moments()/logMoment()/
+  logEntry()/journal() plus lastReviewRun) before writing, per plan step 3's
+  own instruction, since the exact reflections()/logReflection() signatures
+  should match whichever call shape moments()/journal() actually use today.
+
+## Iteration 4 — success
+
+Summary: Register "reflections" as a storage collection in reduce.js and make its rows removable in api.js's removeRow(), completing step 2 of the reflection-feature plan, and bump the patch version.
+
+Key changes:
+- Added "reflections" to COLLECTIONS in src/storage/reduce.js, with a house-voice comment contrasting it with entries and moments
+- Added "reflections" to the removable list inside removeRow() in src/service/api.js
+- Bumped package.json version 0.1.71 -> 0.1.72
+- Verified npm run typecheck (clean) and npm test (617/617 passing) with no other files touched
+
+Key learnings:
+- test/storage.test.mjs does not enumerate COLLECTIONS explicitly, so no test changes were needed for this step
+- Next step (plan step 3) is adding logReflection and reflections (read) to src/service/api.js near moments()/journal(), plus a lastReflectedAt() helper mirroring lastReviewRun's shape; must read api.js lines ~1529-2160 in full first to match moments()/journal()'s exact call signatures before writing
+- Do not add "reflections" to AGENT_WRITABLE - confirmed decision from earlier research/plan iterations still holds

@@ -1313,7 +1313,8 @@ export function removeRow(store, collection, id) {
     "waiting",
     "chases",
     "reviews",
-    "moments"
+    "moments",
+    "reflections"
   ];
   if (!removable.includes(collection)) {
     return { error: `Rows in "${collection}" are not removable. Removable: ${removable.join(", ")}.` };
