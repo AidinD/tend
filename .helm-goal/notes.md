@@ -217,3 +217,111 @@ Key learnings:
 - Local variable names people/projects/workstreams inside archiveEverythingActive shadow the exported functions of the same name in the same module scope - valid JS, tsc raised no complaint, not a bug, just worth flagging for a future reader
 - npm test (617/617) and npm run typecheck both pass clean; no new unit tests were added this iteration since that is scoped to plan Step 5
 - Next iteration should do plan Step 5: add unit tests (test/service.test.mjs or a new test/archive.test.mjs) covering idempotency, unarchive, bulk archive, archived-listing shape, and history staying intact, plus an MCP absence test asserting no TOOLS entry matches /archive/i (mirror the existing /decide|accept|activate/i assertion near decideDuty's test, around line 302 in test/service.test.mjs). After that: Steps 6-8 (renderer: person/work buttons, archived-browse views, Settings bulk action), Step 9 (E2E), Step 10 (DECISIONS.md entry), Step 11 (final verification pass)
+
+## Iteration 6 - success (plan Step 5)
+
+Summary: Added `test/archive.test.mjs`, a new dedicated test file (18 tests)
+covering every item in the plan's Step 5 checklist for the service layer,
+plus the MCP absence test.
+
+Key changes:
+- New file `test/archive.test.mjs`, following `test/service.test.mjs`'s
+  exact conventions (`mkdtempSync`/`openStore`/`ok`/`failed` from
+  `test/helpers.mjs`, one duty + one person/project/workstream fixture per
+  `beforeEach`, a 200-day-silent person as the "would surface if not
+  archived" control). Covers: archiving removes a row from
+  `people()`/`projects()`/`workstreams()` while `person()` keeps resolving
+  it and reports `archivedAt`; archiving removes cadence drift from
+  `api.attention()`'s `needsYou`/`nudges` while an open promise and a
+  logged touch made against the archived person stay in the store
+  untouched and still readable from `person().openPromises`/
+  `.recentContact`; archiving removes the person from `prep()`'s cards
+  explicitly (not just via drift); idempotency (`already: true`, original
+  `archivedAt` preserved on a second call, for a person, project and
+  workstream); unarchive restores visibility in the listings, attention and
+  prep; unarchiving an already-active row is a harmless no-op;
+  `archivePerson`/`unarchivePerson` on an unknown id return `{error}`;
+  `archivedPeople`/`archivedProjects`/`archivedWorkstreams` return exactly
+  the archived rows; a stake naming an archived person or an archived
+  project drops out of `api.stakeholders()`; `archiveEverythingActive`
+  archives every active row across all three collections in one call, is
+  safe to run twice (second run returns `{people:0, projects:0,
+  workstreams:0}`), and does not disturb the `archivedAt` of a row that
+  was already archived before the bulk call; and the MCP absence test
+  (`TOOLS.find((t) => /archive/i.test(t.name))` is `undefined`).
+- No other files touched - this iteration is test-only, per the plan's
+  Step 5 scope.
+- Bumped `package.json` version `0.1.73` -> `0.1.74`.
+
+Verification: `npm test` - 635/635 pass (617 existing + 18 new), 0 fail.
+`npm run typecheck` - clean after one fix (see learnings below).
+
+Key learnings:
+- `api.stakeholders(store, now, project?)` returns `Record<string,
+  any>[] | {error: string}` (it can error only when a `project` filter
+  argument is given and does not resolve) - even though my calls never
+  pass a `project` arg and can never hit that branch, `tsc` still infers
+  the union return type from the function signature and rejects
+  `.length` on it directly. Fixed by following `test/stakes.test.mjs`'s
+  own existing convention for this exact function:
+  `/** @type {any[]} */ (api.stakeholders(store, NOW)).length`. Worth
+  remembering for any future test that calls `stakeholders()` without
+  narrowing via `Array.isArray(...)` first.
+- Confirmed `namedStakes()` (src/domain/stakes.js) already filters by
+  identity (`byPerson.has(...)`/`byProject.has(...)`), and
+  `api.stakeholders()` already passes it only
+  `!isArchived(...)`-filtered people/projects (done in iteration 4/5) - so
+  the stake-archival behaviour needed NO new production code this
+  iteration, only a test proving it. No duty of `subjectKind: "stake"` is
+  needed to exercise `api.stakeholders()`; that function reads `stakes`
+  rows directly and has nothing to do with `expandCadences`/duties. (An
+  earlier draft of the test added such a duty out of habit copied from
+  `attention.js` reasoning - removed it since it exercised nothing.)
+- `prep(store, now, opts?)` returns `{cards, dropped}`, not a bare array -
+  `.cards` is the field to assert against (confirmed by reading
+  `src/service/prep.js`'s return statement directly, not just the plan's
+  prose).
+- `api.attention(store, now)` returns `{needsYou, nudges, heldBackByFocus,
+  allInStep, focus}` - `needsYou[i].what` is the summarised title
+  (`summariseItem` in api.js maps `AttentionItem.title` to `.what`), not
+  `.title` - matters for anyone writing a new attention-shaped assertion
+  by pattern-matching the domain-layer `AttentionItem` typedef instead of
+  the service-layer wrapper.
+- Did NOT touch `test/service.test.mjs` itself - a new dedicated file read
+  cleaner than growing the already-395-line `service.test.mjs` further,
+  and the plan explicitly allowed either ("test/service.test.mjs or a new
+  test/archive.test.mjs"). The MCP absence test lives in
+  `test/archive.test.mjs` rather than being duplicated in
+  `service.test.mjs`.
+- Next iteration should start plan Step 6: renderer per-item Archive/
+  Unarchive buttons. Read `src/renderer/views/people.js`'s
+  `actions.remove` (danger-zone block) and `src/renderer/views/work.js`'s
+  `actions.removeProject`/`actions.removeStream` first for the exact
+  `ask()`/`act()` shape to copy, and `src/renderer/ui.js` for the
+  `ask({title, body, confirm, tone})`/`act(op, args, successText)`
+  signatures (both already confirmed accurate against the current code by
+  earlier research iterations, but re-check line numbers since renderer
+  files were not touched by iterations 3-6 and may have shifted only
+  trivially, if at all). Keep this iteration scoped to just the person
+  page's Archive/Unarchive button plus the "Archived" banner (using
+  `p.archivedAt` already returned by `api.person()`) - defer the
+  project/workstream buttons (Step 6's second half) and the archived-browse
+  views (Step 7) and Settings bulk action (Step 8) to their own iterations,
+  per the plan's own note that "Steps 6-8 touch three different view files;
+  each can be its own iteration."
+
+## Iteration 1 — success
+
+Summary: Added test/archive.test.mjs with 18 unit tests covering the archive/unarchive/bulk-archive/archived-listing service functions (idempotency, history preservation, attention/prep exclusion, MCP absence), completing plan Step 5.
+
+Key changes:
+- New file test/archive.test.mjs: 18 tests covering archivePerson/archiveProject/archiveWorkstream, unarchive counterparts, archivedPeople/archivedProjects/archivedWorkstreams, archiveEverythingActive, stake filtering, and MCP tool-surface absence
+- Bumped package.json version 0.1.73 -> 0.1.74
+- Appended Iteration 6 notes to .helm-goal/notes.md documenting what was tested and pointing the next iteration at plan Step 6 (renderer Archive/Unarchive button on the person page)
+
+Key learnings:
+- api.stakeholders(store, now, project?) has a union return type ({error} | array) per its JSDoc even though the archive tests never hit the error branch - use the existing test/stakes.test.mjs convention `/** @type {any[]} */ (api.stakeholders(...))` to satisfy tsc
+- namedStakes()/api.stakeholders() already filtered archived people/projects (done in iterations 4-5), so the stake-archival tests needed no new production code, only proof - no subjectKind:'stake' duty is needed since stakeholders() reads stakes rows directly, unrelated to expandCadences
+- prep(store, now, opts?) returns {cards, dropped} (use .cards); api.attention() items use .what (not .title) since summariseItem() renames AttentionItem.title to .what for the service-layer wrapper
+- Full suite is now 635/635 passing (617 existing + 18 new); npm run typecheck clean
+- Next iteration: plan Step 6, renderer - start with just the person page's Archive/Unarchive button + Archived banner in src/renderer/views/people.js (copy actions.remove's ask()/act() shape), deferring project/workstream buttons, archived-browse views, and Settings bulk action to their own iterations per the plan's own guidance
