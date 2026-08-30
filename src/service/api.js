@@ -49,6 +49,7 @@ import {
   viewsIn
 } from "../domain/halves.js";
 import { openPromises } from "../domain/promises.js";
+import { REFLECTION_FIELDS } from "../domain/reflection.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import {
   DEFAULT_WAIT_DAYS,
@@ -116,6 +117,9 @@ export function myAttentionSignals(store, now) {
     // signal in that file is.
     entries: /** @type {any[]} */ (store.rows("entries")),
     lastReadAt: lastReviewRun(store),
+    // Whether a weekly reflection has ever been written, and when. See the
+    // "not reflected on" signal in myattention.js.
+    reflections: /** @type {any[]} */ (store.rows("reflections")),
     now
   });
 }
@@ -1552,7 +1556,8 @@ export function removeRow(store, collection, id) {
     "waiting",
     "chases",
     "reviews",
-    "moments"
+    "moments",
+    "reflections"
   ];
   if (!removable.includes(collection)) {
     return { error: `Rows in "${collection}" are not removable. Removable: ${removable.join(", ")}.` };
@@ -2300,6 +2305,89 @@ export function moments(store, now) {
       part: String(m.part ?? ""),
       who: momentPeople(m).map((id) => names.get(id) ?? "somebody")
     }));
+}
+
+/* ----------------------------------------------------------- reflection -- */
+
+/**
+ * One short look back: what went well, what he would do differently, and
+ * optionally anything else. See the header of reflection.js for why this is
+ * fixed prompts rather than a diary field, and why it is not the day and not
+ * a moment.
+ *
+ * At least one of the two primary questions has to carry something - a
+ * fully blank row, or one with only the secondary field filled, records
+ * nothing the two questions exist to ask.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} [args.wellDone]
+ * @param {string} [args.differently]
+ * @param {string} [args.notes]
+ * @param {number} [args.at] Defaults to now.
+ * @param {number} args.now
+ */
+export function logReflection(store, { wellDone, differently, notes, at, now }) {
+  const when = typeof at === "number" ? at : now;
+  if (isLaterDay(when, now)) {
+    return { error: "That week has not happened yet." };
+  }
+
+  /** @type {Record<string, any>} */
+  const row = { at: when };
+  for (const field of REFLECTION_FIELDS) {
+    const value = String({ wellDone, differently, notes }[field.name] ?? "").trim();
+    row[field.name] = value === "" ? null : value;
+  }
+
+  if (!String(row.wellDone ?? "").trim() && !String(row.differently ?? "").trim()) {
+    return { error: "Answer at least one of the two questions - notes alone is not a reflection." };
+  }
+
+  const id = store.create("reflections", row);
+  return { id };
+}
+
+/**
+ * Recent reflections, newest first.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {number} now
+ * @param {object} [opts]
+ * @param {number} [opts.limit]
+ * @param {number} [opts.since]
+ */
+export function reflections(store, now, { limit, since } = {}) {
+  let rows = store.rows("reflections").filter((r) => Number(r.at ?? 0) > 0);
+  if (typeof since === "number") {
+    rows = rows.filter((r) => Number(r.at) >= since);
+  }
+  rows = rows.sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0));
+  if (typeof limit === "number") {
+    rows = rows.slice(0, limit);
+  }
+  return rows.map((r) => ({
+    id: String(r.id),
+    at: Number(r.at ?? 0),
+    when: agoWords(Math.max(0, Math.floor((now - Number(r.at ?? now)) / 86_400_000))),
+    wellDone: r.wellDone ?? null,
+    differently: r.differently ?? null,
+    notes: r.notes ?? null
+  }));
+}
+
+/**
+ * When a reflection was last written, or null if none ever has.
+ *
+ * Same shape as `lastReviewRun` below - the nudge in myattention.js needs
+ * exactly this and nothing more.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @returns {number | null}
+ */
+export function lastReflectedAt(store) {
+  const times = store.rows("reflections").map((r) => Number(r.at ?? 0)).filter((t) => t > 0);
+  return times.length === 0 ? null : Math.max(...times);
 }
 
 /**

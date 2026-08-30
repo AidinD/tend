@@ -122,7 +122,18 @@ export const COLLECTIONS = /** @type {const} */ ([
    * the rule made structural: an entry with only "I was short with them" is
    * complete, and one with only what somebody else did cannot be written.
    */
-  "moments"
+  "moments",
+  /**
+   * A short, occasionally-prompted look back at how the last week or so went -
+   * what went well, what he would do differently.
+   *
+   * Not the day: the day is a nightly retrospective that never prompts and is
+   * about everywhere the day went, where this asks two fixed questions about a
+   * wider stretch of time and does gently prompt when it has lapsed. Not a
+   * moment: a moment is one event with named people, and this names nobody -
+   * it is about the shape of the week, not any interaction inside it.
+   */
+  "reflections"
 ]);
 
 /**

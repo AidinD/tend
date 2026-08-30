@@ -195,6 +195,7 @@ export const VIEWS = /** @type {const} */ ([
   { id: "people", name: "People", hint: "the roster", halves: ["work", "private"] },
   { id: "work", name: "Work", hint: "projects and delegation", halves: ["work"] },
   { id: "journal", name: "The day", hint: "what the day went into", halves: ["work", "private"] },
+  { id: "reflection", name: "Reflection", hint: "how the week went", halves: ["work"] },
   { id: "role", name: "Role map", hint: "what the job is", halves: ["work"] },
   { id: "decisions", name: "Decisions", hint: "the ledger", halves: ["work"] },
   { id: "knowledge", name: "Knowledge", hint: "ask about a situation", halves: ["work", "private"] },

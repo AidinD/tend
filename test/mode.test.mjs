@@ -232,7 +232,7 @@ describe("what each half consists of", () => {
 
   it("gives the private half only the views that mean something there", () => {
     const priv = viewsIn("private").map((v) => v.id);
-    for (const gone of ["now", "prep", "focus", "work", "role", "decisions"]) {
+    for (const gone of ["now", "prep", "focus", "work", "role", "decisions", "reflection"]) {
       assert.equal(priv.includes(gone), false, `${gone} is still offered`);
     }
     for (const kept of ["people", "journal", "knowledge", "settings"]) {
@@ -241,7 +241,7 @@ describe("what each half consists of", () => {
   });
 
   it("gives the work half every view, so nothing was lost adding the other one", () => {
-    assert.equal(viewsIn("work").length, 10);
+    assert.equal(viewsIn("work").length, 11);
   });
 
   it("opens each half where that half actually begins", () => {

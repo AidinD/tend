@@ -183,6 +183,9 @@ const OPERATIONS = {
   logMoment: (/** @type {any} */ a) => api.logMoment(store, { ...a, now: a.now ?? Date.now() }),
   momentsFor: (/** @type {any} */ a) => api.momentsFor(store, a.person, a.now ?? Date.now()),
   moments: (/** @type {any} */ a) => api.moments(store, a.now ?? Date.now()),
+  logReflection: (/** @type {any} */ a) => api.logReflection(store, { ...a, now: a.now ?? Date.now() }),
+  reflections: (/** @type {any} */ a) =>
+    api.reflections(store, a.now ?? Date.now(), { limit: a.limit, since: a.since }),
   reviews: () => api.reviews(store),
   journalMaterial: (/** @type {any} */ a) => api.journalMaterial(store, a.now ?? Date.now(), a.days),
   keepReview: (/** @type {any} */ a) => api.keepReview(store, a.review ?? {}),
