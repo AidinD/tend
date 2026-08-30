@@ -32,8 +32,21 @@
  * who leaves next week is exactly the promise to keep. After it passes, the
  * cadences and the promises go quiet and the history stays.
  *
+ * ## Archived
+ *
+ * A third, independent situation, covered in full in `archive.js`: a person can
+ * be archived regardless of whether they are also away or gone, for reasons
+ * that have nothing to do with employment (a job change on the owner's side, for
+ * instance). `inScope` treats it as one more reason no cadence applies, but it
+ * is not merged with `hasLeft` - a person who left keeps the vocabulary this
+ * file already has for that, and archiving is checked first in `availability`
+ * only because "archived" is the more deliberate, more recent action of the two
+ * when somebody happens to be both.
+ *
  * Nothing here touches the store.
  */
+
+import { isArchived } from "./archive.js";
 
 /**
  * A date, or null for anything that is not one.
@@ -91,12 +104,16 @@ export function isLeaving(person) {
 /**
  * Should any cadence apply to this person today?
  *
+ * Archived is checked here too, alongside away and gone, so every caller of
+ * `inScope` (attention, my-attention, the growth questions) excludes an
+ * archived person for free rather than needing its own separate check.
+ *
  * @param {Record<string, any>} person
  * @param {number} now
  * @returns {boolean}
  */
 export function inScope(person, now) {
-  return !isAway(person, now) && !hasLeft(person, now);
+  return !isArchived(person) && !isAway(person, now) && !hasLeft(person, now);
 }
 
 /**
@@ -127,6 +144,9 @@ export function notBefore(person, now) {
  * @returns {string | null}
  */
 export function availability(person, now) {
+  if (isArchived(person)) {
+    return "archived";
+  }
   if (hasLeft(person, now)) {
     return "left";
   }

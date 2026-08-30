@@ -13,46 +13,7 @@ Current version in package.json: `0.1.70`. Bump to `0.1.71` for this change
 
 [... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-m return"). `archivedAt` is a
-simpler, symmetric, three-collection, purely-boolean-in-effect status (no
-"period", no "return date" logic) triggered by an explicit user action, with
-its own bulk trigger ("I left this job"). They should NOT be unified into one
-field or one set of helper functions - but `people.js`'s `inScope(person,
-now)` is the natural place to ALSO exclude archived people (one extra `&&
-!isArchived(person)` clause), because every call site that already relies on
-`inScope` (attention.js's cadence crossing, myattention.js, growthQuestions)
-then automatically stops counting archived people for free. Confirmed no
-other file redefines this "in scope" concept for projects/workstreams, so
-those two need direct filtering at each call site (see section 5 below).
-
-### 4. Recommended shape for the new field/helpers
-
-- Add `archivedAt?: number` to people/projects/workstreams rows. No
-  `ProjectRow`/`WorkstreamRow`/`PersonRow` JSDoc typedefs exist anywhere
-  today (checked: only `GrowthRow`, `FocusRow`, `PromiseRow`, `WaitRow`,
-  `ChaseRow` exist as row typedefs; people/projects/workstreams rows are
-  untyped `Record<string, any>` throughout `api.js`). There is also **no
-  dedicated `src/domain/projects.js`** - project logic lives directly in
-  `api.js`/`attention.js`/`prep.js`. Don't invent new typedef files just for
-  this; a short JSDoc comment at each read site (as `people.js` already does
-  for `leftAt`/`awayUntil`) fits the codebase better than retrofitting
-  typedefs nothing else has.
-- Suggested: a new small domain file `src/domain/archive.js`, matching the
-  narrative-header house style of `growth.js`/`halves.js`/`people.js` (a
-  "why" essay up top, short pure functions below, "Nothing here touches the
-  store"). It should hold the one thing genuinely shared across all three
-  collections: `isArchived(row)` (`typeof row.archivedAt === "number"`) and
-  maybe a tiny label helper for the UI ("archived 12 days ago"). Keep it
-  small - this is a boolean flag, not a state machine. `people.js`'s
-  `inScope` gets one extra clause importing from it.
-
-### 5. Every call site that currently assumes "every row is live" (must filter archived)
-
-**`src/domain/attention.js`** (`expandCadences`, `buildAttention`):
-  - `cross(live("people").filter((p) => inScope(p, now)), "person")` is
-    covered for free if `inScope` gains the archived check (section 3).
-  - `cross(live("projects"), "project")` and `cross(live("workstreams"),
-    "workstream")` need an explicit `.filter(w => !isArchived(w))` added;
+ived(w))` added;
     no existing helper covers these.
   - `namedStakes(live("stakes"), live("people"), live("projects"))`: a stake
     tied to an archived person or project should probably stop generating
@@ -313,3 +274,70 @@ Key learnings:
 - Plan resolves the open question on list-with-archived shape: three new sibling functions archivedPeople/archivedProjects/archivedWorkstreams (not a boolean param or {active,archived} grouped return), since people()/projects()/workstreams() already have several existing callers expecting today's flat array shape
 - Plan resolves the stakes-filtering open question: filter namedStakes(...) inputs at call sites in attention.js and api.stakeholders rather than adding archivedAt to the stakes collection itself
 - Confirmed store.update(collection, id, {archivedAt: null}) is the correct way to clear (matches existing updatePerson convention of null-means-clear, not undefined)
+
+## Iteration 3 — success (plan Step 1 + Step 2)
+
+Summary: Added `src/domain/archive.js` (the shared `isArchived(row)` concept
+plus the narrative rationale for why it is a timestamp and why it is not
+merged with `leftAt`/`_deleted`) and extended `src/domain/people.js`'s
+`inScope`/`availability` to treat archived people as out of scope.
+
+Key changes:
+- New file `src/domain/archive.js`: `isArchived(row)` only - no state
+  machine, no reason field, matching the plan's explicit scope for step 1.
+- `src/domain/people.js`: `inScope(person, now)` now also requires
+  `!isArchived(person)`; `availability(person, now)` now returns
+  `"archived"` (checked first, before `"left"`/`"leaving"`/`"away"`) when
+  `archivedAt` is set; JSDoc on both updated; added the "## Archived"
+  section to the file's header comment explaining the relationship to
+  `leftAt`/`hasLeft` (independent, not merged).
+- No other files touched yet - `archivedAt` is not read or written anywhere
+  else in the codebase yet (that starts with plan step 3).
+
+Verification: `npm test` - 617/617 pass, 0 fail (existing suite, no new
+tests added yet - correct per plan step 3's note that step 3 should be
+tested against the *existing* suite before new API surface is added).
+`npm run typecheck` - clean, no errors.
+
+Key learnings:
+- `inScope` is called from `src/domain/attention.js` and
+  `src/domain/myattention.js` already (confirmed by the research/plan
+  notes above) - this one change is expected to make both exclude archived
+  people once step 3 also filters `live("projects")`/`live("workstreams")`
+  at the `cross()` call sites, since people flow through `inScope` already
+  but projects/workstreams have no equivalent helper yet.
+- Did NOT touch `package.json` version this iteration - the plan's step 11
+  says version bumps should happen "on every commit that lands part of this
+  work"; per CLAUDE.md the orchestrator/user bumps patch per commit, so
+  confirm this is bumped at each commit going forward (this iteration's
+  commit should still get a patch bump per repo convention even though the
+  plan groups the version-bump instruction under step 9/11 - do not skip it
+  for small steps).
+- Next step per plan: Step 3 - filter archived rows out of
+  `src/domain/attention.js` (`expandCadences`'s `cross()` calls and the
+  promise-loop/unspecified-workstream-loop skips), `src/service/prep.js`
+  (early continue for archived people, filter `owned` workstreams), and
+  `src/service/api.js`'s `people()`/`projects()`/`workstreams()` default
+  listings (exclude archived, add `archivedAt`/`archived` to returned rows)
+  plus `person()` gaining `archivedAt` on its return. Do NOT yet add the
+  archive/unarchive/bulk functions (that's step 4) - step 3 is purely
+  read-path filtering against the *existing* test suite.
+- Reminder for step 3: also decide and implement the stakes-filtering
+  question (filter `namedStakes(...)` inputs by archived person/project at
+  the call sites in `attention.js` and `api.stakeholders`, per the plan's
+  recommendation - do not add `archivedAt` to the `stakes` collection).
+
+## Iteration 3 — success
+
+Summary: Added the shared archive.js domain concept and extended people.js's inScope/availability to exclude archived people, completing plan steps 1-2.
+
+Key changes:
+- Created src/domain/archive.js with isArchived(row) and narrative rationale for archivedAt as a timestamp distinct from leftAt/_deleted
+- Extended src/domain/people.js: inScope() now also excludes archived people; availability() returns "archived" (checked first) when archivedAt is set; updated JSDoc/header comment
+- Bumped package.json version 0.1.70 -> 0.1.71
+- Appended Iteration 3 notes to .helm-goal/notes.md documenting what was done and the concrete next step (plan Step 3)
+
+Key learnings:
+- npm test (617/617) and npm run typecheck both pass clean after this change - inScope's new archived check is safe against the existing suite since no row has archivedAt set anywhere yet
+- archivedAt is not yet read/written anywhere else in the codebase - attention.js, myattention.js, prep.js and api.js still need step 3's explicit filtering (people are covered for free via inScope, but projects/workstreams have no equivalent helper and need direct filtering at each call site)
+- Next iteration should do plan Step 3: filter archived projects/workstreams in attention.js's expandCadences/buildAttention, add an early continue for archived people in prep.js plus filter owned workstreams, and exclude archived rows (while adding archivedAt/archived to each returned row) in api.js's people()/projects()/workstreams()/person(); also decide+implement the stakes-filtering question at the namedStakes() call sites. Do not add archive/unarchive/bulk functions yet (that's step 4).
