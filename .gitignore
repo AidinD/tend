@@ -27,3 +27,10 @@ screenshots/
 **/screenshots/
 captures/
 **/captures/
+
+# Agent scratch state. The goal loop writes its research notes, plan and phase
+# here while it works. It is orchestration bookkeeping, not project
+# documentation - a stale 24 kB plan in the repo reads like a spec to the next
+# person, and this directory reached a public repo once already carrying
+# iteration logs and a worktree path. See GITHUB-PUSH.md.
+.helm-goal/
