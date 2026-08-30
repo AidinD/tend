@@ -11,90 +11,8 @@ DECISIONS.md / PLAN.md (Fas 3 Point 11) in the Helm repo for why.
 Full codebase read for the reflection-feature goal. Below is everything the PLAN
 iteration needs; no further exploratio
 
-[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
+## Preserved key learnings (from truncated earlier iterations)
 
-.
-
-## Test files - full current list (test/*.test.mjs)
-
-contact, domain, growth, harness, journal, knowledge, ledger, mode, model,
-myattention, nibsync, parse, people, practices, prep, review, service,
-signals-workstreams, skips, stakes, storage, tagrules, topics, waiting, watch.
-No moments-specific or reflection-specific file exists yet. Grepped
-test/service.test.mjs for "logMoment"/"describe(" and got no matches at all -
-either logMoment/moments tests live in a file not grepped correctly, or they
-are genuinely untested at the service layer today (domain-level journal tests
-may cover the underlying hasContent/entriesSince logic instead, with
-moments/logMoment covered only by the E2E script). PLAN/BUILD phase should
-grep more broadly (across all test/*.mjs, not just service.test.mjs) for
-"logMoment" before concluding there is no precedent to follow, but should not
-be blocked by this - a new test/reflection.test.mjs (domain-level, mirroring
-test/journal.test.mjs and test/growth.test.mjs in structure) plus targeted
-additions to test/service.test.mjs (logReflection/reflections validation) and
-test/myattention.test.mjs (new signal fires/clears, stays first-person, gets
-added to the fixture's expected key list) is sufficient to satisfy the goal's
-"unit tests for the domain/service layer... nudge/cadence logic fires and
-clears... nothing here ever reaches critical/Now severity" requirement. Also
-check test/storage.test.mjs for whether it enumerates COLLECTIONS explicitly
-(grep for "COLLECTIONS") - if so it needs "reflections" added there too.
-
-## Concrete file touch-list for BUILD phase (summary)
-
-1. src/domain/reflection.js - NEW. Fixed fields, hasContent, cadence const,
-   house-style doc comment.
-2. src/storage/reduce.js - add "reflections" to COLLECTIONS with comment.
-3. src/service/api.js - add logReflection, reflections (read), a
-   lastReflectedAt helper; extend myAttentionSignals to pass reflection data
-   into myAttention(); add "reflections" to removeRow's removable list.
-4. src/domain/myattention.js - add the nudge signal (first-person text, new
-   key), new function parameter(s) for reflection data.
-5. src/main/index.js - add logReflection/reflections to the OPERATIONS map
-   (mirror logMoment/moments, lines 164-166).
-6. src/renderer/views/reflection.js (new) OR a section folded into an
-   existing view (now.js most likely) - TBD after reading index.html/rail
-   markup; list + add-a-reflection form.
-7. src/renderer/app.js - register new view in the VIEWS object (line 33) IF
-   a standalone view is chosen.
-8. Nav rail HTML (location TBD - read index.html first) - new .nav-btn IF a
-   standalone view with its own rail entry is chosen.
-9. src/domain/halves.js - add the view entry to VIEWS array (work-half only)
-   IF a standalone view is chosen; skip entirely if folded into now.js.
-10. src/mcp/tools.js - most likely NO new tool (see reasoning above); if the
-    PLAN phase decides otherwise, a single read-only tend_reflections tool
-    modeled on tend_reviews.
-11. test/reflection.test.mjs - NEW, domain unit tests.
-12. test/service.test.mjs - add logReflection/reflections tests.
-13. test/myattention.test.mjs - extend for the new signal (fixture, expected
-    key list, first-person regex already covers correctly-phrased text).
-14. test/storage.test.mjs - add "reflections" wherever COLLECTIONS is
-    enumerated, if it is.
-15. DECISIONS.md - new dated entry at the top (2026-08-30), see style notes
-    above.
-16. package.json - bump patch version by 1, in the SAME iteration as any
-    other tracked-file change (see Versioning section above), every time.
-17. scripts/e2e-app.mjs - extend with a short flow: navigate to wherever
-    reflection lives, add one, assert it appears in the list. Template:
-    the journal-view flow around lines 1579-1650 (`data-act="writeEntry"`).
-
-## Open decisions the PLAN phase must make explicitly (not yet resolved)
-
-- Standalone reflection view vs. folded into an existing view (now.js is the
-  leading candidate if folding in) - read index.html/rail markup first.
-- Final field names/wording (wellDone/differently/notes are this iteration's
-  placeholder suggestions).
-- Whether MCP gets a read-only tool or nothing (leaning nothing).
-- Exact nudge interval in days (leaning 7).
-- Exact validation rule for logReflection (leaning: require at least one of
-  the two primary fields non-blank).
-
-## Iteration 1 — success
-
-Summary: Researched the Tend codebase (growth.js, journal.js, signals.js, myattention.js, topics.js, halves.js, attention.js, reduce.js, api.js, tools.js, seed.js, now.js, app.js, DECISIONS.md) and wrote detailed findings, a recommended architecture, and an open-questions list for the reflection feature to .helm-goal/notes.md.
-
-Key changes:
-- Appended a large research section to .helm-goal/notes.md (no code files touched, as required for this read-only phase)
-
-Key learnings:
 - signals.js/signalsDue is the WRONG model to copy for the reflection nudge: its severity can reach 'critical' and buildAttention() folds it into Now's needs list, violating the 'never critical' constraint.
 - src/domain/myattention.js ('My month' on the Now view) is the structurally correct, already-approved home: its signals have no severity field at all so they cannot become critical, they're rendered in a dedicated low-key block, and DECISIONS.md's growth entry already establishes the precedent that things genuinely about the user himself belong there.
 - Adding a new myAttention signal will require updating test/myattention.test.mjs's exact-key-list assertion (assert.deepEqual of sorted signal keys) - must be done deliberately.
@@ -105,19 +23,13 @@ Key learnings:
 - scripts/e2e-app.mjs is long (2000+ lines); only the first 140 lines were read. The journal-view flow around lines 1579-1650 (data-act='writeEntry') is the template to copy for the new reflection E2E flow.
 - Tend's existing precedent (topics only on prep cards, moments folded into journal.js) suggests leaning toward folding reflection into an existing view rather than adding a new nav rail entry, though the goal leaves this an open choice.
 - Per project convention (bump patch on every commit, one commit per iteration), every future code-touching iteration in this goal should bump package.json's patch version itself, not just a final iteration.
-
-## Iteration 2 — success
-
-Summary: Wrote a concrete, step-by-step implementation plan for the reflection feature to .helm-goal/plan.md, resolving all open design questions left by the research iteration.
-
-Key changes:
-- Created .helm-goal/plan.md with 10 ordered implementation steps (domain module, storage collection, service layer, myattention nudge, halves/view registration, renderer view, unit tests, E2E flow, DECISIONS.md entry, final verification)
-- Locked in decisions the research iteration left open: standalone 'Reflection' rail view (own nav-btn after 'The day', no nav-count) rather than folding into now.js/work.js; no MCP tool at all (matches entries/moments precedent); nudge lives in myattention.js as a new low-weight, severity-less signal; field names wellDone/differently/notes; validation requires at least one of the two primary fields
-- No other code files were modified this iteration, per the PLAN phase's read-only constraint
-
-Key learnings:
 - Nav buttons are hand-authored in src/renderer/index.html (confirmed by reading it) and pruned per-half by app.js's applyHalf() - adding a standalone view requires editing index.html, halves.js VIEWS, and app.js's VIEWS object together.
-- journal.js is the ideal UI template: its 'no nav-count, own rail slot, occasional habit' pattern and its writeEntry/entry()/dropEntry action shapes map almost directly onto the new reflection.js view.
+- journal.js is the
+
+
+[... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
+
+ideal UI template: its 'no nav-count, own rail slot, occasional habit' pattern and its writeEntry/entry()/dropEntry action shapes map almost directly onto the new reflection.js view.
 - api.js's moments()/logMoment()/logEntry()/journal() functions (read in full, lines ~1791-2160) are the exact templates for logReflection/reflections - copy their validation and newest-first sorting idioms.
 - removeRow()'s removable list and OPERATIONS in main/index.js are simple whitelist arrays - reflections just needs to be added to both, no new generic machinery needed.
 - test/journal.test.mjs mirrors both domain-level pure-function tests and service-level 'through the store' tests in one file - this is the template for the new test/reflection.test.mjs; logMoment's own tests actually live in test/mode.test.mjs (private-mode tests), showing test placement in this repo follows feature relevance rather than a strict one-file-per-service-function rule.
@@ -270,3 +182,78 @@ Key learnings:
 - .mine-row/.mine-text CSS classes already exist in app.css (used by journal.js's backlog line) and were reused as-is, no new CSS needed.
 - Changing halves.js's VIEWS array length breaks a hardcoded count assertion in test/mode.test.mjs ('gives the work half every view...' expected exactly 10) - had to bump it to 11; any future VIEWS change should grep test/mode.test.mjs for hardcoded lengths first.
 - Remaining plan steps: step 7 (new test/reflection.test.mjs domain+service tests, plus dedicated myattention.test.mjs fire/clear/never-fires-on-fresh-install/never-critical test cases beyond the incidental key-list update already done in a prior iteration), step 8 (extend scripts/e2e-app.mjs with an add-a-reflection-and-see-it-listed flow, then run npm run test:app), step 9 (DECISIONS.md entry), step 10 (final full verification pass: npm test, npm run typecheck, npm run test:app all green). npm run test:app itself was not run this iteration (no new E2E flow was added yet, and reading the script confirmed no existing check would break from the new rail button).
+
+## Iteration - success (plan step 7)
+
+Summary: Added test/reflection.test.mjs (domain hasContent tests plus a full
+"through the store" describe block for logReflection/reflections/
+lastReflectedAt/removeRow) and extended test/myattention.test.mjs with a
+dedicated "how the week went" describe block covering fire/clear/re-fire/
+never-critical/ordering, completing plan step 7, and bumped the patch version.
+
+Key changes:
+- test/reflection.test.mjs (new): mirrors test/journal.test.mjs's shape -
+  a domain describe block (REFLECTION_FIELDS names/labels/hints, hasContent
+  including the deliberate "notes alone still counts as hasContent even
+  though logReflection refuses to store notes-only" contrast) and a
+  "through the store" describe block using openStore in a tmp dir: refuses
+  blank, refuses notes-only, accepts wellDone-alone/differently-alone/both,
+  refuses a future date, reflections() newest-first, reflections() limit/
+  since, lastReflectedAt() tracks the max, removeRow works, and logging a
+  reflection never reaches api.attention()'s needsYou/nudges (mirrors
+  journal.test.mjs's own "does not reach the Now view" test).
+- test/myattention.test.mjs: added a new "how the week went" describe block
+  with 5 tests - stays quiet on a fresh install (no aged activity), fires
+  once activity is older than REFLECTION_CADENCE_DAYS and nothing has ever
+  been written, clears once a reflection lands inside the cadence window,
+  fires again once a kept reflection ages past the cadence, and an ordering
+  test that asserts the signal always sorts last among whatever else fires
+  (weight 20 is the lowest) plus asserts `"severity" in signal` is false.
+  The existing "every signal speaks in the first person" test already
+  exercised the key (from a prior iteration's fixture) so no change was
+  needed there.
+- package.json: bumped version 0.1.75 -> 0.1.76.
+- Verified npm test (635/635 green, up from 617 - 18 new tests) and
+  npm run typecheck (clean). Grepped both new/edited test files for the
+  em-dash character to confirm none slipped in.
+
+Key learnings:
+- myAttention()'s returned array is genuinely sorted descending by weight
+  (`return signals.sort((a, b) => b.weight - a.weight)` at the end of the
+  file) - confirmed by reading the file before writing the ordering test,
+  so `signals[signals.length - 1]` being the reflection signal whenever
+  anything else fires is a real invariant, not a coincidence of the fixture.
+- test/storage.test.mjs does not enumerate COLLECTIONS anywhere (grepped,
+  zero matches) - confirmed again, no change needed there, matching every
+  earlier iteration's finding.
+- Remaining plan steps: step 8 (extend scripts/e2e-app.mjs with an
+  add-a-reflection-and-see-it-listed flow in work-half mode, then run
+  `npm run test:app` unpackaged and iterate on selectors/timing until
+  green - the plan explicitly budgets more than one iteration for this if
+  needed), step 9 (DECISIONS.md entry, dated 2026-08-30, in the file's
+  existing bold-lead-in voice, covering why prompt-based not diary/why not
+  journal.js/why the nudge lives in myattention.js/why no MCP tool - see
+  the plan's own step 9 section for the exact content outline), step 10
+  (final verification pass: npm test + npm run typecheck + npm run
+  test:app all green, then confirm goalReached). `npm run test:app` itself
+  has still never been run in this whole build - it should be run as-is
+  once early in step 8's iteration (before adding the new E2E section) to
+  confirm the reflection rail button/view do not break any existing E2E
+  assumption, per the note two iterations ago that this was still an open
+  check.
+
+## Iteration 3 — success
+
+Summary: Add test/reflection.test.mjs (domain + through-the-store tests) and extend test/myattention.test.mjs with fire/clear/re-fire/never-critical/ordering tests for the weekly-reflection nudge, completing plan step 7, and bump the patch version.
+
+Key changes:
+- test/reflection.test.mjs (new): domain describe block for REFLECTION_FIELDS shape and hasContent, plus a 'through the store' describe block covering logReflection validation (blank refused, notes-only refused, wellDone/differently/both accepted, future date refused), reflections() newest-first/limit/since, lastReflectedAt(), removeRow, and confirming a reflection never reaches api.attention()'s needsYou/nudges
+- test/myattention.test.mjs: added a 'how the week went' describe block with 5 tests (quiet on fresh install, fires after cadence-aged activity with nothing written, clears once logged, fires again once stale, and an ordering test asserting the signal always sorts last with no severity field)
+- package.json: bumped version 0.1.75 -> 0.1.76
+- Verified npm test (635/635 green, up from 617) and npm run typecheck (clean); grepped new/edited files for em-dashes (none found)
+
+Key learnings:
+- myAttention()'s returned signals array is genuinely sorted descending by weight (confirmed in source), so asserting the reflection signal is always last among whatever else fires is a real invariant worth testing, not fixture luck
+- test/storage.test.mjs still does not enumerate COLLECTIONS anywhere (re-grepped, confirmed again) - no change needed there
+- Remaining plan steps: step 8 (extend scripts/e2e-app.mjs with an add-a-reflection-and-see-it-listed flow in work-half mode, then run npm run test:app and iterate on selectors/timing - budget more than one iteration if needed; also run npm run test:app once as-is first since it has never been run yet in this whole build, to confirm the existing reflection rail button/view don't break any current E2E assumption), step 9 (DECISIONS.md entry dated 2026-08-30 in the file's existing bold-lead-in voice), step 10 (final verification: npm test + npm run typecheck + npm run test:app all green, then goalReached can be true)
+- The .helm-goal/notes.md file already had a large uncommitted trim applied before this iteration started (visible in git status at the start) - this is expected context-budget housekeeping from the harness, not something this iteration caused or should revert

@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import { WINDOW_DAYS, myAttention } from "../src/domain/myattention.js";
+import { REFLECTION_CADENCE_DAYS } from "../src/domain/reflection.js";
 import { DAY_MS } from "../src/domain/time.js";
 
 const NOW = 1_800_000_000_000;
@@ -194,5 +195,79 @@ describe("a quiet month", () => {
   it("produces nothing at all when everyone has been seen first-hand", () => {
     const touches = roster(4).map((p, i) => ({ subject: p.id, kind: "one-to-one", at: daysAgo(i + 1) }));
     assert.deepEqual(myAttention({ people: roster(4), touches, now: NOW }), []);
+  });
+});
+
+describe("how the week went", () => {
+  // Aged evidence of real use, so the gate that keeps a fresh install quiet
+  // is satisfied without that being what the test is about.
+  const usedForAWhile = [{ subject: "p0", kind: "one-to-one", at: daysAgo(REFLECTION_CADENCE_DAYS + 3) }];
+
+  it("stays quiet on a fresh install, where the app has never been used for a week", () => {
+    const signals = myAttention({
+      people: roster(2),
+      touches: [{ subject: "p0", kind: "one-to-one", at: daysAgo(1) }],
+      entries: [{ at: daysAgo(1), took: "day one" }],
+      reflections: [],
+      now: NOW
+    });
+    assert.equal(
+      signals.some((s) => s.key === "i-have-not-reflected"),
+      false,
+      "a week that has not happened yet is not a gap"
+    );
+  });
+
+  it("fires once the app has been in use for a cadence's worth of days and nothing has ever been written", () => {
+    const signal = myAttention({
+      people: roster(2),
+      touches: usedForAWhile,
+      reflections: [],
+      now: NOW
+    }).find((s) => s.key === "i-have-not-reflected");
+    assert.ok(signal, "a week's worth of use with nothing reflected on should be noticed");
+    assert.match(signal.text, /^I have not written a weekly reflection yet\.$/);
+    assert.equal("severity" in signal, false, "this signal must never carry a severity - see the module header");
+  });
+
+  it("clears once a reflection has been logged inside the cadence window", () => {
+    const signals = myAttention({
+      people: roster(2),
+      touches: usedForAWhile,
+      reflections: [{ at: daysAgo(1) }],
+      now: NOW
+    });
+    assert.equal(signals.some((s) => s.key === "i-have-not-reflected"), false);
+  });
+
+  it("fires again once a kept reflection ages past the cadence", () => {
+    const signal = myAttention({
+      people: roster(2),
+      touches: usedForAWhile,
+      reflections: [{ at: daysAgo(REFLECTION_CADENCE_DAYS + 1) }],
+      now: NOW
+    }).find((s) => s.key === "i-have-not-reflected");
+    assert.ok(signal, "an old reflection is not a current one");
+    assert.match(signal.text, new RegExp(`in ${REFLECTION_CADENCE_DAYS + 1} days`));
+  });
+
+  it("never outranks a signal that is about a person rather than a habit", () => {
+    // Weight is the only thing keeping this below "written and not read" and
+    // the neglect signals - assert the ordering rather than just the number,
+    // so a future reshuffle of weights cannot quietly invert it.
+    const signals = myAttention({
+      people: roster(2),
+      touches: [{ subject: "p0", kind: "one-to-one", at: daysAgo(2) }],
+      entries: Array.from({ length: 6 }, (_, i) => ({ at: daysAgo(REFLECTION_CADENCE_DAYS + i), took: "x" })),
+      reflections: [],
+      now: NOW
+    });
+    const reflectionIndex = signals.findIndex((s) => s.key === "i-have-not-reflected");
+    assert.ok(reflectionIndex >= 0);
+    assert.ok(
+      signals.slice(0, reflectionIndex).every((s) => s.key !== "i-have-not-reflected"),
+      "sorted signals should not put the habit reminder ahead of anything else present"
+    );
+    assert.equal(reflectionIndex, signals.length - 1, "it should sort last among whatever else fires");
   });
 });
