@@ -13,55 +13,7 @@ iteration needs; no further exploratio
 
 [... earlier notes truncated - context fill crossed the 40% budget, older narrative dropped to keep future iterations' prompts small; durable key learnings preserved above ...]
 
-n it" required-field pattern, since a
-  fully-blank reflection row is pointless in a way a fully-blank day entry
-  arguably still marks "a day happened."
-- lastReviewRun's exact body (referenced at line 117 and 2097) - copy its
-  shape exactly for a new lastReflectedAt helper.
-- journal(), reviews(), keepReview(), vocabulary() (this last one is what
-  app.js's applyHalf() consumes for half/views/relations/personBlocks/home -
-  confirm it wraps halves.js's viewsIn/homeViewIn/personBlocksIn/
-  relationOptionsIn/defaultRelationIn so a new work-half view just needs an
-  entry in halves.js's VIEWS array to show up there, OR whether api.js's
-  vocabulary() has its own hand-copied logic that also needs updating).
-
-Two new exported functions needed in api.js:
-1. logReflection(store, { wellDone, differently, notes, at, now }) - validate
-   (see above), reject future dates via isLaterDay (same rule logMoment/
-   logTouch/markRaised already enforce - "nothing here logs something that
-   has not happened yet"), store.create("reflections", {...}), return
-   { id, logged: ... }.
-2. reflections(store, { limit, since, now }) - read, newest-first (sort by at
-   descending, tie-break by _at like moments.js's byNewestMoment if two share
-   a timestamp - probably unnecessary here since `at` will usually be
-   Date.now()-precise, but check goal's "newest-first" requirement is met
-   either way). Return plain objects: { id, at, when (agoWords), wellDone,
-   differently, notes }. Mirror moments(store, now)'s shape/simplicity - no
-   person filtering needed (reflections have no people).
-
-Do NOT add "reflections" to AGENT_WRITABLE (line 74: currently ["promises",
-"touches", "evidence"]) - a reflection is the owner's own retrospective, not
-something an agent should be creating on the user's behalf; keep it strictly
-app-only for writing, matching how logEntry/logMoment (private/self journal
-material) have NO MCP write tool at all today (confirmed by reading tools.js
-in full: no tend_log_entry, no tend_log_moment, no tend_journal-write of any
-kind exists - only tend_journal [read] and tend_reviews [read] exist for that
-whole area). This is the strongest, most consistent precedent: self-directed
-personal material in this app is never written via MCP.
-
-## MCP exposure decision (src/mcp/tools.js)
-
-tools.js was read in FULL. Confirmed: entries and moments (the two other
-purely-self, no-other-person, unprompted personal-record collections) have
-ZERO MCP surface - not even a read tool exists for "moments," and "entries"
-only surfaces indirectly via tend_journal (which bundles entries + counts +
-focus cost) and tend_reviews (kept readings), never raw. Reflection is
-structurally closest to moments/entries (self-directed, no named people, not
-operationally useful to an agent running the job day-to-day) rather than to
-signals/growth/decisions/topics (which DO have MCP tools because an agent
-plausibly needs them to help run the job for someone else, or to propose
-things). RECOMMENDATION: give reflection NO MCP tool at all - matches moments
-exactly, and sidesteps the awkwardness of an agent reading/writing the user's
+ of an agent reading/writing the user's
 own private retrospective. If the BUILD phase decides a read-only
 tend_reflections tool adds real value (e.g. so an agent asked "how did my
 week go" can answer), it should be modeled tightly on tend_reviews (read-only,
@@ -324,3 +276,19 @@ Key learnings:
 - test/storage.test.mjs does not enumerate COLLECTIONS explicitly, so no test changes were needed for this step
 - Next step (plan step 3) is adding logReflection and reflections (read) to src/service/api.js near moments()/journal(), plus a lastReflectedAt() helper mirroring lastReviewRun's shape; must read api.js lines ~1529-2160 in full first to match moments()/journal()'s exact call signatures before writing
 - Do not add "reflections" to AGENT_WRITABLE - confirmed decision from earlier research/plan iterations still holds
+
+## Iteration 5 — success
+
+Summary: Add service-layer logReflection, reflections, and lastReflectedAt functions to src/service/api.js (step 3 of the reflection-feature plan), and bump the patch version.
+
+Key changes:
+- src/service/api.js: imported REFLECTION_FIELDS from ../domain/reflection.js and added a new reflection banner section with logReflection (validates at least one of wellDone/differently is non-blank, refuses future dates via isLaterDay, stores via store.create('reflections', row)), reflections(store, now, { limit, since }) returning newest-first mapped rows with an agoWords 'when' string, and lastReflectedAt(store) mirroring lastReviewRun's shape
+- Did NOT add 'reflections' to AGENT_WRITABLE, per the locked-in plan decision
+- package.json: bumped version 0.1.72 -> 0.1.73
+- Verified npm run typecheck (clean) and npm test (617/617 passing) with no other files touched
+
+Key learnings:
+- logEntry/journal (journal.js's log/read pair) and lastReviewRun were the exact templates used, per the plan's own citation - copied their validation idiom (trim-and-null-if-blank per field, isLaterDay guard) and their agoWords-based 'when' mapping almost verbatim
+- No new tests were added this iteration - plan step 7 explicitly owns test/reflection.test.mjs and the myattention.test.mjs extensions as its own step, so this iteration deliberately stayed service-layer-only per the 'do not batch several steps' instruction; existing 617 tests still pass unchanged since nothing wired these new exports into any UI/nudge path yet
+- Next step is plan step 4: the myattention.js nudge signal (reflections param, i-have-not-reflected signal, low weight, no severity field) plus wiring myAttentionSignals(store, now) in api.js to pass reflections: store.rows('reflections') into myAttention(...), and adding logReflection/reflections to src/main/index.js's OPERATIONS map
+- reflections() signature chosen as (store, now, { limit, since } = {}) to match the plan's sketch exactly, distinct from moments(store, now) which takes no options
