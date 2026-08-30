@@ -1037,33 +1037,44 @@ try {
   });
 
   await page.click('[data-act="openThread"]');
+
+  const openText = await page.text(".dialog");
+  check("opening asks for his own view of the direction, and nothing else yet", () => {
+    // The field used to be labelled "The direction, in one sentence" with a
+    // second "what do you think the direction is" further down. Reading it, you
+    // could not tell whether it wanted his description or the other person's
+    // answer - which is exactly the distinction the two sittings exist to keep.
+    if (!/What you think the direction is/.test(openText)) {
+      throw new Error("the direction field does not say it is his own view");
+    }
+    if (/What do you think the direction is/.test(openText)) {
+      throw new Error("the same question is still being asked twice on one screen");
+    }
+    if (/Do they want this, or does the job need it\?/.test(openText)) {
+      throw new Error("opening still asks the driver question up front");
+    }
+    if (!/can wait/.test(openText)) {
+      throw new Error("opening does not say the rest of the preparation can wait");
+    }
+  });
+
+  check("stage one never asks him what the other person wants", () => {
+    if (/in their words/i.test(openText)) {
+      throw new Error("the opening form is asking a question only they can answer");
+    }
+  });
+
+  await page.fillDialog({ aim: "Leder designgenomgången utan mig i rummet" });
+  await page.waitFor("document.body.textContent.includes('designgenomgången')", "the thread");
+
+  await page.click('[data-act="threadPrepare"]');
   const drivers = await page.dialogOptions("driver");
-  check("the form asks whether they want it or the job needs it, before anything else", () => {
+  check("preparing later asks whether they want it or the job needs it", () => {
     const values = drivers.map((d) => d.value);
     for (const expected of ["wants", "needs", "unknown"]) {
       if (!values.includes(expected)) {
         throw new Error(`driver "${expected}" is not offered: ${JSON.stringify(values)}`);
       }
-    }
-  });
-
-  const prepareText = await page.text(".dialog");
-  check("and the form says whose sentence the direction is", () => {
-    // The field used to be labelled "The direction, in one sentence" with a
-    // second "what do you think the direction is" further down. Reading it, you
-    // could not tell whether it wanted his description or the other person's
-    // answer - which is exactly the distinction the two sittings exist to keep.
-    if (!/What you think the direction is/.test(prepareText)) {
-      throw new Error("the direction field does not say it is his own view");
-    }
-    if (/What do you think the direction is/.test(prepareText)) {
-      throw new Error("the same question is still being asked twice on one screen");
-    }
-  });
-
-  check("stage one never asks him what the other person wants", () => {
-    if (/in their words/i.test(prepareText)) {
-      throw new Error("the preparation form is asking a question only they can answer");
     }
   });
 
@@ -1107,14 +1118,13 @@ try {
   });
 
   await page.fillDialog({
-    aim: "Leder designgenomgången utan mig i rummet",
     driver: "needs",
     need: "teamet stannar av när jag är borta",
     ifNothingChanges: "jag är kvar som flaskhals och han står still",
     alreadySeen: "tog över retrot i juni utan att bli tillfrågad",
     offering: "arkitekturgenomgången, och jag slutar skriva migreringsplanen själv"
   });
-  await page.waitFor("document.body.textContent.includes('designgenomgången')", "the thread");
+  await page.waitFor("document.body.textContent.includes('flaskhals')", "the preparation");
 
   const opened = await page.text(".panel");
   check("a thread nobody has been asked yet does not offer to log a conversation", () => {

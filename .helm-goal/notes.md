@@ -211,3 +211,19 @@ Key changes:
 Key learnings:
 - Must avoid em dash character (U+2014) anywhere in written files per house rule enforced by the Write tool itself; use plain hyphens/commas/semicolons instead
 - package.json version confirmed still 0.1.70 at plan time, so Step 7 should bump to 0.1.71 unless an earlier implement step already did it
+
+## Iteration 3 — success
+
+Summary: Simplified the growth-thread "Open a direction" dialog to ask only the aim field, deferring driver/need/alreadySeen/offering to the existing Prepare dialog, and restructured the E2E test and DECISIONS.md accordingly.
+
+Key changes:
+- src/renderer/views/growth.js: prepareFields now returns immediately after pushing only the aim field when opening=true (added missing return fields;), with an added hint sentence that the rest can wait for Prepare; openThread's form intro shortened to match
+- scripts/e2e-app.mjs: the 'A direction for somebody' step restructured so the open dialog is asserted/filled with only aim, then threadPrepare is clicked on the new card to run the driver/showIf/consequence checks and fill the remaining fields, waiting on 'flaskhals' before continuing unchanged into threadAsked
+- DECISIONS.md: added a new 2026-08-30 entry (newest-first) explaining why opening now asks one question and defers the rest to Prepare
+- package.json: version bumped 0.1.70 to 0.1.71
+
+Key learnings:
+- test/growth.test.mjs required no changes - its openThread calls hit the service layer directly (bypassing prepareFields), already only require aim, and one test already asserts missing.prepare is populated
+- No other docs/scripts referenced the old 4-6 question dialog; src/domain/growth.js's missing()-generated nudge text and the pre-existing 2026-08-26 DECISIONS.md entry both correctly remain untouched (historical / still-accurate)
+- npm run test:app has no 'work-half' flag; it internally sets TEND_MODE=work already, so plain npm run test:app is the correct full verification command
+- All three verification commands are green: npm test (617/617 pass), npm run typecheck (clean), npm run test:app (117/117 checks pass); the goal is fully complete

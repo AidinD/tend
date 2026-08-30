@@ -229,8 +229,11 @@ function prepareFields(values = {}, opening = false) {
       placeholder: "Runs the design review without me in the room",
       hint:
         "Yours, before you have asked. What they will be able to DO, not an area to improve in - " +
-        "their own answer comes later and is kept beside this."
+        "their own answer comes later and is kept beside this. The rest of the preparation - " +
+        "whether they want it or the job needs it, what you have already seen, what you are " +
+        "putting in - can wait until \"Prepare\" on the card."
     });
+    return fields;
   }
 
   fields.push(
@@ -412,8 +415,9 @@ export const actions = {
     const values = await form({
       title: "Open a direction",
       intro:
-        "Your own preparation, in four questions. What THEY want comes in a second form after you " +
-        "have asked them - a plan filled in alone at your desk is a plan you wrote for them.",
+        "Opening only needs one sentence: what you think the direction is. Whether they want it or " +
+        "the job needs it, what you have seen, and what you are putting in can wait - answer those " +
+        "later with \"Prepare\" on the card, whenever you actually have an answer.",
       fields: prepareFields({}, true),
       confirm: "Open it"
     });
