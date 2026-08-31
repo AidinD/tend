@@ -3015,7 +3015,14 @@ export function openThread(store, { person: who, aim, cadenceDays, horizonDays, 
   const id = store.create("growth", {
     person: String(found.person.id),
     aim: String(aim).trim(),
-    driver: String(rest.driver ?? "") === "" ? "unknown" : String(rest.driver),
+    // Left blank when not given, NOT defaulted to "unknown". `unknown` is a
+    // first-class answer in `growth.js` - "I do not know yet", chosen from the
+    // list - and since opening a thread stopped asking for the driver at all,
+    // writing it would record an answer to a question nobody was asked. It also
+    // silenced the one thing that was supposed to carry the deferral: `missing()`
+    // treats `unknown` as answered, so the "do they want this, or does the job
+    // need it?" line never came back on the card.
+    driver: String(rest.driver ?? "") === "" ? "" : String(rest.driver),
     need: text(rest.need),
     ifNothingChanges: text(rest.ifNothingChanges),
     hypothesis: text(rest.hypothesis),

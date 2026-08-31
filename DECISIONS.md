@@ -177,6 +177,20 @@ field. The alternative - keeping all six fields but making only one required -
 was rejected because an optional field on a form still reads as a question
 the tool expects an answer to right now.
 
+**Corrected 2026-08-31: the driver has to be left blank, not defaulted.** The
+claim above - that `missing()` carries the deferred questions - was true of five
+of the six and false of the driver, because opening a thread wrote
+`driver: "unknown"`. In `growth.js` that is a first-class answer, "I do not know
+yet", picked deliberately from the list, and `missing()` therefore treats it as
+answered. So the one question the simplification most obviously deferred was the
+one it silently marked as settled: the tool recorded an answer to a question
+nobody had been asked, and the line never came back on the card. It now writes
+an empty driver, and choosing "I do not know yet" in Prepare still means what it
+always meant. Worth remembering as a shape rather than as this bug: when a form
+stops asking for a field, the default it leaves behind is a claim about the
+answer, and a mechanism that reads that field cannot tell a default from a
+decision.
+
 ## 2026-08-30 - A weekly reflection is three fixed questions, not a diary field
 
 **Decided.** A new `reflections` collection holds one flat row per entry -

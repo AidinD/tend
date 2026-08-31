@@ -317,6 +317,33 @@ describe("through the service", () => {
     assert.ok(opened.missing.prepare.length > 0);
   });
 
+  it("brings back every deferred question, the driver included", () => {
+    // Opening asks one thing, so the other five have to come back on the card -
+    // that is the whole argument for deferring them. The driver was the one that
+    // did not: it was written as "unknown", which `missing()` treats as an
+    // answer, so the question disappeared instead of waiting.
+    const opened = ok(api.openThread(store, { person: "Halvar", aim: "Runs the review alone", now: NOW }));
+    assert.match(
+      opened.missing.prepare.join(" | "),
+      /want this, or does the job need it/i,
+      `the driver question must still be waiting: ${JSON.stringify(opened.missing.prepare)}`
+    );
+  });
+
+  it("keeps 'I do not know yet' as an answer once it is actually chosen", () => {
+    // The distinction the blank protects: not-yet-asked is not the same fact as
+    // asked-and-unsure, and `unknown` is the second one. Choosing it must settle
+    // the question rather than leave it on the card forever.
+    const opened = ok(
+      api.openThread(store, { person: "Halvar", aim: "Owns the release", driver: "unknown", now: NOW })
+    );
+    assert.doesNotMatch(
+      opened.missing.prepare.join(" | "),
+      /want this, or does the job need it/i,
+      "a driver that was deliberately set to unknown is answered, not missing"
+    );
+  });
+
   it("refuses to record an observation before there is anything to observe", () => {
     const err = failed(api.logGrowthNote(store, { growth: id, observed: true, now: NOW }));
     assert.match(err, /no marker/);
