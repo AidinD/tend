@@ -3,6 +3,48 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - A project gets a page, opened by a button rather than by its row
+
+**Decided.** A project has its own page: the cadences over it, every check-in
+logged against it with its note, the workstreams inside it and who owns them, and
+who is waiting to hear about it. Reached from a View button on the Work row, and
+exposed as `tend_project` so a session reads the same thing.
+
+**What was missing was not a view, it was a read.** The listing answered "which
+project is drifting" and nothing else. Everything said at those looks was in the
+event log and reachable from nowhere - reading the three check-ins on one project
+meant grepping the event files by its id. A person had `person()` and a page; a
+project had one row and three buttons.
+
+**A View button rather than a clickable row, and the app had already answered
+this.** The roster makes a whole row a button where the row carries nothing else,
+and uses exactly this small View button where it does carry other controls. The
+project row carries three, one of which removes the project - a click target
+wrapped around Remove is a mis-press waiting to happen. So the answer was to copy
+the pattern already there for this exact case rather than invent a third one.
+
+**A panel, not a drawer.** A drawer would be a second disclosure pattern for the
+same job. Somebody who has used the person page already knows how to read a panel
+with a back link, and the blocks are in the same order for the same reason.
+
+**Read from the rows rather than from the existing listings.** `workstreams()`
+answers a different question - every workstream, with its project named - and
+calling it here to throw away all but a few would make this read depend on the
+shape of a listing that exists for the Work view.
+
+**An archived project still resolves**, same rule as a person's page: archiving
+takes a row out of the forward-looking views and leaves its history readable. A
+page that 404s once archived would make archiving a delete with a nicer name.
+
+**One test in this batch was decoration and a mutation found it.** The stakeholder
+check had a single stake in its fixture, so the filter restricting stakeholders to
+this project could be deleted outright and every assertion still passed. A filter
+test needs a row that must be excluded, and the fixture now has one.
+
+**Three em dashes were removed from user-visible strings while here** - a cadence
+line, a theme line, and a workstream label. The rule against them was stated
+everywhere except in the code that renders them.
+
 ## 2026-08-31 - A note's title outranks its timestamp, and a derived row says it is derived
 
 Three faults, found by looking at two contact rows on one real person's page and

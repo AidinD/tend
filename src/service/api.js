@@ -513,6 +513,119 @@ export function projects(store, now) {
 }
 
 /**
+ * Everything known about one project.
+ *
+ * ## Why this exists
+ *
+ * A person had `person()` and a page with their cadences, promises, contact and
+ * observations on it. A project had one row on the Work view: a name, when it was
+ * last looked at, and three buttons. Every check-in ever logged against it was in
+ * the event log and reachable from nowhere - the only way to read the three
+ * check-ins on one project was to grep the log by its id.
+ *
+ * ## Deliberately the same shape as `person()`
+ *
+ * Cadences, then the history, then what hangs off it. Not because symmetry is
+ * pretty, but because a reader who has used the person page already knows how to
+ * read this one, and the renderer can borrow the same blocks. Where the two
+ * genuinely differ they differ: a project has no promises of its own, and it has
+ * workstreams and stakeholders, which a person does not.
+ *
+ * ## An archived project still resolves
+ *
+ * Same rule as a person's page: archiving takes a row out of the forward-looking
+ * views and leaves its history readable. A project page that 404s once archived
+ * would make archiving a delete with a nicer name.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} query Id, exact name, or a distinctive part of one.
+ * @param {number} now
+ */
+export function project(store, query, now) {
+  const found = resolveProject(store, query);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  const p = found.project;
+  const state = store.state();
+
+  const cadences = expandCadences(state, now)
+    .filter((c) => c.subjectKind === "project" && c.subject.id === p.id)
+    .map((c) => ({
+      duty: c.duty.name,
+      target: `every ${c.drift.interval} days`,
+      lastHappened: c.drift.everHappened ? agoWords(c.drift.daysSince) : "never",
+      behindBy: driftBadge(c.drift.driftDays),
+      urgency: c.drift.trueSeverity
+    }));
+
+  /*
+   * The checks-in, which is the whole reason for this read.
+   *
+   * Capped at the same twenty as a person's contact history, and each row
+   * carries its id so a mislogged one can be taken back from here rather than
+   * only from the row it was logged on - and `from`, so a row derived from a
+   * note says so, for the same reason it does on a person's page.
+   */
+  const history = store
+    .rows("touches")
+    .filter((t) => t.subject === p.id)
+    .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
+    .slice(0, 20)
+    .map((t) => ({
+      id: t.id,
+      kind: t.kind,
+      when: agoWords(Math.max(0, Math.floor((now - Number(t.at ?? now)) / 86_400_000))),
+      at: t.at ?? null,
+      note: t.note ?? null,
+      from: t.from ?? null
+    }));
+
+  const names = new Map(store.rows("people").map((x) => [String(x.id), String(x.name ?? "")]));
+
+  /*
+   * The workstreams inside it, and archived ones are kept out.
+   *
+   * Read from the rows rather than from `workstreams()` because that function
+   * answers a different question - every workstream, with its project named -
+   * and calling it here to throw away all but a few would make this read depend
+   * on the shape of a listing that exists for the Work view.
+   */
+  const streams = store
+    .rows("workstreams")
+    .filter((w) => String(w.project ?? "") === String(p.id) && !isArchived(w))
+    .map((w) => ({
+      id: w.id,
+      name: w.name,
+      owner: w.owner ? (names.get(String(w.owner)) ?? null) : null,
+      level: w.level ?? null,
+      unspecified: isUnspecified(w)
+    }));
+
+  const interested = namedStakes(
+    store.rows("stakes"),
+    store.rows("people").filter((x) => !isArchived(x)),
+    store.rows("projects").filter((x) => !isArchived(x))
+  )
+    .filter((s) => String(s.project) === String(p.id))
+    .map((s) => ({
+      id: String(s.id),
+      person: names.get(String(s.person)) ?? "",
+      label: String(s.name ?? "")
+    }));
+
+  return {
+    id: p.id,
+    name: p.name,
+    cadences,
+    recentContact: history,
+    workstreams: streams,
+    stakeholders: interested,
+    archivedAt: p.archivedAt ?? null
+  };
+}
+
+/**
  * The projects `projects()` hides. See `archivedPeople` for why this is a
  * sibling function rather than a flag on `projects()`.
  *

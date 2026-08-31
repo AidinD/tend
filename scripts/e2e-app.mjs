@@ -1634,6 +1634,55 @@ try {
   );
   check("a delegation review can be recorded against a piece of work", () => {});
 
+  /*
+   * A project's own page.
+   *
+   * The list above answers "which project is drifting" and nothing else. What
+   * was actually SAID at those looks was in the event log and reachable from
+   * nowhere - reading the check-ins on one project meant grepping the log by its
+   * id. So the claim under test is that one page gathers the check-ins, the work
+   * inside it, and who is waiting to hear about it.
+   */
+  await page.click('[data-act="checkIn"]');
+  await page.fillDialog({ note: "Gick igenom omfattningen, ligger kvar i tid" });
+  await page.waitFor("document.body.textContent.includes('last looked at')", "the look to land");
+
+  await page.click('[data-act="openProject"]');
+  await page.waitFor("document.querySelector('.panel-name') !== null", "the project page");
+
+  const projectPage = String(await page.evaluate("document.querySelector('.panel').textContent"));
+
+  check("a project opens its own page from the row, without a click target on Remove", () => {
+    if (!/Bergsklyftan/.test(projectPage)) {
+      throw new Error(`the page does not say which project it is: ${projectPage.slice(0, 200)}`);
+    }
+  });
+
+  check("and the check-in that was only in the log is readable on it", () => {
+    // Swedish included on purpose: this text makes the round trip through a
+    // dialog, the store and a template, and a stripped å looks like his words
+    // while not being them.
+    if (!/Gick igenom omfattningen, ligger kvar i tid/.test(projectPage)) {
+      throw new Error(`the check-in note is not on the page: ${projectPage.slice(0, 400)}`);
+    }
+  });
+
+  check("with the work inside it and who is waiting to hear about it", () => {
+    if (!/Renderingen/.test(projectPage)) {
+      throw new Error("the workstream inside the project is missing");
+    }
+    if (!/Testperson/.test(projectPage)) {
+      throw new Error("nobody is listed as waiting to hear about it");
+    }
+  });
+
+  await page.click('[data-act="backToWork"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"addProject\"]') !== null",
+    "the work lists again"
+  );
+  check("and the way back is one press, like the person page", () => {});
+
   /* ------------------------------------------------------------- prep -- */
 
   step("Preparing for a conversation");

@@ -206,7 +206,7 @@ async function personPage(id) {
     .map(
       (/** @type {any} */ c) => `<div class="line">
         <span class="line-when">${esc(c.behindBy)}</span>
-        <span class="line-text"><strong>${esc(c.duty)}</strong> — target ${esc(c.target)}, last ${esc(c.lastHappened)}</span>
+        <span class="line-text"><strong>${esc(c.duty)}</strong> - target ${esc(c.target)}, last ${esc(c.lastHappened)}</span>
         <span class="line-right">${pill(c.urgency)}</span>
       </div>`
     )
@@ -338,7 +338,7 @@ async function personPage(id) {
     .map(
       (/** @type {any} */ t) => `<div class="line">
         <span class="line-when">${esc(t.times)}×</span>
-        <span class="line-text">${esc(t.name)}${t.evidence ? ` — ${esc(t.evidence)}` : ""}</span>
+        <span class="line-text">${esc(t.name)}${t.evidence ? ` - ${esc(t.evidence)}` : ""}</span>
         <span class="line-right"><span class="pill plain">${esc(t.source ?? "model")}</span></span>
       </div>`
     )

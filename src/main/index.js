@@ -125,6 +125,7 @@ const OPERATIONS = {
   myAttention: (/** @type {any} */ a) => api.myAttentionSignals(store, a.now ?? Date.now()),
   focus: (/** @type {any} */ a) => api.focus(store, a.now ?? Date.now()),
   projects: (/** @type {any} */ a) => api.projects(store, a.now ?? Date.now()),
+  project: (/** @type {any} */ a) => api.project(store, a.project, a.now ?? Date.now()),
 
   // Archiving is a status flag on an existing row, not a decision about the
   // role map or the duties owed - so unlike decideDuty/decideTopic below it

@@ -182,6 +182,139 @@ describe("adding people and projects", () => {
   });
 });
 
+describe("one project's own page", () => {
+  /*
+   * The listing said how long since a project was last looked at and nothing
+   * else, so every check-in ever logged against one was in the event log and
+   * reachable from nowhere: reading the three checks-in on a project meant
+   * grepping the log by its id. A person had a page; a project had a row.
+   */
+
+  beforeEach(() => {
+    store.create("duties", {
+      id: "d-project",
+      name: "Project check-in",
+      subjectKind: "project",
+      cadenceDays: 14,
+      evidenceKinds: ["check-in"],
+      status: "active"
+    });
+    store.create("touches", {
+      id: "p1",
+      subject: "tidepool",
+      kind: "check-in",
+      note: "Release slipped a week",
+      at: daysAgo(3)
+    });
+    store.create("touches", {
+      id: "p2",
+      subject: "tidepool",
+      kind: "check-in",
+      note: "Scope cut agreed",
+      at: daysAgo(20),
+      from: "nib"
+    });
+  });
+
+  it("resolves by part of a name, the way every other read does", () => {
+    const p = ok(api.project(store, "strand", NOW));
+    assert.equal(p.name, "Strandkanten");
+  });
+
+  it("says what it could not find rather than returning an empty page", () => {
+    assert.match(failed(api.project(store, "Nothing By That Name", NOW)), /No project matching/);
+  });
+
+  it("carries the check-ins that were only in the log, newest first", () => {
+    const p = ok(api.project(store, "tidepool", NOW));
+    assert.deepEqual(
+      p.recentContact.map((/** @type {any} */ t) => t.note),
+      ["Release slipped a week", "Scope cut agreed"]
+    );
+  });
+
+  it("says which check-in came from a note and which was typed", () => {
+    // The same reason it matters on a person's page: two rows about one thing
+    // are not equally safe to delete, and the one nobody typed is the one whose
+    // text and date came from somewhere else.
+    const p = ok(api.project(store, "tidepool", NOW));
+    assert.deepEqual(
+      p.recentContact.map((/** @type {any} */ t) => t.from),
+      [null, "nib"]
+    );
+  });
+
+  it("carries each row's id, so a check-in logged against the wrong project can be taken back", () => {
+    const p = ok(api.project(store, "tidepool", NOW));
+    assert.deepEqual(p.recentContact.map((/** @type {any} */ t) => t.id), ["p1", "p2"]);
+  });
+
+  it("reports the cadence over the project, and only the project's", () => {
+    const p = ok(api.project(store, "tidepool", NOW));
+    assert.deepEqual(p.cadences.map((/** @type {any} */ c) => c.duty), ["Project check-in"]);
+    assert.match(String(p.cadences[0].lastHappened), /3 days ago/);
+  });
+
+  it("lists the workstreams inside it, and not those of another project", () => {
+    ok(api.addProject(store, { name: "Lodestar", now: NOW }));
+    const other = api.projects(store, NOW).find((/** @type {any} */ x) => x.name === "Lodestar");
+    assert.ok(other, "the second project was not created");
+    ok(
+      api.addWorkstream(store, {
+        name: "Renderaren",
+        project: "tidepool",
+        owner: "nadia",
+        level: "close",
+        now: NOW
+      })
+    );
+    ok(api.addWorkstream(store, { name: "Annat", project: String(other.id), now: NOW }));
+
+    const p = ok(api.project(store, "tidepool", NOW));
+    assert.deepEqual(p.workstreams.map((/** @type {any} */ w) => w.name), ["Renderaren"]);
+    assert.equal(p.workstreams[0].owner, "Nadia Ohlsson");
+  });
+
+  it("lists who is waiting to hear about it, and nobody waiting on another project", () => {
+    // Two stakes on two projects, because one stake proves nothing: with a
+    // single row in the fixture the filter can be deleted outright and every
+    // assertion still passes. Found by doing exactly that.
+    ok(api.addProject(store, { name: "Lodestar", now: NOW }));
+    const other = api.projects(store, NOW).find((/** @type {any} */ x) => x.name === "Lodestar");
+    assert.ok(other, "the second project was not created");
+
+    ok(
+      api.addStake(store, {
+        person: "marta",
+        project: "tidepool",
+        what: "Kundleveransen",
+        cadenceDays: 14
+      })
+    );
+    ok(
+      api.addStake(store, {
+        person: "johan",
+        project: String(other.id),
+        what: "Nagot annat",
+        cadenceDays: 14
+      })
+    );
+
+    const p = ok(api.project(store, "tidepool", NOW));
+    assert.deepEqual(p.stakeholders.map((/** @type {any} */ s) => s.person), ["Marta Sund"]);
+  });
+
+  it("still resolves once archived, because archiving is not a delete", () => {
+    // A page that stops existing when a project is archived would make archiving
+    // a delete with a nicer name. The history is the reason to archive rather
+    // than remove.
+    ok(api.archiveProject(store, "tidepool", { now: NOW }));
+    const p = ok(api.project(store, "tidepool", NOW));
+    assert.equal(p.recentContact.length, 2);
+    assert.ok(p.archivedAt, "the page does not say it is archived");
+  });
+});
+
 describe("writing", () => {
   it("logs a promise against a person found by first name", () => {
     const r = api.logPromise(store, { person: "nadia", text: "Answer on the render pass", now: NOW });
@@ -333,6 +466,22 @@ describe("the MCP surface", () => {
   it("runs a read tool", () => {
     const r = callTool(store, "tend_attention", {}, NOW);
     assert.ok(Array.isArray(r.needsYou));
+  });
+
+  it("reads one project's history, which the listing tool cannot answer", () => {
+    // The same read as the project page, exposed as a tool for the same reason
+    // every other read is: no feature exists twice, and "what has happened on
+    // this project" was previously answerable only by grepping the event log.
+    store.create("touches", {
+      id: "pt1",
+      subject: "tidepool",
+      kind: "check-in",
+      note: "Release slipped a week",
+      at: daysAgo(3)
+    });
+    const r = callTool(store, "tend_project", { project: "strand" }, NOW);
+    assert.equal(r.name, "Strandkanten");
+    assert.equal(r.recentContact[0].note, "Release slipped a week");
   });
 
   it("runs a write tool and the read tools see it", () => {

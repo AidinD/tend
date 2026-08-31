@@ -144,6 +144,22 @@ export const TOOLS = [
     inputSchema: NO_ARGS,
     run: (store, _args, now) => api.projects(store, now)
   },
+  {
+    name: "tend_project",
+    description:
+      "Everything Tend knows about one project: the cadences over it and how far behind " +
+      "each is, every check-in logged against it with its note, the workstreams inside it " +
+      "and who owns them, and who is a stakeholder. Use this to answer what has actually " +
+      "happened on a project - `tend_projects` only says how long since the last look. " +
+      "Accepts a name or part of one, and resolves an archived project too.",
+    inputSchema: {
+      type: "object",
+      properties: { project: { type: "string", description: "Name, part of a name, or id." } },
+      required: ["project"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.project(store, args.project, now)
+  },
 
   {
     name: "tend_add_person",

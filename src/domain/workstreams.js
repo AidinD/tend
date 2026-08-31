@@ -91,7 +91,7 @@ export function describe(workstream, names) {
   const level = String(workstream.level ?? "");
   const owner = workstream.owner ? names.get(String(workstream.owner)) : null;
   const label = isLevel(level) ? LEVELS[/** @type {Level} */ (level)].label : "No level set";
-  return owner ? `${owner} — ${label}` : label;
+  return owner ? `${owner} - ${label}` : label;
 }
 
 /**

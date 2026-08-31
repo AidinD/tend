@@ -20,9 +20,17 @@ import {
   readFailedHtml,
   tend
 } from "../ui.js";
-import { refresh } from "../app.js";
+import { go, refresh } from "../app.js";
 
-export async function render() {
+/** @param {Record<string, any>} [params] */
+export async function render(params = {}) {
+  if (params.project) {
+    return projectPage(String(params.project));
+  }
+  return workLists();
+}
+
+async function workLists() {
   const [projects, streams, roster, stakes, archivedProjects, archivedStreams] = await Promise.all([
     tend.invoke("projects"),
     tend.invoke("workstreams"),
@@ -66,6 +74,14 @@ export async function render() {
         <span class="row-right">
           <span class="row-meta">last looked at ${esc(p.lastLookedAt)}</span>
           ${p.behindBy ? pill(p.urgency) : ""}
+          <!--
+            A View button rather than a clickable row. The roster makes a whole
+            row a button where the row carries nothing else, and uses exactly
+            this button where it does - and this row carries three controls, one
+            of which removes the project. A click target wrapped around Remove is
+            a mis-press waiting to happen.
+          -->
+          <button class="act tiny" data-act="openProject" data-id="${esc(p.id)}">View</button>
           <button class="act tiny" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Log a look</button>
           <button class="act tiny" data-act="archiveProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Archive</button>
           <button class="act tiny danger" data-act="removeProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>
@@ -227,10 +243,148 @@ export async function setLevelDialog(id) {
   return Boolean(await act("setDelegationLevel", { id, level: values.level }, "Level set."));
 }
 
+/**
+ * One project, and what has actually happened on it.
+ *
+ * ## Why the check-ins are the point
+ *
+ * The list above says how long since a project was last looked at, which answers
+ * "which one is drifting" and nothing else. What was said at those looks was in
+ * the log and reachable from nowhere: reading the three check-ins on one project
+ * meant grepping the event files by its id.
+ *
+ * ## Built as a panel, like a person's page
+ *
+ * Not a drawer. A drawer would be a second disclosure pattern for the same job,
+ * and somebody who has used the person page already knows how to read a panel
+ * with a back link at the top. The blocks are in the same order for the same
+ * reason: cadences, then the history, then what hangs off it.
+ *
+ * @param {string} id
+ */
+async function projectPage(id) {
+  const p = await tend.invoke("project", { project: id });
+
+  if (readFailed(p)) {
+    return `<div class="view-head"><button class="act" data-act="backToWork">← Work</button></div>
+      ${readFailedHtml("that project", p)}`;
+  }
+
+  const list = (/** @type {string} */ title, /** @type {string} */ body, /** @type {string} */ empty) =>
+    `<div class="block"><div class="block-title">${esc(title)}</div>${
+      body || `<div class="empty">${esc(empty)}</div>`
+    }</div>`;
+
+  const cadences = (p.cadences ?? [])
+    .map(
+      (/** @type {any} */ c) => `<div class="line">
+        <span class="line-when">${esc(c.behindBy)}</span>
+        <span class="line-text"><strong>${esc(c.duty)}</strong> - target ${esc(c.target)}, last ${esc(c.lastHappened)}</span>
+        <span class="line-right">${pill(c.urgency)}</span>
+      </div>`
+    )
+    .join("");
+
+  /*
+   * The same row as a person's contact history, including the undo and the
+   * marker saying a row came from a note. Both belong here rather than only on
+   * the person page: this is the page where somebody reads a project's history,
+   * so it is where they notice a check-in logged against the wrong thing.
+   */
+  const history = (p.recentContact ?? [])
+    .map(
+      (/** @type {any} */ t) => `<div class="line">
+        <span class="line-when">${esc(t.when)}</span>
+        <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` - ${esc(t.note)}` : ""}</span>
+        <span class="line-right">
+          ${t.from === "nib" ? `<span class="pill plain">from a note</span>` : ""}
+          <button class="act tiny danger" data-act="unlogProjectContact" data-id="${esc(t.id)}"
+            data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
+        </span>
+      </div>`
+    )
+    .join("");
+
+  const streams = (p.workstreams ?? [])
+    .map(
+      (/** @type {any} */ w) => `<div class="line">
+        <span class="line-when">${esc(w.level ?? "-")}</span>
+        <span class="line-text"><strong>${esc(w.name)}</strong>${
+          w.owner ? ` - ${esc(w.owner)}` : " - nobody owns it"
+        }</span>
+        ${w.unspecified ? `<span class="line-right">${pill("watch")}</span>` : ""}
+      </div>`
+    )
+    .join("");
+
+  const interested = (p.stakeholders ?? [])
+    .map(
+      (/** @type {any} */ s) => `<div class="line">
+        <span class="line-text"><strong>${esc(s.person)}</strong>${s.label ? ` - ${esc(s.label)}` : ""}</span>
+      </div>`
+    )
+    .join("");
+
+  return `
+    <div class="view-head"><button class="act" data-act="backToWork">← Work</button></div>
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-name">${esc(p.name)}</h2>
+          <p class="panel-role">${
+            p.archivedAt
+              ? "Archived. Its history is here; it is out of every forward-looking view."
+              : "What has been looked at, and what is inside it."
+          }</p>
+        </div>
+        <div class="panel-actions">
+          <button class="act primary" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Log a look</button>
+        </div>
+      </div>
+
+      ${list("Cadences", cadences, "No cadence over this project, so nothing here can be late.")}
+      ${list(
+        "Check-ins",
+        history,
+        "Nothing logged against it yet. A look recorded here is what stops the clock."
+      )}
+      ${list("Workstreams inside it", streams, "None. A project with no workstreams has nothing handed over.")}
+      ${list("Waiting to hear about it", interested, "Nobody is on the hook for an update about this.")}
+    </div>`;
+}
+
 export const actions = {
   /** The retry offered when a read failed rather than came back empty. */
   reload: () => {
     refresh();
+  },
+
+  /** @param {Record<string, string>} d */
+  openProject: (d) => go("work", { project: d.id }),
+  backToWork: () => go("work"),
+
+  /**
+   * Take back a check-in from the project's own page.
+   *
+   * Same guarantee as a mislogged contact on a person: a check-in against the
+   * wrong project moves that project's clock and then looks identical to a real
+   * one. Confirmed first, because it is a delete and the note is the only copy
+   * of what was said.
+   *
+   * @param {Record<string, string>} d
+   */
+  unlogProjectContact: async (d) => {
+    const sure = await ask({
+      title: "Take this back?",
+      body: `"${d.what}" stops counting, so the clock it moved goes back to where it was. The event stays in the log - nothing here is ever really deleted - it just stops being evidence.`,
+      confirm: "Take it back",
+      tone: "danger"
+    });
+    // `act` rather than a bare invoke, so a rejected write cannot look like a
+    // successful one. Every write in the app goes through it.
+    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, "Taken back."))) {
+      refresh();
+    }
   },
 
   /**
