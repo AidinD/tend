@@ -192,8 +192,10 @@ model wrote has to be visible, so it can be read with the right scepticism.
 Where a subject has a wide range of individual variation, general summaries are a
 starting point and are marked as one - the people involved outrank them.
 
-**Open: whether one private store holds every relationship, or whether the
-closest ones are separated further.** Hard to change afterwards.
+**Settled 2026-08-31: one private store holds every relationship.** The closest
+ones are not separated further; a third store would sit on the same disk under
+the same account and protect nothing the second does not, while splitting the
+entries that the periodic pass needs. Reasoning in DECISIONS.md.
 
 ### The journal, and the loop it closes
 

@@ -3,6 +3,40 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - One private store, and why a third would protect nothing
+
+**Decided.** The private half stays a single store holding every relationship
+outside work. The closest ones are not separated further. This closes the
+question PLAN.md left open when the two stores were built.
+
+**Why it was worth answering before the entries exist rather than after.** The
+two halves are never read across, so by construction there is no tool that moves
+history from one store to another - that absence is the boundary, not an
+omission. Answering now costs nothing. Answering after a few dozen journal
+entries means moving files by hand.
+
+**What the boundary is actually for.** Two directories exist so that private
+words cannot reach the work half - a paste, a brief, a generated summary. That is
+a question about code paths, and a filesystem boundary answers it completely,
+which is the argument recorded under "Two stores, one at a time". **It is not a
+boundary against a human reader.** A third store would sit on the same disk under
+the same account with the same permissions as the second, so against a reader it
+protects nothing the second does not already fail to protect.
+
+**Rejected: a store per degree of closeness.** The cost is the thing the private
+half is for. Its value is in the periodic pass, not in the entry - twenty entries
+are a pattern and one is a note - and the app already refuses to sound equally
+confident over five entries and twenty-five, because how much was read is part of
+the answer. Split three ways, every pass reads too few entries to say anything,
+and the honest ones would say so. It also adds a mode that has to be entered
+correctly, and each additional mode is another chance to be writing in the wrong
+one.
+
+**What would change this.** A specific human reader being planned for. The answer
+then is still not a third store: it is `TEND_PRIVATE_DIR` pointed at an encrypted
+volume, which is already supported, needs no new concept, and protects the whole
+half instead of one tier of it.
+
 ## 2026-08-31 - A promise is not tied to a direction; a stalled thread shows what was offered instead
 
 **Decided.** Promises keep only their person. A stalled thread instead carries
