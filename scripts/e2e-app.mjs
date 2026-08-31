@@ -121,6 +121,70 @@ function step(label) {
 }
 
 /**
+ * A group heading needs air above it, and the only honest way to know is to
+ * measure the rendered pixels.
+ *
+ * A heading is a small uppercase label and a hairline rule. With nothing above
+ * it, that rule reads as the underside of whatever came before rather than the
+ * top of a new section - which is what happened when a card and a group ended
+ * up as bare siblings, since a card carries no margin of its own and the gap
+ * everywhere else comes from a flex parent neither of them had. Asserting the
+ * stylesheet has the rule would pass with the rule deleted; asserting the
+ * distance would not.
+ *
+ * Sixteen is well under the twenty-eight the rhythm actually uses, so this
+ * fails on "glued" and stays quiet about a deliberate change of spacing.
+ */
+const MIN_GROUP_GAP = 16;
+
+/**
+ * Every group heading on the current view, and the gap above it.
+ *
+ * @param {{ evaluate: (script: string) => Promise<unknown> }} page
+ * @returns {Promise<{ title: string, after: string, gap: number }[]>}
+ */
+async function groupGaps(page) {
+  const raw = await page.evaluate(`JSON.stringify(
+    [...document.querySelectorAll('.group')]
+      .map((group) => {
+        const above = group.previousElementSibling;
+        const head = group.querySelector('.group-head');
+        if (above === null || head === null) { return null; }
+        const top = above.getBoundingClientRect();
+        const bottom = head.getBoundingClientRect();
+        // A collapsed box is either hidden or not laid out yet, and the
+        // distance to it means nothing either way.
+        if (top.height === 0 || bottom.height === 0) { return null; }
+        return {
+          title: ((group.querySelector('.group-title') || {}).textContent || '(untitled)').trim(),
+          after: String(above.className || above.tagName.toLowerCase()),
+          gap: Math.round(bottom.top - top.bottom)
+        };
+      })
+      .filter((seen) => seen !== null)
+  )`);
+  return JSON.parse(String(raw));
+}
+
+/**
+ * @param {{ title: string, after: string, gap: number }[]} gaps
+ * @param {string} where
+ */
+function checkGroupGaps(gaps, where) {
+  check(`no group heading is glued to what sits above it on ${where}`, () => {
+    if (gaps.length === 0) {
+      throw new Error("no group heading had anything above it to measure against");
+    }
+    const glued = gaps.filter((seen) => seen.gap < MIN_GROUP_GAP);
+    if (glued.length > 0) {
+      throw new Error(
+        `${glued.length} of ${gaps.length} heading(s) under ${MIN_GROUP_GAP}px: ${JSON.stringify(glued)}`
+      );
+    }
+  });
+}
+
+/**
  * Wait for the renderer to show up on the debugging port.
  *
  * `gone` lets it give up the moment the Electron it started has died, rather
@@ -1845,6 +1909,11 @@ try {
     }
   });
 
+  // The guarded list sits directly under a card here, with no flex parent
+  // between them - the one place in the app where a group and a card are bare
+  // siblings, and so the place the gap goes missing first.
+  checkGroupGaps(await groupGaps(page), "the focus view");
+
   await page.click('.nav-btn[data-view="now"]');
   await page.waitFor("document.querySelector('.view-title') !== null", "Now");
   const underFocus = await page.texts(".card-title");
@@ -2482,6 +2551,11 @@ try {
     }
   });
 
+  // The archived group is the newest heading in the app, and it lands at the
+  // bottom of a roster rather than between two others - a spot with nothing
+  // above it to inherit spacing from.
+  checkGroupGaps(await groupGaps(page), "the roster with an archived group");
+
   await page.click('.archived-group [data-act="unarchive"]');
   await sleep(400);
   const rosterAfterUndo = await page.texts(".row-name");
@@ -2613,6 +2687,10 @@ try {
       throw new Error(`${workActiveAfterBulk} projects/workstreams are still active`);
     }
   });
+
+  // Work stacks two archived groups where the active lists used to be, so every
+  // heading here has a different kind of neighbour above it.
+  checkGroupGaps(await groupGaps(page), "Work with everything archived");
 
   await page.click('.nav-btn[data-view="now"]');
   await sleep(400);
