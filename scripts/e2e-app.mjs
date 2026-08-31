@@ -83,6 +83,10 @@ const jotScratch = mkdtempSync(join(tmpdir(), "tend-app-jot-"));
 
 let failures = 0;
 let checks = 0;
+// Checks the machine would not let this run make. Counted separately and named
+// in the summary, because a run that quietly has one check fewer than the last
+// one reads exactly like a run that passed everything.
+let unmeasured = 0;
 
 // The step the run is currently inside, and whether it ever reached a verdict.
 // Both exist only for the exit guard installed further down, which is the one
@@ -112,6 +116,23 @@ function check(label, fn) {
     console.error(`  FAIL ${label}`);
     console.error(`       ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/**
+ * A check the machine could not be asked to answer, said out loud.
+ *
+ * Deliberately neither `ok` nor `FAIL`: it does not touch `checks`, so it can
+ * never be read as something that passed, and it does not touch `failures`, so
+ * it cannot fail a release over somebody's screen being locked. It prints the
+ * reason on its own line, in the same shape as any other aside, because the
+ * only thing worse than a check that cannot run is one that cannot run silently.
+ *
+ * @param {string} label @param {string} why
+ */
+function skip(label, why) {
+  unmeasured += 1;
+  console.log(`  --   not measured: ${label}`);
+  console.log(`       ${why}`);
 }
 
 /** @param {string} label */
@@ -302,6 +323,41 @@ async function connect(url) {
   };
 
   /**
+   * Is this renderer being drawn right now - and therefore in a position to
+   * know how big its own window is?
+   *
+   * Asked by requesting one animation frame. A renderer whose window is
+   * occluded, minimised or on a locked session is not composited, so no frame
+   * ever arrives and the fallback timer answers instead. That is the same bit
+   * of state that decides whether the browser process bothers pushing the
+   * window's new size down to the renderer, which is why this is the question
+   * worth asking rather than `document.visibilityState` on its own - though the
+   * visibility is reported too, because it is the readable half of the answer
+   * when this has to be printed.
+   *
+   * The fallback is a page timer, and a hidden page's timers are throttled to
+   * about a second, so a "no" costs roughly a second rather than the 600ms
+   * asked for. That is bounded and it is fine; the alternative, capturing a
+   * frame, is what this replaced - it does not answer at all while the window
+   * is not being presented, so it cost thirty seconds a go.
+   *
+   * @returns {Promise<{ frames: boolean, visibility: string }>}
+   */
+  const composited = async () => {
+    const answer = await evaluate(`new Promise((done) => {
+      let answered = false;
+      const finish = (frames) => {
+        if (answered) { return; }
+        answered = true;
+        done(JSON.stringify({ frames, visibility: document.visibilityState }));
+      };
+      requestAnimationFrame(() => finish(true));
+      setTimeout(() => finish(false), 600);
+    })`);
+    return /** @type {{ frames: boolean, visibility: string }} */ (JSON.parse(String(answer)));
+  };
+
+  /**
    * Read the window's outer width until it holds still and satisfies `wanted`.
    *
    * Sampling once after a fixed sleep reads a width mid-flight: this check has
@@ -312,12 +368,22 @@ async function connect(url) {
    * everybody to re-run until green, and that is how a real failure gets waved
    * through the gate before a release.
    *
+   * `window.outerWidth` is the renderer's copy of a number the browser process
+   * owns, and the push that keeps that copy current stops when the window stops
+   * being composited. So the renderer is asked whether it is being drawn before
+   * every read, and this gives up the moment it is not: `observable: false` says
+   * the widths below are the last ones the renderer happened to be told, not the
+   * window's size, and no length of waiting will turn one into the other. Every
+   * width this returns with `observable: true` was read while the renderer was
+   * in a position to know it.
+   *
    * It never throws. It returns what it saw, widths passed through included, so
    * the caller can fail with the whole trace rather than with one misleading
    * number.
    *
    * @param {(width: number) => boolean} wanted
-   * @returns {Promise<{ width: number, settled: boolean, waited: number, trace: number[] }>}
+   * @returns {Promise<{ width: number, settled: boolean, observable: boolean,
+   *   visibility: string, waited: number, trace: number[] }>}
    */
   const settledWidth = async (wanted) => {
     const started = Date.now();
@@ -325,8 +391,22 @@ async function connect(url) {
     const trace = [];
     let last = NaN;
     let holds = 0;
+    let visibility = "visible";
 
     while (Date.now() - started < SETTLE_TIMEOUT) {
+      const live = await composited();
+      visibility = live.visibility;
+      if (!live.frames) {
+        return {
+          width: last,
+          settled: false,
+          observable: false,
+          visibility,
+          waited: Date.now() - started,
+          trace
+        };
+      }
+
       const width = Number(await evaluate("window.outerWidth"));
       if (width === last) {
         holds += 1;
@@ -336,34 +416,26 @@ async function connect(url) {
         trace.push(width);
       }
       if (holds >= SETTLE_HOLDS && wanted(width)) {
-        return { width, settled: true, waited: Date.now() - started, trace };
+        return {
+          width,
+          settled: true,
+          observable: true,
+          visibility,
+          waited: Date.now() - started,
+          trace
+        };
       }
       await sleep(SETTLE_STEP);
     }
 
-    return { width: last, settled: false, waited: Date.now() - started, trace };
-  };
-
-  /**
-   * Is the window actually being presented?
-   *
-   * Asked by capturing a frame, because nothing else answers it:
-   * `document.visibilityState` still says "visible" for a window that is
-   * occluded, minimised, or on a locked session, while Chromium's compositor
-   * produces no frames at all.
-   *
-   * Used to add a note to a failure, never to explain one - see the aside beside
-   * the maximise check.
-   *
-   * @returns {Promise<boolean>}
-   */
-  const presented = async () => {
-    try {
-      await send("Page.captureScreenshot", { format: "png" });
-      return true;
-    } catch {
-      return false;
-    }
+    return {
+      width: last,
+      settled: false,
+      observable: true,
+      visibility,
+      waited: Date.now() - started,
+      trace
+    };
   };
 
   /** @param {string} selector */
@@ -484,7 +556,6 @@ async function connect(url) {
     dialogOptions,
     dismissDialog,
     screenshot,
-    presented,
     close: () => socket.close()
   };
 }
@@ -2360,58 +2431,100 @@ try {
   await page.click('[data-window="maximize"]');
   const restored = await page.settledWidth((width) => width === before);
 
-  /*
-   * Asked only when it went wrong: is this window even being presented?
-   *
-   * This check failed three times in one day with a message blaming the preload
-   * bridge, and every one of those runs had also failed to capture a screenshot -
-   * which happens when the compositor is producing no frames.
-   *
-   * Stated as an aside and never as the cause, which is the whole care in it: a
-   * later run had the window unpresented and the resize working, so being
-   * unpresented does not explain a failure on its own. Replacing the explanation
-   * would trade one misleading message for another; adding the fact cannot
-   * mislead.
-   */
-  const onScreen = maximised.settled && restored.settled ? true : await page.presented();
-  const aside = onScreen
-    ? ""
-    : ". Note: this window is not being presented - occluded, minimised, or a locked session - " +
-      "and a screenshot could not be captured either. That has accompanied every failure of this " +
-      "check so far, and has also been true of a run that passed, so it is a fact rather than the " +
-      "cause.";
+  const RESIZES = "clicking maximise actually resizes the window, and again restores it";
 
-  check("clicking maximise actually resizes the window, and again restores it", () => {
-    if (!start.settled) {
-      throw new Error(
-        `the window never held a plausible width before the click: ${start.trace.join(" -> ")}` +
-          `. Anything under ${MIN_WINDOW_WIDTH} is not a width this window can have.${aside}`
-      );
-    }
-    if (!maximised.settled) {
-      if (maximised.trace.length === 1) {
+  /*
+   * When the window is not being drawn, this check is not weak - it is blind,
+   * and it now says so instead of failing.
+   *
+   * It used to fail intermittently: six runs in a day, two failed and both went
+   * green on an immediate re-run with nothing changed in between. The message
+   * blamed the preload bridge, and it was wrong. Measured directly, with the
+   * main process asked for the truth alongside the renderer: with the window
+   * covered by another window, `BrowserWindow.getBounds().width` went 1180 ->
+   * 3456 and `isMaximized()` went true, while the renderer's `window.outerWidth`
+   * stayed at 1180 - and stayed there, unmoving, for as long as the cover was
+   * up. Uncover the window and it snapped to the real number within a second.
+   *
+   * So the maximise happened. The renderer simply could not see it: `outerWidth`
+   * is its copy of a size the browser process owns, and the browser process
+   * stops pushing that down to a renderer it is not compositing. The stale value
+   * is stable, not in flight, which is the part that matters here - a longer
+   * wait, more holds, a wider settle window, all of it would have failed exactly
+   * the same way, only slower. There was never an animation to out-wait.
+   *
+   * That rules out strengthening the wait, and it leaves the question of whether
+   * the width could be had some other way. It cannot, in this harness: every
+   * read here goes to the renderer, and every renderer-side answer comes down
+   * the same frozen pipe - `innerWidth`, `Page.getLayoutMetrics` and
+   * `getBoundingClientRect` all agreed with the stale `outerWidth` while the
+   * window was covered. The one honest source is the main process, and Electron
+   * does not implement the CDP browser domain that would expose it
+   * (`Browser.getWindowForTarget` answers "wasn't found"), so reaching it would
+   * mean adding an IPC channel to the product for the benefit of a test.
+   *
+   * Which makes this the same category as the screenshot helper above: a check
+   * that depends on the machine presenting a window, on a harness that must not
+   * steal focus from whoever is using that machine. So it degrades the same way.
+   * Not measured, said out loud with the reason, and not counted as a pass.
+   *
+   * What it does NOT do is soften when the window IS being drawn. `observable`
+   * is proven per read rather than guessed after the fact, so a window that is
+   * on screen and does not resize still fails, as loudly as before.
+   */
+  const blind = [start, maximised, restored].find((seen) => !seen.observable);
+
+  if (blind !== undefined) {
+    const seen =
+      blind.trace.length > 0
+        ? `The last widths it did read were ${blind.trace.join(" -> ")}, and they are the ` +
+          `renderer's last copy rather than the window's size.`
+        : `It was blind before it read a single width.`;
+    skip(
+      RESIZES,
+      `the window stopped being drawn (document.visibilityState is "${blind.visibility}") - ` +
+        `covered by another window, minimised, or a locked session. window.outerWidth is the ` +
+        `renderer's copy of a size the browser process owns, and it freezes while that is true, ` +
+        `so the maximise cannot be observed from here however long this waits. ${seen}`
+    );
+  } else {
+    check(RESIZES, () => {
+      if (!start.settled) {
         throw new Error(
-          `width held at ${maximised.width} for ${maximised.waited}ms; the click did not reach the main process${aside}`
+          `the window never held a plausible width before the click: ${start.trace.join(" -> ")}` +
+            `. Anything under ${MIN_WINDOW_WIDTH} is not a width this window can have.`
         );
       }
-      throw new Error(
-        `width went ${maximised.trace.join(" -> ")} in ${maximised.waited}ms and never held above ${before}${aside}`
-      );
-    }
-    if (!restored.settled) {
-      throw new Error(
-        `width went ${restored.trace.join(" -> ")} in ${restored.waited}ms and never came back to ${before}`
-      );
-    }
-  });
+      if (!maximised.settled) {
+        if (maximised.trace.length === 1) {
+          throw new Error(
+            `width held at ${maximised.width} for ${maximised.waited}ms while the window was ` +
+              `being drawn; the click did not reach the main process`
+          );
+        }
+        throw new Error(
+          `width went ${maximised.trace.join(" -> ")} in ${maximised.waited}ms and never held above ${before}`
+        );
+      }
+      if (!restored.settled) {
+        throw new Error(
+          `width went ${restored.trace.join(" -> ")} in ${restored.waited}ms and never came back to ${before}`
+        );
+      }
+    });
+  }
 
   // Printed because this check is entirely about timing. If the window manager
   // starts taking longer than the settle window, the log says so on a run that
   // still passes, rather than the check turning flaky with nobody able to see
-  // how close it had been getting.
-  console.log(
-    `  --   widths: ${before} -> ${maximised.width} in ${maximised.waited}ms -> ${restored.width} in ${restored.waited}ms`
-  );
+  // how close it had been getting. Suppressed when the run was blind, where the
+  // numbers are the renderer's last guess and printing them as widths is the
+  // very thing that sent the last reader after the preload bridge.
+  if (blind === undefined) {
+    console.log(
+      `  --   widths: ${before} -> ${maximised.width} in ${maximised.waited}ms -> ${restored.width} in ${restored.waited}ms`
+    );
+  }
 
   /* --------------------------------------------------------- scrolling -- */
 
@@ -2836,7 +2949,16 @@ try {
 }
 
 summarised = true;
+// The count is the whole summary for most readers, and a run with a check
+// missing from it looks identical to a run with nothing missing. So the skips
+// are named on the same breath as the passes rather than left in the scrollback.
+const blindNote =
+  unmeasured === 0
+    ? ""
+    : ` ${unmeasured} check(s) could not be measured on this machine - see "not measured" above.`;
 console.log(
-  failures === 0 ? `\nAll ${checks} app checks passed.` : `\n${failures} of ${checks} check(s) failed.`
+  (failures === 0
+    ? `\nAll ${checks} app checks passed.`
+    : `\n${failures} of ${checks} check(s) failed.`) + blindNote
 );
 process.exit(failures === 0 ? 0 : 1);
