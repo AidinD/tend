@@ -124,6 +124,93 @@ export function myAttentionSignals(store, now) {
   });
 }
 
+/**
+ * The instant an archive is allowed to be stamped with.
+ *
+ * `archivedAt` is the whole mechanism, and an unusable value fails quietly in
+ * three different ways rather than loudly in one: `NaN` serialises to `null`, so
+ * the row reads back as ACTIVE while the call reports success and the bulk
+ * counter counts it; a far-future number passes `Number.isFinite` and then makes
+ * `toISOString()` throw inside the map that builds the archived group, taking
+ * out the whole view rather than one line; and `0` archives a row into 1970.
+ * The renderer only ever sends `Date.now()`, so none of that is reachable
+ * today - which is exactly why the next caller to compute a timestamp itself
+ * should be told here rather than find out from a blank page.
+ *
+ * @param {unknown} now
+ * @returns {{ error: string } | undefined}
+ */
+function badArchiveInstant(now) {
+  if (typeof now !== "number" || !Number.isFinite(now) || now <= 0) {
+    return { error: `Cannot archive at "${String(now)}" - an archive is stamped with a real instant.` };
+  }
+  // Date's own range, past which every attempt to format the stamp throws.
+  if (Math.abs(now) > 8.64e15) {
+    return { error: `Cannot archive at "${String(now)}" - that is outside the range a date can hold.` };
+  }
+  return undefined;
+}
+
+/**
+ * The ids of everybody archived.
+ *
+ * Three read paths reported work owed by people who are not on the roster:
+ * `promises`, `waits` and `waitsOnNow` build a name map from every row and never
+ * asked whether the row was still live. They were missed because they are the
+ * paths that do NOT go through `buildAttention` or `expandCadences`, which is
+ * where the filtering was added - so Now kept naming archived people in its
+ * waiting group, and the material handed to the model held a critical promise
+ * owed to somebody the same payload's roster said did not exist.
+ *
+ * A set of ids rather than a filter on each row, because these paths join
+ * against people by id and never carry the person row itself.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @returns {Set<string>}
+ */
+function archivedPersonIds(store) {
+  return new Set(
+    store
+      .rows("people")
+      .filter((/** @type {any} */ p) => isArchived(p))
+      .map((/** @type {any} */ p) => String(p.id))
+  );
+}
+
+/**
+ * The row already holding this name, archived or not.
+ *
+ * One helper rather than the same `.find()` written at each place that refuses a
+ * duplicate name, because archiving introduced a case those checks could not
+ * see: a row that is archived still owns its name, but it is not on any list, so
+ * "already here" pointed at nothing the reader could find and told them to use
+ * an action that does not apply to an archived row. Callers decide what to say -
+ * `isArchived` on the returned row is the whole difference - and this decides
+ * only what counts as taken.
+ *
+ * Names stay unique across archived rows deliberately: Ctrl+K refuses an
+ * ambiguous match rather than guessing, so two rows sharing a name makes both
+ * unreachable whether or not one of them is archived.
+ *
+ * @param {any} store
+ * @param {"people" | "projects" | "workstreams"} collection
+ * @param {unknown} name
+ * @param {string} [exceptId] A row that may keep its own name - for a rename.
+ * @returns {Record<string, any> | undefined}
+ */
+function nameClash(store, collection, name, exceptId) {
+  const wanted = String(name ?? "").trim().toLowerCase();
+  if (wanted === "") {
+    return undefined;
+  }
+  return store
+    .rows(collection)
+    .find(
+      (/** @type {any} */ row) =>
+        row.id !== exceptId && String(row.name ?? "").trim().toLowerCase() === wanted
+    );
+}
+
 /** @param {import("../domain/attention.js").AttentionItem} i */
 function summariseItem(i) {
   return {
@@ -312,15 +399,22 @@ export function archivedPeople(store, now) {
  */
 export function promises(store, now) {
   const names = new Map(store.rows("people").map((p) => [p.id, p.name]));
-  return openPromises(store.rows("promises"), now).map((p) => ({
-    id: p.id,
-    to: names.get(String(p.person)) ?? null,
-    text: p.text,
-    openFor: humanDays(p.status.ageDays),
-    urgency: p.status.severity,
-    why: p.status.why,
-    loggedBy: p._by
-  }));
+  // Archived people are already gone from Now and from prep, and a promise that
+  // is reported here but nowhere else puts the two halves of one answer at odds
+  // - most visibly in the material handed to the model, which would carry a
+  // critical promise owed to somebody absent from the same payload's roster.
+  const archived = archivedPersonIds(store);
+  return openPromises(store.rows("promises"), now)
+    .filter((p) => !archived.has(String(p.person)))
+    .map((p) => ({
+      id: p.id,
+      to: names.get(String(p.person)) ?? null,
+      text: p.text,
+      openFor: humanDays(p.status.ageDays),
+      urgency: p.status.severity,
+      why: p.status.why,
+      loggedBy: p._by
+    }));
 }
 
 /**
@@ -452,9 +546,14 @@ export function addPerson(store, { name, relation, since, now }) {
         `${Object.keys(relationsIn(store.half)).join(", ")}.`
     };
   }
-  const clash = store.rows("people").find((p) => String(p.name).toLowerCase() === String(name).trim().toLowerCase());
+  const clash = nameClash(store, "people", name);
   if (clash) {
-    return { error: `"${name}" is already here. Use setRelation to change how you relate to them.` };
+    return {
+      error: isArchived(clash)
+        ? `"${clash.name}" is archived, not gone, and a name may only belong to one row. ` +
+          `Unarchive them from the archived group on People, or add this person under a name that tells the two apart.`
+        : `"${name}" is already here. Use setRelation to change how you relate to them.`
+    };
   }
   const id = store.create("people", {
     name: String(name).trim(),
@@ -532,11 +631,14 @@ export function updatePerson(store, who, { name, relation, since, awayUntil, lef
     }
     // A second person with the same name makes both unreachable from Ctrl+K,
     // which refuses on an ambiguous match rather than guessing.
-    const clash = store
-      .rows("people")
-      .find((p) => p.id !== found.person.id && String(p.name).toLowerCase() === trimmed.toLowerCase());
+    const clash = nameClash(store, "people", trimmed, found.person.id);
     if (clash) {
-      return { error: `Somebody else is already called "${trimmed}".` };
+      return {
+        error: isArchived(clash)
+          ? `"${trimmed}" belongs to somebody archived, and an archived row keeps its name. ` +
+            `Unarchive them if that is who this is, or pick a name that tells the two apart.`
+          : `Somebody else is already called "${trimmed}".`
+      };
     }
     patch.name = trimmed;
   }
@@ -611,6 +713,10 @@ export function archivePerson(store, id, { now }) {
   if (isArchived(found.person)) {
     return { id: found.person.id, name: found.person.name, archivedAt: found.person.archivedAt, already: true };
   }
+  const bad = badArchiveInstant(now);
+  if (bad) {
+    return bad;
+  }
   store.update("people", found.person.id, { archivedAt: now });
   return { id: found.person.id, name: found.person.name, archivedAt: now };
 }
@@ -647,9 +753,14 @@ export function addProject(store, { name, since, now }) {
   if (!String(name ?? "").trim()) {
     return { error: "A project needs a name." };
   }
-  const clash = store.rows("projects").find((p) => String(p.name).toLowerCase() === String(name).trim().toLowerCase());
+  const clash = nameClash(store, "projects", name);
   if (clash) {
-    return { error: `"${name}" is already here.` };
+    return {
+      error: isArchived(clash)
+        ? `"${clash.name}" is archived, not gone, and a name may only belong to one row. ` +
+          `Unarchive it from the archived group on Work, or use a name that tells the two apart.`
+        : `"${name}" is already here.`
+    };
   }
   const id = store.create("projects", {
     name: String(name).trim(),
@@ -673,6 +784,10 @@ export function archiveProject(store, id, { now }) {
   }
   if (isArchived(found.project)) {
     return { id: found.project.id, name: found.project.name, archivedAt: found.project.archivedAt, already: true };
+  }
+  const bad = badArchiveInstant(now);
+  if (bad) {
+    return bad;
   }
   store.update("projects", found.project.id, { archivedAt: now });
   return { id: found.project.id, name: found.project.name, archivedAt: now };
@@ -1101,6 +1216,10 @@ export function archiveWorkstream(store, id, { now }) {
       already: true
     };
   }
+  const bad = badArchiveInstant(now);
+  if (bad) {
+    return bad;
+  }
   store.update("workstreams", found.workstream.id, { archivedAt: now });
   return { id: found.workstream.id, name: found.workstream.name, archivedAt: now };
 }
@@ -1139,27 +1258,57 @@ export function unarchiveWorkstream(store, id) {
  * @param {number} args.now
  */
 export function archiveEverythingActive(store, { now }) {
+  // Deliberately NOT validated up front. The instant is the same for every row,
+  // so a bad one refuses every row identically and nothing is written - and
+  // letting the refusals come back through the same path as any other means the
+  // counter's honesty is reachable from the outside and can be tested, rather
+  // than being an unreachable branch nobody can break.
   let people = 0;
   let projects = 0;
   let workstreams = 0;
+  /** @type {string[]} */
+  const refused = [];
+
+  /**
+   * Counted only when the row actually came back carrying a fresh stamp.
+   *
+   * The first version counted anything that did not report `already`, which
+   * counts a refusal as an archive: the report then says a row was archived
+   * that the next read still finds active. The report and the effect have to
+   * agree, so the count follows the written field and nothing else.
+   *
+   * @param {{ error: string } | { archivedAt: any, already?: boolean }} result
+   * @returns {boolean}
+   */
+  const archivedNow = (result) => {
+    if ("error" in result) {
+      refused.push(result.error);
+      return false;
+    }
+    return result.already !== true && typeof result.archivedAt === "number";
+  };
 
   for (const p of store.rows("people")) {
-    if (!archivePerson(store, p.id, { now }).already) {
+    if (archivedNow(archivePerson(store, p.id, { now }))) {
       people += 1;
     }
   }
   for (const p of store.rows("projects")) {
-    if (!archiveProject(store, p.id, { now }).already) {
+    if (archivedNow(archiveProject(store, p.id, { now }))) {
       projects += 1;
     }
   }
   for (const w of store.rows("workstreams")) {
-    if (!archiveWorkstream(store, w.id, { now }).already) {
+    if (archivedNow(archiveWorkstream(store, w.id, { now }))) {
       workstreams += 1;
     }
   }
 
-  return { people, projects, workstreams };
+  // Said out loud rather than swallowed: a partial archive is safe to re-run,
+  // but only if the window knows it was partial.
+  return refused.length > 0
+    ? { people, projects, workstreams, refused }
+    : { people, projects, workstreams };
 }
 
 /**
@@ -2310,7 +2459,7 @@ export function moments(store, now) {
 /* ----------------------------------------------------------- reflection -- */
 
 /**
- * One short look back: what went well, what he would do differently, and
+ * One short look back: what went well, what you would do differently, and
  * optionally anything else. See the header of reflection.js for why this is
  * fixed prompts rather than a diary field, and why it is not the day and not
  * a moment.
@@ -2989,12 +3138,19 @@ export function waits(store, now, who) {
     person
   });
 
-  return open.map((w) => ({
-    ...w,
-    name: names.get(w.person) ?? "",
-    waitingFor: humanDays(w.daysWaiting),
-    sinceNudge: agoWords(w.daysSinceNudge)
-  }));
+  // Asked about one person by name, answer about that person even if they are
+  // archived - the same rule the person page follows. Asked for the list, leave
+  // the archived out of it, because the list is a list of what is still owed.
+  const archived = person === undefined ? archivedPersonIds(store) : new Set();
+
+  return open
+    .filter((w) => !archived.has(w.person))
+    .map((w) => ({
+      ...w,
+      name: names.get(w.person) ?? "",
+      waitingFor: humanDays(w.daysWaiting),
+      sinceNudge: agoWords(w.daysSinceNudge)
+    }));
 }
 
 /**
@@ -3006,16 +3162,22 @@ export function waits(store, now, who) {
  */
 export function waitsOnNow(store, now) {
   const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name ?? "")]));
+  // This is the daily page. An archived person here is the loudest version of
+  // the mistake: the app was just told the whole job is over, and it answers by
+  // naming somebody off the roster and refusing to say "nothing needs you".
+  const archived = archivedPersonIds(store);
   return waitsDue({
     waiting: /** @type {any[]} */ (store.rows("waiting")),
     chases: /** @type {any[]} */ (store.rows("chases")),
     now
-  }).map((w) => ({
-    ...w,
-    name: names.get(w.person) ?? "",
-    waitingFor: humanDays(w.daysWaiting),
-    sinceNudge: agoWords(w.daysSinceNudge)
-  }));
+  })
+    .filter((w) => !archived.has(w.person))
+    .map((w) => ({
+      ...w,
+      name: names.get(w.person) ?? "",
+      waitingFor: humanDays(w.daysWaiting),
+      sinceNudge: agoWords(w.daysSinceNudge)
+    }));
 }
 
 /**

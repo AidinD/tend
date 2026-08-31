@@ -30,7 +30,12 @@ captures/
 
 # Agent scratch state. The goal loop writes its research notes, plan and phase
 # here while it works. It is orchestration bookkeeping, not project
-# documentation - a stale 24 kB plan in the repo reads like a spec to the next
-# person, and this directory reached a public repo once already carrying
-# iteration logs and a worktree path. See GITHUB-PUSH.md.
+# documentation, and a stale plan left in a repository reads like a spec to the
+# next person who finds it.
 .helm-goal/
+
+# A worktree checked out here is a second full copy of the repository, and its
+# `.git` file records the absolute path it was created from - which carries a
+# username. Ignored in the repository rather than in `.git/info/exclude`, since
+# an exclude file is local to one machine and never reaches a clone.
+.claude/worktrees/

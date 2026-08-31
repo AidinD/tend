@@ -154,9 +154,37 @@ describe("through the store", () => {
   });
 
   it("does not reach the Now view, because nothing here is waiting on anybody", () => {
+    // A person who IS behind, so both lists have something in them and "the
+    // reflection is not in there" is a real absence rather than an empty store.
+    // Without this the test passes even if the reflection nudge were given
+    // critical severity, because it lives in `myAttentionSignals` - a different
+    // function, on a different list.
+    store.create("duties", {
+      id: "d-1to1",
+      name: "1-1",
+      subjectKind: "person",
+      cadenceDays: 14,
+      evidenceKinds: ["one-to-one"],
+      relations: ["lead-and-manage"],
+      guarded: true,
+      status: "active"
+    });
+    store.create("people", {
+      id: "behind",
+      name: "Tove Ranger",
+      relation: "lead-and-manage",
+      since: NOW - 200 * DAY_MS
+    });
+
     ok(api.logReflection(store, { wellDone: "a", now: NOW }));
+
     const a = api.attention(store, NOW);
-    assert.equal(a.needsYou.length, 0);
-    assert.equal(a.nudges.length, 0);
+    const listed = [...a.needsYou, ...a.nudges];
+    assert.ok(listed.length > 0, "somebody is behind, so Now has something to say");
+    assert.equal(
+      listed.some((i) => /reflect/i.test(String(i.what)) || /reflect/i.test(String(i.why ?? ""))),
+      false,
+      `a reflection must never be reported as something Now needs: ${JSON.stringify(listed.map((i) => i.what))}`
+    );
   });
 });

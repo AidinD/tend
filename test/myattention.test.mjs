@@ -264,10 +264,14 @@ describe("how the week went", () => {
     });
     const reflectionIndex = signals.findIndex((s) => s.key === "i-have-not-reflected");
     assert.ok(reflectionIndex >= 0);
-    assert.ok(
-      signals.slice(0, reflectionIndex).every((s) => s.key !== "i-have-not-reflected"),
-      "sorted signals should not put the habit reminder ahead of anything else present"
-    );
+    // Something else has to fire, or "sorts last" is a list of one and the
+    // ordering is never exercised. `findIndex` finding nothing like it earlier
+    // in the list is true by definition of findIndex, so that is not the check.
+    assert.ok(signals.length > 1, "the ordering only means something with another signal alongside it");
     assert.equal(reflectionIndex, signals.length - 1, "it should sort last among whatever else fires");
+    assert.ok(
+      signals.slice(0, reflectionIndex).every((s) => Number(s.weight) > 20),
+      `everything ahead of the habit reminder must outrank it: ${JSON.stringify(signals.map((s) => [s.key, s.weight]))}`
+    );
   });
 });

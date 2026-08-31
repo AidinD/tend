@@ -20,6 +20,30 @@ backward-looking half is the part worth keeping, and it is at its most valuable
 precisely then. A clear-everything button would have been three lines and would
 have thrown away the year of record that made the app worth opening.
 
+**The invariant is "every forward-looking read", and three of them were missed.**
+The filtering went in where the forward-looking work is concentrated -
+`expandCadences`, `buildAttention`, the default listings, `prep` - which left out
+the three read paths that go through none of them: the waiting list, the daily
+page's slice of it, and the open-promise list. They join against people by id and
+never carry the person row, so there was nothing on hand to ask `isArchived`
+about. The result was the loudest possible version of the bug: after archiving
+everything, the daily page still named people off the roster and would not say
+"nothing needs you", and the material handed to the model carried a critical
+promise owed to somebody the same payload's roster said did not exist. The lesson
+is about the shape rather than the three functions - a claim of the form "every
+view does X" is only worth the enumeration behind it, so the guard is now a
+shared `archivedPersonIds` helper and the tests assert the invariant BETWEEN the
+roster and what is reported as owed, not on either list alone.
+
+**A name stays taken while its row is archived.** Ctrl+K refuses an ambiguous
+match rather than guessing, so two rows sharing one name makes both unreachable
+whether or not one of them is archived - which means the refusal is right and
+only the wording was wrong. It said "already here" about a row on no list, and
+offered a remedy that cannot touch an archived row. It now says the row is
+archived and names the way out. The cost is real and accepted: a genuinely
+different person who happens to share an archived name has to be entered under
+something that tells the two apart.
+
 **Why a date rather than a flag.** The same reason `awayUntil` and `leftAt` are
 dates: it says when, and "when" is the question anyone asks about an archived
 row six months later. A boolean answers "is it archived" and nothing else, and
@@ -48,6 +72,7 @@ currently active, reusing the per-item function rather than taking a shortcut
 through the store, so there is no second code path that could archive things
 differently from the buttons. It confirms first, and the confirmation says
 plainly that nothing is deleted and that each row can be brought back on its own.
+
 ## 2026-08-30 - Opening a direction asks one question, not six
 
 **The form asked for more than the system ever required.** The service layer
@@ -70,6 +95,7 @@ is an actual answer rather than a guess filled in to get past a required
 field. The alternative - keeping all six fields but making only one required -
 was rejected because an optional field on a form still reads as a question
 the tool expects an answer to right now.
+
 ## 2026-08-30 - A weekly reflection is three fixed questions, not a diary field
 
 **Decided.** A new `reflections` collection holds one flat row per entry -
@@ -93,7 +119,7 @@ never prompted, and about everywhere the day went. A moment names other
 people and is about one event. A reflection names nobody, is gently
 prompted rather than nightly, and asks a narrower question over a longer,
 looser stretch of time - not "where did the day go" but "how did it go, and
-what would he do differently". Three different subjects, three different
+what would you do differently". Three different subjects, three different
 cadences, three separate places to keep them rather than one field trying to
 serve all three.
 
@@ -102,8 +128,8 @@ has been a while, want to reflect" reminder is a new signal in
 `src/domain/myattention.js`, alongside the signals decided on 2026-08-24 in
 "Attention signals measure me, and the line is in the code". That entry's
 line is exactly the one this feature needs: something genuinely about the
-owner himself, never a colleague, belongs in the file that only ever
-measures him, not in `attention.js`'s severity machinery that ranks what is
+owner rather than a colleague belongs in the file that only ever
+measures them, not in `attention.js`'s severity machinery that ranks what is
 late for somebody else. The signal has no severity field, the same
 mechanical guarantee the rest of that file relies on rather than a comment
 promising restraint, so it can never reach a "Now" list or a critical nudge

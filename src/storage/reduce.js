@@ -125,7 +125,7 @@ export const COLLECTIONS = /** @type {const} */ ([
   "moments",
   /**
    * A short, occasionally-prompted look back at how the last week or so went -
-   * what went well, what he would do differently.
+   * what went well, what you would do differently.
    *
    * Not the day: the day is a nightly retrospective that never prompts and is
    * about everywhere the day went, where this asks two fixed questions about a

@@ -50,10 +50,20 @@ describe("reading somebody's availability", () => {
   });
 
   it("names what is going on, or nothing at all", () => {
+    assert.equal(availability({ archivedAt: ago(1) }, NOW), "archived");
     assert.equal(availability({ leftAt: ago(1) }, NOW), "left");
     assert.equal(availability({ leftAt: ahead(7) }, NOW), "leaving");
     assert.equal(availability({ awayUntil: ahead(7) }, NOW), "away");
     assert.equal(availability({}, NOW), null);
+  });
+
+  it("says archived before anything else, because it outranks the rest", () => {
+    // The order is the point: somebody who left and was later archived reads as
+    // archived, since that is the fact that decides whether the app still asks
+    // about them. Deleting the branch would silently fall through to "left".
+    assert.equal(availability({ archivedAt: ago(1), leftAt: ago(30) }, NOW), "archived");
+    assert.equal(availability({ archivedAt: ago(1), awayUntil: ahead(7) }, NOW), "archived");
+    assert.equal(availability({ archivedAt: null, leftAt: ago(1) }, NOW), "left", "cleared is not archived");
   });
 
   it("counts nothing older than a return", () => {
