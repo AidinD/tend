@@ -27,9 +27,9 @@
  * day went. This is looser and slower - about a week or so, gently prompted
  * because a week is long enough to actually forget how it went - and it asks
  * a narrower question: not "where did the day go" but "how did it go, and
- * what would he change". A moment is one interaction with a named person;
+ * what would you change". A moment is one interaction with a named person;
  * this names nobody and is not about any single interaction, it is about a
- * stretch of time from his own side of it.
+ * stretch of time from the writer's own side of it.
  *
  * ## Why it is never critical
  *
