@@ -3,6 +3,68 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - Reference material is a second answer, not a second store
+
+**Decided.** The knowledge view can now answer a situation from general
+knowledge, in its own block below the notes answer, marked as general on every
+render. Nothing about it is stored. This is the fourth step of the private half's
+build order; only the signals are left, and those wait for real entries.
+
+**What the gap actually was.** The reading pass already reports what his notes
+could not answer - `missing`, printed as prominently as the hits, because "less
+than you think" is often the useful answer. In the work half that gap closes over
+time, since the notebook has a folder of management reading in it. In the private
+half nobody keeps notes on how a four-year-old handles being interrupted, so the
+gap is simply where the view stopped being useful. This answers that field and
+nothing else.
+
+**Rejected: a `references` collection.** The obvious build, and wrong twice over.
+The two stores are never read across, so a card would belong to one half - and
+the 2026-08-27 lesson was precisely that reference material belongs to neither.
+Worse, the test this project already uses for whether a model's output is stored
+puts it on the far side: a review is kept because it reads specific days that are
+over, so it is as true next year and cannot be reproduced from anything else. A
+general summary is the opposite on both counts. It regenerates in ten seconds,
+and a stored copy six months later is read as though it had been checked. So
+storing buys nothing but staleness, and what would be stored is a second note
+store beside the notebook that already owns notes and already reaches both
+halves.
+
+**Rejected: writing the card into Nib.** It would cross both halves for free and
+it breaks the one boundary that file states outright - Nib owns the notes, Tend
+reads them and never writes a byte back. A copy button does the same job with the
+authorship in the right place, and a card worth keeping is worth him deciding to
+keep.
+
+**This is the only call in the app allowed to answer out of its own knowledge**,
+and `HOUSE_RULES` says the opposite in every other prompt: never invent a fact
+that is not in the material you were given. That rule exists because everything
+else those calls touch is a record about a real person, where an invented fact is
+a plausible-and-wrong claim about somebody. A general summary of a subject is not
+a claim about anybody, so the rule does not bite - and what replaces it is
+provenance. The inversion has a test on it, because its failure mode is silent: a
+block that politely declines to answer, with nothing logged anywhere.
+
+**The marking is structural, not requested.** The block says it is general, names
+the model, and where the subject varies widely between individuals says outright
+that the people involved outrank it. `spread` decides that last line, and anything
+that is not an explicit "narrow" comes out wide - the two ways of being wrong are
+not symmetrical. An unnecessary caution is read once and ignored; a missing one
+leaves a general summary standing unqualified beside a real person.
+
+**Drawn as the faintest thing on the page.** A draft is dashed and purple because
+it came from somewhere other than him, but it was written FROM his material, so it
+stands on something. This stands on nothing of his, so it loses the fill and the
+colour rather than gaining a sixth semantic hue. And the part only the people
+involved can answer is printed ABOVE the starting points, because a caution under
+a list is read after the list has already been believed.
+
+**Only the typed sentence leaves the machine** - no notes, nobody from the
+roster - and the function takes no store argument, so that is a property of the
+signature rather than of everybody remembering. The button says so, because every
+other model button on that page opens notes. What it cannot prevent is a name he
+types into the sentence himself, which is why the sentence is his to write.
+
 ## 2026-08-31 - A control in a row is wrapped, and the check that missed it now fails when unexercised
 
 **The bug.** The contact, cancellation and moment rows put their undo button

@@ -1345,6 +1345,27 @@ button.row:hover {
   background: var(--book-soft);
 }
 
+/*
+ * Reference material: weaker than a draft, and weaker on purpose.
+ *
+ * A draft is dashed and purple because it came from somewhere other than you -
+ * but it was written FROM your material, so it still stands on something. This
+ * block stands on nothing of yours at all, so it is drawn as the faintest thing
+ * on the page: no fill, a fainter rule, a title in the faint text colour.
+ *
+ * Deliberately not a new hue. A sixth semantic colour would say "this is a
+ * category of its own"; what needs saying is "this carries less weight than
+ * everything above it", and less weight is drawn by taking things away.
+ */
+.draft.general {
+  border-color: var(--line);
+  background: none;
+}
+
+.draft.general .draft-title {
+  color: var(--text-faint);
+}
+
 .draft-head {
   display: flex;
   align-items: center;
@@ -1408,6 +1429,15 @@ button.row:hover {
 .draft-watch {
   margin: 10px 0 0;
   color: var(--warn);
+  line-height: 1.5;
+}
+
+/* A line of prose inside a draft that is neither the opening nor a caution.
+   Was already used by the kept-review block and had no rule at all, so it fell
+   back to a browser paragraph with twice the spacing of everything around it. */
+.draft-note {
+  margin: 10px 0 0;
+  color: var(--text-dim);
   line-height: 1.5;
 }
 

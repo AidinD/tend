@@ -2326,6 +2326,98 @@ try {
     }
   });
 
+  /*
+   * Reference material sits under the notes and stays under them. Every check
+   * here is about rank and framing rather than about content: the answer itself
+   * comes from a model and is not asserted, but where it sits on the page, what
+   * the button claims it sends, and the fact that nothing ran unasked are all
+   * the app's own doing and all load-bearing.
+   */
+  const generalOffer = await page.evaluate(`(() => {
+    const buttons = [...document.querySelectorAll('[data-act="general"]')];
+    return JSON.stringify({
+      count: buttons.length,
+      primary: buttons.some((b) => b.classList.contains('primary')),
+      // Whitespace-collapsed first: textContent keeps the source's line breaks
+      // and indentation, so a sentence wrapped across two lines in the template
+      // does not match itself.
+      told: /Only the sentence you typed is sent/.test(
+        document.body.textContent.replace(/\\s+/g, ' ')
+      ),
+      ran: document.querySelectorAll('.draft.general').length
+    });
+  })()`);
+  const offer = JSON.parse(String(generalOffer));
+
+  check("it offers general knowledge as a second answer, below your own notes", () => {
+    if (!model.available) {
+      return;
+    }
+    if (offer.count !== 1) {
+      throw new Error(`expected one general-knowledge offer, found ${offer.count}`);
+    }
+    if (offer.ran !== 0) {
+      throw new Error("a general answer was produced without anybody pressing anything");
+    }
+  });
+
+  check("it is not the brightest button on a page where the notes answered", () => {
+    if (!model.available) {
+      return;
+    }
+    // The ranking is the point. A page where the model's answer is the primary
+    // action teaches the opposite of what this view is for.
+    if (offer.primary) {
+      throw new Error("the general-knowledge button was primary while notes had matched");
+    }
+  });
+
+  check("and it says that only the typed sentence leaves the machine", () => {
+    if (!model.available) {
+      return;
+    }
+    if (!offer.told) {
+      throw new Error("the button did not say what it sends, on a page where every other one opens notes");
+    }
+  });
+
+  // The case the feature exists for: the notebook has nothing, so general
+  // knowledge is the only thing left on the page that can help.
+  await page.evaluate(`(() => {
+    const field = document.getElementById('situation');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(
+      field, 'kvartsvarv kring hydrauliken i en ubåtslucka'
+    );
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await page.click('[data-act="search"]');
+  await sleep(400);
+
+  const whenEmpty = await page.evaluate(`(() => {
+    const button = document.querySelector('[data-act="general"]');
+    return JSON.stringify({
+      offered: button !== null,
+      primary: button !== null && button.classList.contains('primary'),
+      shortlist: document.querySelectorAll('.row.static').length
+    });
+  })()`);
+  const empty = JSON.parse(String(whenEmpty));
+
+  check("when nothing you wrote matches, the general answer becomes the primary offer", () => {
+    if (!model.available) {
+      return;
+    }
+    if (empty.shortlist !== 0) {
+      throw new Error(`that situation was meant to match nothing, and matched ${empty.shortlist}`);
+    }
+    if (!empty.offered) {
+      throw new Error("the empty state was a dead end - no offer to answer it at all");
+    }
+    if (!empty.primary) {
+      throw new Error("the only thing left that can help was not the primary action");
+    }
+  });
+
   /* ---------------------------------------------------------- palette -- */
 
   step("Ctrl+K");

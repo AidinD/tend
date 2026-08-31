@@ -25,6 +25,7 @@ import { readMode, windowTitle, writeMode } from "./mode.js";
 import * as api from "../service/api.js";
 import * as model from "../service/model.js";
 import * as knowledge from "../service/knowledge.js";
+import * as reference from "../service/reference.js";
 import * as nib from "../service/nib.js";
 import { describeSync, startNibSync } from "../service/nibsync.js";
 import { seedRoleMap } from "../service/seed.js";
@@ -219,6 +220,13 @@ const OPERATIONS = {
 
   searchKnowledge: (/** @type {any} */ a) => knowledge.search(a.situation, undefined, mode),
   considerKnowledge: (/** @type {any} */ a) => knowledge.consider(a),
+
+  /*
+   * The one model call that answers out of its own knowledge rather than out of
+   * his notes. It is handed the subject and the half, and deliberately not the
+   * store - see src/service/reference.js.
+   */
+  referenceOn: (/** @type {any} */ a) => reference.referenceOn({ subject: a.subject, half: mode }),
 
   nibFolders: () => nib.listNibFolders(undefined, mode),
   nibTags: () => nib.listNibTags(undefined, mode),

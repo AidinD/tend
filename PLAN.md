@@ -108,10 +108,14 @@ Tend event log <──┤
 
 ## Not built, and why
 
-**The Knowledge view.** Principles and lived cases, searched by situation. The
-lived-cases half needs notes and there are none yet. The principles half could
-be built today and would be a search box over eight rows, which the Role map
-already lists better. It waits for there to be something to search.
+**The private half's signals.** The questions Tend asks rather than derives, over
+the private journal. Held back on purpose until there are around twenty real
+entries to build them on: signals guessed at in advance are worse than none,
+because a question nobody recognises teaches you to ignore the page it is on.
+
+~~**The Knowledge view.**~~ Built. Situation search over the notebook, a reading
+pass that opens only what survived it, and - since 2026-08-31 - a general-knowledge
+block for the part the notes do not answer.
 
 ## Open questions
 
@@ -121,8 +125,10 @@ already lists better. It waits for there to be something to search.
 - **Whether a family of related projects is one row each or one row with
   sub-rows.** When staffing moves between them a fixed schedule per project is
   probably wrong, and "longest untouched" is the better model.
-- **Nothing has met real data.** His Nib is empty and no real colleague is in
-  the app, so every path is proven against fixtures rather than against use.
+- ~~**Nothing has met real data.**~~ It has, and it found things fixtures could
+  not: the scope rule that emptied the practice block entirely, and undo buttons
+  that squeezed against a long real note. Both are in DECISIONS.md. The paths
+  still least exercised are the ones needing a second person or a long history.
 
 Settled: the name is Tend. The data directory follows Jot and Nib - `userData`
 by default, relocated with `TEND_DATA_DIR`, confirmed on 2026-08-23 as fine to
@@ -139,8 +145,10 @@ point into Dropbox since it is his private account with only his own access.
 Discussed 2026-08-25. The first three steps of the build order below - the mode
 switch, the journal on both sides, and the model check that reads an entry back
 against the first-person rule - landed 2026-08-27 and are recorded in
-DECISIONS.md under "Two stores, one at a time". What is left here is the
-reference material and, last, the signals.
+DECISIONS.md under "Two stores, one at a time". The fourth, the reference
+material, landed 2026-08-31 and is recorded under "Reference material is a second
+answer, not a second store" - not as the stored cards described below, and that
+entry says why. What is left is the signals, last and deliberately.
 
 The design below stands as written; read it for the reasoning rather than for
 what exists.
@@ -191,6 +199,12 @@ actually read. Same rule as `themes` carrying `source` to the screen: what a
 model wrote has to be visible, so it can be read with the right scepticism.
 Where a subject has a wide range of individual variation, general summaries are a
 starting point and are marked as one - the people involved outrank them.
+
+*Built 2026-08-31, and "card" turned out to be the wrong noun: it is a second
+answer inside the knowledge view rather than a stored row, because a general
+summary regenerates identically enough that keeping one buys only the risk of
+reading it later as though it had been checked. The provenance rule above is what
+survived intact, and it is now the whole safety property.*
 
 **Settled 2026-08-31: one private store holds every relationship.** The closest
 ones are not separated further; a third store would sit on the same disk under
