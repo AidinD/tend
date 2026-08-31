@@ -187,6 +187,19 @@ cents a press is the difference between a button that gets used and one that get
 avoided - but the fix belongs in keel, and the tier here stays the writing one for
 the reason given above.
 
+**Fixed in keel the same day, and measured back through Tend's own code rather
+than taken on report:** the reference block is 2.06 cents where it was 32.9, and
+the per-entry check is 0.45 to 1.20 where it was 8.8. No tier changed here and
+nothing in this app changed - the overhead was `ask` sending Claude Code's own
+preamble on every call. What is left on the writing tier is the model thinking,
+which is the part doing the work.
+
+**The trade that came with it, recorded here because this is the app that would be
+surprised by it.** The patched call passes no setting sources, so an `apiKeyHelper`
+in a settings file is no longer read. Deliberate - these calls are the
+subscription's - but if a consumer of this code ever needs API-key authentication
+instead, that is the line that will look mysterious.
+
 ## 2026-08-31 - A control in a row is wrapped, and the check that missed it now fails when unexercised
 
 **The bug.** The contact, cancellation and moment rows put their undo button
