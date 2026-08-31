@@ -3,6 +3,62 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - A note's title outranks its timestamp, and a derived row says it is derived
+
+Three faults, found by looking at two contact rows on one real person's page and
+being unable to tell which was which without reading the event log by hand.
+
+**The import dated a conversation by when the note was written up.** A 1-1 held on
+the 19th and written up on the 25th came in dated the 25th. Not cosmetic: it moves
+the cadence clock six days late, and the same conversation logged by hand at its
+real date then appears twice, at two different dates, with nothing on screen
+explaining why.
+
+**A title that states a date is somebody saying when the thing happened**, where a
+creation timestamp is when they got round to writing it down. Only one of those is
+a claim about the conversation, so the title wins when it starts with a calendar
+day and the timestamp remains the fallback. Promises from a note take the same
+date, and it matters more there: a promise's whole urgency is its age, so dating
+it to the write-up reads as newer than it is, which is the direction that hides
+it.
+
+**A title dated in the future is refused.** A note can be created before the
+meeting it is for, and a forward-dated contact would satisfy a cadence for a
+conversation that has not happened. A nudge that fails to appear is invisible, so
+the fallback is the one that can only ever nudge too early.
+
+**The midday convention moved into the domain rather than being written twice.**
+A date with no time lands at midnight, the one hour a timezone shift can move to
+the previous day. The renderer's date field already parsed at midday and the
+import needed the same rule; a second copy of a convention is how this project has
+been bitten repeatedly, so `middayOn` is now one function next to `isLaterDay`,
+which already documented midday as a fact about the app. It validates by round
+trip, because `2026-02-31` parses in JavaScript and quietly becomes the third of
+March - a typo in a title would otherwise date a conversation to a day it was not
+on and nothing would look wrong.
+
+**A deleted derived row was counted as imported on every later run.** The import
+asked `rows()` whether it had written a row before, and `rows()` hides tombstones,
+so a deliberately deleted contact looked absent and got written again. Nothing
+came back - a replayed create only fills in fields an existing row is missing, so
+the tombstone survived - but the import reported adding a row it had not added.
+Untrustworthy rather than destructive, which is worse than harmless, because the
+count is the only thing that says what the button just did. `takenIds` answers the
+question that was actually being asked: has this id ever been used.
+
+**And the page now says which rows it did not get from him.** `from: "nib"` has
+been in the store since the importer was written and never reached a screen. It
+matters at exactly the moment somebody is deciding whether a row is wrong, and the
+two kinds are not equally safe to delete: a hand-typed row is the only copy of
+what somebody wrote, where a derived one can be reasoned about from the note it
+names. Marked only when it came from somewhere - a label on every row stops being
+read, and hand-typed is the assumption anyway.
+
+**The fix is forward-looking, and the existing data was checked rather than
+assumed.** Ids already taken are skipped, so a row imported at the wrong date
+stays at the wrong date. An audit of the real store found exactly one such row,
+the one that started this.
+
 ## 2026-08-31 - Reference material is a second answer, not a second store
 
 **Decided.** The knowledge view can now answer a situation from general

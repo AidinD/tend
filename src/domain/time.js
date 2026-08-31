@@ -120,6 +120,50 @@ export function driftBadge(days) {
 }
 
 /**
+ * A calendar day as an instant, or null if it is not a real day.
+ *
+ * ## Midday, and why every date in this app is
+ *
+ * A date with no time attached lands at midnight, and midnight is the one hour
+ * of the day a timezone shift can move to the day before. Midday cannot be moved
+ * onto an adjacent date by any offset this app will meet, so a day chosen in a
+ * picker, or read out of a note's title, means that day everywhere.
+ *
+ * ## Why it lives here rather than beside each caller
+ *
+ * It was written out in the renderer's date field and needed again by the Nib
+ * import, and a second copy of a convention is how this project has been bitten
+ * repeatedly - the two copies agree until one is edited. `isLaterDay` below
+ * already documents the midday convention as a fact about the app, so the
+ * function that produces it belongs next to it.
+ *
+ * ## Validated by round trip
+ *
+ * "2026-02-31" parses in JavaScript and silently becomes the third of March, and
+ * a note titled with a typo would then date a conversation to a day it was not
+ * on. So the parsed date is formatted back and compared: anything that does not
+ * come out as it went in is not a day.
+ *
+ * @param {string} day A calendar day, `YYYY-MM-DD`.
+ * @returns {number | null} Local midday on that day, or null.
+ */
+export function middayOn(day) {
+  const text = String(day ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return null;
+  }
+  const at = new Date(`${text}T12:00:00`);
+  const ms = at.getTime();
+  if (!Number.isFinite(ms)) {
+    return null;
+  }
+  const back = `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, "0")}-${String(
+    at.getDate()
+  ).padStart(2, "0")}`;
+  return back === text ? ms : null;
+}
+
+/**
  * Is this instant on a later day than now?
  *
  * Days rather than milliseconds, because the date pickers in this app parse a

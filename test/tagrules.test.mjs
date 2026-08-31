@@ -382,6 +382,18 @@ describe("a casual chat", () => {
     const seen = ok(person(store, "Rasmus", NOW));
     assert.equal(seen.recentContact[0].kind, "casual", "and shows in their history");
 
+    /*
+     * And the history says the row was derived rather than typed.
+     *
+     * The store recorded this from the start and the page could never say it, so
+     * two rows about one conversation - one typed by hand, one from the note -
+     * were indistinguishable at exactly the moment somebody was deciding which
+     * of them was wrong. Answering that question took reading the event log by
+     * hand once, which is the definition of a fact the app was holding and not
+     * telling.
+     */
+    assert.equal(seen.recentContact[0].from, "nib");
+
     const oneToOne = seen.cadences.find((/** @type {any} */ c) => c.duty === "1-1");
     assert.equal(oneToOne?.lastHappened, "never", "but the 1-1 has still never happened");
   });

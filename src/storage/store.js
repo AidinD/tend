@@ -137,6 +137,31 @@ export class TendStore {
     return rows(this.state(), collection);
   }
 
+  /**
+   * Every id this collection has ever held, tombstones included.
+   *
+   * ## The question it answers
+   *
+   * "Have I written this row before?" - which is not the same question as "is
+   * this row here", and the difference is the whole point. Anything that derives
+   * rows from an outside source builds its id from that source, so a deleted row
+   * is a deliberate "not this one" that `rows()` cannot see, because `rows()`
+   * filters tombstones out.
+   *
+   * The Nib import asked the wrong one. Delete an imported contact and every
+   * later import counted it as new and wrote a create for it. The reducer keeps
+   * the tombstone - an existing row only gains the fields it is missing, so
+   * `_deleted` survives a replayed create - so nothing came back, and the import
+   * reported adding a row it had not added. Harmless and untrustworthy, which is
+   * worse than harmless.
+   *
+   * @param {string} collection
+   * @returns {Set<string>}
+   */
+  takenIds(collection) {
+    return new Set(Object.keys(this.state().c[collection] ?? {}));
+  }
+
   /** @returns {import("./reduce.js").Entity | null} */
   focus() {
     return this.state().focus;

@@ -26,6 +26,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { activePractices, openActionPoints } from "../domain/practices.js";
+import { isLaterDay, middayOn } from "../domain/time.js";
 
 import { userEnvironment } from "../domain/userenv.js";
 import { homedir } from "node:os";
@@ -481,6 +482,43 @@ export function kindsFor(note, binding, rules) {
 }
 
 /**
+ * When the conversation a note records actually happened.
+ *
+ * ## The bug this replaces
+ *
+ * The import dated a contact by when the note was CREATED in Nib. Writing up a
+ * 1-1 six days later therefore recorded the conversation six days late, and the
+ * effect is not cosmetic: it moves the cadence clock, and the same conversation
+ * logged by hand at its real date turns up twice at two different dates. Found
+ * against real notes, on a note titled `2026-08-19 1-1` and created on the 25th.
+ *
+ * ## Why the title outranks the timestamp
+ *
+ * A note titled with a date is somebody stating when the thing happened. A
+ * creation timestamp is when they got round to writing it down. Only one of
+ * those is a claim about the conversation, and it is the one he typed.
+ *
+ * ## And why a future date is refused
+ *
+ * A note may be created before the meeting it is for - a title dated tomorrow is
+ * a plan, not a record. Dating a contact into the future would satisfy the
+ * cadence for a conversation that has not happened, and a nudge that fails to
+ * appear is invisible. So a later day falls back to the timestamp, which is the
+ * direction that can only ever nudge too early.
+ *
+ * @param {{ title?: string, created?: number }} note
+ * @param {number} now
+ * @returns {number}
+ */
+export function contactDate(note, now = Date.now()) {
+  const stated = middayOn(String(note.title ?? "").trim().slice(0, 10));
+  if (stated !== null && !isLaterDay(stated, now)) {
+    return stated;
+  }
+  return Number(note.created) || now;
+}
+
+/**
  * Index Nib into Tend: one contact per note, one promise per open action point.
  *
  * Idempotent by construction. Every row it writes carries a deterministic id
@@ -519,7 +557,17 @@ export function indexNib(store, { dir, dry = false } = {}) {
     };
   }
 
-  const existingTouches = new Set(store.rows("touches").map((t) => String(t.id)));
+  /*
+   * Taken ids rather than live rows, for both.
+   *
+   * A row this indexer derives is named after the note it came from, so a
+   * deleted one is a deliberate "not this one" and must stay deleted. Asked
+   * against live rows, a deleted import looked absent, got written again, and was
+   * counted as imported - the tombstone survived the replayed create, so nothing
+   * reappeared and the count was simply untrue. See `takenIds`.
+   */
+  const takenTouches = store.takenIds("touches");
+  const takenPromises = store.takenIds("promises");
   const promiseRows = new Map(store.rows("promises").map((p) => [String(p.id), p]));
 
   /*
@@ -592,8 +640,10 @@ export function indexNib(store, { dir, dry = false } = {}) {
     const rules = Array.isArray(binding.rules) ? binding.rules : [];
 
     for (const note of notes) {
-      // A note is evidence that contact happened, dated when it was written
-      // rather than when it was indexed.
+      // A note is evidence that contact happened, dated by the day its title
+      // states and only otherwise by when it was written. See `contactDate`.
+      const happenedAt = contactDate(note, Date.now());
+
       //
       // One touch per KIND, not one per note. A note tagged both 1-1 and
       // Feedback is honestly both, and satisfies both cadences; the id carries
@@ -621,7 +671,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
 
       for (const kind of kinds) {
         const touchId = `nib:${note.id}:${kind}`;
-        if (existingTouches.has(touchId)) {
+        if (takenTouches.has(touchId)) {
           continue;
         }
         contacts += 1;
@@ -631,7 +681,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
             subject: binding.person,
             kind,
             note: note.title || null,
-            at: note.created || Date.now(),
+            at: happenedAt,
             from: "nib"
           });
         }
@@ -643,6 +693,13 @@ export function indexNib(store, { dir, dry = false } = {}) {
         const promiseId = `nib:${note.id}:${alert.id}`;
         const existing = promiseRows.get(promiseId);
 
+        // Taken but not here means deleted on purpose. Neither re-created nor
+        // resolved: there is nothing left to resolve, and reporting it as
+        // imported was the untruth this replaced.
+        if (existing === undefined && takenPromises.has(promiseId)) {
+          continue;
+        }
+
         if (!existing && !alert.done) {
           promises += 1;
           if (!dry) {
@@ -650,7 +707,12 @@ export function indexNib(store, { dir, dry = false } = {}) {
               id: promiseId,
               person: binding.person,
               text: alert.text,
-              madeAt: note.created || Date.now(),
+              // The same date as the contact, and for the same reason: a promise
+              // was given in the conversation, not when it got written up. It
+              // matters more here than for a contact, because a promise's whole
+              // urgency is its age - dated to the write-up it reads as newer
+              // than it is, which is the direction that hides it.
+              madeAt: happenedAt,
               due: null,
               state: "open",
               from: "nib"

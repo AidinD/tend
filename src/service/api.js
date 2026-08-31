@@ -271,7 +271,19 @@ export function person(store, query, now) {
       kind: t.kind,
       when: agoWords(Math.max(0, Math.floor((now - Number(t.at ?? now)) / 86_400_000))),
       at: t.at ?? null,
-      note: t.note ?? null
+      note: t.note ?? null,
+      /*
+       * Where the row came from, which the store has always recorded and the
+       * page has never been able to say.
+       *
+       * It matters at exactly the moment somebody is deciding whether a row is
+       * wrong. Two rows about the same conversation, one typed by hand and one
+       * derived from a note, are indistinguishable without it - and the two are
+       * not equally safe to delete: a hand-typed row is the only copy of what
+       * somebody wrote, while a derived one can be reasoned about from the note
+       * it names. Answering that took reading the event log by hand once.
+       */
+      from: t.from ?? null
     }));
 
   const evidence = store

@@ -242,6 +242,15 @@ async function personPage(id) {
         <span class="line-when">${esc(t.when)}</span>
         <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` - ${esc(t.note)}` : ""}</span>
         <span class="line-right">
+          ${
+            /*
+             * Said only when it came from somewhere. A label on every row stops
+             * being read, and "typed by hand" is the assumption anyway - what
+             * needs marking is the row nobody typed, because that is the one
+             * whose text and date came from a note rather than from a decision.
+             */
+            t.from === "nib" ? `<span class="pill plain">from a note</span>` : ""
+          }
           <button class="act tiny danger" data-act="unlogContact" data-id="${esc(t.id)}"
             data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
         </span>

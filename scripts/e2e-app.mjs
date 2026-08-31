@@ -1067,6 +1067,23 @@ try {
       wrapped: document.querySelectorAll('.line > .line-right').length
     });
   })()`);
+  /*
+   * The other half of the provenance marker, and it needs this moment: nothing
+   * has been imported yet, so every row here was typed by hand.
+   *
+   * Checked because a marker on every row stops being read. "Typed by hand" is
+   * the assumption anyway; what needs marking is the row nobody typed. The
+   * positive half is at the import step further down.
+   */
+  const markedTooEarly = await page.evaluate(
+    "/from a note/.test(document.body.textContent)"
+  );
+  check("a hand-typed contact does not claim to come from a note", () => {
+    if (markedTooEarly === true || String(markedTooEarly) === "true") {
+      throw new Error("rows nobody imported are marked as derived, so the marker says nothing");
+    }
+  });
+
   check("and the undo button is wrapped, so a long note cannot squeeze it", () => {
     const shape = JSON.parse(String(rowShape));
     // A search for a shape passes perfectly against an empty page while proving
@@ -2189,6 +2206,45 @@ try {
     }
     if (added("one-to-one") !== 0) {
       throw new Error(`a tagged note still reset the 1-1 clock; ${JSON.stringify({ kindsBefore, kindsAfter })}`);
+    }
+  });
+
+  /*
+   * An imported row says it was imported.
+   *
+   * The store has recorded `from: "nib"` since the importer was written and the
+   * page could never say it, so two rows about one conversation - one typed by
+   * hand, one derived from the note - were indistinguishable at exactly the
+   * moment somebody was deciding which of them was wrong. Answering that took
+   * reading the event log by hand.
+   *
+   * Both halves are checked, because a marker on every row stops being read: the
+   * derived row carries it and a hand-typed one does not.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor("document.querySelector('.line') !== null", "the contact history");
+
+  const marked = await page.evaluate(`(() => {
+    const rows = [...document.querySelectorAll('.line')].filter(
+      (line) => line.querySelector('[data-act="unlogContact"]') !== null
+    );
+    return JSON.stringify(
+      rows.map((line) => ({
+        text: line.querySelector('.line-text')?.textContent?.replace(/\\s+/g, ' ').trim() ?? '',
+        derived: /from a note/.test(line.textContent ?? '')
+      }))
+    );
+  })()`);
+  const contactRows = JSON.parse(String(marked));
+
+  check("a contact derived from a note says so", () => {
+    if (contactRows.length === 0) {
+      throw new Error("no contact rows on the page, so nothing was checked");
+    }
+    if (!contactRows.some((/** @type {any} */ r) => r.derived)) {
+      throw new Error(`no row says where it came from: ${JSON.stringify(contactRows)}`);
     }
   });
 

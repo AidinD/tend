@@ -440,4 +440,160 @@ describe("indexing Nib", () => {
     nibService.indexNib(store, { dir: nibDir });
     assert.equal(readFileSync(path, "utf8"), before, "Nib's file must come back byte-identical");
   });
+
+  describe("when the conversation happened, as opposed to when it was written up", () => {
+    /*
+     * Found against real notes. A 1-1 held on the 19th, written up on the 25th,
+     * came in dated the 25th - so the cadence clock moved six days late, and the
+     * same conversation logged by hand at its real date showed up twice at two
+     * different dates on one page.
+     *
+     * A title that states a date is somebody saying when the thing happened. A
+     * creation timestamp is when they got round to writing it down.
+     */
+
+    /** @param {string} title @param {number} created */
+    function noteTitled(title, created) {
+      writeNib([
+        {
+          id: "cat-1to1",
+          name: "1-1",
+          subs: [{ id: "sub-nadia", name: "Nadia" }],
+          notes: [
+            {
+              id: "note-dated",
+              categoryId: "cat-1to1",
+              subId: "sub-nadia",
+              title,
+              created,
+              edited: created,
+              alerts: [{ id: "al-9", text: "Skicka underlaget", done: false }],
+              flag: "",
+              tags: ["tag-one-to-one"]
+            }
+          ]
+        }
+      ]);
+    }
+
+    /** The day a touch landed on, as a plain calendar day. */
+    function touchDay() {
+      const at = Number(store.rows("touches")[0]?.at ?? 0);
+      const d = new Date(at);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+    }
+
+    it("takes the day from the title when the title states one", () => {
+      const written = new Date();
+      written.setDate(written.getDate() - 2);
+      const held = new Date();
+      held.setDate(held.getDate() - 9);
+      const heldDay = `${held.getFullYear()}-${String(held.getMonth() + 1).padStart(2, "0")}-${String(
+        held.getDate()
+      ).padStart(2, "0")}`;
+
+      noteTitled(`${heldDay} 1-1`, written.getTime());
+      ok(nibService.indexNib(store, { dir: nibDir }));
+
+      assert.equal(touchDay(), heldDay, "the contact was dated to the write-up, not the conversation");
+    });
+
+    it("dates the promise from the same day, since it was given in the conversation", () => {
+      // It matters more for a promise than for a contact: a promise's whole
+      // urgency is its age, so dating it to the write-up reads as newer than it
+      // is - the direction that hides it.
+      const written = new Date();
+      written.setDate(written.getDate() - 2);
+      const held = new Date();
+      held.setDate(held.getDate() - 9);
+      const heldDay = `${held.getFullYear()}-${String(held.getMonth() + 1).padStart(2, "0")}-${String(
+        held.getDate()
+      ).padStart(2, "0")}`;
+
+      noteTitled(`${heldDay} 1-1`, written.getTime());
+      ok(nibService.indexNib(store, { dir: nibDir }));
+
+      const promise = store.rows("promises").find((p) => String(p.id).startsWith("nib:note-dated"));
+      assert.ok(promise, "the flagged block did not become a promise");
+      const at = new Date(Number(promise.madeAt));
+      assert.equal(at.getDate(), held.getDate());
+    });
+
+    it("falls back to the write-up when the title states no date", () => {
+      const written = new Date();
+      written.setDate(written.getDate() - 4);
+      const writtenDay = `${written.getFullYear()}-${String(written.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(written.getDate()).padStart(2, "0")}`;
+
+      noteTitled("1-1 med Nadia", written.getTime());
+      ok(nibService.indexNib(store, { dir: nibDir }));
+
+      assert.equal(touchDay(), writtenDay);
+    });
+
+    it("refuses a title dated in the future, because a plan is not a record", () => {
+      /*
+       * A note can be created before the meeting it is for. Dating a contact
+       * forward would satisfy the cadence for a conversation that has not
+       * happened, and a nudge that fails to appear is invisible - so the fallback
+       * is the one that can only nudge too early.
+       */
+      const written = new Date();
+      const writtenDay = `${written.getFullYear()}-${String(written.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(written.getDate()).padStart(2, "0")}`;
+      const planned = new Date();
+      planned.setDate(planned.getDate() + 6);
+      const plannedDay = `${planned.getFullYear()}-${String(planned.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(planned.getDate()).padStart(2, "0")}`;
+
+      noteTitled(`${plannedDay} 1-1`, written.getTime());
+      ok(nibService.indexNib(store, { dir: nibDir }));
+
+      assert.equal(touchDay(), writtenDay);
+    });
+  });
+
+  describe("a derived row that was deleted on purpose", () => {
+    it("is not re-created, and is not counted as imported either", () => {
+      /*
+       * Delete an imported contact and the next import counted it as new and
+       * wrote a create for it. Nothing came back - a replayed create only fills
+       * in fields an existing row is missing, so the tombstone survived - but the
+       * import reported adding a row it had not added. Untrustworthy rather than
+       * destructive, which is worse than harmless: the count is the only thing
+       * saying what the button just did.
+       */
+      ok(nibService.indexNib(store, { dir: nibDir }));
+      const derived = store.rows("touches").filter((t) => t.from === "nib");
+      assert.equal(derived.length, 2);
+
+      store.remove("touches", String(derived[0].id));
+      assert.equal(store.rows("touches").filter((t) => t.from === "nib").length, 1);
+
+      const again = ok(nibService.indexNib(store, { dir: nibDir }));
+      assert.equal(again.contacts, 0, "it claimed to import a row it cannot bring back");
+      assert.equal(store.rows("touches").filter((t) => t.from === "nib").length, 1);
+    });
+
+    it("and the same for a promise, which is the other half of the same mistake", () => {
+      ok(nibService.indexNib(store, { dir: nibDir }));
+      const derived = store.rows("promises").filter((p) => p.from === "nib");
+      assert.ok(derived.length >= 1);
+
+      store.remove("promises", String(derived[0].id));
+      const before = store.rows("promises").length;
+
+      const again = ok(nibService.indexNib(store, { dir: nibDir }));
+      assert.equal(again.promises, 0);
+      assert.equal(store.rows("promises").length, before);
+    });
+  });
 });

@@ -8,6 +8,8 @@
  * to enter something stays a five-line change and every form behaves the same.
  */
 
+import { middayOn } from "../domain/time.js";
+
 /**
  * The preload bridge.
  *
@@ -255,8 +257,12 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal", 
           continue;
         }
         if (field.type === "date") {
-          // Parsed at midday so a timezone shift cannot move it to the day before.
-          values[field.name] = raw === "" ? undefined : new Date(`${raw}T12:00:00`).getTime();
+          // Parsed at midday so a timezone shift cannot move it to the day
+          // before. The convention lives in the domain because the Nib import
+          // needs the same one, and two copies of it would agree until one was
+          // edited. A value the picker cannot produce resolves to undefined,
+          // which is the same as leaving the field blank.
+          values[field.name] = raw === "" ? undefined : (middayOn(raw) ?? undefined);
           continue;
         }
         values[field.name] = raw === "" ? undefined : raw;

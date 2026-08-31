@@ -24,7 +24,7 @@ import {
 import { DEFAULT_STRETCH, focusCost, focusStatus, stretchFor } from "../src/domain/focus.js";
 import { defaultUserDataDir, resolveDataDir } from "../src/domain/paths.js";
 import { PROMISE_GUARD_DAYS, openPromises, promiseStatus } from "../src/domain/promises.js";
-import { DAY_MS, daysBetween, driftBadge, humanDays } from "../src/domain/time.js";
+import { DAY_MS, daysBetween, driftBadge, humanDays, middayOn } from "../src/domain/time.js";
 
 const NOW = 1_800_000_000_000;
 /** @param {number} n */
@@ -187,6 +187,35 @@ describe("time", () => {
     assert.equal(driftBadge(0), "on time");
     assert.equal(driftBadge(5), "+5d");
     assert.equal(driftBadge(28), "+4w");
+  });
+
+  describe("a calendar day as an instant", () => {
+    it("lands at midday, so no offset can move it to the day before", () => {
+      const at = middayOn("2026-08-19");
+      assert.notEqual(at, null);
+      const day = new Date(Number(at));
+      assert.equal(day.getFullYear(), 2026);
+      assert.equal(day.getMonth(), 7);
+      assert.equal(day.getDate(), 19);
+      assert.equal(day.getHours(), 12);
+    });
+
+    it("refuses a day that does not exist rather than sliding into the next month", () => {
+      /*
+       * `new Date("2026-02-31T12:00:00")` is not an error in JavaScript - in some
+       * engines it becomes the third of March. Read out of a note title with a
+       * typo in it, that would date a conversation to a day it was not on and
+       * nothing would look wrong. Hence the round trip.
+       */
+      assert.equal(middayOn("2026-02-31"), null);
+      assert.equal(middayOn("2026-13-01"), null);
+    });
+
+    it("refuses anything that is not a plain calendar day", () => {
+      for (const bad of ["", "   ", "19 aug", "2026-8-19", "2026-08-19T09:00", "not a date", null]) {
+        assert.equal(middayOn(/** @type {any} */ (bad)), null, `accepted ${JSON.stringify(bad)}`);
+      }
+    });
   });
 });
 
