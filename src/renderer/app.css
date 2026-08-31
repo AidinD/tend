@@ -871,7 +871,12 @@ button.row:hover {
   font-size: 12.5px;
 }
 
-.card-why.warn-text {
+/* One colour, two carriers: a card's reason and the small print under a row.
+   Written as one selector list rather than a bare `.warn-text` so it stays
+   something a component opts into, not a colour that leaks onto any element
+   somebody happens to give the class to. */
+.card-why.warn-text,
+.src.warn-text {
   color: #e7c076;
 }
 

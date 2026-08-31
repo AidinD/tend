@@ -3,6 +3,40 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - A promise is not tied to a direction; a stalled thread shows what was offered instead
+
+**Decided.** Promises keep only their person. A stalled thread instead carries
+`offering` - what was said would be put in - onto the prep card, beside the
+question it is already asking.
+
+**The ask was for the open promises tied to a thread**, and the pull behind it is
+real: "discussed four times, marker never seen" and "the two things you said you
+would do about it are sixty days old" are a different finding together than
+either is alone.
+
+**Rejected: a thread id on the promise row.** It would be optional, and an
+optional link is only as good as the discipline that sets it. The answer to "is
+this promise about a direction?" is usually no, so the field would be blank on
+most rows, and anything reading it would be a filter over almost nothing - the
+same shape as a filter whose input the app no longer produces, which has emptied
+a view here before. It also puts a question on the promise dialog at the moment
+somebody is trying to write down one sentence before they forget it, which is the
+mistake the open-a-direction form already made once.
+
+**Why the offering answers the actual question better.** The stall question is
+"is the aim wrong, or is the support missing?" - and `offering` is the record of
+the support, already collected, already nudged for by `missing()`. The card was
+posing the question without putting the answer next to it. So the reading needs
+no new data, only for the field to reach the view.
+
+**And a blank offering is not a missing line.** On a stalled thread it is the
+answer: nothing was ever put in. It is said in as many words rather than rendered
+as absence, because an empty space says nothing and this has something to say.
+
+**Shown only when stalled.** Every line on a prep card competes with every other,
+and a card where each line has earned its place is the reason the page gets read
+at all.
+
 ## 2026-08-31 - The way back from one press is one press
 
 **Decided.** A run of the bulk archive is recorded as a row in `bulkArchives`,

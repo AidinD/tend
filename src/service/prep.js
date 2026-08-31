@@ -219,7 +219,13 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
         stance: t.stance,
         talks: t.talks,
         observations: t.observations,
-        lastTalked: t.lastTalked === null ? "never" : agoWords(t.daysSinceTalked)
+        lastTalked: t.lastTalked === null ? "never" : agoWords(t.daysSinceTalked),
+        // Carried only to answer the stall question, which asks whether the aim
+        // is wrong OR the support is missing. Half of that is a judgement nobody
+        // can make for him; the other half is a thing he wrote down, and the
+        // card was asking the question without showing the answer.
+        stalled: t.stalled,
+        offering: t.offering
       })),
 
       driftDays: drift

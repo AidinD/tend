@@ -344,6 +344,63 @@ describe("through the service", () => {
     assert.deepEqual(named, [], `a growth thread reached Now: ${JSON.stringify(named)}`);
   });
 
+  it("puts what he said he would put in beside the stall question, and only there", () => {
+    // The stall question asks whether the aim is wrong or the support is
+    // missing. Half of that is a judgement; the other half he already wrote
+    // down, so the card should not pose the question without carrying the
+    // answer. Not carried on a healthy thread: it would be one more line on a
+    // card whose whole value is that every line earns its place.
+    ok(
+      api.updateThread(store, id, {
+        marker: "Runs it with me in the room, saying nothing",
+        stance: "agreed",
+        theirWords: "He wants it",
+        offering: "I stop chairing it, and I take the escalations for a quarter"
+      })
+    );
+
+    const healthy = ok(api.growth(store, "Halvar", NOW)).threads.find((/** @type {any} */ t) => t.id === id);
+    assert.ok(healthy);
+    assert.equal(healthy.stalled, false, "not stalled yet, so nothing to answer");
+
+    for (let i = 0; i < STALL_AFTER_TALKS; i += 1) {
+      ok(api.logGrowthNote(store, { growth: id, at: ago(60 - i * 10), observed: false, now: NOW }));
+    }
+
+    const card = prep(store, NOW, { jotDir }).cards.find((/** @type {any} */ c) => c.person === "Halvar");
+    assert.ok(card);
+    const thread = card.growing.find((/** @type {any} */ t) => t.id === id);
+    assert.equal(thread.stalled, true);
+    assert.match(
+      String(thread.offering),
+      /stop chairing it/,
+      "the prep card must carry the offering once the thread is stalled"
+    );
+  });
+
+  it("says an empty offering out loud on a stalled thread, rather than showing nothing", () => {
+    // A thread stalled with nothing ever put into it is not a card missing a
+    // line - the blank IS the answer to the question the card is asking, and it
+    // has to reach the view to be said.
+    ok(
+      api.updateThread(store, id, {
+        marker: "Runs it with me in the room, saying nothing",
+        stance: "agreed",
+        theirWords: "He wants it",
+        offering: ""
+      })
+    );
+    for (let i = 0; i < STALL_AFTER_TALKS; i += 1) {
+      ok(api.logGrowthNote(store, { growth: id, at: ago(60 - i * 10), observed: false, now: NOW }));
+    }
+
+    const card = prep(store, NOW, { jotDir }).cards.find((/** @type {any} */ c) => c.person === "Halvar");
+    assert.ok(card);
+    const thread = card.growing.find((/** @type {any} */ t) => t.id === id);
+    assert.equal(thread.stalled, true);
+    assert.equal(thread.offering, "", "an empty offering has to reach the view as an empty string, not as undefined");
+  });
+
   it("still lets that stalled thread put somebody on the prep page by itself", () => {
     // The other half of the same decision: kept out of Now, but not silenced.
     // If it were only excluded, a stalled direction would be invisible until

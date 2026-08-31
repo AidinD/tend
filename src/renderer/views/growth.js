@@ -189,6 +189,24 @@ export function growingBlock(c) {
             ${t.marker ? `<span class="src">You will see: ${esc(t.marker)}</span>` : ""}
             <span class="src">Discussed ${t.talks}×, seen ${t.observations}× &middot; last talked ${esc(t.lastTalked)}.</span>
             ${t.asks ? `<span class="src">${esc(t.asks)}</span>` : ""}
+            ${
+              /*
+               * Shown only on a stalled thread, and only there.
+               *
+               * The stall question asks whether the aim is wrong or the support
+               * is missing. The first half is a judgement nobody can make for
+               * him; the second is something he already wrote down when he
+               * prepared the thread, and the card was posing the question
+               * without putting the answer next to it. An empty offering is not
+               * a gap in the card - it IS the answer, and worth saying in as
+               * many words.
+               */
+               t.stalled
+                 ? String(t.offering ?? "").trim() === ""
+                   ? `<span class="src warn-text">You never wrote down what you were putting in. That is one answer to the question above.</span>`
+                   : `<span class="src">You said you would put in: ${esc(t.offering)}</span>`
+                 : ""
+            }
           </li>`
           )
           .join("")}

@@ -224,6 +224,7 @@ export const COMFORTABLE_THREADS = 2;
  * @property {import("./cadence.js").Severity} attention How overdue the conversation is.
  * @property {boolean} stalled Discussed enough times with nothing ever observed.
  * @property {boolean} pastHorizon The thread is due to be questioned, not followed.
+ * @property {string} offering What he said he would put in. Read beside `asks`.
  * @property {string | null} asks The one question this thread poses right now.
  */
 
@@ -340,6 +341,10 @@ export function threadState(row, notes, person, now) {
     attention,
     stalled,
     pastHorizon,
+    // Carried on the reading rather than left on the row, because the one place
+    // it is needed is beside the stall question - which asks whether the aim is
+    // wrong or the support is missing, and this is the record of the support.
+    offering: String(row.offering ?? ""),
     asks: question({ row, status, stalled, pastHorizon, talks })
   };
 }
