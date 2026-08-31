@@ -78,9 +78,11 @@ const REFERENCE_SCHEMA = {
     says: {
       type: "string",
       description:
-        "What is generally understood about this subject, in a short paragraph. Plain and " +
-        "specific. Not advice about the person asking, and not a preamble about how every " +
-        "situation is different."
+        "What is generally understood about this subject. THREE SENTENCES AT MOST, and no " +
+        "paragraph breaks. Say what the thing is and why it happens; do NOT list what helps, " +
+        "because that is what `starts` is for and repeating it here is the same answer twice. " +
+        "Plain and specific. Not advice about the person asking, and not a preamble about how " +
+        "every situation is different."
     },
     starts: {
       type: "array",
@@ -193,10 +195,16 @@ export async function referenceOn({ subject, half = "work", askImpl = ask }) {
           "advice about that person - it is background they will weigh themselves. "
         : "The subject concerns their working life, and they lead a team, so keep it usable " +
           "rather than theoretical. ") +
-      "Write in English. Be concrete and short; every line has to earn its place. Never write out " +
-      "a management job title; describe the relationship as leading, coaching or being " +
-      "responsible for the work. Keep any Swedish text exactly as written, including å, " +
-      "ä and ö - a stripped quote looks like somebody's words while not being them."
+      // Short is not a preference here, it is the difference between a block that
+      // gets read and one that gets scrolled past - and the first real answer
+      // came back as four paragraphs that duplicated the starting points below
+      // it, at four times the cost of the version that says the same thing.
+      "Write in English. Be SHORT: the summary is three sentences at most and each starting " +
+      "point is one line. Every line has to earn its place, and saying a thing twice in two " +
+      "fields is not two answers. Never write out a management job title; describe the " +
+      "relationship as leading, coaching or being responsible for the work. Keep any Swedish " +
+      "text exactly as written, including å, ä and ö - a stripped quote looks like somebody's " +
+      "words while not being them. Use a plain hyphen rather than an em dash."
   });
 
   if (!answer.ok) {

@@ -197,7 +197,7 @@ function generalHtml(result) {
       </span>
     </div>
 
-    ${result?.says ? `<p class="draft-opening">${esc(result.says)}</p>` : ""}
+    ${paragraphs(result?.says)}
 
     ${
       result?.needsThePeople
@@ -236,6 +236,26 @@ function generalHtml(result) {
       </span>
     </div>
   </div>`;
+}
+
+/**
+ * Prose that arrived with its own paragraph breaks, drawn as paragraphs.
+ *
+ * The prompt asks for three sentences and the schema says so twice, but a length
+ * is a request and this is the one block on the page with no notes underneath it
+ * to bound what comes back. Escaped into a single `<p>`, a four-paragraph answer
+ * loses every break and becomes a wall of text - which is how the first real
+ * answer rendered. Short by instruction, readable regardless.
+ *
+ * @param {unknown} text
+ */
+function paragraphs(text) {
+  return String(text ?? "")
+    .split(/\n\s*\n/)
+    .map((part) => part.trim())
+    .filter((part) => part !== "")
+    .map((part) => `<p class="draft-opening">${esc(part)}</p>`)
+    .join("");
 }
 
 /**

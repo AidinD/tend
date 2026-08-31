@@ -65,6 +65,30 @@ signature rather than of everybody remembering. The button says so, because ever
 other model button on that page opens notes. What it cannot prevent is a name he
 types into the sentence himself, which is why the sentence is his to write.
 
+**What the first real call changed, and it was three things.** Everything above
+was verified against a stand-in; one live call found what a stand-in cannot.
+
+*It answered in four paragraphs that restated every starting point below them.* A
+length in a schema description alone did not hold, so it is now in the field
+description and in the system prompt, and the field is told outright not to list
+what helps - that is what `starts` is for, and the same answer in two fields is
+not two answers. The renderer now draws paragraph breaks as paragraphs too,
+because a length is a request: escaped into one `<p>`, that first answer lost
+every break and rendered as a wall.
+
+*It was full of em dashes.* The app's own rule against them was written
+everywhere except in the one place that produces prose with nobody in the loop, so
+`HOUSE_RULES` now carries it and every other model call gets it as well.
+
+*It cost 33 cents.* Shortening the answer moved that by 0.3 cents, which rules
+out output length: it is fixed per-call input. A one-sentence call on the cheap
+tier costs 8.8 cents, so the overhead is there too, and it is `ask` in keel
+sending Claude Code's own preamble on every call rather than anything this app
+does. Recorded here because the cost is on screen under every answer, and 9 to 33
+cents a press is the difference between a button that gets used and one that gets
+avoided - but the fix belongs in keel, and the tier here stays the writing one for
+the reason given above.
+
 ## 2026-08-31 - A control in a row is wrapped, and the check that missed it now fails when unexercised
 
 **The bug.** The contact, cancellation and moment rows put their undo button

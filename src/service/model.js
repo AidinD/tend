@@ -85,7 +85,11 @@ const HOUSE_RULES =
   "is not there, leave it out rather than guessing. Never write out a management " +
   "job title; describe the relationship as leading, coaching or being responsible " +
   "for the work. Keep any Swedish text exactly as written, including \u00e5, \u00e4 " +
-  "and \u00f6 - a stripped quote looks like somebody's words while not being them.";
+  "and \u00f6 - a stripped quote looks like somebody's words while not being them. " +
+  // Added after a model answer came back full of them. The rule is the app's own
+  // and was stated everywhere except in the one place that writes prose without
+  // a human in the loop.
+  "Use a plain hyphen rather than an em dash.";
 
 /**
  * Whether a model call can be made at all, and why not when it cannot.

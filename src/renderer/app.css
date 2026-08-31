@@ -1396,6 +1396,13 @@ button.row:hover {
   line-height: 1.55;
 }
 
+/* Model prose can arrive with its own paragraph breaks, and two paragraphs at
+   margin zero read as one. Only the gap between them is added, so a single
+   paragraph is unchanged. */
+.draft-opening + .draft-opening {
+  margin-top: 9px;
+}
+
 .draft-list {
   margin: 0;
   padding-left: 17px;

@@ -135,6 +135,29 @@ describe("what general knowledge says about a subject", () => {
     assert.match(askImpl.calls[0].system, /contested or thin/);
   });
 
+  it("asks for three sentences and says not to repeat the starting points in them", async () => {
+    /*
+     * The first real answer came back as four paragraphs that restated every
+     * starting point underneath it, at four times the cost of the version that
+     * says the same thing. A length in a schema description alone did not hold;
+     * it is now in both the field and the system prompt, and the renderer draws
+     * paragraph breaks rather than collapsing them, because a request is not a
+     * guarantee.
+     */
+    const askImpl = stub(ANSWER);
+    ok(await referenceOn({ subject: "meltdowns at bedtime", askImpl }));
+
+    assert.match(askImpl.calls[0].system, /three sentences at most/i);
+    assert.match(askImpl.calls[0].schema.properties.says.description, /THREE SENTENCES AT MOST/);
+    assert.match(askImpl.calls[0].schema.properties.says.description, /not list what helps/i);
+  });
+
+  it("asks for a plain hyphen, because the app never writes an em dash", async () => {
+    const askImpl = stub(ANSWER);
+    ok(await referenceOn({ subject: "anything", askImpl }));
+    assert.match(askImpl.calls[0].system, /plain hyphen rather than an em dash/);
+  });
+
   it("names the Swedish letters it is asking the model to keep", async () => {
     const askImpl = stub(ANSWER);
     ok(await referenceOn({ subject: "när någon drar sig undan", askImpl }));
