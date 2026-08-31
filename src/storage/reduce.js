@@ -133,7 +133,25 @@ export const COLLECTIONS = /** @type {const} */ ([
    * moment: a moment is one event with named people, and this names nobody -
    * it is about the shape of the week, not any interaction inside it.
    */
-  "reflections"
+  "reflections",
+  /**
+   * One row per run of the bulk "archive everyone and everything active"
+   * action, holding the ids it changed.
+   *
+   * Needed because the bulk action is the only place in the app where one press
+   * changes dozens of rows, and it was reversible only one row at a time - so a
+   * mis-press was thirty manual undos with the app silent in between. Undo has
+   * to know which rows THAT run archived, and the archive flag alone cannot say:
+   * a row archived by hand the same afternoon looks identical.
+   *
+   * A recorded run rather than a timestamp match, even though one bulk run
+   * stamps every row with the same instant. The instant is a coincidence of
+   * implementation - a per-item archive in the same millisecond would be swept
+   * up by an undo that trusted it - and the explicit list is what makes the undo
+   * mean "put back what that press changed" rather than "unarchive whatever
+   * shares a number".
+   */
+  "bulkArchives"
 ]);
 
 /**

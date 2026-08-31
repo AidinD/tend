@@ -30,12 +30,13 @@ const WHERE_FROM = {
 };
 
 export async function render() {
-  const [status, folders, bindings, roster, model] = await Promise.all([
+  const [status, folders, bindings, roster, model, undoable] = await Promise.all([
     tend.invoke("status"),
     tend.invoke("nibFolders"),
     tend.invoke("sources"),
     tend.invoke("people"),
-    modelStatus()
+    modelStatus(),
+    tend.invoke("undoableBulkArchive")
   ]);
 
   return `
@@ -48,7 +49,7 @@ export async function render() {
     ${nibSection(folders, bindings, roster, status)}
     ${modelSection(model)}
     ${dataSection(status)}
-    ${archiveSection()}
+    ${archiveSection(undoable)}
     ${aboutSection(status)}
   `;
 }
@@ -221,7 +222,8 @@ function dataSection(status) {
  * deleted, and every one of them can be brought back individually from its
  * own archived list.
  */
-function archiveSection() {
+/** @param {any} undoable */
+function archiveSection(undoable) {
   return `<div class="group">
     <div class="group-head"><span class="group-title">Leaving a job</span><span class="group-rule"></span></div>
     <article class="card">
@@ -229,11 +231,58 @@ function archiveSection() {
       <p class="card-why">For the moment a job ends. Archives every person, project and workstream that is currently active - all at once, instead of one at a time.</p>
       <p class="card-why dim">Nothing is deleted. Every 1-1, promise, decision and growth thread stays exactly as it is. Each one can be brought back on its own, whenever it is relevant again, from its archived list.</p>
       <div class="card-foot">
-        <span class="src">Reversible one at a time. Safe to run again - anything already archived is left untouched.</span>
+        <span class="src">Safe to run again - anything already archived is left untouched.</span>
         <button class="act danger" data-act="archiveEverything">Archive everything active</button>
       </div>
     </article>
+    ${undoCard(undoable)}
   </div>`;
+}
+
+/**
+ * The way back from one press, as one press.
+ *
+ * The per-item unarchive was the only route back, which made the two directions
+ * badly matched: archiving a whole roster is one button, and putting it back was
+ * thirty separate decisions with the app saying nothing in between. Worse, the
+ * card above offered "reversible" as reassurance while that asymmetry was the
+ * actual shape of it.
+ *
+ * Only shown while there is a run to undo, and it says how many rows are still
+ * archived from that run rather than how many it changed at the time - anything
+ * brought back by hand since is already back, and counting it again would
+ * promise a restore that does not happen.
+ *
+ * @param {any} undoable
+ */
+function undoCard(undoable) {
+  if (!undoable || typeof undoable !== "object" || undoable.error !== undefined) {
+    return "";
+  }
+  const left = Number(undoable.people ?? 0) + Number(undoable.projects ?? 0) + Number(undoable.workstreams ?? 0);
+  if (left === 0) {
+    return "";
+  }
+  const when = Number.isFinite(Number(undoable.at))
+    ? new Date(Number(undoable.at)).toLocaleDateString("sv-SE")
+    : "an earlier run";
+  const parts = [
+    [undoable.people, "person", "people"],
+    [undoable.projects, "project", "projects"],
+    [undoable.workstreams, "workstream", "workstreams"]
+  ]
+    .filter(([n]) => Number(n) > 0)
+    .map(([n, one, many]) => `${n} ${Number(n) === 1 ? one : many}`)
+    .join(", ");
+
+  return `<article class="card sev-ok">
+    <div class="card-top"><h2 class="card-title">Undo the archive from ${esc(when)}</h2></div>
+    <p class="card-why">Puts back ${esc(parts)} - only what that press archived, and only the ones still archived now. Anything you have already brought back by hand stays as it is, and nothing archived on its own before or after is touched.</p>
+    <div class="card-foot">
+      <span class="src">Offered until you use it, or archive everything again.</span>
+      <button class="act primary" data-act="undoBulkArchive">Undo that archive</button>
+    </div>
+  </article>`;
 }
 
 /**
@@ -543,7 +592,9 @@ export const actions = {
         "Archives every person, project and workstream that is currently active, in one go. " +
         "Nothing is deleted - every 1-1, promise, decision and growth thread stays exactly as " +
         "it is, and each one can be brought back individually, whenever it is relevant again, " +
-        "from its archived list.",
+        "from its archived list.\n\n" +
+        "Afterwards this page offers a single Undo that puts back exactly what this press " +
+        "archived, so you do not have to reverse it one row at a time.",
       confirm: "Archive everything",
       tone: "danger"
     });
@@ -555,6 +606,26 @@ export const actions = {
       return;
     }
     toast(`${result.people} people, ${result.projects} projects, ${result.workstreams} workstreams archived.`);
+    refresh();
+  },
+
+  undoBulkArchive: async () => {
+    const sure = await ask({
+      title: "Undo that archive?",
+      body:
+        "Puts back everything that press archived and is still archived now. Rows you have " +
+        "already brought back stay as they are, and anything archived on its own - before or " +
+        "after that press - is left alone.",
+      confirm: "Put them back"
+    });
+    if (!sure) {
+      return;
+    }
+    const result = await act("undoBulkArchive", {});
+    if (!result) {
+      return;
+    }
+    toast(`${result.people} people, ${result.projects} projects, ${result.workstreams} workstreams back.`);
     refresh();
   },
 

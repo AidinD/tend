@@ -22,6 +22,19 @@
  * A test asserts every signal's text begins in the first person. That is not
  * decoration - it is the only mechanical check that catches the drift.
  *
+ * ## A habit is not a finding
+ *
+ * Most signals here point at something that already exists and is going unread:
+ * entries nobody has looked back at, contact piling up on a few people. One
+ * points at something that has NOT been written - the weekly reflection - and
+ * that difference decides how loud the page is allowed to be about it. A signal
+ * carrying `habit: true` may never stop Now from saying "nothing needs you",
+ * because a week that went unreflected on has not let anybody down. Without the
+ * flag the reflection reminder changed the daily page's headline for as long as
+ * it stood, which is the opposite of the "quietly, at the bottom, easy to
+ * ignore" it was designed as. It is a field rather than a check on the key so
+ * the next reminder of this kind has to say which sort it is.
+ *
  * ## No model, deliberately
  *
  * This is arithmetic on dates. A script beats both models here: it costs
@@ -54,6 +67,7 @@ const CONCENTRATION_OF = 0.2;
  * @property {string} text First person. About you.
  * @property {string} [detail]
  * @property {number} weight Higher sorts first.
+ * @property {boolean} [habit] A routine not kept up, rather than a fact in hand.
  */
 
 /**
@@ -263,7 +277,9 @@ export function myAttention({
         // Under everything above - somebody being neglected, or my own
         // journal going unread, both outrank a reminder that is about a
         // habit rather than a fact I already have sitting in front of me.
-        weight: 20
+        weight: 20,
+        // See "A habit is not a finding" in this file's header.
+        habit: true
       });
     }
   }

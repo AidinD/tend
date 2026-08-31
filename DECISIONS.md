@@ -3,6 +3,87 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - The way back from one press is one press
+
+**Decided.** A run of the bulk archive is recorded as a row in `bulkArchives`,
+holding the ids it changed. Settings offers a single Undo for the most recent
+run that has not been undone, and undoing puts back only that run's rows, only
+the ones still archived. The run is marked `undoneAt` rather than removed.
+
+**Why the asymmetry was the real problem.** Archiving a whole roster was one
+button; putting it back was thirty separate decisions with the app saying nothing
+in between. Worse, the confirmation offered "each one can be brought back on its
+own" as reassurance, when that sentence was also the limitation. A control that
+is easy in one direction and laborious in the other is not reversible in any
+sense a person cares about, and the moment somebody reaches for undo is precisely
+the moment they have just done something they did not mean to.
+
+**Why a recorded run rather than matching the timestamp.** One bulk run does
+stamp every row with the same instant, so an undo could have looked for that
+number. But the shared instant is a coincidence of how the loop is written, not a
+promise: a per-item archive in the same millisecond would be swept up by it. The
+explicit list is what makes undo mean "put back what that press changed" instead
+of "unarchive whatever shares a number".
+
+**Rejected: unarchive everything.** It reads as the same feature and is a
+different one. A row archived deliberately last month has nothing to do with the
+press being undone, and dragging it back is a decision nobody made. Undo is
+scoped to one run and skips rows already brought back by hand - which is also why
+the offer counts what is *still* archived rather than what it changed at the
+time, since promising to restore something that needs no restoring is a lie about
+what the button does.
+
+**Rejected: recording every press.** A press that changes nothing - the
+accidental double-press - records no run. Otherwise the empty second press would
+become "the most recent run", and undo would restore nothing while appearing to
+work, at the exact moment somebody is reaching for it.
+
+## 2026-08-31 - A habit may not stop the page being quiet
+
+**Decided.** A signal in `myattention.js` may carry `habit: true`, and Now
+excludes those from the check that decides whether it can say "nothing needs
+you". The reminder is still printed, at the bottom, under that sentence.
+
+**Why.** Every other signal there points at something that already exists and is
+going unread. The reflection reminder points at something that has *not* been
+written, and a week nobody reflected on has let nobody down. Counting it changed
+the daily page's headline for as long as it stood, which is far louder than the
+"quietly, at the bottom, easy to ignore" it was designed as, and it quietly
+redefined "needs you" to include a routine.
+
+**Why a flag rather than a check on the key.** A view testing for
+`"i-have-not-reflected"` would be correct today and silently wrong for the next
+reminder of this kind. Declaring the sort makes the next author say which it is.
+
+**And the flag may not become a way of hiding it.** The quiet branch used to
+return early without printing signals at all, so filtering alone would have
+deleted the reminder from the very page it belongs on. Both branches now render
+the same block.
+
+## 2026-08-31 - An empty list is not the same fact as a failed read
+
+**Decided.** `readFailed`/`readFailedHtml` in `ui.js`, and the views ask which
+they have before rendering an absence. An empty roster with archived rows behind
+it says so, rather than showing the first-run instructions.
+
+**Why.** Every operation that throws comes back as `{ error }`, and the views
+were collapsing that into an empty array. On this data the wrong answer is
+alarming rather than merely wrong: a page that says "nobody here yet" because a
+read failed is telling somebody their whole record is gone. The bulk archive made
+it worse in two ways - the archived group can be the page's only content, and a
+roster where everybody is archived is not a new install, though Now's first-run
+branch was reporting it as one.
+
+**Also a crash, not just a wrong word.** `(projects ?? [])` does not survive a
+failed read: `{ error }` is truthy, so the default never applies and `.map` is
+undefined. The Work view threw rather than saying anything.
+
+**Why not one shared empty-state component.** The distinction is the point, and
+each view knows something the helper cannot: what was being read, and what the
+absence would otherwise be mistaken for. `prep.js` already drew this line for the
+Jot board - "'Nothing is open' and 'I could not find the board' are different
+facts" - and this is the same line for the window.
+
 ## 2026-08-30 - Archive is a date on a row, not a delete
 
 **Decided.** People, projects and workstreams carry `archivedAt`, a plain

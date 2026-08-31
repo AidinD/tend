@@ -1263,9 +1263,12 @@ export function archiveEverythingActive(store, { now }) {
   // letting the refusals come back through the same path as any other means the
   // counter's honesty is reachable from the outside and can be tested, rather
   // than being an unreachable branch nobody can break.
-  let people = 0;
-  let projects = 0;
-  let workstreams = 0;
+  /** @type {string[]} */
+  const people = [];
+  /** @type {string[]} */
+  const projects = [];
+  /** @type {string[]} */
+  const workstreams = [];
   /** @type {string[]} */
   const refused = [];
 
@@ -1290,25 +1293,134 @@ export function archiveEverythingActive(store, { now }) {
 
   for (const p of store.rows("people")) {
     if (archivedNow(archivePerson(store, p.id, { now }))) {
-      people += 1;
+      people.push(String(p.id));
     }
   }
   for (const p of store.rows("projects")) {
     if (archivedNow(archiveProject(store, p.id, { now }))) {
-      projects += 1;
+      projects.push(String(p.id));
     }
   }
   for (const w of store.rows("workstreams")) {
     if (archivedNow(archiveWorkstream(store, w.id, { now }))) {
-      workstreams += 1;
+      workstreams.push(String(w.id));
     }
   }
 
+  // Recorded only when it changed something, so an accidental second press does
+  // not leave an empty run standing in front of the one worth undoing.
+  const changed = people.length + projects.length + workstreams.length;
+  if (changed > 0) {
+    store.create("bulkArchives", { at: now, people, projects, workstreams });
+  }
+
+  // Counts, not id lists, in the answer: the ids are for the undo and live in
+  // the recorded run, and a window that got both would have two sources for the
+  // same fact.
+  const summary = {
+    people: people.length,
+    projects: projects.length,
+    workstreams: workstreams.length
+  };
+
   // Said out loud rather than swallowed: a partial archive is safe to re-run,
   // but only if the window knows it was partial.
-  return refused.length > 0
-    ? { people, projects, workstreams, refused }
-    : { people, projects, workstreams };
+  return refused.length > 0 ? { ...summary, refused } : summary;
+}
+
+/**
+ * The most recent bulk archive that has not been undone, or null.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @returns {Record<string, any> | null}
+ */
+function latestBulkArchive(store) {
+  const runs = store
+    .rows("bulkArchives")
+    .filter((/** @type {any} */ r) => r.undoneAt === undefined || r.undoneAt === null)
+    .sort((/** @type {any} */ a, /** @type {any} */ b) => Number(b.at ?? 0) - Number(a.at ?? 0));
+  return runs.length > 0 ? runs[0] : null;
+}
+
+/**
+ * Is there a bulk archive to undo, and what would undoing it put back?
+ *
+ * Read by Settings so the button can say what it will do before it is pressed,
+ * rather than offering an undo whose size is a surprise.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ */
+export function undoableBulkArchive(store) {
+  const run = latestBulkArchive(store);
+  if (run === null) {
+    return null;
+  }
+  const still = (/** @type {"people" | "projects" | "workstreams"} */ collection) => {
+    const ids = new Set((run[collection] ?? []).map((/** @type {any} */ id) => String(id)));
+    // Counted as it stands NOW, not as it was recorded. Anything unarchived by
+    // hand since is already back, and saying otherwise would promise to restore
+    // something that needs no restoring.
+    return store
+      .rows(collection)
+      .filter((/** @type {any} */ row) => ids.has(String(row.id)) && isArchived(row)).length;
+  };
+  return {
+    id: run.id,
+    at: run.at,
+    people: still("people"),
+    projects: still("projects"),
+    workstreams: still("workstreams")
+  };
+}
+
+/**
+ * Put back exactly what the last bulk archive changed.
+ *
+ * Only that run's rows, and only the ones still archived - not "unarchive
+ * everything", which would also drag back rows archived by hand months ago and
+ * turn an undo into a decision nobody made. The run is marked undone rather
+ * than removed, because the log does not delete and because a second press must
+ * not silently reach further back to an older run.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} [args]
+ * @param {number} [args.now]
+ */
+export function undoBulkArchive(store, { now } = {}) {
+  const run = latestBulkArchive(store);
+  if (run === null) {
+    return { error: "There is no bulk archive left to undo." };
+  }
+
+  const undo = {
+    people: /** @type {(store: any, id: string) => any} */ (unarchivePerson),
+    projects: /** @type {(store: any, id: string) => any} */ (unarchiveProject),
+    workstreams: /** @type {(store: any, id: string) => any} */ (unarchiveWorkstream)
+  };
+
+  const restored = { people: 0, projects: 0, workstreams: 0 };
+  /** @type {string[]} */
+  const refused = [];
+
+  for (const collection of /** @type {const} */ (["people", "projects", "workstreams"])) {
+    for (const id of run[collection] ?? []) {
+      const row = store.rows(collection).find((/** @type {any} */ r) => String(r.id) === String(id));
+      // Gone or already back: neither is a failure, and neither is a restore.
+      if (row === undefined || !isArchived(row)) {
+        continue;
+      }
+      const result = undo[collection](store, String(id));
+      if (result && result.error) {
+        refused.push(result.error);
+        continue;
+      }
+      restored[collection] += 1;
+    }
+  }
+
+  store.update("bulkArchives", run.id, { undoneAt: typeof now === "number" ? now : Date.now() });
+
+  return refused.length > 0 ? { ...restored, refused } : restored;
 }
 
 /**

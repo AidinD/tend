@@ -1799,6 +1799,13 @@ try {
     }
   });
 
+  // The habit reminder itself is not checked here. It only fires once the store
+  // holds activity older than the cadence, which this run's fixture never
+  // reaches, so there is no point in the harness where it is live - asserting it
+  // here would be asserting a blank. Its firing, clearing, weight, absence of a
+  // severity and the `habit` flag Now reads are covered in
+  // test/myattention.test.mjs, where the dates can be set to make it true.
+  //
   // One question answered, the other left out - this is still a whole
   // reflection. The two questions are not a pair of required fields.
   await page.click('[data-act="addReflection"]');
@@ -2702,6 +2709,23 @@ try {
     }
   });
 
+  // Every subject is archived, so nothing can be behind on anything. A habit
+  // reminder is allowed to be on the page but not to change its headline - it
+  // used to, for as long as a week went unreflected on.
+  const nowHeadline = await page.text(".view-title");
+  const nowSub = await page.text(".view-sub");
+  check("an archived roster reads as archived, not as an empty install", () => {
+    if (/Nothing to watch yet/i.test(nowHeadline)) {
+      throw new Error("the first-run instructions were shown to a store full of history");
+    }
+    if (!/Nothing needs you/i.test(nowHeadline)) {
+      throw new Error(`expected the quiet page, saw "${nowHeadline}"`);
+    }
+    if (!/archived/i.test(nowSub) || !/nothing has been deleted|exactly where it was/i.test(nowSub)) {
+      throw new Error(`the page does not say the record is intact: "${nowSub}"`);
+    }
+  });
+
   // The reason this mechanism exists at all: the record has to outlive the
   // relationship. If an archived person's page came back empty, archiving
   // would be a delete and the whole design would be a lie.
@@ -2724,6 +2748,49 @@ try {
   check("and the history is the part that survived, not just the name", () => {
     if (!/promise|1-1|decision|contact|logged|thread/i.test(archivedBody)) {
       throw new Error("nothing on the page refers to anything that was recorded about them");
+    }
+  });
+
+  /* ------------------------------------------------------- undo the bulk -- */
+
+  await page.click('.nav-btn[data-view="settings"]');
+  await page.waitFor('document.querySelector(\'[data-act="undoBulkArchive"]\') !== null', "the undo offer");
+  const undoText = await page.evaluate(
+    "String(document.querySelector('[data-act=\"undoBulkArchive\"]')?.closest('.card')?.textContent ?? '')"
+  );
+  check("the undo says what it will put back, and what it will leave alone", () => {
+    if (!/still archived/i.test(undoText)) {
+      throw new Error(`the offer does not say it only restores what is still archived: ${undoText.slice(0, 200)}`);
+    }
+    if (!/\d+\s+(person|people|project|projects|workstream|workstreams)/i.test(undoText)) {
+      throw new Error(`the offer does not say how much it would restore: ${undoText.slice(0, 200)}`);
+    }
+  });
+
+  await page.click('[data-act="undoBulkArchive"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the undo confirmation");
+  await page.click(".dialog [data-confirm]");
+  await sleep(700);
+
+  await page.click('.nav-btn[data-view="people"]');
+  await sleep(400);
+  const rosterAfterUndo2 = await page.evaluate(
+    "String(document.querySelectorAll('.group:not(.archived-group) .row-name').length)"
+  );
+  check("one press puts the whole roster back, rather than one row at a time", () => {
+    if (Number(rosterAfterUndo2) < 1) {
+      throw new Error("the undo restored nobody");
+    }
+  });
+
+  await page.click('.nav-btn[data-view="settings"]');
+  await sleep(400);
+  const undoGone = await page.evaluate(
+    "String(document.querySelector('[data-act=\"undoBulkArchive\"]') === null)"
+  );
+  check("and the offer is spent, rather than standing there restoring nothing", () => {
+    if (undoGone !== "true") {
+      throw new Error("the undo is still offered after it was used");
     }
   });
 

@@ -13,7 +13,7 @@
  */
 
 import { REFLECTION_FIELDS } from "../../domain/reflection.js";
-import { act, esc, form, tend } from "../ui.js";
+import { act, esc, form, readFailed, readFailedHtml, tend } from "../ui.js";
 import { refresh } from "../app.js";
 
 export async function render() {
@@ -50,6 +50,13 @@ export async function render() {
              </div>`
       }
     </div>`;
+
+  // A failed read used to fall through to "Nothing written yet", which on a log
+  // of your own writing is the one wrong answer that would make somebody stop
+  // trusting the page.
+  if (readFailed(rows)) {
+    return `${head}${readFailedHtml("the reflections", rows)}`;
+  }
 
   if (reflections.length === 0) {
     return `${head}
@@ -89,6 +96,11 @@ function reflectionCard(r) {
 }
 
 export const actions = {
+  /** The retry offered when a read failed rather than came back empty. */
+  reload: () => {
+    refresh();
+  },
+
   /**
    * A short look back. All fields optional at the form level - the service
    * enforces the real rule (at least one of the two primary questions) and

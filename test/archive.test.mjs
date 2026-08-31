@@ -432,7 +432,8 @@ describe("the instant an archive is stamped with", () => {
       { people: 0, projects: 0, workstreams: 0 },
       "nothing was archived, so nothing may be counted as archived"
     );
-    assert.ok(Array.isArray(summary.refused) && summary.refused.length > 0, "and it must say so out loud");
+    const refused = /** @type {any} */ (summary).refused;
+    assert.ok(Array.isArray(refused) && refused.length > 0, "and it must say so out loud");
     // The invariant between the report and the effect, asserted across both
     // rather than on either alone.
     assert.equal(api.people(store, NOW).length, 1, "the roster is exactly as it was");
@@ -527,6 +528,137 @@ describe("a name held by an archived row", () => {
       api.addPerson(store, { name: "Nadia Ohlsson", relation: "lead-and-manage", now: NOW })
     );
     assert.match(clash, /already here/, "an unarchived row is live again, so its clash is a live one");
+  });
+});
+
+describe("undoing a bulk archive", () => {
+  it("offers nothing to undo until a bulk archive has run", () => {
+    assert.equal(api.undoableBulkArchive(store), null);
+    assert.match(failed(api.undoBulkArchive(store, { now: NOW })), /no bulk archive/i);
+  });
+
+  it("puts back exactly what one press archived", () => {
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+    assert.deepEqual(api.people(store, NOW), []);
+
+    const offered = api.undoableBulkArchive(store);
+    assert.ok(offered !== null, "a run must be on offer");
+    assert.deepEqual(
+      { people: offered.people, projects: offered.projects, workstreams: offered.workstreams },
+      { people: 1, projects: 1, workstreams: 1 },
+      "the offer must describe what is still archived from that run"
+    );
+
+    const back = api.undoBulkArchive(store, { now: NOW + DAY_MS });
+    assert.deepEqual(back, { people: 1, projects: 1, workstreams: 1 });
+    assert.equal(api.people(store, NOW).length, 1, "the roster is whole again");
+    assert.equal(api.projects(store, NOW).length, 1);
+    assert.equal(api.workstreams(store, NOW).length, 1);
+    assert.equal(api.archivedPeople(store, NOW).length, 0);
+  });
+
+  it("leaves alone a row archived by hand BEFORE the press", () => {
+    // The distinction the whole feature turns on: an undo puts back what that
+    // press changed, not everything that happens to be archived. Unarchiving a
+    // row somebody archived deliberately would be a decision nobody made.
+    ok(api.archiveProject(store, "tidepool", { now: NOW - 30 * DAY_MS }));
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+
+    ok(api.undoBulkArchive(store, { now: NOW + DAY_MS }));
+
+    assert.equal(api.people(store, NOW).length, 1, "the press's own rows came back");
+    assert.equal(
+      api.archivedProjects(store, NOW).some((p) => p.id === "tidepool"),
+      true,
+      "the hand-archived project must stay archived"
+    );
+  });
+
+  it("does not count a row already brought back by hand as restored", () => {
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+    ok(api.unarchivePerson(store, "nadia"));
+
+    const offered = api.undoableBulkArchive(store);
+    assert.ok(offered !== null, "a run must be on offer");
+    assert.equal(offered.people, 0, "already back, so nothing to promise");
+
+    const back = ok(api.undoBulkArchive(store, { now: NOW + DAY_MS }));
+    assert.equal(back.people, 0, "and nothing to report as restored");
+    assert.equal(api.people(store, NOW).length, 1, "still exactly one active person, not a double restore");
+  });
+
+  it("is offered once: a second undo finds nothing rather than reaching further back", () => {
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+    ok(api.undoBulkArchive(store, { now: NOW + DAY_MS }));
+
+    assert.equal(api.undoableBulkArchive(store), null, "the run is spent");
+    assert.match(failed(api.undoBulkArchive(store, { now: NOW + 2 * DAY_MS })), /no bulk archive/i);
+  });
+
+  it("undoes the most recent press, not the first one", () => {
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+    ok(api.undoBulkArchive(store, { now: NOW + DAY_MS }));
+
+    // A second press, then a second undo. If undo reached for the oldest
+    // un-undone run it would find the spent one and restore nothing.
+    ok(api.archiveEverythingActive(store, { now: NOW + 2 * DAY_MS }));
+    const back = api.undoBulkArchive(store, { now: NOW + 3 * DAY_MS });
+    assert.deepEqual(back, { people: 1, projects: 1, workstreams: 1 });
+    assert.equal(api.people(store, NOW).length, 1);
+  });
+
+  it("does not let a second, no-op press hide the run worth undoing", () => {
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+
+    // Everything is already archived, so pressing again changes nothing. If
+    // that empty press were recorded it would become "the most recent run" and
+    // the undo would restore nothing while appearing to work - the accidental
+    // double-press being exactly when somebody reaches for undo.
+    const second = ok(api.archiveEverythingActive(store, { now: NOW + DAY_MS }));
+    assert.deepEqual(second, { people: 0, projects: 0, workstreams: 0 });
+    assert.equal(store.rows("bulkArchives").length, 1, "no empty run recorded");
+
+    const offered = api.undoableBulkArchive(store);
+    assert.ok(offered !== null, "an offer must still stand");
+    assert.equal(offered.at, NOW, "the offer still points at the press that did the work");
+    assert.deepEqual(api.undoBulkArchive(store, { now: NOW + 2 * DAY_MS }), {
+      people: 1,
+      projects: 1,
+      workstreams: 1
+    });
+  });
+
+  it("takes the newest of two runs that are both still standing", () => {
+    // Two un-undone runs at once, which is what makes the ordering matter: with
+    // only one candidate the sort direction cannot be wrong. Press, bring one
+    // person back by hand, press again - now the second run holds just that
+    // person, and undo must mean "the last thing I did", not "the first".
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+    ok(api.unarchivePerson(store, "nadia"));
+    ok(api.archiveEverythingActive(store, { now: NOW + DAY_MS }));
+    assert.equal(store.rows("bulkArchives").length, 2);
+
+    const offered = api.undoableBulkArchive(store);
+    assert.ok(offered !== null);
+    assert.equal(offered.at, NOW + DAY_MS, "the newer run is the one on offer");
+
+    const back = ok(api.undoBulkArchive(store, { now: NOW + 2 * DAY_MS }));
+    assert.deepEqual(
+      back,
+      { people: 1, projects: 0, workstreams: 0 },
+      "only the person the second press archived - the first run's project and workstream stay"
+    );
+    assert.equal(api.projects(store, NOW).length, 0, "the older run is untouched and still undoable");
+    assert.equal(api.workstreams(store, NOW).length, 0);
+  });
+
+  it("keeps the history of the run itself, rather than deleting it", () => {
+    ok(api.archiveEverythingActive(store, { now: NOW }));
+    ok(api.undoBulkArchive(store, { now: NOW + DAY_MS }));
+    const runs = store.rows("bulkArchives");
+    assert.equal(runs.length, 1, "the run is marked undone, not removed");
+    assert.equal(runs[0].undoneAt, NOW + DAY_MS);
+    assert.deepEqual(runs[0].people, ["nadia"], "and it still says what it changed");
   });
 });
 

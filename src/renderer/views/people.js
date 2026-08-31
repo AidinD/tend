@@ -19,7 +19,18 @@
  * file.
  */
 
-import { act, ask, asDateInput, kindsFor, esc, form, pill, tend } from "../ui.js";
+import {
+  act,
+  ask,
+  asDateInput,
+  kindsFor,
+  esc,
+  form,
+  pill,
+  readFailed,
+  readFailedHtml,
+  tend
+} from "../ui.js";
 import { go, refresh } from "../app.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 import { actions as growthActions, threadsBlock } from "./growth.js";
@@ -82,12 +93,23 @@ export async function render(params) {
   // should read as "everybody is one click away".
   const archivedGroup = archivedGroupHtml(archived);
 
+  if (readFailed(roster)) {
+    return `${header}${readFailedHtml("the roster", roster)}${archivedGroup}`;
+  }
+
   if (!Array.isArray(roster) || roster.length === 0) {
+    // "Nobody yet" and "everybody is archived" are different facts, and after
+    // the bulk archive the second one is the common case. Telling somebody who
+    // has just archived a whole roster to "add the people you lead" reads as
+    // though the record is gone.
+    const anyArchived = Array.isArray(archived) && archived.length > 0;
     return `${header}<div class="empty">
       ${
-        isPrivate
-          ? "Nobody here yet. Adding somebody gives you a place to put what you promised them - and nothing else, because nothing outside work runs on a cadence."
-          : "Nobody here yet. Add the people you lead or manage, and the leads you work beside."
+        anyArchived
+          ? "Nobody active. Everybody here is archived - open the group below to bring anyone back, or add somebody new."
+          : isPrivate
+            ? "Nobody here yet. Adding somebody gives you a place to put what you promised them - and nothing else, because nothing outside work runs on a cadence."
+            : "Nobody here yet. Add the people you lead or manage, and the leads you work beside."
       }
     </div>${archivedGroup}`;
   }
@@ -138,6 +160,12 @@ export async function render(params) {
  * @param {any[] | {error: string}} archived
  */
 function archivedGroupHtml(archived) {
+  // A failed read said "nothing is archived", which on the one page where the
+  // archived group may be the only content is the most misleading answer
+  // available.
+  if (readFailed(archived)) {
+    return readFailedHtml("the archived people", archived);
+  }
   const rows = Array.isArray(archived) ? archived : [];
   if (rows.length === 0) {
     return "";
@@ -445,6 +473,11 @@ export const actions = {
   // a copy that drifts.
   ...growthActions,
   ...waitingActions,
+
+  /** The retry offered when a read failed rather than came back empty. */
+  reload: () => {
+    refresh();
+  },
 
   /*
    * Logging a moment is the journal's dialog, opened with this person pre-ticked.

@@ -228,6 +228,31 @@ describe("how the week went", () => {
     assert.ok(signal, "a week's worth of use with nothing reflected on should be noticed");
     assert.match(signal.text, /^I have not written a weekly reflection yet\.$/);
     assert.equal("severity" in signal, false, "this signal must never carry a severity - see the module header");
+    // The flag Now reads to decide whether it may still call the day quiet.
+    // Without it the daily page's headline changed for as long as a week went
+    // unreflected on, which is far louder than this signal is meant to be.
+    assert.equal(signal.habit, true, "a routine not kept up must declare itself as a habit");
+  });
+
+  it("is the only signal that claims to be a habit", () => {
+    // The flag decides how loud the daily page is allowed to be, so a signal
+    // that wrongly carried it would go quiet when it should not. Asserted over
+    // every signal the module can produce, not just the one under test.
+    const signals = myAttention({
+      people: roster(6),
+      touches: [
+        ...usedForAWhile,
+        ...Array.from({ length: 8 }, () => ({ subject: "p0", kind: "one-to-one", at: daysAgo(3) }))
+      ],
+      entries: Array.from({ length: 6 }, (_, i) => ({ at: daysAgo(20 + i), took: "x" })),
+      reflections: [],
+      now: NOW
+    });
+    assert.deepEqual(
+      signals.filter((s) => s.habit === true).map((s) => s.key),
+      ["i-have-not-reflected"],
+      `only the reflection reminder is a habit: ${JSON.stringify(signals.map((s) => [s.key, s.habit]))}`
+    );
   });
 
   it("clears once a reflection has been logged inside the cadence window", () => {

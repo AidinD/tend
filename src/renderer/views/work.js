@@ -7,7 +7,19 @@
  * is the half the player-coach model leaves unsaid.
  */
 
-import { act, ask, asDateInput, DEFAULT_STAKE_DAYS, esc, form, LEVEL_OPTIONS, pill, tend } from "../ui.js";
+import {
+  act,
+  ask,
+  asDateInput,
+  DEFAULT_STAKE_DAYS,
+  esc,
+  form,
+  LEVEL_OPTIONS,
+  pill,
+  readFailed,
+  readFailedHtml,
+  tend
+} from "../ui.js";
 import { refresh } from "../app.js";
 
 export async function render() {
@@ -34,6 +46,18 @@ export async function render() {
         </div>
       </div>
     </div>`;
+
+  // `(projects ?? [])` does not survive a failed read: `{ error }` is truthy, so
+  // the nullish default never applies and `.map` is undefined - the view threw
+  // rather than saying anything. Checked before either list is touched.
+  for (const [what, result] of [
+    ["the projects", projects],
+    ["the workstreams", streams]
+  ]) {
+    if (readFailed(result)) {
+      return `${header}${readFailedHtml(String(what), result)}`;
+    }
+  }
 
   const projectRows = (projects ?? [])
     .map(
@@ -95,7 +119,7 @@ export async function render() {
     ${header}
     <div class="group">
       <div class="group-head"><span class="group-title">Projects</span><span class="group-rule"></span><span class="group-meta">${(projects ?? []).length}</span></div>
-      ${projectRows ? `<div class="rows">${projectRows}</div>` : `<div class="empty">No projects yet. Add the ones you are accountable for without being in the daily work.</div>`}
+      ${projectRows ? `<div class="rows">${projectRows}</div>` : `<div class="empty">${emptyOrArchived(archivedProjects, "No projects active. Every project here is archived - open the group below to bring one back.", "No projects yet. Add the ones you are accountable for without being in the daily work.")}</div>`}
     </div>
     <div class="group" data-group="stakeholders">
       <div class="group-head"><span class="group-title">Waiting to hear from you</span><span class="group-rule"></span><span class="group-meta">${(stakes ?? []).length}</span></div>
@@ -110,11 +134,25 @@ export async function render() {
     <div class="group">
       <div class="group-head"><span class="group-title">Workstreams</span><span class="group-rule"></span><span class="group-meta">${(streams ?? []).length}</span></div>
       ${noPeople}
-      ${streamCards ? `<div class="stack">${streamCards}</div>` : `<div class="empty">Nothing handed over yet. A workstream is a piece of work with an owner and a stated level of hand-over.</div>`}
+      ${streamCards ? `<div class="stack">${streamCards}</div>` : `<div class="empty">${emptyOrArchived(archivedStreams, "No workstreams active. Every one here is archived - open the group below to bring one back.", "Nothing handed over yet. A workstream is a piece of work with an owner and a stated level of hand-over.")}</div>`}
     </div>
     ${archivedGroupHtml("Archived projects", archivedProjects, "unarchiveProject")}
     ${archivedGroupHtml("Archived workstreams", archivedStreams, "unarchiveStream")}
   `;
+}
+
+/**
+ * "Nothing yet" and "everything is archived" are different facts, and after the
+ * bulk archive the second is the common one. A first-run instruction shown to
+ * somebody who has just archived a whole list reads as though the record is
+ * gone.
+ *
+ * @param {any[] | {error: string}} archived
+ * @param {string} whenArchived
+ * @param {string} whenNew
+ */
+function emptyOrArchived(archived, whenArchived, whenNew) {
+  return Array.isArray(archived) && archived.length > 0 ? whenArchived : whenNew;
 }
 
 /**
@@ -136,6 +174,11 @@ export async function render() {
  * @param {string} unarchiveAct
  */
 function archivedGroupHtml(title, archived, unarchiveAct) {
+  // Same reason as the archived-people group: a failed read must not report an
+  // absence it never established.
+  if (readFailed(archived)) {
+    return readFailedHtml(title.toLowerCase(), archived);
+  }
   const rows = Array.isArray(archived) ? archived : [];
   if (rows.length === 0) {
     return "";
@@ -185,6 +228,11 @@ export async function setLevelDialog(id) {
 }
 
 export const actions = {
+  /** The retry offered when a read failed rather than came back empty. */
+  reload: () => {
+    refresh();
+  },
+
   /**
    * Add somebody as waiting to hear about a project.
    *

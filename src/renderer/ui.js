@@ -46,6 +46,49 @@ export function pill(severity) {
 }
 
 /**
+ * Did a read fail, as opposed to come back holding nothing?
+ *
+ * Every operation that throws in the main process comes back as `{ error }`, and
+ * the views were collapsing that into an empty array - `Array.isArray(x) ? x :
+ * []` - after which an empty list renders as "there is nothing here". The two
+ * are different facts, and on this data the wrong one is alarming: a page that
+ * says "nobody here yet" because a read failed is telling somebody their whole
+ * record is gone. `prep.js` already draws this line for the Jot board and says
+ * why; this is the same line for the window.
+ *
+ * @param {unknown} result
+ * @returns {result is { error: string }}
+ */
+export function readFailed(result) {
+  return (
+    !Array.isArray(result) &&
+    typeof result === "object" &&
+    result !== null &&
+    typeof (/** @type {any} */ (result).error) === "string"
+  );
+}
+
+/**
+ * What to show instead of a list, when the list could not be read.
+ *
+ * Says what could not be read and offers a retry, rather than reporting an
+ * absence that was never established.
+ *
+ * @param {string} what
+ * @param {{ error: string }} result
+ */
+export function readFailedHtml(what, result) {
+  return `<article class="card sev-warn">
+    <div class="card-top"><h2 class="card-title">Could not read ${esc(what)}</h2></div>
+    <p class="card-why">Nothing has been lost - this is a failed read, not an empty record. The store may be mid-sync.</p>
+    <p class="card-why mono-text">${esc(result.error)}</p>
+    <div class="card-foot">
+      <button class="act" data-act="reload">Try again</button>
+    </div>
+  </article>`;
+}
+
+/**
  * A short message that fades. For confirming something happened, where a dialog
  * would be in the way.
  *

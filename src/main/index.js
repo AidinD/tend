@@ -143,6 +143,10 @@ const OPERATIONS = {
   // for why this is a wrapper over the six operations above rather than its
   // own code path.
   archiveEverythingActive: (/** @type {any} */ a) => api.archiveEverythingActive(store, { now: a.now ?? Date.now() }),
+  // The undo for the button above, and the read that lets Settings say what
+  // undoing would put back before it is pressed.
+  undoableBulkArchive: () => api.undoableBulkArchive(store),
+  undoBulkArchive: (/** @type {any} */ a) => api.undoBulkArchive(store, { now: a?.now ?? Date.now() }),
 
   addPerson: (/** @type {any} */ a) => api.addPerson(store, { ...a, now: a.now ?? Date.now() }),
   setRelation: (/** @type {any} */ a) => api.setRelation(store, a.person, a.relation),

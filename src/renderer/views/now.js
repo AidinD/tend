@@ -14,13 +14,14 @@ import { go, refresh } from "../app.js";
 import { actions as waitingActions, waitingGroup } from "./waiting.js";
 
 export async function render() {
-  const [attention, questions, roster, ledger, mine, waits] = await Promise.all([
+  const [attention, questions, roster, ledger, mine, waits, archived] = await Promise.all([
     tend.invoke("attention"),
     tend.invoke("signals"),
     tend.invoke("people"),
     tend.invoke("decisions"),
     tend.invoke("myAttention"),
-    tend.invoke("waitsOnNow")
+    tend.invoke("waitsOnNow"),
+    tend.invoke("archivedPeople")
   ]);
   const waitingOn = Array.isArray(waits) ? waits : [];
 
@@ -32,8 +33,15 @@ export async function render() {
 
   // An empty store is a setup problem, not a quiet day. Say so plainly and
   // offer the way out rather than showing a serene screen that means nothing.
+  //
+  // But an empty roster is not proof of an empty store: after the bulk archive
+  // everybody is off the roster and every one of them is one click from coming
+  // back. Showing the first-run instructions to somebody with years of record
+  // behind them reads as "your data is gone", which is the one thing archiving
+  // promised it would never look like.
   if (!Array.isArray(roster) || roster.length === 0) {
-    return firstRun();
+    const anyArchived = Array.isArray(archived) && archived.length > 0;
+    return anyArchived ? everybodyArchived(mine) : firstRun();
   }
 
   const focus = attention.focus
@@ -87,6 +95,15 @@ export async function render() {
    * paragraph on the page you open daily.
    */
   const signals = Array.isArray(mine) ? mine : [];
+  /*
+   * A habit reminder is still printed, and still never stops the page being
+   * quiet. Counting it here changed the headline from "Nothing needs you" to
+   * "Now" for as long as a week went unreflected on - which is far louder than
+   * the bottom-of-the-page whisper it was designed as, and it says a week
+   * without a reflection is a thing needing you, which it is not. The flag is
+   * set in `myattention.js`; see "A habit is not a finding" there.
+   */
+  const pressing = signals.filter((/** @type {any} */ s) => s.habit !== true);
   const signalRows = signals
     .map(
       (/** @type {any} */ s) => `
@@ -101,7 +118,7 @@ export async function render() {
     attention.allInStep &&
     due.length === 0 &&
     revisits.length === 0 &&
-    signals.length === 0 &&
+    pressing.length === 0 &&
     waitingOn.length === 0
   ) {
     return `
@@ -111,6 +128,12 @@ export async function render() {
       </div>
       ${focus}
       <div class="empty">When something drifts, it appears here and nowhere else.</div>
+      ${
+        // Still printed on a quiet day, at the bottom, under the sentence that
+        // says nothing needs you. Dropping it here instead would make the flag
+        // a way of hiding the reminder rather than a way of keeping it quiet.
+        signalRows === "" ? "" : mineBlock(signalRows)
+      }
     `;
   }
 
@@ -135,14 +158,51 @@ export async function render() {
     )}
     ${waitingGroup(waitingOn)}
     ${
-      signals.length === 0
-        ? ""
-        : `<div class="mine">
-             <h2 class="mine-head">My month</h2>
-             <p class="mine-sub">About me, not about them. Nothing here is late.</p>
-             ${signalRows}
-           </div>`
+      signalRows === "" ? "" : mineBlock(signalRows)
     }
+  `;
+}
+
+/**
+ * The same block in both branches, so a quiet day and a busy one say it the
+ * same way.
+ *
+ * @param {string} rows
+ */
+function mineBlock(rows) {
+  return `<div class="mine">
+    <h2 class="mine-head">My month</h2>
+    <p class="mine-sub">About me, not about them. Nothing here is late.</p>
+    ${rows}
+  </div>`;
+}
+
+/**
+ * Nobody active, but not nobody. Said as a state that can be reversed rather
+ * than as a setup step that has not been done.
+ *
+ * Carries "My month" too: those signals are about you rather than about anybody
+ * on the roster, so an empty roster is no reason for them to disappear.
+ *
+ * @param {any} mine
+ */
+function everybodyArchived(mine) {
+  const rows = (Array.isArray(mine) ? mine : [])
+    .map(
+      (/** @type {any} */ s) => `
+        <div class="mine-row">
+          <span class="mine-text">${esc(s.text)}</span>
+          ${s.detail ? `<span class="src">${esc(s.detail)}</span>` : ""}
+        </div>`
+    )
+    .join("");
+  return `
+    <div class="view-head">
+      <h1 class="view-title">Nothing needs you</h1>
+      <p class="view-sub">Nobody is active right now - everybody is archived, and every 1-1, promise and decision about them is exactly where it was. Bring anyone back from the archived group on People, or start over by adding somebody new.</p>
+    </div>
+    ${rows === "" ? "" : mineBlock(rows)}
+    <div class="empty">Nothing has been deleted. When somebody is active again, what is behind on them appears here.</div>
   `;
 }
 
