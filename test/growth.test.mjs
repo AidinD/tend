@@ -16,13 +16,14 @@
  */
 
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import * as api from "../src/service/api.js";
 import { openStore } from "../src/storage/store.js";
+import { prep } from "../src/service/prep.js";
 import { DAY_MS } from "../src/domain/time.js";
 import {
   DRIVER_OPTIONS,
@@ -282,6 +283,8 @@ describe("the option lists", () => {
 describe("through the service", () => {
   /** @type {string} */
   let dir;
+  /** @type {string} */
+  let jotDir;
   /** @type {import("../src/storage/store.js").TendStore} */
   let store;
   /** @type {string} */
@@ -289,6 +292,10 @@ describe("through the service", () => {
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "tend-growth-"));
+    // An empty board of its own, so prep() does not fall back to whatever Jot
+    // board happens to be on the machine running the suite.
+    jotDir = mkdtempSync(join(tmpdir(), "tend-growth-jot-"));
+    writeFileSync(join(jotDir, "todos.json"), JSON.stringify({ categories: [], todos: [] }), "utf8");
     store = openStore({ dataDir: dir, role: "app", host: "test" });
     ok(api.addPerson(store, { name: "Halvar", relation: "lead-and-manage", now: ago(400) }));
     id = ok(
@@ -305,11 +312,53 @@ describe("through the service", () => {
 
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
+    rmSync(jotDir, { recursive: true, force: true });
   });
 
   it("refuses a thread with no direction", () => {
     const err = failed(api.openThread(store, { person: "Halvar", aim: "  ", now: NOW }));
     assert.match(err, /one sentence/);
+  });
+
+  it("keeps even a stalled thread out of Now, which is the whole licence for the feature", () => {
+    // The load-bearing promise in growth.js's "Why nothing here is ever
+    // critical": Now is for deviations to act on today, and nobody is let down
+    // because a direction stood still. It held only because `attention.js` never
+    // mentions growth at all - true by absence, with nothing to catch the first
+    // person who wires it in. A stalled thread is the strongest case there is,
+    // so it is the one worth pinning.
+    ok(api.updateThread(store, id, { marker: "Runs it with me in the room, saying nothing", stance: "agreed", theirWords: "He wants it" }));
+    for (let i = 0; i < STALL_AFTER_TALKS; i += 1) {
+      ok(api.logGrowthNote(store, { growth: id, at: ago(60 - i * 10), observed: false, now: NOW }));
+    }
+
+    const thread = ok(api.growth(store, "Halvar", NOW)).threads.find((/** @type {any} */ t) => t.id === id);
+    assert.ok(thread, "the thread has to be readable or this proves nothing");
+    assert.equal(thread.stalled, true, "the fixture has to actually be stalled or this proves nothing");
+    assert.match(String(thread.asks), /aim wrong, or is the support missing/);
+
+    const now = api.attention(store, NOW);
+    const named = [...now.needsYou, ...now.nudges].filter((/** @type {any} */ i) =>
+      /design review|aim wrong|support missing|growth|thread/i.test(`${i.what} ${i.why ?? ""}`)
+    );
+    assert.deepEqual(named, [], `a growth thread reached Now: ${JSON.stringify(named)}`);
+  });
+
+  it("still lets that stalled thread put somebody on the prep page by itself", () => {
+    // The other half of the same decision: kept out of Now, but not silenced.
+    // If it were only excluded, a stalled direction would be invisible until
+    // something else happened to put that person on the page.
+    ok(api.updateThread(store, id, { marker: "Runs it with me in the room, saying nothing", stance: "agreed", theirWords: "He wants it" }));
+    ok(api.logTouch(store, { subject: "Halvar", kind: "one-to-one", note: "Talked", at: ago(1), now: NOW }));
+    for (let i = 0; i < STALL_AFTER_TALKS; i += 1) {
+      ok(api.logGrowthNote(store, { growth: id, at: ago(60 - i * 10), observed: false, now: NOW }));
+    }
+
+    // Spoke to them yesterday, so no cadence drift and no other reason to be
+    // here. The thread's question has to be the thing that earns the card.
+    const card = prep(store, NOW, { jotDir }).cards.find((/** @type {any} */ c) => c.person === "Halvar");
+    assert.ok(card, "a thread asking something must be able to earn a prep card on its own");
+    assert.match(String(card.why), /aim wrong, or is the support missing/, "and it must say that is why");
   });
 
   it("reports what the form still wants when it opens the thread", () => {
