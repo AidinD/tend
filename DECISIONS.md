@@ -3,6 +3,33 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - A shared moment is not split per person
+
+**Decided: dropped, not deferred.** A moment involving several people keeps one
+text, shown in the same words on each of their pages. No model divides it into a
+separate account per person.
+
+**The idea was reasonable and most of it already shipped.** One write, appearing
+on every page it involves, each page saying who else was there - so "this was all
+of you" and "this was you and me" are already different memories. What the split
+would have added on top of that is small.
+
+**What is left is the part this app refuses everywhere else.** Dividing one
+sentence into who-did-what per person is inventing attribution: a claim about a
+real person that reads as recorded fact and was produced by inference. That is
+the same failure `draftBrief` and the per-entry check are kept shown-and-discarded
+to avoid - and it would be worse here than in a brief, because a brief is read
+once and thrown away while a moment is history the later passes read as evidence.
+
+**If it is ever built, it is a draft and not a write.** Same footing as a brief:
+shown, never stored, and edited before anything is saved, so the author of every
+stored sentence is still the person whose record it is.
+
+**What would reopen it, stated as something observable.** The same moment being
+rewritten by hand onto several pages, in use. At that point the model is not
+inferring anything - it is typing out what the writer already knows - and the
+shape is a draft that gets corrected, not text that lands.
+
 ## 2026-08-31 - One private store, and why a third would protect nothing
 
 **Decided.** The private half stays a single store holding every relationship
