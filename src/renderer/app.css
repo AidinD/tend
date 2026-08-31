@@ -302,6 +302,13 @@ main {
   margin-bottom: 28px;
 }
 
+/* A group heading straight after a card reads as that card's own footer unless
+   it gets the same air a group gets below itself. */
+.card + .group,
+.metrics + .group {
+  margin-top: 28px;
+}
+
 .group-head {
   display: flex;
   align-items: center;
