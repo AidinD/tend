@@ -3,6 +3,32 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-08-31 - A control in a row is wrapped, and the check that missed it now fails when unexercised
+
+**The bug.** The contact, cancellation and moment rows put their undo button
+straight into the row instead of inside `line-right`, which carries `flex: none`.
+So the button was a shrinkable flex item beside a note that can be a paragraph:
+against a long note it squeezed until "Not right" wrapped onto two lines and the
+row grew to fit. Three rows, all written in the same batch, all missing the
+wrapper every other row in the app uses.
+
+**Why the walkthrough had already clicked through it.** The checks around those
+rows select `.line .act.danger` - a descendant match, satisfied whether the
+button is wrapped or not. The rows were exercised; the shape never was.
+
+**The first version of the new check was decoration, and passed against the bug.**
+It searched for loose controls on a person page that had none of these rows on it
+at that point, found nothing, and reported success. A check that searches for a
+shape is satisfied perfectly by an empty page. So it now fails when it finds
+nothing to check, and it lives on the page where the undo controls actually
+exist - and that was verified by putting the bug back and watching it fail, which
+is the only thing that separates the two versions.
+
+**A CSS guard behind the fix.** `.act` never wraps its label now. No label in
+this app is longer than three words, so a wrapped one is always a squeezed button
+rather than a long label - and a row written without the wrapper in future looks
+cramped instead of looking broken.
+
 ## 2026-08-31 - A shared moment is not split per person
 
 **Decided: dropped, not deferred.** A moment involving several people keeps one

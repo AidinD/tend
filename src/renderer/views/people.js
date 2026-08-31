@@ -225,16 +225,26 @@ async function personPage(id) {
     )
     .join("");
 
-  // Each line can be taken back. A contact logged against the wrong person, or
-  // as the wrong kind, is worse than no log at all: it moves a clock and then
-  // looks identical to a real one. There was no way to undo it.
+  /*
+   * Each line can be taken back. A contact logged against the wrong person, or
+   * as the wrong kind, is worse than no log at all: it moves a clock and then
+   * looks identical to a real one. There was no way to undo it.
+   *
+   * The button goes inside `line-right` like every other control on a `line`,
+   * and that wrapper is not decoration - it carries `flex: none`. Without it the
+   * button is a shrinkable flex item beside a note that can be a paragraph, so a
+   * long note squeezed "Not right" until the label wrapped onto two lines and the
+   * row grew to fit it. Three rows had been written without it.
+   */
   const contact = p.recentContact
     .map(
       (/** @type {any} */ t) => `<div class="line">
         <span class="line-when">${esc(t.when)}</span>
         <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` - ${esc(t.note)}` : ""}</span>
-        <button class="act tiny danger" data-act="unlogContact" data-id="${esc(t.id)}"
-          data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
+        <span class="line-right">
+          <button class="act tiny danger" data-act="unlogContact" data-id="${esc(t.id)}"
+            data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
+        </span>
       </div>`
     )
     .join("");
@@ -247,8 +257,10 @@ async function personPage(id) {
       (/** @type {any} */ sk) => `<div class="line">
         <span class="line-when">${esc(sk.when)}</span>
         <span class="line-text"><strong>${esc(sk.kind)}</strong> did not happen${sk.why ? ` - ${esc(sk.why)}` : ""}</span>
-        <button class="act tiny danger" data-act="unlogSkip" data-id="${esc(sk.id)}"
-          data-what="${esc(sk.kind)} that did not happen">Not right</button>
+        <span class="line-right">
+          <button class="act tiny danger" data-act="unlogSkip" data-id="${esc(sk.id)}"
+            data-what="${esc(sk.kind)} that did not happen">Not right</button>
+        </span>
       </div>`
     )
     .join("");
@@ -301,8 +313,10 @@ async function personPage(id) {
             ? `<span class="src">with ${esc(m.alsoThere.join(", "))}</span>`
             : ""
         }</span>
-        <button class="act tiny danger" data-act="unlogMoment" data-id="${esc(m.id)}"
-          data-what="${esc(m.part)}">Not right</button>
+        <span class="line-right">
+          <button class="act tiny danger" data-act="unlogMoment" data-id="${esc(m.id)}"
+            data-what="${esc(m.part)}">Not right</button>
+        </span>
       </div>`
     )
     .join("");

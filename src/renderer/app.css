@@ -438,6 +438,11 @@ main {
   font-size: 12px;
   color: var(--text-dim);
   transition: background 120ms ease, color 120ms ease;
+  /* No label in this app is longer than three words, so a wrapped one is always
+     a squeezed button rather than a long label - and it reads as a broken
+     control. Defence in depth behind the `line-right` wrapper: a row written
+     without one now looks cramped instead of looking broken. */
+  white-space: nowrap;
 }
 
 .act:hover {

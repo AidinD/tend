@@ -1044,6 +1044,44 @@ try {
     }
   });
 
+  /*
+   * One structural invariant, checked here because this is the page where the
+   * undo controls actually exist.
+   *
+   * `line-right` carries `flex: none`. A control put straight into a `line` is a
+   * shrinkable flex item beside text that can be a paragraph, so a long note
+   * squeezed the button until its label wrapped onto two lines and the row grew
+   * to fit - which is how the contact, cancellation and moment rows all shipped
+   * looking broken. Every row type is drawn by its own template, so a check per
+   * row type is a check the fourth one will not have; this asserts the shape.
+   *
+   * Note the selector the checks around it use: `.line .act.danger` is a
+   * DESCENDANT match, so it is satisfied either way. That is exactly why the
+   * bug survived a page this walkthrough already clicked through.
+   */
+  const rowShape = await page.evaluate(`(() => {
+    const bare = [...document.querySelectorAll('.line > button, .line > .pill, .line > select')];
+    return JSON.stringify({
+      loose: bare.map((el) => el.dataset.act ?? el.className),
+      rows: document.querySelectorAll('.line').length,
+      wrapped: document.querySelectorAll('.line > .line-right').length
+    });
+  })()`);
+  check("and the undo button is wrapped, so a long note cannot squeeze it", () => {
+    const shape = JSON.parse(String(rowShape));
+    // A search for a shape passes perfectly against an empty page while proving
+    // nothing, which is how the first version of this check passed against the
+    // very bug it was written for. So an unexercised check fails.
+    if (shape.wrapped === 0) {
+      throw new Error(
+        `nothing to check: ${shape.rows} rows on the page and no controls wrapped in any of them`
+      );
+    }
+    if (shape.loose.length > 0) {
+      throw new Error(`controls outside line-right: ${JSON.stringify(shape.loose)}`);
+    }
+  });
+
   await page.click(".line .act.danger");
   await page.click("[data-confirm]");
   await sleep(400);
