@@ -25,7 +25,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
-import { TIERS, detectThemes, draftBrief, extractPromises, sourceLabel } from "../src/service/model.js";
+import { GROUNDED, HOUSE_RULES, HOUSE_STYLE, TIERS, detectThemes, draftBrief, extractPromises, sourceLabel } from "../src/service/model.js";
 import { htmlToText, noteBody } from "../src/service/nib.js";
 import { openStore } from "../src/storage/store.js";
 import { DAY_MS } from "../src/domain/time.js";
@@ -139,6 +139,81 @@ describe("the rules the rest of the app relies on", () => {
       false,
       "a model call on the startup path makes opening the window cost money and seconds"
     );
+  });
+
+  it("gives every model pass the house rules, rather than each one restating them", () => {
+    /*
+     * A source-level check, deliberately, and the only kind that works here.
+     *
+     * There was already a test asserting the Swedish letters survive into the
+     * prompt - written per pass, against one pass. So when a later pass typed
+     * the rules out by hand instead of importing them, the copy decayed exactly
+     * where nothing was looking: the sentence asking the model to keep the
+     * diacritics had had its OWN diacritics stripped, reading "a, a and o with
+     * their diacritics", and the same copy had silently lost the em dash rule
+     * and the job title rule.
+     *
+     * One test per pass cannot catch that, because the pass that breaks it is
+     * the one nobody wrote a test for. This checks the invariant instead: every
+     * system prompt in the service layer ends in the shared constant. A pass
+     * added next month is covered without anybody remembering to cover it.
+     */
+    const files = ["model.js", "knowledge.js", "reference.js"];
+    /** @type {string[]} */
+    const offenders = [];
+    let inspected = 0;
+
+    for (const file of files) {
+      const source = readFileSync(join(root, "src", "service", file), "utf8");
+      const declared = (source.match(/\bsystem:/g) ?? []).length;
+      // Each `system:` value, up to the end of the call's argument object.
+      const found = [...source.matchAll(/\bsystem:\s*([\s\S]*?)\n\s*\}\)/g)];
+
+      // The check that keeps this test honest. A source-reading test whose
+      // pattern stops matching does not fail - it inspects nothing and passes,
+      // which is worse than not having it, because it reads as coverage.
+      assert.equal(
+        found.length,
+        declared,
+        `${file}: ${declared} system prompts in the file but the pattern matched ${found.length}`
+      );
+
+      inspected += found.length;
+      for (const match of found) {
+        // Either constant counts. HOUSE_RULES is style plus grounding; the one
+        // pass that answers from general knowledge takes HOUSE_STYLE alone, and
+        // that difference is deliberate - see GROUNDED in model.js.
+        if (!/HOUSE_RULES|HOUSE_STYLE/.test(match[1])) {
+          offenders.push(`${file}: a system prompt restates the rules instead of appending them`);
+        }
+      }
+    }
+
+    assert.ok(inspected >= 9, `only ${inspected} system prompts inspected; the passes cannot have gone away`);
+    assert.deepEqual(offenders, [], offenders.join("; "));
+  });
+
+  it("spells out the Swedish letters in the rules themselves", () => {
+    // The constant is the single copy now, so this is the single place the
+    // letters have to actually be present as letters.
+    for (const letter of ["å", "ä", "ö"]) {
+      assert.ok(HOUSE_STYLE.includes(letter), `the house style does not contain ${letter} itself`);
+    }
+    assert.match(HOUSE_STYLE, /em dash/, "the rules no longer forbid the em dash");
+    assert.match(HOUSE_STYLE, /job title/, "the rules no longer forbid writing out a job title");
+  });
+
+  it("keeps the grounding rule out of the style half, since one pass must not have it", () => {
+    /*
+     * The split is the point. Fold the grounding rule back into the style half
+     * and the reference pass - which exists precisely to answer from general
+     * knowledge when the notes did not - is told never to say anything that is
+     * not in material it was never given. It then declines, politely, with
+     * nothing logged.
+     */
+    assert.doesNotMatch(HOUSE_STYLE, /never invent a fact/i);
+    assert.match(GROUNDED, /never invent a fact/i);
+    assert.ok(HOUSE_RULES.includes(HOUSE_STYLE) && HOUSE_RULES.includes(GROUNDED));
   });
 
   it("writes themes and nothing else", async () => {

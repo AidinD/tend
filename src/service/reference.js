@@ -51,7 +51,7 @@
 
 import { ask } from "keel/claude";
 
-import { TIERS, modelStatus } from "./model.js";
+import { HOUSE_STYLE, TIERS, modelStatus } from "./model.js";
 
 /**
  * How much of a typed situation is sent.
@@ -199,12 +199,11 @@ export async function referenceOn({ subject, half = "work", askImpl = ask }) {
       // gets read and one that gets scrolled past - and the first real answer
       // came back as four paragraphs that duplicated the starting points below
       // it, at four times the cost of the version that says the same thing.
-      "Write in English. Be SHORT: the summary is three sentences at most and each starting " +
-      "point is one line. Every line has to earn its place, and saying a thing twice in two " +
-      "fields is not two answers. Never write out a management job title; describe the " +
-      "relationship as leading, coaching or being responsible for the work. Keep any Swedish " +
-      "text exactly as written, including å, ä and ö - a stripped quote looks like somebody's " +
-      "words while not being them. Use a plain hyphen rather than an em dash."
+      "Be SHORT: the summary is three sentences at most and each starting point is one line. " +
+      "Saying a thing twice in two fields is not two answers. " +
+      // Style only: this pass answers from general knowledge, so the grounding
+      // rule would make it refuse its own purpose. See GROUNDED in model.js.
+      HOUSE_STYLE
   });
 
   if (!answer.ok) {

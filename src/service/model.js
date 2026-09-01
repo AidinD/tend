@@ -80,18 +80,50 @@ const THEME_NOTES = 8;
 /**
  * Text Tend generates gets pasted into real places, so the wording rules that
  * apply to the app apply to the model too - stated here rather than hoped for.
+ *
+ * Exported, and every pass in every file appends it rather than restating it.
+ * That is not tidiness. Two copies of a rule agree until one is edited, and
+ * this one had already come apart: a second copy in the knowledge pass had had
+ * the diacritics stripped out of the sentence asking for diacritics to be kept,
+ * so it read "a, a and o with their diacritics" - and the same copy had quietly
+ * lost the em dash rule and the job title rule altogether. A rule retyped by
+ * hand is a rule that decays where nobody is looking.
+ *
+ * This is the half that applies to every pass without exception. See `GROUNDED`
+ * for the half that does not.
  */
-const HOUSE_RULES =
+export const HOUSE_STYLE =
   "Write in English. Be concrete and short; every line has to earn its place. " +
-  "Never invent a fact that is not in the material you were given - if something " +
-  "is not there, leave it out rather than guessing. Never write out a management " +
-  "job title; describe the relationship as leading, coaching or being responsible " +
-  "for the work. Keep any Swedish text exactly as written, including \u00e5, \u00e4 " +
-  "and \u00f6 - a stripped quote looks like somebody's words while not being them. " +
+  "Never write out a management job title; describe the relationship as leading, " +
+  "coaching or being responsible for the work. Keep any Swedish text exactly as " +
+  "written, including \u00e5, \u00e4 and \u00f6 - a stripped quote looks like " +
+  "somebody's words while not being them. " +
   // Added after a model answer came back full of them. The rule is the app's own
   // and was stated everywhere except in the one place that writes prose without
   // a human in the loop.
   "Use a plain hyphen rather than an em dash.";
+
+/**
+ * The rule that only applies where there IS material.
+ *
+ * Split out rather than folded in, because one pass genuinely inverts it. The
+ * reference pass answers a subject from general knowledge precisely when the
+ * user's own notes did not cover it, so "never invent a fact that is not in the
+ * material you were given" would make that call refuse its own purpose - and
+ * refuse it politely, with nothing logged, which is the worst way to fail.
+ *
+ * It was already handled before this, by that pass keeping its own hand-written
+ * copy of the rules with the clause left out. That worked and hid the reason:
+ * a reader saw a second copy that had drifted rather than a distinction
+ * somebody had drawn. Naming the two halves says which passes are grounded in
+ * material and which one is not, in the place the difference lives.
+ */
+export const GROUNDED =
+  " Never invent a fact that is not in the material you were given - if " +
+  "something is not there, leave it out rather than guessing.";
+
+/** Style plus grounding: what every pass that reads real material appends. */
+export const HOUSE_RULES = HOUSE_STYLE + GROUNDED;
 
 /**
  * Whether a model call can be made at all, and why not when it cannot.

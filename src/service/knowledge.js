@@ -47,6 +47,7 @@
 
 import { ask } from "keel/claude";
 
+import { HOUSE_RULES } from "./model.js";
 import { allNibNotes, noteBody, referenceNotes } from "./nib.js";
 
 /** The model tier used here, matching the rest of the model layer. */
@@ -242,8 +243,7 @@ export async function consider({ situation, candidates, dir, askImpl = ask }) {
       "merely shares a word with it: a shortlist of two that fit is worth more than six that " +
       "might. Never invent advice that is not in the notes; if the material does not answer the " +
       "situation, say so in `missing` rather than filling the gap yourself. " +
-      "Write in English. Be concrete and short. Keep any Swedish exactly as written, including " +
-      "a, a and o with their diacritics."
+      HOUSE_RULES
   });
 
   if (!answer.ok) {
