@@ -113,6 +113,13 @@ the private journal. Held back on purpose until there are around twenty real
 entries to build them on: signals guessed at in advance are worse than none,
 because a question nobody recognises teaches you to ignore the page it is on.
 
+Still held back as of 2026-09-01, and by then the mechanism was not the reason.
+Signals are seeded rows in a store and every store has the machinery, so building
+them is now nothing but writing the questions - which is exactly the guess. What
+the material says instead: three moments logged, all three inside one nine-minute
+sitting, none since. So the pass over what IS written was built first, and it
+refuses that shape of material out loud rather than reading it.
+
 ~~**The Knowledge view.**~~ Built. Situation search over the notebook, a reading
 pass that opens only what survived it, and - since 2026-08-31 - a general-knowledge
 block for the part the notes do not answer.
@@ -192,6 +199,14 @@ the reference material, then the signals. Signals last on purpose: built on
 twenty real entries rather than on a guess about which patterns exist. The review
 comes before the signals because it improves the entries, and signals built on
 poor entries are worse than none.
+
+*Amended 2026-09-01.* One step was missing between the reference material and the
+signals, and it was the one that makes the entries worth writing: reading ACROSS
+them. The order above assumed the guided form was what stood between a few entries
+and a month of them, and the form turned out not to be the obstacle - the three
+real entries were written in nine minutes with both fields filled. What was
+missing was any reason to come back, because nothing in this half ever read what
+had been written. That reading is built; the signals still wait.
 
 **Reference material carries its provenance.** A card summarised from general
 knowledge says so, distinctly from one drawn from a specific book that was

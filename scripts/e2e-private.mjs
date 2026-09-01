@@ -493,6 +493,78 @@ try {
   );
   await waitFor("document.querySelector('.dialog') === null", "the dialog to close");
 
+  /* --------------------------------- reading across the moments -- */
+
+  /*
+   * The private half's pattern-finding, and the floor on it.
+   *
+   * This half has no themes on purpose: the work half's themes name patterns in
+   * observations ABOUT a person, and over a family that is a character profile of
+   * your own child. So the reading that does belong here reads his own part - and
+   * the thing worth checking in the window is that it refuses honestly on thin
+   * material rather than running and lowering its voice. One moment is exactly
+   * the thin case.
+   */
+  await evaluate("document.querySelector('[data-act=\"logMoment\"]')?.click()");
+  await waitFor("document.querySelector('.dialog') !== null", "the moment dialog again");
+
+  await evaluate(`(() => {
+    const d = document.querySelector('.dialog');
+    const part = d.querySelector('[name="part"]');
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+    setter.call(part, 'Jag blev otalig och gick darifran');
+    part.dispatchEvent(new Event('input', { bubbles: true }));
+    const box = d.querySelector('[data-multi] input[type="checkbox"]');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await evaluate("document.querySelector('.dialog [data-confirm]')?.click()");
+  await waitFor(
+    "document.body.textContent.includes('Jag blev otalig')",
+    "the moment on the page"
+  );
+
+  const patterns = JSON.parse(
+    String(
+      await evaluate(`(() => {
+        const button = document.querySelector('[data-act="readMoments"]');
+        const card = button === null ? null : button.closest('.card');
+        return JSON.stringify({
+          offered: button !== null,
+          disabled: button === null ? null : button.disabled,
+          why: card === null ? '' : (card.querySelector('.card-why')?.textContent ?? '').replace(/\\s+/g, ' ').trim(),
+          saysNothingKept: card === null ? '' : (card.querySelector('.src')?.textContent ?? '').trim()
+        });
+      })()`)
+    )
+  );
+
+  await check("reading across the moments is offered as soon as there is one", () => {
+    if (!patterns.offered) {
+      throw new Error("the block is not on the page at all, so nothing was checked");
+    }
+  });
+
+  await check("and refuses one moment up front rather than as an error afterwards", () => {
+    // A refusal you could have seen coming should have been a disabled button
+    // with the reason on it.
+    if (patterns.disabled !== true) {
+      throw new Error("the button is live on a single moment");
+    }
+    if (!/at least four/.test(patterns.why)) {
+      throw new Error(`the reason does not say the floor: "${patterns.why}"`);
+    }
+    if (!/three separate days/.test(patterns.why)) {
+      throw new Error(`the reason does not say the spread rule: "${patterns.why}"`);
+    }
+  });
+
+  await check("and says outright that nothing is written or sent", () => {
+    if (!/Nothing is written/.test(patterns.saysNothingKept)) {
+      throw new Error(`the card says "${patterns.saysNothingKept}"`);
+    }
+  });
+
   const errors = JSON.parse(String(await evaluate("JSON.stringify(window.__errors ?? [])")));
   await check("no uncaught renderer errors in any of that", () => {
     if (errors.length > 0) {

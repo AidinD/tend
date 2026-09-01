@@ -46,6 +46,7 @@ import { ask, resolveClaudeBinary } from "keel/claude";
 import { attention, focus, noteReviewRun, people, promises } from "./api.js";
 import { coverage, entriesSince, JOURNAL_FIELDS, REVIEW_WINDOW_DAYS } from "../domain/journal.js";
 import { declared, ledger, ledgerLines, readiness } from "../domain/review.js";
+import { momentCoverage, momentLines, momentReadiness, momentsSince } from "../domain/moments.js";
 import { prep } from "./prep.js";
 import { noteBody, notesIn, readNibIndex } from "./nib.js";
 import { resolvePerson } from "./resolve.js";
@@ -988,6 +989,166 @@ export async function answerQuestion(store, { question, now, askImpl = ask }) {
   return {
     answer: String(answer.value?.answer ?? "").trim(),
     from: (Array.isArray(answer.value?.from) ? answer.value.from : []).map((/** @type {any} */ f) => String(f)),
+    model: answer.model,
+    costUsd: answer.costUsd
+  };
+}
+
+/**
+ * The shape of a reading across the moments.
+ *
+ * Every field's subject is the writer. There is deliberately no field for what
+ * anybody else is like, was feeling, or tends to do - not because such a field
+ * would be hard to fill, but because a schema is the one place a constraint
+ * cannot be forgotten. A prompt asking the model to stay off somebody's
+ * character is a request; a schema with nowhere to put it is a rule.
+ */
+const OWN_PATTERN_SCHEMA = {
+  type: "object",
+  properties: {
+    recurs: {
+      type: "array",
+      description:
+        "Two to four things the WRITER did, chose, felt or avoided that recur across separate " +
+        "days. Each one is about them. Never about anybody else in the entries.",
+      items: {
+        type: "object",
+        properties: {
+          what: {
+            type: "string",
+            description:
+              "What they did or chose, in a few words, with them as the subject. " +
+              "\"I go quiet when it runs late\", not \"bedtime is difficult\"."
+          },
+          days: {
+            type: "integer",
+            description: "How many separate days it appears on. Must be at least two."
+          },
+          evidence: {
+            type: "string",
+            description: "A short phrase from one of the entries, in the words they wrote it in."
+          }
+        },
+        required: ["what", "days", "evidence"]
+      }
+    },
+    wentWell: {
+      type: "string",
+      description:
+        "One sentence on something they did that recurs and is worth keeping, in their own " +
+        "framing. Empty when the entries do not support one - inventing encouragement is the " +
+        "fastest way to make the whole reading unbelievable."
+    },
+    questions: {
+      type: "array",
+      description:
+        "One to three questions they could put to themselves, arising from what recurs. " +
+        "Questions, never advice and never a verdict.",
+      items: { type: "string" }
+    },
+    nothingToSay: {
+      type: "string",
+      description:
+        "When the entries support no pattern at all, say so in a sentence and leave the other " +
+        "fields empty. Preferred over stretching one day into a pattern."
+    }
+  },
+  required: ["recurs", "questions"],
+  additionalProperties: false
+};
+
+/**
+ * Read across the moments and name what recurs in the writer's own conduct.
+ *
+ * ## Why this is not `detectThemes`
+ *
+ * Themes read observations ABOUT a person and name patterns in them. Run over a
+ * family that is a character profile of your own child, which is why the private
+ * half has no themes at all. This reads the same shape of material from the
+ * opposite end: what the writer did. Every finding's subject is them, which is
+ * the constraint that makes pattern-finding safe to have in this half.
+ *
+ * ## Shown and discarded, like every other pass
+ *
+ * Nothing is written. Not even the "a pass ran" row the journal review keeps -
+ * that row exists to silence a nudge, and there is no nudge over this half by
+ * design. So this function reads and returns, and the store is untouched.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {number} args.now
+ * @param {number} [args.days]
+ * @param {typeof ask} [args.askImpl]
+ */
+export async function readOwnPatterns(store, { now, days = REVIEW_WINDOW_DAYS, askImpl = ask }) {
+  const window = momentsSince(store.rows("moments"), now, days);
+  const cover = momentCoverage(window, days);
+
+  const enough = momentReadiness(cover);
+  if (!enough.ready) {
+    return { error: enough.why };
+  }
+
+  const status = modelStatus();
+  if (!status.available) {
+    return { error: String(status.why) };
+  }
+
+  const answer = await askImpl({
+    prompt: [
+      `Here are ${cover.moments} moments logged over ${cover.spread} separate days, newest first.`,
+      'Each has an optional "what happened" and a required "my part", which is the half that matters.',
+      "",
+      ...window.map((moment) => momentLines(moment)),
+      "",
+      "Name what recurs in what THEY did. Two or more separate days, or leave it out."
+    ].join("\n"),
+    // The writing tier. The cheap tier's failure here is the expensive one: a
+    // fluent paragraph that reads the entries back rather than finding what
+    // crosses them, over material nothing else in the app can read.
+    model: TIERS.write,
+    schema: OWN_PATTERN_SCHEMA,
+    system:
+      "You read somebody's notes about events in their own life and name what recurs in THEIR " +
+      "OWN conduct - what they did, chose, felt or avoided. " +
+      "Every single thing you report has them as its subject. You never say what anybody else " +
+      "in the entries is like, was feeling, wanted, or tends to do, even where the entries " +
+      "themselves say it and even where it would explain the pattern - that half is not yours to " +
+      "name, and the whole value of this reading is that they could show it to the people it " +
+      "mentions. Where an entry describes somebody else, use it only as the situation their own " +
+      "part happened in. " +
+      "A pattern needs two or more separate days. Report nothing rather than stretching one day " +
+      "into a pattern, and use nothingToSay when the entries support nothing. " +
+      "Quote their own words as evidence rather than paraphrasing them. " +
+      "Never pass judgement and never conclude anything about what sort of person they are; end " +
+      "with questions they could put to themselves. " +
+      HOUSE_RULES
+  });
+
+  if (!answer.ok) {
+    return { error: answer.reason };
+  }
+
+  const value = answer.value ?? {};
+  return {
+    at: now,
+    days,
+    coverage: cover,
+    // Two or more days, enforced on the result as well as asked for in the
+    // schema. Same rule as themes and the journal review: a floor stated in a
+    // prompt is a request, and a floor applied to the answer is a rule.
+    recurs: (Array.isArray(value.recurs) ? value.recurs : [])
+      .map((/** @type {any} */ r) => ({
+        what: String(r?.what ?? "").trim(),
+        days: Number(r?.days ?? 0),
+        evidence: String(r?.evidence ?? "").trim()
+      }))
+      .filter((/** @type {any} */ r) => r.what !== "" && r.days >= 2),
+    wentWell: String(value.wentWell ?? "").trim(),
+    questions: (Array.isArray(value.questions) ? value.questions : [])
+      .map((/** @type {any} */ q) => String(q ?? "").trim())
+      .filter((/** @type {string} */ q) => q !== ""),
+    nothingToSay: String(value.nothingToSay ?? "").trim(),
     model: answer.model,
     costUsd: answer.costUsd
   };

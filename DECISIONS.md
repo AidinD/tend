@@ -3,6 +3,61 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-01 - The private half reads what he wrote, and its subject is always him
+
+**Decided.** A pass over the moments that names what recurs in his OWN conduct,
+in the journal view, behind a floor of four moments across three separate days.
+Nothing is written, nothing is kept.
+
+**This is not themes, and the difference is the whole point.** The work half's
+themes read observations ABOUT a person and name patterns in them. Run over a
+family that is a character profile of your own child, which is why
+`personBlocksIn` switches themes off in this half and why turning them back on
+would have been the wrong way to get pattern-finding here. This reads the same
+shape of material from the opposite end: what he did, chose, felt or avoided.
+Every finding has him as its subject, which is the constraint `myattention.js`
+already enforces from the other direction, and it is what makes pattern-finding
+safe to have in this half at all.
+
+**The constraint is in the schema, not only in the prompt.** There is no field for
+what anybody else is like, was feeling, or tends to do. A prompt asking a model to
+stay off somebody's character is a request; a schema with nowhere to put it is a
+rule. The prompt then says it twice, and the second half has to survive an entry
+that itself describes somebody else - because his own entries do.
+
+**Verified against a real call, not only against stand-ins.** Four synthetic
+entries were written so that every one handed the model a finished sentence about
+another person's state. Both patterns came back with him as the subject, quoting
+his own words about his own conduct, and no name appeared. `wentWell` came back
+empty rather than praising the one good evening, which is the recurrence rule
+holding: one evening is not a pattern, and inventing encouragement is the fastest
+way to make a reading unbelievable. The good evening surfaced as a question
+instead.
+
+**What the app never adds is a name.** No roster is sent - only what he typed. The
+honest version of that promise is narrow: names may appear because he wrote them,
+and stripping them out of his own prose would mangle the evidence the pass quotes
+back. So the guarantee is that the app adds nothing, and the prompt carries the
+rest.
+
+**Why this was built before the signals, which were the thing asked for.** The
+signals are seeded rows and every store already has the machinery, so building
+them today would have been nothing but writing three questions - the guess the
+plan explicitly refuses. The material said something more useful: three moments
+logged, all three inside one nine-minute sitting, none since. The guided form was
+not the obstacle either, since all three had both fields filled. What was missing
+was any reason to come back, because nothing in this half read what had been
+written - and the card itself named that as the thinnest part.
+
+**The floor is shared with the journal pass rather than restated.** Same four
+entries across three days, imported from `review.js`. Two copies of a floor agree
+until one is edited. The spread rule is the one that earns its keep here and it
+was written for exactly this: several logged in one sitting describe one afternoon
+however many rows they make - which is, precisely, the real data.
+
+**And the floor is on the button rather than in an error.** A refusal you could
+have seen coming should have been a disabled button with the reason on it.
+
 ## 2026-08-31 - A project gets a page, opened by a button rather than by its row
 
 **Decided.** A project has its own page: the cadences over it, every check-in

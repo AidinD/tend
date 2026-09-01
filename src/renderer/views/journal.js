@@ -36,11 +36,12 @@
  */
 
 import { act, asDateInput, esc, form, tend, toast } from "../ui.js";
-import { isRunning, modelActions, modelStatus, ownPartHtml, resultFor, reviewHtml, run } from "../model.js";
+import { discard, isRunning, modelActions, modelStatus, ownPartHtml, resultFor, reviewHtml, run, stamp } from "../model.js";
 import { refresh } from "../app.js";
 
 /** The key the current reading is held under. One at a time is enough. */
 const REVIEW_KEY = "review:journal";
+const PATTERN_KEY = "review:moments";
 
 export async function render() {
   const [result, kept, model, status, mine] = await Promise.all([
@@ -112,7 +113,7 @@ export async function render() {
 
   if (entries.length === 0) {
     return `${head}
-      ${isPrivate ? await momentsSection() : ""}
+      ${isPrivate ? await momentsSection(model) : ""}
       <div class="empty">
         Nothing written yet. The questions are what took the day, what you
         avoided, and what you would do differently - none of them things Tend can
@@ -124,7 +125,7 @@ export async function render() {
 
   return `${head}
     ${coverage}
-    ${isPrivate ? await momentsSection() : ""}
+    ${isPrivate ? await momentsSection(model) : ""}
     ${readingSection(cover, model, backlog)}
     ${keptSection(Array.isArray(kept) ? kept : [])}
     ${entries.map((/** @type {any} */ e) => entry(e, fields, isPrivate, model)).join("")}`;
@@ -137,8 +138,10 @@ export async function render() {
  * to write about his life - and because a moment involving three of them has no
  * single page it belongs to. Each one says who it involved; their own pages show
  * the same rows filtered to them.
+ *
+ * @param {{ available: boolean, why: string | null }} model
  */
-async function momentsSection() {
+async function momentsSection(model) {
   const rows = /** @type {any[]} */ (await tend.invoke("moments"));
   const logged = Array.isArray(rows) ? rows : [];
 
@@ -171,7 +174,130 @@ async function momentsSection() {
         ? `<p class="card-why dim">${logged.length - 12} more, on the pages of the people they involved.</p>`
         : ""
     }
+    ${patternsBlock(logged, model)}
   </div>`;
+}
+
+/**
+ * Reading across the moments, offered - or the reason it is not.
+ *
+ * ## Why this half has this and not themes
+ *
+ * The work half names patterns in observations ABOUT a person. Over a family that
+ * is a character profile of your own child, so this half has no themes at all.
+ * This reads the same material from the other end: what the writer did. Every
+ * finding has them as its subject, which is what makes pattern-finding safe to
+ * have here - and it is the half the whole private mode was built for, because
+ * one moment is a note and thirty are the only thing that can show you something.
+ *
+ * ## The floor is on the button, not in an error
+ *
+ * Said before it is pressed rather than after. A refusal you could have seen
+ * coming should have been a disabled button with the reason on it.
+ *
+ * @param {any[]} logged
+ * @param {{ available: boolean, why: string | null }} model
+ */
+function patternsBlock(logged, model) {
+  const current = resultFor(PATTERN_KEY);
+  if (current !== null) {
+    return patternsHtml(current);
+  }
+
+  const running = isRunning(PATTERN_KEY);
+
+  // The same floors the service enforces. Days rather than moments is the one
+  // that earns its keep: three logged in one sitting describe one afternoon
+  // however many rows they make.
+  const days = new Set(
+    logged.map((/** @type {any} */ m) => new Date(Number(m.at ?? 0)).toISOString().slice(0, 10))
+  ).size;
+  const tooThin = logged.length < 4 || days < 3;
+
+  const why = tooThin
+    ? `${logged.length} ${logged.length === 1 ? "moment" : "moments"} across ${days} ${
+        days === 1 ? "day" : "days"
+      }. A reading needs at least four across at least three separate days, because several logged in one sitting describe one afternoon however many rows they make.`
+    : model.available
+      ? "Reads what you wrote and names what recurs in what YOU did. Never what anybody else in them is like - that half is not the app's to name, and it is why this is safe to run at all."
+      : String(model.why ?? "No model is reachable, so these can only be read by you.");
+
+  return `<article class="card">
+    <div class="card-top"><h2 class="card-title">What keeps happening</h2></div>
+    <p class="card-why">${esc(why)}</p>
+    <div class="card-foot">
+      <span class="src">Nothing is written, kept or sent anywhere</span>
+      <button class="act" data-act="readMoments" ${tooThin || !model.available || running ? "disabled" : ""}>
+        ${running ? "Reading..." : "Read across them"}
+      </button>
+    </div>
+  </article>`;
+}
+
+/**
+ * What the pass came back with.
+ *
+ * Marked as a draft the same way every other model answer in the app is, and
+ * discarded rather than kept: unlike a journal reading, which reads days that are
+ * over and cannot go stale, this is cheap to run again over material that grows
+ * every time something happens.
+ *
+ * @param {any} result
+ */
+function patternsHtml(result) {
+  if (result?.error) {
+    return `<article class="card sev-critical">
+      <div class="card-top"><h2 class="card-title">Could not read across them</h2></div>
+      <p class="card-why">${esc(String(result.error))}</p>
+      <div class="card-foot"><button class="act" data-act="dropMoments">Close</button></div>
+    </article>`;
+  }
+
+  const recurs = Array.isArray(result?.recurs) ? result.recurs : [];
+  const questions = Array.isArray(result?.questions) ? result.questions : [];
+
+  const body =
+    recurs.length === 0 && questions.length === 0
+      ? `<p class="draft-opening">${esc(
+          String(result?.nothingToSay ?? "").trim() ||
+            "Nothing recurs across these yet, which is a real answer rather than a failure."
+        )}</p>`
+      : `${
+          recurs
+            .map(
+              (/** @type {any} */ r) => `<div class="line">
+                <span class="line-when">${esc(String(r.days))} days</span>
+                <span class="line-text"><strong>${esc(String(r.what))}</strong>${
+                  r.evidence ? ` - "${esc(String(r.evidence))}"` : ""
+                }</span>
+              </div>`
+            )
+            .join("")
+        }
+        ${
+          String(result?.wentWell ?? "").trim() === ""
+            ? ""
+            : `<p class="draft-note">${esc(String(result.wentWell))}</p>`
+        }
+        ${
+          questions.length === 0
+            ? ""
+            : `<div class="block"><div class="block-title">To put to yourself</div>${questions
+                .map((/** @type {string} */ q) => `<div class="line"><span class="line-text">${esc(q)}</span></div>`)
+                .join("")}</div>`
+        }`;
+
+  return `<article class="card draft">
+    <div class="card-top">
+      <h2 class="card-title">What keeps happening</h2>
+      <span class="tag">${esc(stamp(result))}</span>
+    </div>
+    ${body}
+    <div class="card-foot">
+      <span class="src">${esc(String(result?.coverage?.summary ?? ""))}</span>
+      <button class="act" data-act="dropMoments">Done with it</button>
+    </div>
+  </article>`;
 }
 
 /**
@@ -410,6 +536,12 @@ export const actions = {
   ...modelActions(),
 
   readJournal: () => run(REVIEW_KEY, "reviewJournal", {}),
+
+  readMoments: () => run(PATTERN_KEY, "readOwnPatterns", {}),
+  dropMoments: () => {
+    discard(PATTERN_KEY);
+    refresh();
+  },
 
   /**
    * One thing that happened, whoever it involved.

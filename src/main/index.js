@@ -218,6 +218,7 @@ const OPERATIONS = {
   answerQuestion: (/** @type {any} */ a) => model.answerQuestion(store, { ...a, now: a.now ?? Date.now() }),
   reviewJournal: (/** @type {any} */ a) => model.reviewJournal(store, { ...a, now: a.now ?? Date.now() }),
   checkOwnPart: (/** @type {any} */ a) => model.checkOwnPart({ text: a.text }),
+  readOwnPatterns: (/** @type {any} */ a) => model.readOwnPatterns(store, { ...a, now: a.now ?? Date.now() }),
 
   searchKnowledge: (/** @type {any} */ a) => knowledge.search(a.situation, undefined, mode),
   considerKnowledge: (/** @type {any} */ a) => knowledge.consider(a),
