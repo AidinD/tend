@@ -237,6 +237,9 @@ const OPERATIONS = {
   bindSource: (/** @type {any} */ a) => api.bindSource(store, a),
   sources: (/** @type {any} */ a) => api.sources(store, a.person),
   unbindSource: (/** @type {any} */ a) => api.unbindSource(store, a.id),
+  pendingCommitments: () => api.pendingCommitments(store),
+  assignCommitment: (/** @type {any} */ a) => api.assignCommitment(store, a),
+  dropCommitment: (/** @type {any} */ a) => api.dropCommitment(store, a.id),
   indexNib: (/** @type {any} */ a) => nib.indexNib(store, { dry: Boolean(a.dry) }),
 
   setFocus: (/** @type {any} */ a) => api.setFocus(store, { ...a, now: a.now ?? Date.now() }),

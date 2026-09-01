@@ -539,24 +539,75 @@ export const TOOLS = [
   {
     name: "tend_bind_source",
     description:
-      "Bind a Nib folder to a person, saying what kind of contact notes there count as. This " +
-      "is how Tend knows which notes are about whom, without having to follow any " +
+      "Bind a Nib folder to one or more people, saying what kind of contact notes there count " +
+      "as. This is how Tend knows which notes are about whom, without having to follow any " +
       "naming convention. The kind matters: a folder bound as 'one-to-one' satisfies the 1-1 " +
       "cadence, one bound as 'second-hand' satisfies only the separate cadence for hearing " +
-      "about someone from elsewhere.",
+      "about someone from elsewhere. Naming several people makes the folder a shared meeting: " +
+      "each note there becomes contact with every one of them, and its flagged action points " +
+      "wait to be filed against one person instead of being duplicated onto all of them.",
     inputSchema: {
       type: "object",
       properties: {
-        person: { type: "string" },
+        person: { type: "string", description: "One person. Use `people` for a shared meeting." },
+        people: {
+          type: "array",
+          items: { type: "string" },
+          description: "Everyone who attends, for a folder of shared meeting notes."
+        },
+        name: {
+          type: "string",
+          description: "What to call this binding, when the Nib folder's own path is not the name he uses for the meeting."
+        },
         categoryId: { type: "string", description: "From tend_nib_folders." },
         subId: { type: "string", description: "From tend_nib_folders. Omit to bind the whole category." },
-        kind: { type: "string", description: "one-to-one | second-hand | sideways | feedback | observation" },
+        kind: { type: "string", description: "one-to-one | meeting | second-hand | sideways | feedback | observation" },
         label: { type: "string", description: "The folder's readable name, for the UI." }
       },
-      required: ["person", "categoryId", "kind"],
+      required: ["categoryId", "kind"],
       additionalProperties: false
     },
     run: (store, args) => api.bindSource(store, args)
+  },
+  {
+    name: "tend_pending_commitments",
+    description:
+      "Commitments read out of shared meeting notes that nobody has been named for yet, " +
+      "grouped by the note they came from. A note bound to several people gives no way to " +
+      "tell whose each flagged action point is, so they wait here rather than being guessed " +
+      "at or duplicated onto everybody.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    run: (store) => api.pendingCommitments(store)
+  },
+  {
+    name: "tend_assign_commitment",
+    description:
+      "File one waiting commitment as a promise to the person who is owed it. Use " +
+      "tend_pending_commitments for the ids.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        person: { type: "string" },
+        due: { type: "number", description: "Optional deadline, epoch milliseconds." }
+      },
+      required: ["id", "person"],
+      additionalProperties: false
+    },
+    run: (store, args) => api.assignCommitment(store, args)
+  },
+  {
+    name: "tend_drop_commitment",
+    description:
+      "Say that a waiting commitment is nobody's promise - a reminder to yourself, or a " +
+      "heading that got flagged by mistake. It is removed and never offered again.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"],
+      additionalProperties: false
+    },
+    run: (store, args) => api.dropCommitment(store, args.id)
   },
   {
     name: "tend_sources",

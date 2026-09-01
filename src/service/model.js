@@ -47,6 +47,7 @@ import { attention, focus, noteReviewRun, people, promises } from "./api.js";
 import { coverage, entriesSince, JOURNAL_FIELDS, REVIEW_WINDOW_DAYS } from "../domain/journal.js";
 import { declared, ledger, ledgerLines, readiness } from "../domain/review.js";
 import { momentCoverage, momentLines, momentReadiness, momentsSince } from "../domain/moments.js";
+import { boundPeople } from "../domain/sources.js";
 import { prep } from "./prep.js";
 import { noteBody, notesIn, readNibIndex } from "./nib.js";
 import { resolvePerson } from "./resolve.js";
@@ -377,7 +378,9 @@ export async function detectThemes(store, { person, now, apply = false, nibDir, 
     return { error: index.why };
   }
 
-  const bindings = store.rows("sources").filter((b) => String(b.person ?? "") === found.person.id);
+  const bindings = store
+    .rows("sources")
+    .filter((b) => boundPeople(b).includes(found.person.id));
   if (bindings.length === 0) {
     return {
       error:

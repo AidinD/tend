@@ -138,7 +138,7 @@ function skip(label, why) {
 /** @param {string} label */
 function step(label) {
   currentStep = label;
-  console.log(`\n  — ${label}`);
+  console.log(`\n  - ${label}`);
 }
 
 /**
@@ -473,7 +473,8 @@ async function connect(url) {
    * event, which is what a framework-free page needs to see a change it did not
    * cause itself.
    *
-   * @param {Record<string, string | boolean>} values
+   * @param {Record<string, string | boolean | string[]>} values An array value
+   *   means a checkbox group: exactly the listed values are ticked.
    */
   const fillDialog = async (values) => {
     await waitFor("document.querySelector('.dialog') !== null", "a dialog");
@@ -481,8 +482,20 @@ async function connect(url) {
       const values = ${JSON.stringify(values)};
       const dialog = document.querySelector('.dialog');
       for (const [name, value] of Object.entries(values)) {
-        const el = dialog.querySelector('[name="' + name + '"]');
-        if (!el) { return 'no field named ' + name; }
+        const all = dialog.querySelectorAll('[name="' + name + '"]');
+        if (all.length === 0) { return 'no field named ' + name; }
+        // An array means a checkbox group - a multiselect field renders one box
+        // per option, all under the same name. Setting the first one, which is
+        // what the single-element path does, silently ticks whoever happens to
+        // be at the top of the roster instead of the person asked for.
+        if (Array.isArray(value)) {
+          for (const box of all) {
+            box.checked = value.includes(box.value);
+            box.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          continue;
+        }
+        const el = all[0];
         if (el.type === 'checkbox') { el.checked = Boolean(value); }
         else {
           const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype
@@ -502,6 +515,18 @@ async function connect(url) {
     await click(".dialog [data-confirm]");
     await sleep(320);
   };
+
+  /** Options offered by a multiselect (checkboxes) in the open dialog. */
+  const dialogChoices = async (/** @type {string} */ name) =>
+    /** @type {{ value: string, label: string }[]} */ (
+      JSON.parse(
+        String(
+          await evaluate(
+            `JSON.stringify([...document.querySelectorAll('.dialog [data-multi="${name}"] .multi-option')].map(l => ({ value: l.querySelector('input').value, label: l.textContent.trim() })))`
+          )
+        )
+      )
+    );
 
   /** Options offered by a select in the open dialog. */
   const dialogOptions = async (/** @type {string} */ name) =>
@@ -554,6 +579,7 @@ async function connect(url) {
     texts,
     fillDialog,
     dialogOptions,
+    dialogChoices,
     dismissDialog,
     screenshot,
     close: () => socket.close()
@@ -608,7 +634,8 @@ function writeNibFixture() {
       tags: [
         { id: "tag-one-to-one", name: "1-1", color: "#6f9cff", description: "" },
         { id: "tag-second-hand", name: "Second-hand", color: "#b98cff", description: "" },
-        { id: "tag-principle", name: "Principle", color: "#e0b062", description: "" }
+        { id: "tag-principle", name: "Principle", color: "#e0b062", description: "" },
+        { id: "tag-meeting", name: "Meeting", color: "#7fd1a8", description: "" }
       ],
       categories: [
         {
@@ -668,6 +695,43 @@ function writeNibFixture() {
               alerts: [{ id: "al-1", text: "Kolla med Nina om konferensen", done: false }],
               flag: "",
               tags: ["tag-second-hand"],
+              hasImage: false,
+              hasDrawing: false
+            }
+          ]
+        },
+        {
+          /*
+           * A standing meeting, written up once, with two other people in it.
+           *
+           * The folder that cannot be one person's: two of its flagged blocks
+           * are commitments and there is nothing in the note saying whose. That
+           * is the case the shared binding exists for, and the reason its
+           * commitments wait instead of being copied onto everybody.
+           */
+          id: "cat-org",
+          name: "Org",
+          color: "#7fd1a8",
+          scope: "W",
+          open: true,
+          subs: [{ id: "sub-sync", name: "Tuesday sync" }],
+          notes: [
+            {
+              id: "note-sync",
+              categoryId: "cat-org",
+              subId: "sub-sync",
+              title: "Tuesday sync",
+              preview: "",
+              created: now - 4 * day,
+              edited: now - 4 * day,
+              pinned: false,
+              tint: "",
+              alerts: [
+                { id: "al-s1", text: "Skriva ihop en överlämningsplan", done: false },
+                { id: "al-s2", text: "Boka rummet för workshopen", done: false }
+              ],
+              flag: "",
+              tags: ["tag-meeting"],
               hasImage: false,
               hasDrawing: false
             }
@@ -2167,7 +2231,7 @@ try {
   });
 
   const folder = folderOptions.find((o) => /1-1 \/ Testperson/.test(o.label));
-  const personOption = (await page.dialogOptions("person"))[0];
+  const personOption = (await page.dialogChoices("people"))[0];
 
   // The rows are Tend's OWN kinds, answered with a Nib tag - not Nib's tags
   // asked what they mean. The other way round put the notebook's vocabulary in
@@ -2192,9 +2256,17 @@ try {
     }
   });
 
+  check("the roster is offered as a list you can name more than one of", () => {
+    // The field became a multiselect when a folder was allowed to be a meeting
+    // rather than a person. One name is still the ordinary answer.
+    if (personOption === undefined) {
+      throw new Error("no people offered, so nothing was actually exercised");
+    }
+  });
+
   await page.fillDialog({
     folder: folder?.value ?? "",
-    person: personOption?.value ?? "",
+    people: [personOption?.value ?? ""],
     "kind:second-hand": "tag-second-hand",
     "kind:one-to-one": ""
   });
@@ -2303,6 +2375,134 @@ try {
   check("and the promise from Nib keeps its Swedish text", () => {
     if (!/Kolla med Nina om konferensen/.test(String(afterImport))) {
       throw new Error("the imported promise is missing or mangled");
+    }
+  });
+
+  /* --------------------------------------------- a note several people were in -- */
+
+  step("One note, several people in it");
+
+  /*
+   * The case a per-person folder cannot hold: a standing meeting written up
+   * once. Two things have to be true at the same time and they pull in opposite
+   * directions - the contact has to reach EVERYBODY, because everybody there was
+   * spoken to, and the commitments must reach NOBODY until he says whose they
+   * are, because one flagged block is one obligation however many people were in
+   * the room.
+   */
+  await page.click('.nav-btn[data-view="settings"]');
+  await page.waitFor("document.querySelector('[data-act=\"bind\"]') !== null", "the bind button");
+  await page.click('[data-act="bind"]');
+
+  const syncFolder = (await page.dialogOptions("folder")).find((o) => /Tuesday sync/.test(o.label));
+  const syncRoster = await page.dialogChoices("people");
+  const both = syncRoster
+    .filter((o) => /Testperson|Chefen/.test(o.label))
+    .map((o) => o.value);
+
+  check("the binding dialog can name more than one person", () => {
+    if (syncFolder === undefined) {
+      throw new Error("the shared meeting folder was not offered, so nothing was exercised");
+    }
+    if (both.length < 2) {
+      throw new Error(`only ${both.length} of the roster was offered as a checkbox`);
+    }
+  });
+
+  await page.fillDialog({
+    folder: syncFolder?.value ?? "",
+    people: both,
+    name: "Tuesday sync",
+    "kind:meeting": "tag-meeting"
+  });
+  await page.waitFor("document.body.textContent.includes('Tuesday sync')", "the shared binding");
+
+  const boundShared = String(await page.evaluate("document.body.textContent"));
+  check("and the row names everybody it covers, not just the first", () => {
+    if (!/Testperson[^\n]*Chefen|Chefen[^\n]*Testperson/.test(boundShared)) {
+      throw new Error("the binding row does not name both people");
+    }
+  });
+
+  await page.click('[data-act="index"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the second import result");
+  const sharedImport = await page.text(".dialog-intro");
+  await page.dismissDialog();
+
+  check("one note becomes contact with everybody who was there", () => {
+    if (!/2 contact records/.test(sharedImport)) {
+      throw new Error(`the shared note did not reach both people: "${sharedImport}"`);
+    }
+  });
+
+  check("and its commitments are held rather than copied onto each of them", () => {
+    // Two action points across two attendees would be four promises. That is
+    // the bug this whole shape exists to avoid, so the import must report them
+    // as waiting and must not report any promise at all.
+    if (/[1-9]\d* promise/.test(sharedImport)) {
+      throw new Error(`a shared note guessed an owner: "${sharedImport}"`);
+    }
+    if (!/2 commitments are waiting/.test(sharedImport)) {
+      throw new Error(`the commitments were not queued: "${sharedImport}"`);
+    }
+  });
+
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "Now");
+  const unfiledCard = String(await page.evaluate("document.body.textContent"));
+  check("the daily page says the queue exists, once for the meeting", () => {
+    if (!/2 commitments from Tuesday sync/.test(unfiledCard)) {
+      throw new Error("Now does not mention the unfiled commitments");
+    }
+  });
+
+  await page.click('[data-act="fileCommitments"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the filing dialog");
+
+  const owners = await page.dialogOptions("c0");
+  check("filing offers only the people who were actually in that meeting", () => {
+    if (owners.length === 0) {
+      throw new Error("no options offered, so nothing was exercised");
+    }
+    if (!owners.some((o) => o.value === "")) {
+      throw new Error("there is no way to leave one unanswered");
+    }
+    if (!owners.some((o) => o.value === "none")) {
+      throw new Error("there is no way to say it is nobody's promise");
+    }
+    const named = owners.filter((o) => o.value !== "" && o.value !== "none");
+    if (named.length !== 2) {
+      throw new Error(`offered ${named.length} candidates for a two-person meeting`);
+    }
+  });
+
+  const firstOwner = owners.find((o) => /Testperson/.test(o.label));
+  await page.fillDialog({ c0: firstOwner?.value ?? "", c1: "none" });
+  await page.waitFor(
+    "document.body.textContent.includes('Skriva ihop') || !document.body.textContent.includes('commitments from Tuesday sync')",
+    "the queue to clear"
+  );
+
+  const afterFiling = String(await page.evaluate("document.body.textContent"));
+  check("filing one and discarding the other empties the queue", () => {
+    if (/commitments from Tuesday sync/.test(afterFiling)) {
+      throw new Error("the queue card is still on Now after every row was answered");
+    }
+  });
+
+  const filed = JSON.parse(
+    String(
+      await page.evaluate(
+        "window.tend.invoke('promises', {}).then((p) => JSON.stringify(p.map((x) => x.text)))"
+      )
+    )
+  );
+  check("the one he named became a real promise, and the other did not", () => {
+    if (!filed.some((/** @type {string} */ t) => /Skriva ihop en/.test(t))) {
+      throw new Error(`the filed commitment is not a promise: ${JSON.stringify(filed)}`);
+    }
+    if (filed.some((/** @type {string} */ t) => /Boka rummet/.test(t))) {
+      throw new Error("the discarded commitment was filed anyway");
     }
   });
 

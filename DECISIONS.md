@@ -3,6 +3,77 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-01 - A Nib folder may be a meeting, and contact fans out where commitments do not
+
+**Decided.** A binding names a list of people rather than one. Naming more than
+one makes the folder a standing meeting: every note there becomes contact with
+every attendee, and its flagged action points wait to be filed against one
+person instead of being written for all of them.
+
+**The case.** A recurring meeting with two other people, written up once in Nib.
+A binding named exactly one person, so the note had to be typed into the app
+again, once per attendee - which is the double bookkeeping the whole Nib import
+exists to remove. Binding the specific NOTE, which is the obvious reading of the
+request, would have been wrong: a new dated note is written every week, so the
+binding would need redoing every week. The thing that recurs is the meeting.
+
+**The asymmetry is the whole feature, and it is easy to get backwards.** Contact
+must fan out, because everybody in the room was spoken to and every one of their
+clocks should move. A commitment must not, because one flagged block is one
+thing somebody said they would do. In the note that prompted this there were
+four of them; across two attendees that is eight promises for four obligations,
+and the promise list is the shortest and most trustworthy thing in the app right
+up until it is not.
+
+**So a commitment out of a shared note waits.** Its own collection rather than a
+flag on a half-built promise, so that no existing reader of `promises` can show
+one by accident. A promise with nobody to owe it to is not a quieter promise, it
+is a different kind of thing. It surfaces on Now as one card per meeting - not
+one per commitment, because four flagged blocks from one Tuesday are one thing
+to sit down with, and four rows would make the page read as four problems.
+
+**Leaving one unanswered is the default.** The filing dialog pre-selects "not
+yet" on every row, so a commitment he is unsure about stays in the queue rather
+than being filed against a guess. Narrowing a binding's attendee list does not
+file them either: the person who left may be the one who owed it, and quietly
+re-attributing an obligation as a side effect of editing a binding is worse than
+leaving it in a queue that is visible.
+
+**A new contact kind, `meeting`, and it needed no special case.** Duties declare
+their own evidence kinds and are rows the user owns, so a new kind starts out
+satisfying nothing until he says otherwise. It reads as real contact - the signal
+about people known only second-hand correctly goes quiet - and it cannot answer a
+1-1 duty, which is the interchangeability `contact.js` exists to refuse. A
+quarter of group meetings must never be able to read as a quarter of 1-1s.
+
+**The derived contact id had to change, and the old shape is read rather than
+rewritten.** It was `nib:<note>:<kind>`, which has no room for the person, so two
+attendees of one meeting want one id and exactly one of them silently gets no
+contact recorded. It is `nib:<note>:<person>:<kind>` now. Re-deriving the
+existing rows under the new shape would have written a second row for every
+conversation ever imported and, worse, resurrected every derived row he had
+deleted on purpose - their tombstones are filed under the old ids. So old rows
+are recognised by what they RECORD, reading the person off the row's own
+`subject`, which tombstones keep.
+
+**Retraction stays keyed on the kind alone.** A tag coming off a note is somebody
+correcting what the note was, and the derived row goes. An attendee list changing
+says who comes from now on and is not a claim about the past, so it never deletes
+the record of a conversation somebody was actually in.
+
+**Verification, and what it caught.** Fourteen mutations, all caught, but only
+after the app walkthrough found what none of the unit tests did: two other places
+looked a binding up by reading `b.person` directly, so they matched nothing the
+moment bindings started carrying a list. Neither threw. Prep simply stopped
+offering the note behind a card and theme detection would have reported no folder
+bound at all. A lookup that goes quiet needs a test per caller rather than trust,
+and there is one for each now.
+
+**And the import now says everything it did.** It reported additions and kept
+withdrawals, drops and the waiting queue to itself. An importer whose numbers
+cannot be reconciled with the page afterwards teaches you to read an unexplained
+disappearance as the tool having lost something.
+
 ## 2026-09-01 - The private half reads what he wrote, and its subject is always him
 
 **Decided.** A pass over the moments that names what recurs in his OWN conduct,

@@ -9,7 +9,7 @@
  * report you then have to go and act on somewhere else.
  */
 
-import { act, ask, esc, form, kindsFor, tend } from "../ui.js";
+import { act, ask, esc, form, kindsFor, tend, toast } from "../ui.js";
 import { go, refresh } from "../app.js";
 import { actions as waitingActions, waitingGroup } from "./waiting.js";
 
@@ -287,6 +287,11 @@ function card(item) {
       `<button class="act primary" data-act="setLevel" data-id="${esc(item.key.slice(12))}">Set the level</button>`
     );
   }
+  if (item.key.startsWith("unfiled:")) {
+    actions.push(
+      `<button class="act primary" data-act="fileCommitments" data-key="${esc(item.key.slice(8))}">Say whose these are</button>`
+    );
+  }
 
   return `<article class="card sev-${esc(item.urgency)}">
     <div class="card-top">
@@ -343,6 +348,85 @@ export const actions = {
     if (await addPersonDialog()) {
       refresh();
     }
+  },
+
+  /**
+   * Name the owner of each commitment out of one shared meeting note.
+   *
+   * One dialog for the whole meeting rather than one per commitment. He answers
+   * these with the meeting in mind - he is remembering one Tuesday, not four
+   * unrelated obligations - and a dialog per row would make him re-enter that
+   * context three times over.
+   *
+   * Leaving a row alone is the default and needs no reason. A commitment he is
+   * not sure about should stay in the queue rather than be filed against a
+   * guess, so "not yet" is the pre-selected answer and doing nothing is safe.
+   *
+   * @param {Record<string, string>} d
+   */
+  fileCommitments: async (d) => {
+    const pending = await tend.invoke("pendingCommitments");
+    const group = (pending?.groups ?? []).find((/** @type {any} */ g) => g.key === d.key);
+    if (!group) {
+      // The queue moved under him - another window filed them, or a sync
+      // dropped them because Nib ticked them off. Say so rather than opening an
+      // empty dialog.
+      refresh();
+      return;
+    }
+
+    const values = await form({
+      title: `Whose are these?`,
+      intro:
+        `${group.items.length} thing${group.items.length === 1 ? "" : "s"} were flagged in "${group.note}". ` +
+        "Several people were in it, so Tend cannot tell whose each one is - and filing one against " +
+        "everybody would turn one obligation into several. Anything left as not-yet stays in the queue.",
+      fields: group.items.map((/** @type {any} */ item, /** @type {number} */ i) => ({
+        name: `c${i}`,
+        label: item.text,
+        type: "select",
+        value: "",
+        options: [
+          { value: "", label: "Not yet - leave it in the queue" },
+          ...item.candidates.map((/** @type {any} */ c) => ({ value: c.id, label: `A promise to ${c.name}` })),
+          { value: "none", label: "Nobody's promise - discard it" }
+        ]
+      })),
+      confirm: "File them"
+    });
+    if (!values) {
+      return;
+    }
+
+    let filed = 0;
+    let discarded = 0;
+    for (const [i, item] of group.items.entries()) {
+      const answer = String(values[`c${i}`] ?? "");
+      if (answer === "") {
+        continue;
+      }
+      if (answer === "none") {
+        if (await act("dropCommitment", { id: item.id })) {
+          discarded += 1;
+        }
+        continue;
+      }
+      if (await act("assignCommitment", { id: item.id, person: answer })) {
+        filed += 1;
+      }
+    }
+
+    if (filed > 0 || discarded > 0) {
+      const parts = [];
+      if (filed > 0) {
+        parts.push(`${filed} filed`);
+      }
+      if (discarded > 0) {
+        parts.push(`${discarded} discarded`);
+      }
+      toast(`${parts.join(", ")}.`);
+    }
+    refresh();
   },
 
   seed: async () => {

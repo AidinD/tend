@@ -26,6 +26,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { activePractices, openActionPoints } from "../domain/practices.js";
+import { boundPeople, isShared } from "../domain/sources.js";
 import { isLaterDay, middayOn } from "../domain/time.js";
 
 import { userEnvironment } from "../domain/userenv.js";
@@ -519,7 +520,73 @@ export function contactDate(note, now = Date.now()) {
 }
 
 /**
- * Index Nib into Tend: one contact per note, one promise per open action point.
+ * What one derived contact row is a record of, whatever shape its id was
+ * written in.
+ *
+ * ## Why the id had to change
+ *
+ * It used to be `nib:<note>:<kind>`, because a note belonged to a folder and a
+ * folder belonged to one person, so the person was never in question. A folder
+ * that names several people breaks that: two attendees of the same meeting
+ * would want the same id, the second one would be read as "already written",
+ * and exactly one of them would silently get no contact recorded. So the person
+ * is in the id now: `nib:<note>:<person>:<kind>`.
+ *
+ * ## Why the old shape is read rather than rewritten
+ *
+ * Every id already written is in the old shape, and re-deriving them under the
+ * new one would write a second row for every conversation ever imported. Worse,
+ * it would resurrect the deliberately deleted: a derived row deleted by hand is
+ * a tombstone under the OLD id, and a new id has no tombstone, so every contact
+ * he ever threw away would come back on the next sync.
+ *
+ * An old-shape id does not carry the person, so it is read off the row's own
+ * `subject` - which tombstones keep, since the reducer marks rows deleted
+ * rather than replacing them.
+ *
+ * A row whose shape cannot be read at all returns null and is therefore
+ * ignored, which risks a duplicate rather than a silent absence. That is the
+ * direction to fail in: a duplicate contact is on the page and can be deleted,
+ * and a conversation the app quietly decided not to record is invisible.
+ *
+ * @param {any} row A touch row, live or tombstoned.
+ * @returns {{ noteId: string, person: string, kind: string } | null}
+ */
+export function derivedTouch(row) {
+  const id = String(row?.id ?? "");
+  if (row?.from !== "nib" || !id.startsWith("nib:")) {
+    return null;
+  }
+  const parts = id.split(":");
+  if (parts.length === 4) {
+    return { noteId: parts[1], person: parts[2], kind: parts[3] };
+  }
+  if (parts.length === 3) {
+    const subject = String(row?.subject ?? "").trim();
+    return subject === "" ? null : { noteId: parts[1], person: subject, kind: parts[2] };
+  }
+  return null;
+}
+
+/**
+ * The identity of a derived contact, independent of which id shape wrote it.
+ *
+ * @param {string} noteId
+ * @param {string} person
+ * @param {string} kind
+ * @returns {string}
+ */
+export function touchKey(noteId, person, kind) {
+  // Encoded rather than joined on a separator. Any character picked as a
+  // separator is one somebody can later put in a Nib id or in a tag's kind, and
+  // the failure that produces - two different triples sharing one key, so a
+  // person's contact reads as already written - is exactly the invisible sort.
+  return JSON.stringify([noteId, person, kind]);
+}
+
+/**
+ * Index Nib into Tend: one contact per attendee per note, one commitment per
+ * open action point.
  *
  * Idempotent by construction. Every row it writes carries a deterministic id
  * derived from the Nib id, and the reducer leaves an existing row alone on a
@@ -534,8 +601,9 @@ export function contactDate(note, now = Date.now()) {
  * @param {string} [opts.dir] Nib data directory.
  * @param {boolean} [opts.dry] Report what would change without writing.
  * @returns {{ error: string } | {
- *   contacts: number, promises: number, resolved: number, retracted: number,
- *   moves: number, bindings: number, skipped: string[]
+ *   contacts: number, promises: number, waiting: number, dropped: number,
+ *   resolved: number, retracted: number, moves: number, bindings: number,
+ *   skipped: string[]
  * }}
  */
 export function indexNib(store, { dir, dry = false } = {}) {
@@ -566,9 +634,27 @@ export function indexNib(store, { dir, dry = false } = {}) {
    * counted as imported - the tombstone survived the replayed create, so nothing
    * reappeared and the count was simply untrue. See `takenIds`.
    */
-  const takenTouches = store.takenIds("touches");
   const takenPromises = store.takenIds("promises");
+  const takenPending = store.takenIds("pendingPromises");
   const promiseRows = new Map(store.rows("promises").map((p) => [String(p.id), p]));
+  const pendingRows = new Map(store.rows("pendingPromises").map((p) => [String(p.id), p]));
+
+  /*
+   * Contact is recognised by what it RECORDS, not by the id that recorded it.
+   *
+   * The id gained the person when a folder was allowed to name several people,
+   * and every row written before that is in the old shape. Comparing ids would
+   * therefore re-derive the entire history under new ids - including the rows
+   * he deleted on purpose, whose tombstones are filed under the old ones. See
+   * `derivedTouch`.
+   */
+  const takenTouchKeys = new Set();
+  for (const row of store.takenRows("touches")) {
+    const made = derivedTouch(row);
+    if (made !== null) {
+      takenTouchKeys.add(touchKey(made.noteId, made.person, made.kind));
+    }
+  }
 
   /*
    * Every contact this index has ever derived, by the note it came from.
@@ -584,19 +670,19 @@ export function indexNib(store, { dir, dry = false } = {}) {
    */
   const derivedByNote = new Map();
   for (const touch of store.rows("touches")) {
-    const id = String(touch.id);
-    if (touch.from !== "nib" || !id.startsWith("nib:")) {
+    const made = derivedTouch(touch);
+    if (made === null) {
       continue;
     }
-    const cut = id.lastIndexOf(":");
-    const noteId = id.slice("nib:".length, cut);
-    const list = derivedByNote.get(noteId) ?? [];
-    list.push({ id, kind: String(touch.kind ?? "") });
-    derivedByNote.set(noteId, list);
+    const list = derivedByNote.get(made.noteId) ?? [];
+    list.push({ id: String(touch.id), kind: made.kind });
+    derivedByNote.set(made.noteId, list);
   }
 
   let contacts = 0;
   let promises = 0;
+  let waiting = 0;
+  let dropped = 0;
   let resolved = 0;
   let retracted = 0;
   let moves = 0;
@@ -604,6 +690,19 @@ export function indexNib(store, { dir, dry = false } = {}) {
   const skipped = [];
 
   for (const binding of bindings) {
+    /*
+     * Nobody named is not the same as nobody bound. A binding whose people were
+     * all removed - or one written by a future version this one does not
+     * understand - would otherwise import contact with an empty subject, which
+     * shows up as a row belonging to no one on nobody's page.
+     */
+    const people = boundPeople(binding);
+    if (people.length === 0) {
+      skipped.push(`${binding.label ?? binding.categoryId}: nobody is named on this binding`);
+      continue;
+    }
+    const shared = isShared(binding);
+
     /*
      * The folder is found by its own id, wherever it has been moved to, and the
      * binding is corrected to match. Without the correction the app would go on
@@ -658,6 +757,13 @@ export function indexNib(store, { dir, dry = false } = {}) {
        * never be read as "every conversation in here was a mistake". Deleting
        * derived rows on the strength of an absent file is how a fix like this
        * becomes the worst bug in the app.
+       *
+       * Keyed on the KIND alone, deliberately, even though a row now also names
+       * a person. Withdrawing rows whose person has left the binding would mean
+       * that dropping somebody from a meeting deletes the record of every
+       * conversation they were actually in. A tag coming off a note is somebody
+       * correcting what the note was; an attendee list changing is somebody
+       * saying who comes from now on, and it is not a claim about the past.
        */
       for (const stale of derivedByNote.get(String(note.id)) ?? []) {
         if (kinds.includes(stale.kind)) {
@@ -669,49 +775,106 @@ export function indexNib(store, { dir, dry = false } = {}) {
         }
       }
 
-      for (const kind of kinds) {
-        const touchId = `nib:${note.id}:${kind}`;
-        if (takenTouches.has(touchId)) {
-          continue;
-        }
-        contacts += 1;
-        if (!dry) {
-          store.create("touches", {
-            id: touchId,
-            subject: binding.person,
-            kind,
-            note: note.title || null,
-            at: happenedAt,
-            from: "nib"
-          });
+      /*
+       * One row per attendee per kind. Everybody in the room was spoken to, so
+       * every one of their clocks moves - which is the entire point of letting a
+       * folder name more than one person, and the half of it that is safe to
+       * multiply. The commitments below are the half that is not.
+       *
+       * Adding somebody to a binding therefore imports the folder's past notes
+       * for them as well. That is right for the thing this models: a standing
+       * meeting with a fixed set of attendees, where the notes he already has
+       * are notes of conversations the new name was in. Where it is wrong, the
+       * rows are on the page and deleting one makes it stay deleted.
+       */
+      for (const personId of people) {
+        for (const kind of kinds) {
+          const key = touchKey(String(note.id), personId, kind);
+          if (takenTouchKeys.has(key)) {
+            continue;
+          }
+          takenTouchKeys.add(key);
+          contacts += 1;
+          if (!dry) {
+            store.create("touches", {
+              id: `nib:${note.id}:${personId}:${kind}`,
+              subject: personId,
+              kind,
+              note: note.title || null,
+              at: happenedAt,
+              from: "nib"
+            });
+          }
         }
       }
 
       // A flagged block is an action point the user marked by hand. No model
       // needed, and no guessing about what counts as a commitment.
       for (const alert of note.alerts) {
+        // The id a commitment gets, whichever collection it is sitting in. One
+        // id across both is what makes filing a queued commitment idempotent:
+        // the promise it becomes is already the row the next import would have
+        // looked for, so nothing is written twice and a later deletion sticks.
         const promiseId = `nib:${note.id}:${alert.id}`;
         const existing = promiseRows.get(promiseId);
 
-        // Taken but not here means deleted on purpose. Neither re-created nor
-        // resolved: there is nothing left to resolve, and reporting it as
-        // imported was the untruth this replaced.
-        if (existing === undefined && takenPromises.has(promiseId)) {
+        if (existing !== undefined) {
+          // Ticked off in Nib closes it here too.
+          if (alert.done && (existing.state ?? "open") === "open") {
+            resolved += 1;
+            if (!dry) {
+              store.update("promises", promiseId, { state: "resolved" });
+            }
+          }
           continue;
         }
 
-        if (!existing && !alert.done) {
+        /*
+         * Queued, and settled in Nib before anybody got round to filing it.
+         * Dropped rather than promoted: filing it would ask him who owes a thing
+         * that is already done, and the answer changes nothing.
+         */
+        const queued = pendingRows.get(promiseId);
+        if (queued !== undefined) {
+          if (alert.done) {
+            dropped += 1;
+            if (!dry) {
+              store.remove("pendingPromises", promiseId);
+            }
+          }
+          continue;
+        }
+
+        /*
+         * Written before and in neither collection now: deleted on purpose.
+         * Neither re-created nor resolved - there is nothing left to resolve,
+         * and reporting it as imported was the untruth this replaced.
+         *
+         * Both collections are checked, and the pending one matters even for a
+         * folder that names one person today. A commitment queued while the
+         * folder was shared, then thrown away, would otherwise come back as a
+         * promise the moment the binding was narrowed to a single name.
+         */
+        if (takenPromises.has(promiseId) || takenPending.has(promiseId)) {
+          continue;
+        }
+
+        if (alert.done) {
+          continue;
+        }
+
+        // The same date as the contact, and for the same reason: a promise was
+        // given in the conversation, not when it got written up. It matters more
+        // here than for a contact, because a promise's whole urgency is its age -
+        // dated to the write-up it reads as newer than it is, which is the
+        // direction that hides it.
+        if (!shared) {
           promises += 1;
           if (!dry) {
             store.create("promises", {
               id: promiseId,
-              person: binding.person,
+              person: people[0],
               text: alert.text,
-              // The same date as the contact, and for the same reason: a promise
-              // was given in the conversation, not when it got written up. It
-              // matters more here than for a contact, because a promise's whole
-              // urgency is its age - dated to the write-up it reads as newer
-              // than it is, which is the direction that hides it.
               madeAt: happenedAt,
               due: null,
               state: "open",
@@ -721,18 +884,38 @@ export function indexNib(store, { dir, dry = false } = {}) {
           continue;
         }
 
-        // Ticked off in Nib closes it here too.
-        if (existing && alert.done && (existing.state ?? "open") === "open") {
-          resolved += 1;
-          if (!dry) {
-            store.update("promises", promiseId, { state: "resolved" });
-          }
+        /*
+         * A shared note gives no way to tell whose commitment this is, so it
+         * waits to be told rather than being guessed at. See `pendingPromises`
+         * in the reducer for why guessing either way is worse than waiting.
+         */
+        waiting += 1;
+        if (!dry) {
+          store.create("pendingPromises", {
+            id: promiseId,
+            text: alert.text,
+            madeAt: happenedAt,
+            note: note.title || null,
+            source: String(binding.id),
+            candidates: people,
+            from: "nib"
+          });
         }
       }
     }
   }
 
-  return { contacts, promises, resolved, retracted, moves, bindings: bindings.length, skipped };
+  return {
+    contacts,
+    promises,
+    waiting,
+    dropped,
+    resolved,
+    retracted,
+    moves,
+    bindings: bindings.length,
+    skipped
+  };
 }
 
 /**

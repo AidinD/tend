@@ -40,11 +40,28 @@
  * means, and letting it reset that clock would let a good week of corridor talk
  * hide a quarter without a real one.
  *
+ * `meeting` exists for the same reason one step up: a recurring conversation
+ * with several people in it. It is real contact - you have spoken to everybody
+ * who was there, so the signal about people you have only heard of second-hand
+ * correctly goes quiet - and it is not a 1-1 with any of them. Recording it as
+ * one would satisfy the 1-1 duty for people you have not had a 1-1 with, which
+ * is precisely the interchangeability this file exists to refuse.
+ *
+ * Note what is NOT here: any rule about which duties `meeting` answers. Duties
+ * declare their own evidence kinds and are rows the user owns, so a kind
+ * satisfies exactly what he has said it satisfies, and a new one starts out
+ * satisfying nothing. That is why this kind needed no special case anywhere.
+ *
  * @type {{ value: string, label: string, subject: SubjectKind }[]}
  */
 export const CONTACT_KINDS = [
   { value: "one-to-one", label: "1-1 - a conversation with them", subject: "person" },
   { value: "casual", label: "Casual - you spoke, but it was not a 1-1", subject: "person" },
+  {
+    value: "meeting",
+    label: "Meeting - a conversation with several of you in it",
+    subject: "person"
+  },
   { value: "second-hand", label: "Second-hand - heard about them from someone else", subject: "person" },
   { value: "sideways", label: "Sideways - contact with a peer lead", subject: "person" },
   { value: "feedback", label: "Feedback - you told them something directly", subject: "person" },

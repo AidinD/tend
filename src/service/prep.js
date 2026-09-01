@@ -37,6 +37,7 @@ import { expandCadences } from "../domain/attention.js";
 import { isArchived } from "../domain/archive.js";
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { openPromises } from "../domain/promises.js";
+import { boundPeople } from "../domain/sources.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
 import { threadsFor } from "../domain/growth.js";
 import { topicsFor } from "../domain/topics.js";
@@ -356,7 +357,11 @@ function lastNote(nib, bindings, personId) {
   if (nib === null) {
     return null;
   }
-  const theirs = bindings.filter((b) => String(b.person ?? "") === personId);
+  // Through `boundPeople`, because a binding may name several. A folder of
+  // shared meeting notes is as much theirs as a folder of their own 1-1s, and
+  // reading the field directly would silently stop finding either the moment a
+  // binding was written in the newer shape.
+  const theirs = bindings.filter((b) => boundPeople(b).includes(personId));
   /** @type {any} */
   let newest = null;
   for (const binding of theirs) {

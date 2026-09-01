@@ -114,6 +114,53 @@ function modeSection(status) {
   </div>`;
 }
 
+/**
+ * What one import pass did, in sentences.
+ *
+ * Every count the pass returns is printed, including the ones it used to keep
+ * to itself. An importer that withdraws a row or drops a queued commitment and
+ * says only how many it added is one whose numbers cannot be reconciled with
+ * the page afterwards, and the natural reading of an unexplained disappearance
+ * is that the tool lost something.
+ *
+ * @param {any} r
+ * @returns {string}
+ */
+function importSummary(r) {
+  /** @param {number} n @param {string} one @param {string} many */
+  const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+  const parts = [`${count(Number(r.contacts ?? 0), "contact record", "contact records")} added`];
+  if (r.promises) {
+    parts.push(count(Number(r.promises), "promise", "promises"));
+  }
+  const lines = [`${parts.join(" and ")}.`];
+
+  if (r.waiting) {
+    lines.push(
+      `${count(Number(r.waiting), "commitment is", "commitments are")} waiting for you to say ` +
+        "whose they are - they came out of notes several people were in, so copying them onto " +
+        "everybody would turn one obligation into several. They are on Now."
+    );
+  }
+  if (r.resolved) {
+    lines.push(`${count(Number(r.resolved), "promise", "promises")} closed, ticked off in Nib.`);
+  }
+  if (r.dropped) {
+    lines.push(
+      `${count(Number(r.dropped), "waiting commitment", "waiting commitments")} dropped, ` +
+        "settled in Nib before anybody filed them."
+    );
+  }
+  if (r.retracted) {
+    lines.push(
+      `${count(Number(r.retracted), "contact record", "contact records")} withdrawn, because ` +
+        "the note no longer carries the tag it was counted under."
+    );
+  }
+  return lines.join(" ");
+}
+
 /** @param {any} folders @param {any} bindings @param {any} roster @param {any} status */
 function nibSection(folders, bindings, roster, status) {
   const bound = Array.isArray(bindings) ? bindings : [];
@@ -121,7 +168,9 @@ function nibSection(folders, bindings, roster, status) {
   const rows = bound
     .map(
       (/** @type {any} */ b) => `<div class="row static">
-        <span class="row-name">${esc(b.nibFolder)}</span>
+        <span class="row-name">${esc(b.name || b.nibFolder)}${
+          b.name && b.name !== b.nibFolder ? `<span class="src"> ${esc(b.nibFolder)}</span>` : ""
+        }</span>
         <span class="row-right">
           <span class="row-meta">→ ${esc(b.person ?? "unknown")}${
             b.countsAs ? ` as ${esc(b.countsAs)}` : " - no tags mapped, so nothing counts yet"
@@ -468,10 +517,25 @@ export const actions = {
           }))
         },
         {
-          name: "person",
+          name: "people",
           label: "Whose notes these are",
-          type: "select",
+          type: "multiselect",
           options: roster.map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
+        },
+        {
+          name: "name",
+          label: "What to call it (optional)",
+          type: "text",
+          value: ""
+        },
+        {
+          name: "sharedNote",
+          type: "note",
+          label:
+            "Naming more than one person makes this a meeting rather than a person's folder. " +
+            "Each note there becomes contact with every one of them, so all their clocks move. " +
+            "Flagged action points do NOT get copied onto everybody - there is no way to tell " +
+            "whose each is, so they wait on Now until you say."
         },
         ...tagFields(catalog)
       ],
@@ -486,9 +550,21 @@ export const actions = {
       (/** @type {any} */ f) => f.categoryId === categoryId && (f.subId ?? "") === subId
     )?.label;
 
+    const chosen = Array.isArray(values.people) ? values.people : [];
+    if (chosen.length === 0) {
+      toast("Pick at least one person - a folder bound to nobody imports nothing.", "bad");
+      return;
+    }
+
     const bound = await act(
       "bindSource",
-      { person: values.person, categoryId, subId: subId || undefined, label },
+      {
+        people: chosen,
+        name: String(values.name ?? "").trim(),
+        categoryId,
+        subId: subId || undefined,
+        label
+      },
       "Bound."
     );
     if (!bound) {
@@ -535,8 +611,7 @@ export const actions = {
     await ask({
       title: "What importing would bring in",
       body:
-        `${result.contacts} new contact record(s) and ${result.promises} new promise(s) from ` +
-        `${result.bindings} binding(s).` +
+        `${importSummary(result)} From ${result.bindings} binding(s).` +
         (result.skipped?.length ? ` Skipped: ${result.skipped.join("; ")}.` : "") +
         " Nothing has been written.",
       confirm: "Close"
@@ -550,10 +625,7 @@ export const actions = {
     }
     await ask({
       title: "Imported",
-      body:
-        `${result.contacts} contact record(s) and ${result.promises} promise(s) added` +
-        (result.resolved ? `, and ${result.resolved} promise(s) closed because you ticked them off in Nib` : "") +
-        ". Safe to run again whenever - nothing is ever duplicated.",
+      body: `${importSummary(result)} Safe to run again whenever - nothing is ever duplicated.`,
       confirm: "Good"
     });
     refresh();

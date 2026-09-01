@@ -162,6 +162,29 @@ export class TendStore {
     return new Set(Object.keys(this.state().c[collection] ?? {}));
   }
 
+  /**
+   * Every row this collection has ever held, tombstones included, with their
+   * contents.
+   *
+   * `takenIds` answers "have I written this row before" and that is enough
+   * while the id carries everything the caller needs. It stopped being enough
+   * when the Nib import changed the shape of the ids it derives: recognising an
+   * id written under the old shape means reading a field off it, and the ones
+   * that matter most are precisely the deleted ones - a derived row deleted by
+   * hand is a deliberate "not this one" that must survive the change of shape.
+   *
+   * A tombstone keeps its fields (the reducer sets `_deleted` on the existing
+   * row rather than replacing it), so they are readable here. Callers should
+   * expect `_deleted` on some of what they get back and must not treat this as
+   * a list of live rows - use `rows` for that.
+   *
+   * @param {string} collection
+   * @returns {import("./reduce.js").Entity[]}
+   */
+  takenRows(collection) {
+    return Object.values(this.state().c[collection] ?? {});
+  }
+
   /** @returns {import("./reduce.js").Entity | null} */
   focus() {
     return this.state().focus;

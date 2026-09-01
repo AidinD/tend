@@ -29,7 +29,7 @@ import { isArchived } from "./archive.js";
 /**
  * @typedef {object} AttentionItem
  * @property {string} key Stable identity, so the UI can dismiss or snooze one.
- * @property {"cadence" | "promise" | "signal"} kind
+ * @property {"cadence" | "promise" | "signal" | "unfiled"} kind
  * @property {string} title
  * @property {string} why
  * @property {import("./cadence.js").Severity} severity How it reads right now.
@@ -325,6 +325,48 @@ export function buildAttention(state, now) {
       guarded: false,
       source: "Role map: delegation level",
       subject: w.owner ?? null
+    });
+  }
+
+  /*
+   * Commitments out of a shared meeting note that nobody has been named for.
+   *
+   * One item per meeting rather than one per commitment. Four flagged blocks
+   * from one Tuesday are one thing to sit down with, and four rows would make
+   * the page look like four separate problems - which is how a page teaches
+   * somebody to skim it.
+   *
+   * `warn` rather than critical: nobody has been let down yet, and the note
+   * itself still says what was agreed. But not lower either, because a queue
+   * nobody is told about is a queue that quietly becomes a list of promises he
+   * never made good on. A focus may soften it and cannot bury it.
+   */
+  const unfiled = new Map();
+  for (const row of live("pendingPromises")) {
+    const key = `${String(row.source ?? "")}|${String(row.note ?? "")}`;
+    const group = unfiled.get(key) ?? { note: String(row.note ?? "").trim(), count: 0 };
+    group.count += 1;
+    unfiled.set(key, group);
+  }
+  for (const [key, group] of unfiled) {
+    // Same key shape as `pendingCommitments` groups, so the card's button can
+    // say which meeting it means without either side re-deriving it.
+    const what = group.note === "" ? "a shared note" : group.note;
+    items.push({
+      key: `unfiled:${key}`,
+      kind: "unfiled",
+      trueSeverity: "warn",
+      title: `${group.count} commitment${group.count === 1 ? "" : "s"} from ${what} need${
+        group.count === 1 ? "s" : ""
+      } a name`,
+      why:
+        "Several people were in this one, so there is no way to tell whose each of these is. " +
+        "Until they are filed they are not on anybody's page and nothing will chase them.",
+      severity: "warn",
+      badge: "unfiled",
+      guarded: false,
+      source: "Notes from Nib",
+      subject: null
     });
   }
 

@@ -59,6 +59,7 @@ import {
   waitsDue
 } from "../domain/waiting.js";
 import { signalsDue } from "../domain/signals.js";
+import { boundPeople, isShared, sourceName } from "../domain/sources.js";
 import { DEFAULT_STAKE_DAYS, namedStakes, stakeInterval } from "../domain/stakes.js";
 import { TOPICS_PER_CARD, appliesTo, lastRaised, topicsFor } from "../domain/topics.js";
 import { agoWords, driftBadge, humanDays, isLaterDay } from "../domain/time.js";
@@ -1584,18 +1585,45 @@ export function setDelegationLevel(store, id, level) {
  * as a cadence that has not advanced - an alert you can answer, rather than a
  * reassurance you cannot check.
  *
+ * A folder may name several people, and then it is not a person's folder at all
+ * but a standing meeting's. See `boundPeople`, and note that the two halves of
+ * an import behave differently under it: contact fans out to everybody there,
+ * and commitments deliberately do not.
+ *
  * @param {import("../storage/store.js").TendStore} store
  * @param {object} args
- * @param {string} args.person
+ * @param {string} [args.person] One person. Legacy and still the ordinary case.
+ * @param {string[]} [args.people] Everybody the folder covers.
+ * @param {string} [args.name] His own name for the binding, when the folder path is not it.
  * @param {string} args.categoryId Nib category id.
  * @param {string} [args.subId] Nib sub-category id. Omit for the whole category.
  * @param {string} [args.label] Human-readable name of the Nib folder, for the UI.
  */
-export function bindSource(store, { person: who, categoryId, subId, label }) {
-  const found = resolvePerson(store, who);
-  if (!found.ok) {
-    return { error: found.error };
+export function bindSource(store, { person: who, people: whom, name, categoryId, subId, label }) {
+  /*
+   * One name or several, resolved the same way. `person` stays accepted because
+   * it is what every existing caller and every MCP script passes, and because
+   * one person is still the ordinary case - a folder of notes about somebody.
+   */
+  const asked = Array.isArray(whom) && whom.length > 0 ? whom : who ? [who] : [];
+  if (asked.length === 0) {
+    return { error: "A binding needs at least one person." };
   }
+
+  /** @type {string[]} */
+  const ids = [];
+  for (const one of asked) {
+    const found = resolvePerson(store, one);
+    if (!found.ok) {
+      return { error: found.error };
+    }
+    // Named twice is not an error worth stopping for, but it must not become
+    // two rows of contact from one note.
+    if (!ids.includes(found.person.id)) {
+      ids.push(found.person.id);
+    }
+  }
+
   if (!String(categoryId ?? "").trim()) {
     return { error: "A binding needs a Nib category id." };
   }
@@ -1614,21 +1642,30 @@ export function bindSource(store, { person: who, categoryId, subId, label }) {
       subId ? (s.subId ?? null) === subId : s.categoryId === categoryId && (s.subId ?? null) === null
     );
   if (clash) {
+    const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name)]));
+    const already = boundPeople(clash)
+      .map((p) => names.get(p) ?? "someone")
+      .join(", ");
     return {
       error: `That Nib folder is already bound to ${
-        store.rows("people").find((p) => p.id === clash.person)?.name ?? "someone"
+        already === "" ? "someone" : already
       }. Unbind it first.`
     };
   }
 
+  const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name)]));
   const id = store.create("sources", {
-    person: found.person.id,
+    people: ids,
+    // His own name for the binding, which is not the folder's path. See
+    // `sourceName`. Empty rather than absent so the field is always the same
+    // shape, and the reader falls back to the path.
+    name: String(name ?? "").trim(),
     categoryId,
     subId: subId ?? null,
     label: label ?? null,
     rules: []
   });
-  return { id, bound: `${label ?? categoryId} → ${found.person.name}` };
+  return { id, bound: `${label ?? categoryId} → ${ids.map((p) => names.get(p) ?? p).join(", ")}` };
 }
 
 /**
@@ -1690,11 +1727,18 @@ export function sources(store, person) {
     if (!found.ok) {
       return { error: found.error };
     }
-    rows = rows.filter((s) => s.person === found.person.id);
+    rows = rows.filter((s) => boundPeople(s).includes(found.person.id));
   }
   return rows.map((s) => ({
     id: s.id,
-    person: names.get(String(s.person)) ?? null,
+    // The list, and a rendered version of it. Both, because every caller wants
+    // the sentence and one - the assign screen - needs the ids.
+    people: boundPeople(s).map((p) => ({ id: p, name: names.get(p) ?? "unknown" })),
+    person: boundPeople(s)
+      .map((p) => names.get(p) ?? "unknown")
+      .join(", "),
+    name: sourceName(s),
+    shared: isShared(s),
     nibFolder: s.label ?? s.categoryId,
     categoryId: s.categoryId,
     subId: s.subId,
@@ -1716,6 +1760,118 @@ export function unbindSource(store, id) {
   }
   store.remove("sources", id);
   return { id, unbound: true };
+}
+
+/**
+ * Commitments read out of a shared meeting note that nobody has been named for
+ * yet.
+ *
+ * Grouped by the note they came from, because that is the unit he answers them
+ * in: he reads one meeting's flagged blocks knowing what the meeting was, and a
+ * flat list mixed across weeks makes him reconstruct that for every row.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ */
+export function pendingCommitments(store) {
+  const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name)]));
+  const bindings = new Map(store.rows("sources").map((s) => [String(s.id), s]));
+
+  /** @type {Map<string, any>} */
+  const byNote = new Map();
+  for (const row of store.rows("pendingPromises")) {
+    const note = String(row.note ?? "").trim() || "An untitled note";
+    const binding = bindings.get(String(row.source));
+    const key = `${String(row.source)}|${note}`;
+    const group = byNote.get(key) ?? {
+      // The same key the daily page builds its card around, so a button there
+      // can name the group it belongs to without either side re-deriving it.
+      key,
+      note,
+      // The binding may have been unbound since. The commitments it produced are
+      // still real, so they are listed with whoever the row itself recorded
+      // rather than disappearing with the folder.
+      meeting: binding ? sourceName(binding) : note,
+      items: []
+    };
+    group.items.push({
+      id: String(row.id),
+      text: String(row.text ?? ""),
+      madeAt: Number(row.madeAt ?? 0),
+      candidates: (Array.isArray(row.candidates) ? row.candidates : []).map((/** @type {any} */ p) => ({
+        id: String(p),
+        name: names.get(String(p)) ?? "unknown"
+      }))
+    });
+    byNote.set(key, group);
+  }
+
+  const groups = [...byNote.values()].map((g) => ({
+    ...g,
+    items: g.items.sort((/** @type {any} */ a, /** @type {any} */ b) => a.madeAt - b.madeAt)
+  }));
+  // Oldest meeting first: the one most likely to have been forgotten is the one
+  // worth answering first.
+  groups.sort((a, b) => (a.items[0]?.madeAt ?? 0) - (b.items[0]?.madeAt ?? 0));
+
+  return { groups, count: groups.reduce((n, g) => n + g.items.length, 0) };
+}
+
+/**
+ * File one queued commitment against the person who owes it.
+ *
+ * The promise takes the pending row's id, which is what keeps the import
+ * idempotent across the handover: the next pass looks for exactly that id in
+ * `promises`, finds it, and writes nothing. Deleting the promise later is
+ * likewise permanent, because the id stays taken in both collections.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.id
+ * @param {string} args.person Name or id.
+ * @param {number} [args.due]
+ */
+export function assignCommitment(store, { id, person, due }) {
+  const row = store.rows("pendingPromises").find((p) => String(p.id) === String(id));
+  if (!row) {
+    return { error: `No commitment waiting with id "${id}".` };
+  }
+  const found = resolvePerson(store, person);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+
+  store.create("promises", {
+    id: String(row.id),
+    person: found.person.id,
+    text: String(row.text ?? ""),
+    madeAt: Number(row.madeAt ?? Date.now()),
+    due: typeof due === "number" ? due : null,
+    state: "open",
+    from: "nib"
+  });
+  store.remove("pendingPromises", String(row.id));
+
+  return { id: String(row.id), assigned: `Promise to ${found.person.name}: ${row.text}` };
+}
+
+/**
+ * Say that a queued commitment is nobody's promise.
+ *
+ * Not everything somebody flags in a meeting note is an obligation to another
+ * person - a reminder to read something, a heading that got flagged by mistake.
+ * The row is removed rather than filed, and the id stays taken, so the next
+ * import does not offer it again.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ */
+export function dropCommitment(store, id) {
+  const row = store.rows("pendingPromises").find((p) => String(p.id) === String(id));
+  if (!row) {
+    return { error: `No commitment waiting with id "${id}".` };
+  }
+  store.remove("pendingPromises", String(row.id));
+  return { id: String(row.id), dropped: true };
 }
 
 /**

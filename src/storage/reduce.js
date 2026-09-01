@@ -33,6 +33,28 @@ export const COLLECTIONS = /** @type {const} */ ([
   /** Which Nib categories feed which person, and as what kind of contact. */
   "sources",
   /**
+   * Commitments read out of a shared meeting note that nobody has been named
+   * for yet.
+   *
+   * Held here rather than written straight into `promises`, because a note
+   * bound to several people gives no way to tell whose each flagged block is.
+   * The two wrong answers are both worse than waiting: fanning one commitment
+   * out to every attendee inflates the promise list until it stops being read,
+   * and guessing a single owner puts a real obligation on a page where it may
+   * never be looked for.
+   *
+   * A separate collection rather than a flag on a half-built promise, so that
+   * no existing reader of `promises` can accidentally show one. A promise
+   * without somebody to owe it to is not a quieter promise, it is a different
+   * kind of thing, and the type system should have to be told before it becomes
+   * the first kind.
+   *
+   * Rows here share the id their promise will get, so filing one is a create
+   * with the same id in `promises` - which keeps the import idempotent through
+   * the handover, and keeps a later deletion permanent.
+   */
+  "pendingPromises",
+  /**
    * Decisions about the organisation, with a date to revisit them.
    *
    * Not promises. A promise is given TO a person; a decision is ABOUT the
