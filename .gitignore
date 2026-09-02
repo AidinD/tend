@@ -41,3 +41,8 @@ captures/
 # username. Ignored in the repository rather than in `.git/info/exclude`, since
 # an exclude file is local to one machine and never reaches a clone.
 .claude/worktrees/
+
+# A scratch copy taken by a script that mutates a source file to prove a test
+# can fail. It belongs in a temp directory; this is here so one that does not
+# make it there cannot be committed by whoever runs the suite next.
+*.backup
