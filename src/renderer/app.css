@@ -346,7 +346,12 @@ main {
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--line-soft);
+  /*
+   * `--line` rather than `--line-soft`. The soft one is eight per channel away
+   * from the surface it sits on, which is not an edge - cards ran together into
+   * one field of grey and the page had no shape to scan.
+   */
+  border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 13px 15px 12px 17px;
   position: relative;
@@ -1170,13 +1175,23 @@ button.row:hover {
   margin-top: 12px;
 }
 
+/*
+ * The section labels, and the reason they are a step brighter than the small
+ * print under them.
+ *
+ * They were `--text-faint`, the same colour and size as every hint and every
+ * date on the card. So the most structural element on the page had the least
+ * contrast of anything on it, and there was no way to tell a heading from a
+ * timestamp at a glance. `--text-dim` puts them one clear step above `.src`,
+ * which keeps the faint tier for what is genuinely small print.
+ */
 .prep-head {
-  margin: 0 0 5px;
+  margin: 0 0 6px;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.7px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-dim);
 }
 
 .prep-list {

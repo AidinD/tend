@@ -165,10 +165,19 @@ function sources(result) {
  */
 function card(c, model) {
   return `
-    <div class="card prep-card">
+    <div class="card prep-card${c.urgency ? ` sev-${c.urgency}` : ""}">
       <div class="card-top">
         <h2 class="card-title">${esc(c.person)}</h2>
-        <span class="badge">${esc(c.behindBy ?? c.why)}</span>
+        ${
+          // The number is what gets scanned, and `.badge` has no styling at all - so
+          // "+62w" and "+3d" rendered as identical plain text on a page ordered
+          // worst first. A pill carries the severity colour the stripe already
+          // uses. Only when there IS a number: the fallback is a sentence, and a
+          // sentence in a tabular-nums pill looks like a broken badge.
+          c.behindBy
+            ? `<span class="pill ${esc(c.urgency ?? "ok")}">${esc(c.behindBy)}</span>`
+            : `<span class="badge">${esc(c.why)}</span>`
+        }
       </div>
       <p class="card-why">
         ${esc(c.why)}. Last spoke ${esc(c.lastSpoke)}.

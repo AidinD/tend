@@ -1877,6 +1877,77 @@ try {
   await page.click('.nav-btn[data-view="prep"]');
   await page.waitFor("document.querySelector('.prep-card') !== null", "the prep cards");
 
+  /* ------------------------------------------- the page has a shape to scan -- */
+
+  const stripes = JSON.parse(
+    String(
+      await page.evaluate(`(() => {
+        const cards = [...document.querySelectorAll('.prep-card')];
+        return JSON.stringify({
+          cards: cards.length,
+          withSeverity: cards.filter((c) => /\\bsev-/.test(c.className)).length,
+          classes: cards.map((c) => (c.className.match(/sev-[a-z]+/) ?? ['none'])[0]),
+          headColour: (() => {
+            const head = document.querySelector('.prep-head');
+            return head === null ? '' : getComputedStyle(head).color;
+          })(),
+          badges: cards.map((c) => {
+            const pill = c.querySelector(".card-top .pill");
+            return pill === null ? "plain" : (pill.className.match(/(critical|warn|watch|ok)/) ?? ["none"])[0];
+          }),
+          smallPrintColour: (() => {
+            const src = document.querySelector('.prep-card .src');
+            return src === null ? '' : getComputedStyle(src).color;
+          })()
+        });
+      })()`)
+    )
+  );
+
+  check("every prep card says how bad it is, not just that it exists", () => {
+    /*
+     * `.card.sev-*` was in the stylesheet long before this page existed and
+     * this page never set the class, so a card 62 weeks behind and one a day
+     * behind were the same colour - on a list whose entire order is worst first.
+     */
+    if (stripes.cards === 0) {
+      throw new Error("no prep cards on the page, so nothing was checked");
+    }
+    if (stripes.withSeverity !== stripes.cards) {
+      throw new Error(
+        `${stripes.withSeverity} of ${stripes.cards} cards carry a severity: ${JSON.stringify(stripes.classes)}`
+      );
+    }
+  });
+
+  check("the drift number carries its severity, not just its value", () => {
+    /*
+     * `.badge` has no styling in the stylesheet at all, so "+62w" and "+3d"
+     * rendered as identical plain text on a page whose whole order is worst
+     * first. The number is the thing that gets scanned.
+     *
+     * A card with no number keeps a plain badge on purpose: the fallback text is
+     * a sentence, and a sentence inside a tabular-nums pill looks broken.
+     */
+    const coloured = stripes.badges.filter((/** @type {string} */ b) => b !== "plain" && b !== "none");
+    if (coloured.length === 0) {
+      throw new Error(`no card shows a severity-coloured number: ${JSON.stringify(stripes.badges)}`);
+    }
+  });
+
+  check("a section label is a step brighter than the small print under it", () => {
+    // They were the same colour and size, so a heading, a hint and a date were
+    // indistinguishable and the page had no structure to read.
+    if (stripes.headColour === "" || stripes.smallPrintColour === "") {
+      throw new Error("could not read both colours, so nothing was compared");
+    }
+    if (stripes.headColour === stripes.smallPrintColour) {
+      throw new Error(`both render as ${stripes.headColour}`);
+    }
+  });
+
+  await page.screenshot(join(root, "docs", "prep-view.png"));
+
   const managerCard = await page.evaluate(
     "JSON.stringify((() => {" +
       "const card = [...document.querySelectorAll('.prep-card')]" +

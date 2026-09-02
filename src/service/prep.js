@@ -35,7 +35,7 @@
 
 import { expandCadences } from "../domain/attention.js";
 import { isArchived } from "../domain/archive.js";
-import { RELATIONS, isRelation } from "../domain/cadence.js";
+import { RELATIONS, SEVERITY_ORDER, isRelation } from "../domain/cadence.js";
 import { openPromises } from "../domain/promises.js";
 import { boundPeople } from "../domain/sources.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
@@ -45,6 +45,31 @@ import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
 import { notesIn, principlesInNib, readNibIndex } from "./nib.js";
 import { forCard } from "../domain/practices.js";
+
+/**
+ * The worst severity on one card, across everything that could have put it
+ * there.
+ *
+ * "ok" when nothing is pressing, which is a real answer rather than a missing
+ * one: a card earned by a standing question or a growth thread has nothing late
+ * on it, and saying so plainly is the point of a page ordered worst first.
+ *
+ * @param {any} worstCadence The worst-drifting cadence, or undefined.
+ * @param {any[]} promises Their open promises, each carrying a status.
+ * @returns {string}
+ */
+function worstSeverity(worstCadence, promises) {
+  const all = [
+    worstCadence ? String(worstCadence.drift.severity) : "ok",
+    ...promises.map((p) => String(p.status?.severity ?? "ok"))
+  ];
+  // Cast because the values arrive as strings off rows the reducer typed loosely;
+  // anything unrecognised sorts to -1 and therefore loses, which is the safe way
+  // round: an unknown severity cannot promote a card to critical.
+  const rank = (/** @type {string} */ one) =>
+    SEVERITY_ORDER.indexOf(/** @type {any} */ (one));
+  return all.reduce((worst, one) => (rank(one) > rank(worst) ? one : worst), "ok");
+}
 
 /** How many cards. Not a page size - a limit. */
 export const PREP_CARDS = 6;
@@ -164,6 +189,17 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       // wearing a sentence's clothes; a reason is read once and has to parse.
       why: reasonFor({ drift, worst, promises: theirPromises, worthRaising, growing }),
       behindBy: worst ? driftBadge(worst.drift.driftDays) : null,
+
+      // How bad it is, for the card's own severity stripe. The stylesheet has
+      // styled `.card.sev-*` since long before this page existed and this page
+      // never set it, so every card on a worst-first list looked equally
+      // urgent - which is the one thing a worst-first list must not do.
+      //
+      // The worst thing on the card rather than the worst cadence. Somebody
+      // with every cadence on time and a promise two weeks old is here BECAUSE
+      // of the promise, and a stripe reading the cadences alone would paint that
+      // card calm.
+      urgency: worstSeverity(worst, theirPromises),
       lastSpoke:
         lastTouch === undefined
           ? "never"

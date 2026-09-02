@@ -15,6 +15,7 @@ Thumbs.db
 
 # Test output: the harness writes these each run.
 docs/now-view.png
+docs/prep-view.png
 docs/palette.png
 
 dist/
