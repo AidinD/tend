@@ -3,6 +3,54 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-02 - api.js is the service surface, and nothing else
+
+**Decided.** Every section of api.js has its own module named after its subject.
+api.js is 216 lines of re-exports. It was 3687 lines across fifteen sections,
+and the largest service module is now 543.
+
+**Measured before each cut, and the measurement had to be fixed first.** The
+first pass counted calls between declared functions, which missed shared local
+helpers and imported constants - six references dangled after that move. The
+second pass looks at every identifier a section uses and sorts it into "already
+an import of api.js" and "declared elsewhere in api.js". Only the second bucket
+is real coupling, and six sections came back with it empty.
+
+**Where two sections shared something, the shared thing moved to where it
+belonged.** That is the rule that kept this from becoming fifteen modules
+importing each other:
+
+- `archivedPersonIds` became `archivedIds` in domain/archive.js. It took a
+  store; taking rows instead is what let it move out of the service layer at
+  all. The bug it exists for moved with it - three read paths that reported work
+  owed by people no longer on the roster, missed because they are the paths that
+  do not go through the cadence expansion.
+- The two write guards became guards.js. Both refuse a write, both lived under
+  "reading" because that is where they were first typed, and both were what tied
+  the writing and workstream sections to it.
+- The focus reader moved down beside its own edits. It was declared under
+  reading and used by nothing there - only by the edits below it and by the
+  reflection pass - so moving it untied both at once. Reflection could not lift
+  until it did.
+
+**One banner was simply wrong.** What sat under "nib links" after the Nib code
+moved out was the duty coherence check and `proposeDuty`, and "role edits"
+below it needed that check. One subject filed under two wrong names. Now
+duties.js.
+
+**The re-export is the point rather than a leftover.** `main/index.js` and
+`mcp/tools.js` both import the surface whole, so a section moving must not
+become a rename landing in three files for no gain - and somebody asking what
+the app can do reads one list instead of hunting through fifteen modules. The
+risk a barrel actually carries is an export quietly falling off it, which is why
+the MCP end-to-end suite matters more here than usual and was run.
+
+**What splitting a long file turns up.** Two duplicates that were invisible while
+everything shared a file: `hasContent` re-imported when the domain already
+exported it, and `daysBetweenNow`, a local re-implementation of `daysBetween`
+used from two different sections. Neither was findable by reading the file;
+both were unavoidable once the pieces had to declare what they needed.
+
 ## 2026-09-02 - A model writes nothing, and the rules it is given live in one place
 
 **Decided.** Four passes over what the code carries rather than what it does.
