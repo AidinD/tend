@@ -3,6 +3,104 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-02 - A model writes nothing, and the rules it is given live in one place
+
+**Decided.** Four passes over what the code carries rather than what it does.
+The order was mine and two of my own four proposals did not survive being
+looked at, which is recorded here because the wrong ones are the instructive
+half.
+
+### The premise that had to be thrown away first
+
+Nine collections had never held a row: themes, skips, growthNotes, waiting,
+chases, reviews, reflections. A removal list writes itself from that, and it
+would have been wrong. `git log` says the repo is nine days old and those
+features are two to seven days old. Zero rows is not evidence of a dead feature
+in a fortnight-old app. The same trap sits under "55 of 72 contact rows are
+one-to-one, so seven of the ten kinds are dead weight" - worth asking again in a
+few months, worth nothing now.
+
+### What Settings said about the model boundary was untrue
+
+"The only thing a model may write is a theme, and only on a scheduled pass."
+Both halves were false. There was no scheduled pass; `apply` defaulted to false
+and no caller ever passed it, so `themes` could not hold a row and held none.
+The app was describing its own model boundary incorrectly, and that boundary is
+what the tool rests on.
+
+Removed rather than completed. A stored theme has the flaw a stored brief has
+and which `prep.js` exists to avoid: a second copy of a reading of notes that
+keep changing underneath it, stale as it is written. The button that reads
+across somebody's notes is untouched, because a draft shown and thrown away is
+what was actually in use.
+
+"A model writes nothing" is also the version that can be checked, and that is
+the real argument. The old test asserted "themes went up by one and these five
+named collections did not" - a list somebody has to remember to extend. It now
+asserts the whole store is unchanged after a pass, plus a source-level check
+that no pass anywhere calls a store write.
+
+### One copy of the house rules, split where it must be
+
+Three hand-typed copies existed and one had already decayed: the sentence asking
+the model to keep Swedish diacritics had had its own diacritics stripped, so it
+read "a, a and o with their diacritics". The same copy had silently lost the em
+dash rule and the job title rule.
+
+A test for exactly this already existed and did not catch it, because it was
+written per pass against one pass. The pass that breaks an invariant is the one
+nobody wrote a test for, so the check is now on the invariant: every system
+prompt appends the shared constant.
+
+Sharing it then failed a different test, correctly, and that failure was the
+better half. The reference pass answers from general knowledge precisely when
+the user's notes did not, so "never invent a fact that is not in the material
+you were given" makes it refuse its own purpose - politely, with nothing logged.
+That was already handled by the hand-written copy omitting the clause, which
+worked and hid the reason: it read as drift rather than as a distinction
+somebody had drawn. So `HOUSE_STYLE` is what applies everywhere and `GROUNDED`
+is what only applies where there is material.
+
+### Nine model calls through one shape
+
+Every pass opened by checking a model was reachable, returned failures as data,
+and closed by attaching the model and the cost. One of the nine had no
+availability check at all - the knowledge pass - and nothing reached it because
+the view hides the button, which is why it survived. The fix belongs in a shape
+that cannot be forgotten rather than in a tenth copy.
+
+### Two proposals that did not survive
+
+**"`evidence` is a second note store and the architecture forbids one" was
+wrong.** It has a documented purpose: material for a review conversation, with
+an `area` field that maps onto the axis a review is held against. Neither Nib
+nor `touches` can carry that.
+
+**"Four ways to record what I know about a person" was wrong as stated.** An
+observation touch, an evidence row, a growth note and a theme answer four
+different questions: that you looked, what you saw, what the plan is, and what a
+model found.
+
+What was true in that area was narrower and real: observations could be written
+and never read back. An agent could file review material and never see any, and
+unread material is indistinguishable from none. Now readable, grouped by area,
+because the useful question is which axes have nothing under them rather than
+what happened lately.
+
+### Splitting api.js, measured before it was cut
+
+Fifteen banner-delimited sections, 3687 lines. Counting calls between sections
+found eleven edges in total, so the pieces come apart; three had no outgoing
+calls at all and were lifted. api.js re-exports them, since it is the service
+surface both the main process and the agent tools import whole.
+
+The measurement was incomplete in a way worth recording: it counted declared
+functions and so missed shared local helpers. Six references dangled, and two
+were duplicates that had been invisible while everything lived in one file -
+`hasContent` re-imported when the domain already exported it, and
+`daysBetweenNow`, a local re-implementation of `daysBetween` used from two
+sections. Splitting a long file finds duplicates that reading it does not.
+
 ## 2026-09-01 - A Nib folder may be a meeting, and contact fans out where commitments do not
 
 **Decided.** A binding names a list of people rather than one. Naming more than
