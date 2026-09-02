@@ -121,7 +121,20 @@ export async function render(params) {
     }
     const rows = members
       .map(
-        (/** @type {any} */ p) => `<button class="row" data-act="open" data-person="${esc(p.id)}">
+        /*
+         * The row carries the drift's severity, not only a pill saying it.
+         *
+         * A person 26 weeks behind used to look exactly like a person who is
+         * fine, give or take one small word on the far right - so a roster had
+         * to be read rather than scanned, which on the page whose whole job is
+         * "who needs me" is the wrong way round. Cards already speak this
+         * language; the roster now speaks the same one.
+         *
+         * Not in the private half: there is no drift there, and marking family
+         * by urgency is the thing the empty right-hand side above exists to
+         * avoid.
+         */
+        (/** @type {any} */ p) => `<button class="row${!isPrivate && p.worstDrift ? ` sev-${esc(p.worstDrift.urgency)}` : ""}" data-act="open" data-person="${esc(p.id)}">
           <span class="row-name">${esc(p.name)}</span>
           <span class="row-right">
             ${p.availability && !isPrivate ? `<span class="pill plain">${esc(p.availability)}</span>` : ""}

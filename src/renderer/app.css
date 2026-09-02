@@ -11,10 +11,29 @@
   --surface-2: #2d2f36;
   --surface-3: #34363f;
   --line: #373a42;
-  --line-soft: #2e3037;
+  /*
+   * The inner divider: a card's footer rule, a panel's head rule, the line
+   * beside a group heading. It was #2e3037, which is 1.12 against the surface
+   * it is drawn on - a divider that divides nothing. At 1.22 it reads while
+   * staying clearly the softer of the two (--line is 1.30), which is the whole
+   * reason there are two.
+   */
+  --line-soft: #34363d;
+
+  /*
+   * Three text levels, and all three have to be readable. The dimmest one was
+   * the most used colour in the file - more sites than the other two together -
+   * while reaching 2.47:1 on the lightest surface, under even the 3:1 floor for
+   * large text. Labels and counts were being drawn in a colour meant for
+   * furniture, which is why the page had nothing for the eye to catch.
+   *
+   * Solved against --surface-3, the worst case, so a level that passes there
+   * passes everywhere: 9.83, 6.54 and 4.60. They stay 1.50 and 1.42 apart from
+   * each other, which keeps them three levels rather than one.
+   */
   --text: #e7e8ec;
-  --text-dim: #9b9ea7;
-  --text-faint: #6e717a;
+  --text-dim: #bdbfc5;
+  --text-faint: #9ea0a6;
   --accent: #6f9cff;
   --accent-soft: rgba(111, 156, 255, 0.14);
 
@@ -26,6 +45,35 @@
   --ok-soft: rgba(95, 174, 138, 0.13);
   --book: #b98ce0;
   --book-soft: rgba(185, 140, 224, 0.13);
+
+  /*
+   * The readable version of each semantic hue. The base colours above are for
+   * bars and rules; on a tinted pill they are too dark to read, so these are
+   * the ones text uses. They were already in the file as eight loose hex
+   * literals scattered through it, which meant severity drifted a shade
+   * whenever a new one got typed from memory.
+   */
+  --critical-text: #f0a294;
+  --warn-text: #e7c076;
+  --watch-text: #cbae7c;
+  --ok-text: #8ccfae;
+  --book-text: #d0aeee;
+  --accent-text: #cbdcff;
+  --accent-bright: #e4edff;
+
+  /*
+   * Six steps, and no more. There were fifteen sizes here, twelve of the
+   * fourteen gaps between them 0.5 or 1.0px - a 4% difference at this size,
+   * which the eye does not register. The effect was a single text size with
+   * noise around it, so nothing on any screen read as more important than
+   * anything else. Sizes live as tokens now so the file cannot drift back.
+   */
+  --t-micro: 11px;
+  --t-meta: 12.5px;
+  --t-body: 14px;
+  --t-title: 16.5px;
+  --t-section: 20px;
+  --t-page: 25px;
 
   --r: 7px;
   --font: "Segoe UI", "Segoe UI Variable", system-ui, sans-serif;
@@ -46,7 +94,7 @@
  */
 body {
   font-family: var(--font);
-  font-size: 14px;
+  font-size: var(--t-body);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   user-select: none;
@@ -88,14 +136,14 @@ button {
 }
 
 .wordmark {
-  font-size: 17px;
+  font-size: var(--t-title);
   font-weight: 600;
   letter-spacing: 0.3px;
 }
 
 .version {
   color: var(--text-faint);
-  font-size: 11px;
+  font-size: var(--t-micro);
   font-variant-numeric: tabular-nums;
 }
 
@@ -145,7 +193,7 @@ button {
   border: 1px solid var(--accent);
   border-radius: 999px;
   color: var(--accent);
-  font-size: 10px;
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -191,7 +239,7 @@ button {
 }
 
 .brand-name {
-  font-size: 17px;
+  font-size: var(--t-title);
   font-weight: 600;
   letter-spacing: 0.2px;
 }
@@ -250,7 +298,7 @@ button {
 
 .nav-count {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
@@ -272,7 +320,7 @@ main {
   padding: 40px 26px;
   text-align: center;
   color: var(--text-faint);
-  font-size: 13px;
+  font-size: var(--t-body);
 }
 
 .empty {
@@ -286,7 +334,7 @@ main {
 
 .view-title {
   margin: 0;
-  font-size: 21px;
+  font-size: var(--t-page);
   font-weight: 600;
   letter-spacing: -0.2px;
 }
@@ -294,7 +342,7 @@ main {
 .view-sub {
   margin: 5px 0 0;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: var(--t-body);
   max-width: 68ch;
 }
 
@@ -317,7 +365,7 @@ main {
 }
 
 .group-title {
-  font-size: 11px;
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.9px;
   text-transform: uppercase;
@@ -327,11 +375,11 @@ main {
 .group-rule {
   flex: 1;
   height: 1px;
-  background: var(--line-soft);
+  background: var(--line);
 }
 
 .group-meta {
-  font-size: 11.5px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
@@ -358,31 +406,83 @@ main {
   overflow: hidden;
 }
 
-.card::before {
+/*
+ * The bar is absent on a plain card rather than grey on it.
+ *
+ * It used to be `--line` by default and `--line` is also the card's border, so
+ * a critical card differed from an ordinary one by three pixels of colour and
+ * nothing else - on a page of twenty cards that is not a signal, it is a
+ * detail. Now the presence of a bar is itself the message, and only the
+ * severities that want something have one.
+ */
+.card::before,
+.row::before {
   content: "";
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
-  background: var(--line);
+  width: 4px;
+  background: transparent;
 }
 
-.card.sev-critical::before {
+/* The bar needs somewhere to hang and an edge to be clipped by. Cards set both
+   already; rows did not, because until now they had no bar. */
+.row {
+  position: relative;
+  overflow: hidden;
+}
+
+/*
+ * Critical and warn also tint the whole card. Measured at 1.19 and 1.27 against
+ * the plain surface, which over an area this size is the difference that gets
+ * noticed from across the page - before any of the text has been read.
+ *
+ * Deliberately not extended to ok or proposed. Tinting everything is tinting
+ * nothing, and those two are not asking for anything.
+ */
+.card.sev-critical,
+.row.sev-critical {
+  background: linear-gradient(var(--critical-soft), var(--critical-soft)), var(--surface);
+  border-color: #4d3a37;
+}
+.card.sev-critical::before,
+.row.sev-critical::before {
   background: var(--critical);
 }
-.card.sev-warn::before {
+
+.card.sev-warn,
+.row.sev-warn {
+  background: linear-gradient(var(--warn-soft), var(--warn-soft)), var(--surface);
+  border-color: #4a4234;
+}
+.card.sev-warn::before,
+.row.sev-warn::before {
   background: var(--warn);
 }
-.card.sev-watch::before {
+
+.card.sev-watch::before,
+.row.sev-watch::before {
   background: var(--warn);
   opacity: 0.55;
 }
-.card.sev-ok::before {
+.card.sev-ok::before,
+.row.sev-ok::before {
   background: var(--ok);
 }
 .card.sev-proposed::before {
   background: var(--book);
+}
+
+/* Hover may not wipe out the severity it is hovering over. `button.row:hover`
+   sets a flat background, which on a tinted row read as the tint switching
+   off - the one row being pointed at losing the mark that made it worth
+   pointing at. */
+button.row.sev-critical:hover {
+  background: linear-gradient(var(--critical-soft), var(--critical-soft)), var(--surface-2);
+}
+button.row.sev-warn:hover {
+  background: linear-gradient(var(--warn-soft), var(--warn-soft)), var(--surface-2);
 }
 
 .card-top {
@@ -394,7 +494,7 @@ main {
 
 .card-title {
   margin: 0;
-  font-size: 14.5px;
+  font-size: var(--t-title);
   font-weight: 600;
   letter-spacing: -0.1px;
 }
@@ -402,7 +502,7 @@ main {
 .card-why {
   margin: 5px 0 0;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: var(--t-body);
   max-width: 76ch;
   user-select: text;
 }
@@ -418,7 +518,7 @@ main {
 }
 
 .src {
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
   margin-right: auto;
   display: flex;
@@ -440,7 +540,7 @@ main {
   border: 1px solid var(--line);
   border-radius: 5px;
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--t-meta);
   color: var(--text-dim);
   transition: background 120ms ease, color 120ms ease;
   /* No label in this app is longer than three words, so a wrapped one is always
@@ -458,12 +558,12 @@ main {
 .act.primary {
   background: var(--accent-soft);
   border-color: rgba(111, 156, 255, 0.35);
-  color: #cbdcff;
+  color: var(--accent-text);
 }
 
 .act.primary:hover {
   background: rgba(111, 156, 255, 0.22);
-  color: #e4edff;
+  color: var(--accent-bright);
 }
 
 .act:disabled {
@@ -476,7 +576,7 @@ main {
 .pill {
   flex: none;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--t-micro);
   font-variant-numeric: tabular-nums;
   padding: 2px 7px;
   border-radius: 20px;
@@ -485,23 +585,23 @@ main {
 
 .pill.critical {
   background: var(--critical-soft);
-  color: #f0a294;
+  color: var(--critical-text);
 }
 .pill.warn {
   background: var(--warn-soft);
-  color: #e7c076;
+  color: var(--warn-text);
 }
 .pill.watch {
   background: var(--warn-soft);
-  color: #cbae7c;
+  color: var(--watch-text);
 }
 .pill.ok {
   background: var(--ok-soft);
-  color: #8ccfae;
+  color: var(--ok-text);
 }
 .pill.book {
   background: var(--book-soft);
-  color: #d0aeee;
+  color: var(--book-text);
 }
 .pill.plain {
   background: var(--surface-2);
@@ -509,7 +609,7 @@ main {
 }
 
 .tag {
-  font-size: 10.5px;
+  font-size: var(--t-micro);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   padding: 2px 7px;
@@ -542,7 +642,7 @@ main {
 }
 
 .focus-eyebrow {
-  font-size: 10.5px;
+  font-size: var(--t-micro);
   letter-spacing: 0.8px;
   text-transform: uppercase;
   color: var(--accent);
@@ -550,7 +650,7 @@ main {
 
 .focus-name {
   margin: 3px 0 0;
-  font-size: 16px;
+  font-size: var(--t-title);
   font-weight: 600;
 }
 
@@ -558,7 +658,7 @@ main {
   margin: 11px 0 0;
   padding-top: 10px;
   border-top: 1px solid var(--line-soft);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   color: var(--text-dim);
   max-width: 78ch;
 }
@@ -571,7 +671,7 @@ main {
   background: var(--surface);
   border: 1px dashed var(--line);
   border-radius: var(--r);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   color: var(--text-faint);
 }
 
@@ -587,9 +687,13 @@ main {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  /* Extra on the left for the severity bar to sit in, the way cards do it. */
+  padding: 10px 14px 10px 17px;
   background: var(--surface);
-  border: 1px solid var(--line-soft);
+  /* `--line`, for the reason cards use it: --line-soft is eight per channel
+     from the surface it sits on, which is not an edge. Rows ran together into
+     one column of grey with no rhythm to scan. */
+  border: 1px solid var(--line);
   border-radius: 6px;
   width: 100%;
   text-align: left;
@@ -600,13 +704,20 @@ button.row:hover {
   background: var(--surface-2);
 }
 
+/*
+ * A row's name is the thing being looked for, so it gets weight as well as
+ * size. It used to be 13.5px at normal weight above 12px metadata: a 1.5px
+ * step and no other difference, which is a name and its details reading as one
+ * grey block rather than as a heading and its subtitle.
+ */
 .row-name {
-  font-size: 13.5px;
+  font-size: var(--t-body);
+  font-weight: 600;
 }
 
 .row-meta {
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: var(--t-meta);
 }
 
 /*
@@ -620,6 +731,9 @@ button.row:hover {
   display: block;
   margin-top: 2px;
   max-width: 62ch;
+  /* The name above carries the weight; this line would inherit it and the
+     distinction it exists to make would be gone. */
+  font-weight: 400;
 }
 
 .row:has(.row-name .src) {
@@ -642,7 +756,7 @@ button.row:hover {
 
 .panel {
   background: var(--surface);
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
   border-radius: var(--r);
   padding: 20px 22px;
 }
@@ -658,14 +772,14 @@ button.row:hover {
 
 .panel-name {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--t-section);
   font-weight: 600;
 }
 
 .panel-role {
   margin: 3px 0 0;
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   max-width: 60ch;
 }
 
@@ -674,7 +788,7 @@ button.row:hover {
 }
 
 .block-title {
-  font-size: 11px;
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.9px;
   text-transform: uppercase;
@@ -689,13 +803,13 @@ button.row:hover {
   padding: 8px 11px;
   background: var(--surface-2);
   border-radius: 5px;
-  font-size: 13px;
+  font-size: var(--t-body);
   user-select: text;
 }
 
 .line-when {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
   flex: none;
   min-width: 74px;
@@ -840,11 +954,11 @@ button.row:hover {
 }
 
 .nav-count.urgent {
-  color: #f0a294;
+  color: var(--critical-text);
 }
 
 .nav-count.new {
-  color: #d0aeee;
+  color: var(--book-text);
 }
 
 .head-row {
@@ -871,14 +985,14 @@ button.row:hover {
 
 .group-note {
   margin: 9px 2px 0;
-  font-size: 12px;
+  font-size: var(--t-meta);
   color: var(--text-faint);
   max-width: 76ch;
 }
 
 .card-why.dim {
   color: var(--text-faint);
-  font-size: 12.5px;
+  font-size: var(--t-body);
 }
 
 /* One colour, two carriers: a card's reason and the small print under a row.
@@ -887,12 +1001,12 @@ button.row:hover {
    somebody happens to give the class to. */
 .card-why.warn-text,
 .src.warn-text {
-  color: #e7c076;
+  color: var(--warn-text);
 }
 
 .card-why.mono-text {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: var(--t-body);
   word-break: break-all;
 }
 
@@ -906,17 +1020,17 @@ button.row:hover {
 
 .act.tiny {
   padding: 2px 8px;
-  font-size: 11.5px;
+  font-size: var(--t-micro);
 }
 
 .act.danger {
-  color: #e09a8c;
+  color: var(--critical-text);
   border-color: rgba(224, 112, 94, 0.3);
 }
 
 .act.danger:hover {
   background: var(--critical-soft);
-  color: #f0a294;
+  color: var(--critical-text);
 }
 
 .danger-zone {
@@ -946,7 +1060,7 @@ button.row:hover {
 }
 
 .metric-label {
-  font-size: 10.5px;
+  font-size: var(--t-micro);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--text-faint);
@@ -954,20 +1068,20 @@ button.row:hover {
 
 .metric-value {
   margin-top: 3px;
-  font-size: 17px;
+  font-size: var(--t-section);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .metric-value.warn {
-  color: #e7c076;
+  color: var(--warn-text);
 }
 .metric-value.ok {
-  color: #8ccfae;
+  color: var(--ok-text);
 }
 
 .metric-note {
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
   margin-top: 2px;
 }
@@ -1006,13 +1120,13 @@ button.row:hover {
 
 .dialog-title {
   margin: 0;
-  font-size: 16.5px;
+  font-size: var(--t-title);
   font-weight: 600;
 }
 
 .dialog-intro {
   margin: 7px 0 0;
-  font-size: 13px;
+  font-size: var(--t-body);
   color: var(--text-dim);
   max-width: 62ch;
 }
@@ -1041,8 +1155,8 @@ button.row:hover {
 
 .dialog-error {
   margin: 0;
-  font-size: 12.5px;
-  color: #f0a294;
+  font-size: var(--t-meta);
+  color: var(--critical-text);
 }
 
 /* --------------------------------------------------------------- forms -- */
@@ -1054,13 +1168,13 @@ button.row:hover {
 }
 
 .field-label {
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   font-weight: 600;
   color: var(--text);
 }
 
 .field-hint {
-  font-size: 11.5px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
   line-height: 1.5;
   max-width: 58ch;
@@ -1077,7 +1191,7 @@ button.row:hover {
   padding: 8px 10px;
   color: var(--text);
   font: inherit;
-  font-size: 13.5px;
+  font-size: var(--t-body);
   outline: none;
   width: 100%;
   user-select: text;
@@ -1142,7 +1256,7 @@ button.row:hover {
   border-left: 3px solid var(--ok);
   border-radius: 6px;
   padding: 9px 15px;
-  font-size: 13px;
+  font-size: var(--t-body);
   color: var(--text);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   max-width: 62ch;
@@ -1187,7 +1301,7 @@ button.row:hover {
  */
 .prep-head {
   margin: 0 0 6px;
-  font-size: 11px;
+  font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.9px;
   text-transform: uppercase;
@@ -1257,7 +1371,7 @@ button.row:hover {
 .prep-missing {
   margin: 14px 0 0;
   color: var(--text-faint);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   line-height: 1.55;
 }
 
@@ -1280,7 +1394,7 @@ button.row:hover {
 
 .ledger-band-title {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--t-meta);
   font-weight: 600;
   letter-spacing: 0.9px;
   text-transform: uppercase;
@@ -1290,7 +1404,7 @@ button.row:hover {
 .ledger-band-note {
   margin: 4px 0 0;
   color: var(--text-faint);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
   line-height: 1.5;
 }
 
@@ -1311,7 +1425,7 @@ button.row:hover {
 
 .mine-head {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--t-meta);
   font-weight: 600;
   letter-spacing: 0.9px;
   text-transform: uppercase;
@@ -1321,7 +1435,7 @@ button.row:hover {
 .mine-sub {
   margin: 3px 0 12px;
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: var(--t-meta);
 }
 
 .mine-row {
@@ -1389,7 +1503,7 @@ button.row:hover {
 }
 
 .draft-title {
-  font-size: 11px;
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.7px;
   text-transform: uppercase;
@@ -1399,7 +1513,7 @@ button.row:hover {
 
 .draft-head-small {
   margin: 10px 0 4px;
-  font-size: 11px;
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.7px;
   text-transform: uppercase;
@@ -1548,7 +1662,7 @@ kbd {
 }
 
 .palette-band {
-  font-size: 10px;
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.8px;
   text-transform: uppercase;
@@ -1584,7 +1698,7 @@ kbd {
 }
 
 .palette-hint {
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
   flex: none;
 }
@@ -1593,7 +1707,7 @@ kbd {
 .palette-answer {
   padding: 14px 16px;
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: var(--t-body);
   line-height: 1.6;
 }
 
@@ -1608,7 +1722,7 @@ kbd {
   flex-direction: column;
   gap: 4px;
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: var(--t-meta);
 }
 
 .palette-foot {
@@ -1616,7 +1730,7 @@ kbd {
   gap: 14px;
   padding: 8px 14px;
   border-top: 1px solid var(--line-soft);
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--text-faint);
 }
 
@@ -1643,7 +1757,7 @@ kbd {
   flex: 1;
   min-width: 0;
   padding: 9px 12px;
-  font-size: 14px;
+  font-size: var(--t-body);
   color: var(--text);
   background: var(--surface-2);
   border: 1px solid var(--line);
@@ -1676,7 +1790,7 @@ kbd {
   padding: 10px 12px;
   background: var(--surface-2);
   border-radius: 5px;
-  font-size: 13px;
+  font-size: var(--t-body);
   user-select: text;
 }
 
@@ -1710,7 +1824,7 @@ kbd {
 .thread .prep-list {
   margin-top: 6px;
   color: var(--text-dim);
-  font-size: 12.5px;
+  font-size: var(--t-body);
 }
 
 .thread .button-row {
@@ -1763,7 +1877,7 @@ kbd {
   padding: 8px 11px;
   background: var(--surface-2);
   border-radius: 5px;
-  font-size: 13px;
+  font-size: var(--t-body);
   color: var(--text-dim);
   line-height: 1.5;
   user-select: text;

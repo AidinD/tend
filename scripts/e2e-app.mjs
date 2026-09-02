@@ -3458,9 +3458,37 @@ try {
 
   step("Finishing up");
 
-  const shot = await page.screenshot(join(root, "docs", "now-view.png"));
-  if (shot !== null) {
-    console.log(`  --   screenshot: ${shot}`);
+  /*
+   * One shot per view, rather than one shot of wherever the run happened to
+   * end. A view nobody clicked is a view where a contrast or layout mistake
+   * lives until it is noticed by accident, and these are cheap.
+   *
+   * It also widens the renderer-error check below at no cost: that check runs
+   * after this loop, so it now covers every view instead of only the last one
+   * the checks left us on.
+   */
+  const VIEWS = [
+    "now",
+    "prep",
+    "focus",
+    "people",
+    "work",
+    "journal",
+    "reflection",
+    "role",
+    "decisions",
+    "knowledge",
+    "settings"
+  ];
+
+  for (const view of VIEWS) {
+    await page.click(`.nav-btn[data-view="${view}"]`);
+    await sleep(350);
+    const name = view === "now" ? "now-view" : `view-${view}`;
+    const shot = await page.screenshot(join(root, "docs", `${name}.png`));
+    if (shot !== null) {
+      console.log(`  --   ${view}: ${shot}`);
+    }
   }
 
   const rendererErrors = await page.evaluate("JSON.stringify(window.__errors ?? ['__errors missing'])");

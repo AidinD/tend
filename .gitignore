@@ -14,9 +14,10 @@ npm-debug.log*
 Thumbs.db
 
 # Test output: the harness writes these each run.
-docs/now-view.png
-docs/prep-view.png
-docs/palette.png
+# The harness shoots one image per view, and every one of them frames whatever
+# store it ran against. Listing the three that existed at the time meant the
+# next one added would have been committed by whoever ran the suite next.
+docs/*.png
 
 dist/
 resources/*.tmp
