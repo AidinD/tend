@@ -1898,7 +1898,13 @@ try {
           smallPrintColour: (() => {
             const src = document.querySelector('.prep-card .src');
             return src === null ? '' : getComputedStyle(src).color;
-          })()
+          })(),
+          // The page behind the cards and one card, as actually rendered, so
+          // the gap between them is measured rather than asserted from the
+          // token values - which is the difference between checking the design
+          // and checking that somebody typed a hex code.
+          pageGround: getComputedStyle(document.body).backgroundColor,
+          cardGround: cards.length === 0 ? '' : getComputedStyle(cards[0]).backgroundColor
         });
       })()`)
     )
@@ -1932,6 +1938,31 @@ try {
     const coloured = stripes.badges.filter((/** @type {string} */ b) => b !== "plain" && b !== "none");
     if (coloured.length === 0) {
       throw new Error(`no card shows a severity-coloured number: ${JSON.stringify(stripes.badges)}`);
+    }
+  });
+
+  check("a card sits on a lighter ground than the page behind it", () => {
+    /*
+     * It used to be eight per channel, which reads as one continuous field of
+     * grey once two cards are adjacent - a single card in isolation always
+     * looks fine, which is why this went unnoticed.
+     *
+     * Ten is the floor rather than the target. The value in use is eleven to
+     * fifteen depending on channel, and the point of a floor is to catch the
+     * ladder being flattened back rather than to pin the exact shade.
+     */
+    const parse = (/** @type {string} */ c) =>
+      (c.match(/\d+/g) ?? []).slice(0, 3).map((n) => Number(n));
+
+    const page = parse(stripes.pageGround);
+    const card = parse(stripes.cardGround);
+    if (page.length !== 3 || card.length !== 3) {
+      throw new Error(`could not read both grounds: page ${stripes.pageGround}, card ${stripes.cardGround}`);
+    }
+
+    const gap = card.map((n, i) => n - page[i]);
+    if (gap.some((n) => n < 10)) {
+      throw new Error(`the card is only ${JSON.stringify(gap)} above the page; cards run together below ten`);
     }
   });
 
