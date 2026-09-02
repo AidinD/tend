@@ -48,3 +48,32 @@
 export function isArchived(row) {
   return typeof row.archivedAt === "number" && Number.isFinite(row.archivedAt);
 }
+
+/**
+ * The ids of every archived row in a list.
+ *
+ * ## The bug it exists for
+ *
+ * Three read paths reported work owed by people who are not on the roster:
+ * promises, waits, and the waits shown on the daily page. Each built a name map
+ * from every row and never asked whether the row was still live. They were
+ * missed because they are the paths that do NOT go through the cadence
+ * expansion, which is where the filtering had been added - so the daily page
+ * kept naming archived people in its waiting group, and the material handed to
+ * a model held a critical promise owed to somebody the same payload's roster
+ * said did not exist.
+ *
+ * A set of ids rather than a filter over each row, because those paths join
+ * against people by id and never carry the person row itself.
+ *
+ * Takes rows rather than a store, which is what let it move here: the service
+ * layer had it as a private helper, two modules needed it once they were
+ * separate files, and the alternative was one importing the other for three
+ * lines.
+ *
+ * @param {Record<string, any>[]} rows
+ * @returns {Set<string>}
+ */
+export function archivedIds(rows) {
+  return new Set(rows.filter((row) => isArchived(row)).map((row) => String(row.id)));
+}
