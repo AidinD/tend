@@ -638,6 +638,15 @@ export function indexNib(store, { dir, dry = false } = {}) {
     return { error: index.why };
   }
 
+  /*
+   * Which tag means "this is a principle I am practising".
+   *
+   * Resolved once for the pass, from the catalog `readNibIndex` already returns -
+   * the catalog is not filtered by half, so this is the same tag the prep card
+   * resolves for itself.
+   */
+  const practiceTag = principleTagId(index.tags);
+
   const bindings = store.rows("sources");
   if (bindings.length === 0) {
     return {
@@ -811,6 +820,31 @@ export function indexNib(store, { dir, dry = false } = {}) {
       const kinds = kindsFor(note, binding, rules);
 
       /*
+       * What this note's flags are, and what they are not.
+       *
+       * A flag on a note tagged Principle is not a commitment. It is a habit
+       * being worked on - "listen longer than it is comfortable" - and it has no
+       * done state and no date it is late by. Imported as a promise it aged,
+       * went critical, and sat at the top of the one list in this app that must
+       * not lie, asking him who he owed a thing nobody had promised.
+       *
+       * Those flags are not dropped: `principlesInNib` reads them straight from
+       * Nib for the prep card, oldest first, where a principle about how to talk
+       * to people is actually usable and where nothing puts a clock on it. This
+       * only stops them becoming obligations.
+       *
+       * ONE definition, used by both the withdrawal below and the creation
+       * further down, which is the point. Skipping creation alone would leave
+       * every promise already imported from a principle note sitting there for
+       * ever; skipping withdrawal alone would retract and re-create them on every
+       * pass. Taken together, the withdrawal loop retracts what earlier passes
+       * wrote - and `retracted` rather than `resolved`, because a tag being
+       * applied is not evidence that anything got done.
+       */
+      const practising = practiceTag !== null && note.tags.includes(practiceTag);
+      const commitments = practising ? [] : note.alerts;
+
+      /*
        * A kind this note no longer claims is withdrawn.
        *
        * Scoped to the notes actually read on this pass, so a folder that came
@@ -848,7 +882,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
        * says what happened - `resolved` would claim it was done, which unflagging
        * a note is no evidence of at all.
        */
-      const flagged = new Set(note.alerts.map((a) => String(a.id)));
+      const flagged = new Set(commitments.map((a) => String(a.id)));
       for (const stale of openByNote.get(String(note.id)) ?? []) {
         if (flagged.has(stale.alertId)) {
           continue;
@@ -899,8 +933,10 @@ export function indexNib(store, { dir, dry = false } = {}) {
       }
 
       // A flagged block is an action point the user marked by hand. No model
-      // needed, and no guessing about what counts as a commitment.
-      for (const alert of note.alerts) {
+      // needed, and no guessing about what counts as a commitment - except the
+      // one guess worth making, which is that a principle is not one. See
+      // `commitments`.
+      for (const alert of commitments) {
         // The id a commitment gets, whichever collection it is sitting in. One
         // id across both is what makes filing a queued commitment idempotent:
         // the promise it becomes is already the row the next import would have
@@ -1028,14 +1064,35 @@ export function referenceNotes(dir) {
     return [];
   }
   const catalog = listNibTags(dir, "reference");
-  const tags = catalog.available ? catalog.tags : [];
-  const tag =
-    tags.find((t) => t.id === "tag-principle") ??
-    tags.find((t) => String(t.name).toLowerCase() === "principle");
-  if (tag === undefined) {
+  const tagId = principleTagId(catalog.available ? catalog.tags : []);
+  if (tagId === null) {
     return [];
   }
-  return all.notes.filter((note) => note.tags.includes(tag.id));
+  return all.notes.filter((note) => note.tags.includes(tagId));
+}
+
+/**
+ * The Principle tag's id in this notebook, or null when it has none.
+ *
+ * By id first and by name only as a fallback. A tag renamed in Nib must not
+ * change what Tend counts, which is the rule everywhere else here - but this one
+ * tag is picked out of the catalog by Tend rather than chosen by him in a
+ * mapping, so a name match is what rescues a notebook whose defaults were seeded
+ * differently.
+ *
+ * Extracted because there were three copies of it and now four callers, one of
+ * them the importer. Two copies that disagreed would mean a principle whose
+ * flags Tend shows as practice on one page and chases as a promise on another.
+ *
+ * @param {any} tags
+ * @returns {string | null}
+ */
+export function principleTagId(tags) {
+  const list = Array.isArray(tags) ? tags : [];
+  const tag =
+    list.find((/** @type {any} */ t) => String(t?.id ?? "") === "tag-principle") ??
+    list.find((/** @type {any} */ t) => String(t?.name ?? "").toLowerCase() === "principle");
+  return tag === undefined ? null : String(tag.id);
 }
 
 /* ------------------------------------------------------- reading a body -- */
@@ -1150,12 +1207,9 @@ export function principlesInNib(dir, half = "work") {
   }
 
   const catalog = listNibTags(dir, "reference");
-  const tags = catalog.available ? catalog.tags : [];
-  const tag =
-    tags.find((t) => t.id === "tag-principle") ??
-    tags.find((t) => String(t.name).toLowerCase() === "principle");
+  const tagId = principleTagId(catalog.available ? catalog.tags : []);
 
-  if (tag === undefined) {
+  if (tagId === null) {
     return {
       available: false,
       why: "This notebook has no Principle tag, so there is nothing to read. Add one in Nib and tag the notes you want to practise."
@@ -1166,7 +1220,7 @@ export function principlesInNib(dir, half = "work") {
 
   return {
     available: true,
-    practices: activePractices(/** @type {any[]} */ (all.notes), tag.id, (id) => trails.get(id) ?? ""),
-    actionPoints: openActionPoints(/** @type {any[]} */ (all.notes), tag.id)
+    practices: activePractices(/** @type {any[]} */ (all.notes), tagId, (id) => trails.get(id) ?? ""),
+    actionPoints: openActionPoints(/** @type {any[]} */ (all.notes), tagId)
   };
 }

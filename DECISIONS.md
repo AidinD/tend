@@ -3,6 +3,56 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-02 - A flag on a principle is not a promise
+
+**Decided.** `indexNib` no longer derives a commitment from a flagged block on a
+Nib note tagged Principle. Promises earlier passes wrote from one are withdrawn.
+
+**What was wrong.** Nib grew a second review row that day - what you owe, and
+what you are practising - split by that tag. That fixed the sidebar and nothing
+underneath it: the importer here ran `for (const alert of note.alerts)` with no
+tag guard, so a principle flagged for practice still arrived as
+`nib:<note>:<alert>` with a clock on it. "Listen longer than it is comfortable"
+has no done state and no date it is late by, and as a promise it would age, go
+critical, and sit at the top of the shortest and most trusted list in this app
+asking who was owed a thing nobody had promised.
+
+**The flags are not dropped.** `principlesInNib` already reads them for the prep
+card, oldest first, where a principle about how to talk to people is actually
+usable and where nothing puts a clock on them. This only stops them becoming
+obligations - so the two halves of the same idea stop contradicting each other:
+`practices.js` said a principle has no deadline while the importer was busy
+giving one to every action point on it.
+
+**One definition, used twice.** `commitments` is computed once per note and feeds
+both the withdrawal check and the creation loop. Skipping only creation would
+leave every promise already imported from a principle note sitting there for
+ever; skipping only the withdrawal would retract and re-create them on every
+pass. Together, the existing withdrawal loop cleans up what earlier passes wrote,
+free - and marks them `retracted`, not `resolved`, because a tag being applied is
+no evidence that anything got done.
+
+**Resolved by id, name as the fallback, in one place.** `principleTagId` was three
+copies of the same lookup and is now one, with the importer as its fourth caller.
+Two copies that disagreed would mean a principle whose flags Tend shows as
+practice on one page and chases as a promise on another - which is precisely the
+bug being fixed, reintroduced by duplication.
+
+**A note carrying both tags counts as a principle.** It has to match what Nib
+decided for its own two rows, or the same note is a commitment in one app and a
+practice in the other. Nib's split accepts that a mixed note lands wholly on one
+side; this agrees with it rather than inventing a second rule.
+
+**Nothing to migrate in practice.** The author's own notebook has 46 principle
+notes and none of them carried a flag when this shipped, so the event log holds
+no promise derived from one - checked rather than assumed. The withdrawal path is
+tested anyway: it is the upgrade path for anybody who had flagged one, and for
+the case of a note being retagged later.
+
+**Seven tests**, including the two that matter: an ordinary note's flag is still
+a commitment, and a promise imported before the note became a principle is
+retracted rather than left to age.
+
 ## 2026-09-02 - api.js is the service surface, and nothing else
 
 **Decided.** Every section of api.js has its own module named after its subject.
