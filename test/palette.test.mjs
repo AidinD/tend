@@ -45,7 +45,11 @@ function channels(hex) {
   return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
 }
 
-/** Relative luminance, per WCAG 2.x. */
+/**
+ * Relative luminance, per WCAG 2.x.
+ *
+ * @param {string} hex
+ */
 function luminance(hex) {
   const [r, g, b] = channels(hex).map((v) => {
     const c = v / 255;
@@ -60,8 +64,13 @@ function contrast(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Every `--name: #hex;` in :root. */
+/**
+ * Every `--name: #hex;` in :root.
+ *
+ * @returns {Record<string, string>}
+ */
 function tokens() {
+  /** @type {Record<string, string>} */
   const out = {};
   for (const m of split().root.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
     out[m[1]] = m[2];

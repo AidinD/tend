@@ -350,10 +350,19 @@ main {
   margin-bottom: 28px;
 }
 
-/* A group heading straight after a card reads as that card's own footer unless
-   it gets the same air a group gets below itself. */
+/*
+ * A group heading straight after a card reads as that card's own footer unless
+ * it gets the same air a group gets below itself.
+ *
+ * `p` for the same reason, found the same way: on The day, the line counting
+ * the entries sat flush against the heading below it, because the paragraph
+ * classes carry a top margin and no bottom one and a group head carries no top
+ * margin at all. Listing the block types that need this was always going to
+ * miss the next one, so the rule is now about what a group FOLLOWS.
+ */
 .card + .group,
-.metrics + .group {
+.metrics + .group,
+p + .group {
   margin-top: 28px;
 }
 
@@ -993,6 +1002,26 @@ button.row:hover {
 .card-why.dim {
   color: var(--text-faint);
   font-size: var(--t-body);
+}
+
+/*
+ * A label that names the KIND of thing a line holds, on the line itself.
+ *
+ * A decision card stacked three of these - the reason, what was rejected, who
+ * was consulted - as three sentences in one colour at one weight, so finding
+ * the rejected option meant reading all three. This is the inline form of the
+ * block heading above: same case, same spacing, so the two read as one device
+ * rather than two.
+ */
+.inline-label {
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-size: var(--t-micro);
+  color: var(--text-dim);
+  /* Small, because the space after the colon is a real character in the text
+     rather than something this rule supplies. */
+  margin-right: 2px;
 }
 
 /* One colour, two carriers: a card's reason and the small print under a row.

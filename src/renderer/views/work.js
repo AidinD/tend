@@ -69,7 +69,13 @@ async function workLists() {
 
   const projectRows = (projects ?? [])
     .map(
-      (/** @type {any} */ p) => `<div class="row static">
+      /*
+         A project that has fallen behind carries it on the row, the same way
+         the roster does. The pill on the right already said so; a page is
+         scanned before it is read, and the two views may not disagree about
+         what "behind" looks like.
+      */
+      (/** @type {any} */ p) => `<div class="row static${p.behindBy ? ` sev-${esc(p.urgency)}` : ""}">
         <span class="row-name">${esc(p.name)}</span>
         <span class="row-right">
           <span class="row-meta">last looked at ${esc(p.lastLookedAt)}</span>

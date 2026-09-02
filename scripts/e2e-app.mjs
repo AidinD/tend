@@ -3481,9 +3481,40 @@ try {
     "settings"
   ];
 
+  /*
+   * The visits are unconditional; the images are asked for with `--shots`.
+   *
+   * Not for signal - a screenshot that fails returns null and prints a note,
+   * and was never a check. For wall clock. Page.captureScreenshot hangs for its
+   * full 30s timeout often enough to see twice in one run on this machine, and
+   * eleven calls turn that from an occasional minute into an occasional five,
+   * on a suite whose whole worth is that it gets run.
+   */
+  const wantShots = process.argv.includes("--shots");
+
   for (const view of VIEWS) {
     await page.click(`.nav-btn[data-view="${view}"]`);
     await sleep(350);
+
+    /*
+     * The spacing check, on every view rather than only the two that thought to
+     * ask for it. It is the same helper the roster checks already use, and it
+     * had been sitting there able to catch this everywhere while being pointed
+     * at one page - which is how a heading on The day came to sit flush against
+     * the line above it with a green suite.
+     *
+     * Views with no group that has anything above it are skipped rather than
+     * failed: there is nothing to measure, which is not the same as a gap of
+     * zero.
+     */
+    const gaps = await groupGaps(page);
+    if (gaps.length > 0) {
+      checkGroupGaps(gaps, view);
+    }
+
+    if (!wantShots) {
+      continue;
+    }
     const name = view === "now" ? "now-view" : `view-${view}`;
     const shot = await page.screenshot(join(root, "docs", `${name}.png`));
     if (shot !== null) {

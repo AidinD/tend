@@ -140,8 +140,19 @@ function entry(d) {
 function body(d) {
   return `
     ${d.because ? `<p class="card-why">${esc(d.because)}</p>` : ""}
-    ${d.rejected ? `<p class="card-why dim">Rejected: ${esc(d.rejected)}</p>` : ""}
-    ${d.consulted.length > 0 ? `<p class="card-why dim">Consulted: ${esc(d.consulted.join(", "))}</p>` : ""}
+    ${
+      /*
+       * The colon and the space are IN the text, not added by the stylesheet.
+       *
+       * These lines are selectable, and a label placed with `margin-right`
+       * copies out as "ConsultedTestperson" - the styling would be doing work
+       * the words then cannot do on their own. It is also what a check here
+       * reads, and a check that has to learn about a span to find a name is
+       * measuring the markup rather than the behaviour.
+       */ ""
+    }
+    ${d.rejected ? `<p class="card-why dim"><span class="inline-label">Rejected:</span> ${esc(d.rejected)}</p>` : ""}
+    ${d.consulted.length > 0 ? `<p class="card-why dim"><span class="inline-label">Consulted:</span> ${esc(d.consulted.join(", "))}</p>` : ""}
     ${d.missing.length > 0 ? `<p class="card-why warn-text">Missing ${esc(d.missing.join(" Missing "))}</p>` : ""}`;
 }
 
