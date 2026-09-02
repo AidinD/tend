@@ -340,6 +340,35 @@ async function personPage(id) {
     )
     .join("");
 
+  /*
+   * Material that lives elsewhere.
+   *
+   * The age is on every row and it is not decoration. A reading prepared before
+   * a conversation stops being current the moment that conversation happens, and
+   * an undated link on somebody's page reads as advice months after it stopped
+   * being any such thing. Nothing expires on its own - deciding a reading is
+   * spent is a judgement, and quietly hiding it would be worse than showing it
+   * plainly marked as six months old.
+   *
+   * A real anchor rather than a button: the main process already sends anything
+   * outside the app to the real browser, so this needs no action of its own and
+   * gets middle-click and copy-link for free.
+   */
+  const linked = (p.links ?? [])
+    .map(
+      (/** @type {any} */ l) => `<div class="line">
+        <span class="line-when">${esc(l.added)}</span>
+        <span class="line-text">
+          <a href="${esc(l.url)}" target="_blank" rel="noreferrer noopener">${esc(l.title)}</a>
+          ${l.note ? `<span class="src"> ${esc(l.note)}</span>` : ""}
+        </span>
+        <span class="line-right">
+          <button class="act tiny danger" data-act="unlink" data-id="${esc(l.id)}" data-name="${esc(l.title)}">Remove</button>
+        </span>
+      </div>`
+    )
+    .join("");
+
   return `
     <div class="view-head"><button class="act" data-act="back">← All people</button></div>
     <div class="panel">
@@ -368,6 +397,7 @@ async function personPage(id) {
             : ""
         }
         <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
+        <button class="act" data-act="link" data-person="${esc(p.id)}">Link something</button>
         ${blocks.observations ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>` : ""}
         ${
           blocks.observations && model.available
@@ -392,6 +422,7 @@ async function personPage(id) {
           ? list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")
           : ""
       }
+      ${list("Linked", linked, "Nothing linked. Prepared notes and anything else that lives outside Tend can be pointed at from here.")}
       ${
         blocks.moments
           ? list(
@@ -712,6 +743,47 @@ export const actions = {
       return;
     }
     if (await act("logPromise", { person: d.person, ...values }, "Logged.")) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  /**
+   * Point at material that lives outside Tend.
+   *
+   * @param {Record<string, string>} d
+   */
+  link: async (d) => {
+    const values = await form({
+      title: "Link something",
+      intro:
+        "The address is stored, never a copy - the same arrangement as the Nib pointer. Every " +
+        "row shows how old it is, because prepared notes stop being current once the " +
+        "conversation happens and nothing here expires on its own.",
+      fields: [
+        { name: "url", label: "Address", placeholder: "https://", required: true },
+        { name: "title", label: "What it is", placeholder: "Prep for the next 1-1" },
+        { name: "note", label: "Why, if it is not obvious", type: "textarea" }
+      ],
+      confirm: "Link it"
+    });
+    if (!values) {
+      return;
+    }
+    if (await act("linkTo", { person: d.person, ...values }, "Linked.")) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  unlink: async (d) => {
+    const sure = await ask({
+      title: `Remove the link to ${d.name}?`,
+      body: "Only the pointer goes. Whatever it pointed at is untouched.",
+      confirm: "Remove",
+      tone: "danger"
+    });
+    if (sure && (await act("unlink", { id: d.id }, "Removed."))) {
       refresh();
     }
   },

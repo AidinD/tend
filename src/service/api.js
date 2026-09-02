@@ -95,6 +95,11 @@ export {
   workstreams
 } from "./workstreams.js";
 
+/* --------------------------------------------------------------- links -- */
+
+/* Moved to links.js and re-exported, so the service surface is unchanged. */
+export { linkTo, links, unlink } from "./links.js";
+
 /* ----------------------------------------------------------- nib links -- */
 
 /*

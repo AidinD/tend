@@ -32,6 +32,19 @@ export const COLLECTIONS = /** @type {const} */ ([
   /** Which Nib categories feed which person, and as what kind of contact. */
   "sources",
   /**
+   * Pointers to material about somebody that lives outside the app.
+   *
+   * Prepared words for a conversation, a reading of one that happened, a spec
+   * somebody else maintains. The same shape as the Nib pointer: the material
+   * stays where it is and this holds the address, the title and the date.
+   *
+   * The date is not decoration. A note about a conversation stays true; a
+   * prepared reading stops being current the moment the conversation happens,
+   * and an undated link reads as advice rather than as history. See
+   * `domain/links.js`.
+   */
+  "links",
+  /**
    * Commitments read out of a shared meeting note that nobody has been named
    * for yet.
    *

@@ -298,6 +298,53 @@ export const TOOLS = [
     run: (store, args, now) => api.logEvidence(store, { ...args, now })
   },
   {
+    name: "tend_link_to",
+    description:
+      "Point at material about somebody that lives outside Tend - prepared words for a " +
+      "conversation, a reading of one that happened, a spec somebody else maintains. Stores the " +
+      "address and the date, never a copy, which is the same arrangement as the Nib pointer. " +
+      "https and http only: links open through the operating system, so any other scheme would " +
+      "hand the address to whatever program claims it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        person: { type: "string", description: "Name or id." },
+        url: { type: "string", description: "An https:// or http:// address." },
+        title: { type: "string", description: "What it is. Defaults to the host." },
+        note: { type: "string", description: "Why it is worth opening, if that is not obvious." }
+      },
+      required: ["person", "url"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.linkTo(store, { ...args, now })
+  },
+  {
+    name: "tend_links",
+    description:
+      "What is linked to somebody, newest first, with how long ago each was added. The age is " +
+      "the part that matters: a reading prepared before a conversation stops being current the " +
+      "moment that conversation happens, and nothing here expires on its own.",
+    inputSchema: {
+      type: "object",
+      properties: { person: { type: "string", description: "Name or id. Omit for everybody." } },
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.links(store, { ...args, now })
+  },
+  {
+    name: "tend_unlink",
+    description:
+      "Remove one link from somebody. Only the pointer goes - whatever it pointed at is " +
+      "untouched, since Tend never held a copy of it. Use tend_links for the ids.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"],
+      additionalProperties: false
+    },
+    run: (store, args) => api.unlink(store, args.id)
+  },
+  {
     name: "tend_observations",
     description:
       "Read back the observations recorded about somebody - the raw material for a review " +

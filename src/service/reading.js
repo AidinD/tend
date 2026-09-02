@@ -25,6 +25,7 @@ import { namedStakes } from "../domain/stakes.js";
 import { agoWords, driftBadge, humanDays } from "../domain/time.js";
 import { isUnspecified } from "../domain/workstreams.js";
 import { lastReviewRun } from "./reflection.js";
+import { linksFor } from "./links.js";
 import { resolvePerson, resolveProject } from "./resolve.js";
 
 /**
@@ -191,7 +192,10 @@ export function person(store, query, now) {
     cadences,
     openPromises: promises,
     recentContact: history,
-    observations: evidence
+    observations: evidence,
+    // Material about them that lives elsewhere, newest first and carrying its
+    // age. See domain/links.js for why the age is the part that matters.
+    links: linksFor(store, p.id, now)
   };
 }
 
