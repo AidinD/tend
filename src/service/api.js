@@ -95,6 +95,11 @@ export {
   workstreams
 } from "./workstreams.js";
 
+/* ----------------------------------------------------------------- aims -- */
+
+/* Moved to aims.js and re-exported, so the service surface is unchanged. */
+export { aim, aims, endAim, logAim, setAim, updateAim } from "./aims.js";
+
 /* --------------------------------------------------------------- links -- */
 
 /* Moved to links.js and re-exported, so the service surface is unchanged. */

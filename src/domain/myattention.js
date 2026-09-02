@@ -80,6 +80,9 @@ const CONCENTRATION_OF = 0.2;
  * @param {Record<string, any>[]} [input.entries] End-of-day entries.
  * @param {number | null} [input.lastReadAt] When a pass over them last ran.
  * @param {{ at?: number }[]} [input.reflections] Weekly-ish look-backs already written.
+ * @param {Record<string, any>[]} [input.aims] Goals he set for himself.
+ * @param {Record<string, any>[]} [input.aimNotes] One row per occasion an aim did
+ *   or did not happen. Both halves matter: the gap between them is the reading.
  * @returns {Signal[]}
  */
 export function myAttention({
@@ -89,7 +92,9 @@ export function myAttention({
   stakes = [],
   entries = [],
   lastReadAt = null,
-  reflections = []
+  reflections = [],
+  aims = [],
+  aimNotes = []
 }) {
   const since = now - WINDOW_DAYS * DAY_MS;
   // Somebody on leave or already gone is not somebody you are neglecting, and
@@ -284,5 +289,89 @@ export function myAttention({
     }
   }
 
+  /* ------------------------------------------------- my own aims -- */
+
+  /*
+   * An aim that has gone quiet, and what to do about it.
+   *
+   * The nudge carries `through` - which real work the aim happens in - because
+   * a reminder that says only "you have a goal" is the reminder that trained
+   * somebody to ignore the page it sits on. Where the aim has no `through`
+   * recorded, that absence IS the thing to say: a goal with no place to happen
+   * is a goal waiting for a free evening.
+   *
+   * `habit: true` throughout. An aim not thought about in three weeks has let
+   * nobody down, and it must never be able to change the daily page's headline -
+   * see "A habit is not a finding" in this file's header.
+   */
+  for (const row of aims) {
+    if (row._deleted || String(row.status ?? "open") !== "open") {
+      continue;
+    }
+    const mine = aimNotes.filter((/** @type {any} */ n) => String(n.aim) === String(row.id));
+    const last = mine
+      .map((/** @type {any} */ n) => Number(n.at ?? 0))
+      .sort((/** @type {number} */ a, /** @type {number} */ b) => b - a)[0];
+    const from = last ?? Number(row.startedAt ?? now);
+    const days = daysBetween(from, now);
+    const cadence = Number(row.cadenceDays) > 0 ? Number(row.cadenceDays) : 21;
+
+    if (days < cadence) {
+      continue;
+    }
+
+    const through = String(row.through ?? "").trim();
+    signals.push({
+      key: `aim-quiet:${String(row.id)}`,
+      text:
+        last === undefined
+          ? `I set out to ${lower(String(row.aim ?? "something"))} and have not logged an occasion yet.`
+          : `I have not logged anything on "${String(row.aim ?? "")}" in ${days} days.`,
+      detail:
+        through === ""
+          ? "No work is named for this one, which is the part to fix first - a goal with nowhere to happen waits for a free evening."
+          : `Where it happens: ${through}`,
+      // Below the reflection reminder. That one is about a habit of looking
+      // back at everything; this is one thread inside it.
+      weight: 15,
+      habit: true
+    });
+  }
+
+  /*
+   * An aim whose test was never written.
+   *
+   * Separate from the quiet one, and louder, because the two are different
+   * failures: a quiet aim is one he has not got to, and an aim with no measure
+   * is one that cannot be got to. It is the state a rolling development point
+   * lives in for ever.
+   */
+  for (const row of aims) {
+    if (row._deleted || String(row.status ?? "open") !== "open") {
+      continue;
+    }
+    if (String(row.measure ?? "").trim() !== "") {
+      continue;
+    }
+    signals.push({
+      key: `aim-unmeasured:${String(row.id)}`,
+      text: `I have not said how I would know whether "${String(row.aim ?? "")}" is happening.`,
+      detail:
+        "Until it has a test, it can only ever be kept to next time - which is what a development " +
+        "point with no marker becomes.",
+      weight: 18,
+      habit: true
+    });
+  }
+
   return signals.sort((a, b) => b.weight - a.weight);
+}
+
+/**
+ * An aim's first letter lowered, so it reads inside a sentence.
+ *
+ * @param {string} text
+ */
+function lower(text) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
 }

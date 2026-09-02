@@ -118,6 +118,21 @@ export const COLLECTIONS = /** @type {const} */ ([
   "growth",
   "growthNotes",
   /**
+   * Goals he sets for himself, and a row per occasion one did or did not
+   * happen.
+   *
+   * The mirror of a growth thread, turned inward, and kept apart from it for the
+   * reason `domain/aims.js` opens with: a thread's consent fields mean nothing
+   * on oneself, and the question that decides whether a self-set goal is worth
+   * anything - who judges - has no field there.
+   *
+   * An aim names where its verdict comes from, and one with no source is
+   * refused. A goal nothing can ever satisfy is not a goal, it is a standing
+   * reproach.
+   */
+  "aims",
+  "aimNotes",
+  /**
    * Answers you are waiting for from somebody else, and a row per time you
    * chased one.
    *

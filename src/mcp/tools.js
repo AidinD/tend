@@ -298,6 +298,66 @@ export const TOOLS = [
     run: (store, args, now) => api.logEvidence(store, { ...args, now })
   },
   {
+    name: "tend_aims",
+    description:
+      "The goals the user set for himself, with how long since each was last thought about, how " +
+      "many occasions were logged and how many of those actually happened. The gap between " +
+      "those two counts is the reading: eight logged and two happened says something neither " +
+      "number says alone. Also reports what each aim is still missing - an aim with no test " +
+      "written can only ever be kept to next time.",
+    inputSchema: NO_ARGS,
+    run: (store, _args, now) => api.aims(store, now)
+  },
+  {
+    name: "tend_set_aim",
+    description:
+      "Set a goal for the user himself. The source is required and says where the verdict comes " +
+      "from: 'record' means arithmetic over rows already written, 'asked' means somebody else " +
+      "says so and names who, 'logged' means he records a dated occasion each time. An aim with " +
+      "no source is refused, because a goal nothing can ever satisfy is a standing reproach " +
+      "rather than a goal. Two aims may be open at once and a third is refused.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        aim: { type: "string", description: "One sentence: what he wants to be able to do." },
+        source: { type: "string", enum: ["record", "asked", "logged"] },
+        why: { type: "string", description: "What makes it worth the months." },
+        measure: { type: "string", description: "The actual test, in words." },
+        asksWho: { type: "string", description: "For source 'asked': who, and when." },
+        through: {
+          type: "string",
+          description:
+            "Which real work this happens in. Without it the goal waits for a free evening, " +
+            "which is how the two that stalled were set up."
+        },
+        cadenceDays: { type: "number", description: "How often it should come up. Three weeks by default." },
+        horizonDays: { type: "number", description: "When to question the aim itself, not a deadline." }
+      },
+      required: ["aim", "source"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.setAim(store, { ...args, now })
+  },
+  {
+    name: "tend_log_aim",
+    description:
+      "Record one occasion an aim did or did not happen. `happened` is required and takes false " +
+      "on purpose: a log of only the times it went well is a scrapbook, and the gap between the " +
+      "occasions taken and the ones missed is what makes the aim measurable at all.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        aim: { type: "string", description: "The aim's id, from tend_aims." },
+        note: { type: "string", description: "What happened, concretely." },
+        happened: { type: "boolean", description: "Did he do the thing, or is this a miss?" },
+        at: { type: "number", description: "When, epoch milliseconds. Defaults to now." }
+      },
+      required: ["aim", "note", "happened"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.logAim(store, { ...args, now })
+  },
+  {
     name: "tend_link_to",
     description:
       "Point at material about somebody that lives outside Tend - prepared words for a " +

@@ -71,6 +71,10 @@ export function myAttentionSignals(store, now) {
     // Whether a weekly reflection has ever been written, and when. See the
     // "not reflected on" signal in myattention.js.
     reflections: /** @type {any[]} */ (store.rows("reflections")),
+    // His own aims, so the page can say when one has gone quiet and where it
+    // was supposed to happen.
+    aims: /** @type {any[]} */ (store.rows("aims")),
+    aimNotes: /** @type {any[]} */ (store.rows("aimNotes")),
     now
   });
 }
