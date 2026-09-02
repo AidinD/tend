@@ -287,6 +287,35 @@ describe("severity is visible without reading anything", () => {
     assert.match(block, /background:\s*transparent/);
   });
 
+  it("puts a card's severity in a band, not across its whole surface", () => {
+    /*
+     * The tint was measured on a narrow card and was right there. On a wide
+     * monitor the same 13% alpha becomes two thousand pixels of colour for a
+     * signal that has not got any stronger, so the amount of colour tracked the
+     * window width rather than the urgency.
+     *
+     * A band is width-independent. This asserts the shape rather than the
+     * pixels: the card itself must not paint a tinted background, and the head
+     * must.
+     */
+    const { rest } = split();
+
+    for (const sev of ["critical", "warn"]) {
+      const at = rest.indexOf(`.card.sev-${sev} {`);
+      assert.ok(at >= 0, `.card.sev-${sev} should exist`);
+      const own = rest.slice(at, rest.indexOf("}", at));
+      assert.ok(
+        !/background/.test(own),
+        `.card.sev-${sev} paints its whole surface: ${own.replace(/\s+/g, " ")}`
+      );
+
+      const head = rest.indexOf(`.card.sev-${sev} > .card-top {`);
+      assert.ok(head >= 0, `.card.sev-${sev} > .card-top should carry the band`);
+      const band = rest.slice(head, rest.indexOf("}", head));
+      assert.match(band, new RegExp(`--${sev}-soft`), `the band should use --${sev}-soft`);
+    }
+  });
+
   it("uses the same language on a roster row as on a card", () => {
     /* Two vocabularies for one meaning is one that gets forgotten. Rows carry
        the severity of the drift on them, and share these rules with cards

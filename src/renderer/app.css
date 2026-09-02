@@ -55,6 +55,10 @@
    */
   --critical-text: #f0a294;
   --warn-text: #e7c076;
+  /* The border a severity card gets: its own hue mixed far enough into --line
+     to belong to the card rather than outline it. */
+  --critical-edge: #4d3a37;
+  --warn-edge: #4a4234;
   --watch-text: #cbae7c;
   --ok-text: #8ccfae;
   --book-text: #d0aeee;
@@ -472,24 +476,64 @@ p + .group {
  * Deliberately not extended to ok or proposed. Tinting everything is tinting
  * nothing, and those two are not asking for anything.
  */
-.card.sev-critical,
+/*
+ * A card wears its severity as a band across the head; a row wears it as a
+ * tint, because a row IS its own head.
+ *
+ * Both were the whole surface tinted, measured at 1.19 against plain and
+ * correct on a narrow card. On a 3440px monitor the same 13% alpha becomes two
+ * thousand pixels of colour for a signal that has not got any stronger - the
+ * colour grows with the card while the information does not. A band holds the
+ * amount of colour constant at any width, and puts it where the eye lands
+ * first anyway, which is the name.
+ *
+ * The band covers the title row and not the reason under it. The reason is
+ * capped at 76ch so it stays readable on a wide screen, and a width-capped
+ * paragraph cannot also be a full-width band without a wrapper element in
+ * every view that builds a card. Leaving it out is no loss: body text on plain
+ * surface was the point of moving the colour off the card.
+ */
+.card.sev-critical {
+  border-color: var(--critical-edge);
+}
+.card.sev-critical > .card-top {
+  background: linear-gradient(var(--critical-soft), var(--critical-soft)), var(--surface);
+  border-bottom: 1px solid var(--critical-edge);
+}
 .row.sev-critical {
   background: linear-gradient(var(--critical-soft), var(--critical-soft)), var(--surface);
-  border-color: #4d3a37;
+  border-color: var(--critical-edge);
 }
 .card.sev-critical::before,
 .row.sev-critical::before {
   background: var(--critical);
 }
 
-.card.sev-warn,
+.card.sev-warn {
+  border-color: var(--warn-edge);
+}
+.card.sev-warn > .card-top {
+  background: linear-gradient(var(--warn-soft), var(--warn-soft)), var(--surface);
+  border-bottom: 1px solid var(--warn-edge);
+}
 .row.sev-warn {
   background: linear-gradient(var(--warn-soft), var(--warn-soft)), var(--surface);
-  border-color: #4a4234;
+  border-color: var(--warn-edge);
 }
 .card.sev-warn::before,
 .row.sev-warn::before {
   background: var(--warn);
+}
+
+/*
+ * The band reaches the card's edges, so it cancels the card's padding on three
+ * sides and puts it back as its own. Written once against the card's padding
+ * rather than per severity, so the two cannot fall out of step.
+ */
+.card.sev-critical > .card-top,
+.card.sev-warn > .card-top {
+  margin: -13px -15px var(--sp-block) -17px;
+  padding: 11px 15px 11px 17px;
 }
 
 .card.sev-watch::before,
