@@ -1745,6 +1745,76 @@ export function unbindSource(store, id) {
 }
 
 /**
+ * Observations, read back.
+ *
+ * ## The gap this closes
+ *
+ * There was a way to file review material and no way to get it back. An agent
+ * could add an observation about somebody and never see one, and the only read
+ * anywhere was the list on a person's page in the app - so "what have I
+ * actually got on this person before their review" was a question the tool
+ * could not answer to anything but a human reading a screen.
+ *
+ * That is the wrong shape for the one feature whose whole value is being
+ * complete six months later. Material you can write and not read is material
+ * you cannot check, and unread material is indistinguishable from none.
+ *
+ * ## Grouped by area rather than listed flat
+ *
+ * `area` is what makes this more than a pile: it maps an observation onto the
+ * axis a review is actually held against. A flat list by date answers "what
+ * happened lately", which is the question the record already skews towards. By
+ * area it answers the harder one - which axes have nothing under them at all.
+ *
+ * Observations with no area are their own group rather than being dropped or
+ * silently filed somewhere. Most of them have none, and a read that hid the
+ * majority of the record would be worse than no read.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} [args]
+ * @param {string} [args.person] Name or id. Omitted returns everybody's.
+ * @param {string} [args.area] One axis, when only that one is wanted.
+ */
+export function observations(store, { person, area } = {}) {
+  const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name)]));
+
+  let personId = null;
+  if (person) {
+    const found = resolvePerson(store, person);
+    if (!found.ok) {
+      return { error: found.error };
+    }
+    personId = found.person.id;
+  }
+
+  const wanted = String(area ?? "").trim();
+  const rows = store
+    .rows("evidence")
+    .filter((e) => (personId === null ? true : String(e.person ?? "") === personId))
+    .filter((e) => (wanted === "" ? true : String(e.area ?? "") === wanted))
+    .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0));
+
+  /** @type {Map<string, any>} */
+  const byArea = new Map();
+  for (const row of rows) {
+    const key = String(row.area ?? "").trim() || "(no area)";
+    const group = byArea.get(key) ?? { area: key, items: [] };
+    group.items.push({
+      id: String(row.id),
+      // The name, because an observation about nobody is an observation about
+      // his own work, and the difference is the whole reason `person` is
+      // optional on the way in.
+      person: row.person ? (names.get(String(row.person)) ?? "unknown") : null,
+      text: String(row.text ?? ""),
+      at: Number(row.at ?? 0)
+    });
+    byArea.set(key, group);
+  }
+
+  return { areas: [...byArea.values()], count: rows.length };
+}
+
+/**
  * Commitments read out of a shared meeting note that nobody has been named for
  * yet.
  *

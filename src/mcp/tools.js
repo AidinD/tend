@@ -298,6 +298,25 @@ export const TOOLS = [
     run: (store, args, now) => api.logEvidence(store, { ...args, now })
   },
   {
+    name: "tend_observations",
+    description:
+      "Read back the observations recorded about somebody - the raw material for a review " +
+      "conversation. Grouped by area, which is the axis a review is held against, so the " +
+      "useful question it answers is which axes have nothing under them yet rather than what " +
+      "happened most recently. Observations with no area are their own group, and most have " +
+      "none. Omit the person to read everybody's; an observation with no person is about the " +
+      "user's own work.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        person: { type: "string", description: "Name or id. Omit for everybody." },
+        area: { type: "string", description: "Only this axis, e.g. team-lead or rnd." }
+      },
+      additionalProperties: false
+    },
+    run: (store, args) => api.observations(store, args)
+  },
+  {
     name: "tend_signals",
     description:
       "The monthly questions Tend cannot derive and has to ask: whether anyone stopped " +

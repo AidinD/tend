@@ -659,6 +659,69 @@ describe("everything else that looks a binding up by person", () => {
   });
 });
 
+describe("reading observations back", () => {
+  /*
+   * There was a way to file review material and no way to read it. An agent
+   * could add an observation and never see one, and unread material is
+   * indistinguishable from none - which is a bad property for the one feature
+   * whose value is being complete six months later.
+   */
+
+  it("groups by the axis a review is actually held against", () => {
+    ok(api.logEvidence(store, { person: "ilva", text: "Carried the migration", area: "team-lead", now: NOW }));
+    ok(api.logEvidence(store, { person: "ilva", text: "Wrote the runbook", area: "rnd", now: NOW }));
+    ok(api.logEvidence(store, { person: "ilva", text: "Steady in the incident", area: "team-lead", now: NOW }));
+
+    const read = ok(api.observations(store, { person: "ilva" }));
+    assert.equal(read.count, 3);
+    assert.deepEqual(
+      read.areas.map((/** @type {any} */ a) => `${a.area}:${a.items.length}`).sort(),
+      ["rnd:1", "team-lead:2"]
+    );
+  });
+
+  it("keeps the ones with no area rather than hiding most of the record", () => {
+    // Most real observations have no area. A read that dropped them would show
+    // a fraction of the record and look complete.
+    ok(api.logEvidence(store, { person: "rune", text: "Asked the awkward question", now: NOW }));
+
+    const read = ok(api.observations(store, { person: "rune" }));
+    assert.equal(read.count, 1);
+    assert.equal(read.areas[0].area, "(no area)");
+  });
+
+  it("says whose it is, and says nobody for one about his own work", () => {
+    ok(api.logEvidence(store, { person: "ilva", text: "Hers", now: NOW }));
+    ok(api.logEvidence(store, { text: "Mine", now: NOW }));
+
+    const all = ok(api.observations(store));
+    const items = all.areas.flatMap((/** @type {any} */ a) => a.items);
+    assert.equal(items.find((/** @type {any} */ i) => i.text === "Hers").person, "Ilva Brandt");
+    assert.equal(items.find((/** @type {any} */ i) => i.text === "Mine").person, null);
+  });
+
+  it("can be narrowed to one axis", () => {
+    ok(api.logEvidence(store, { person: "ilva", text: "One", area: "team-lead", now: NOW }));
+    ok(api.logEvidence(store, { person: "ilva", text: "Two", area: "rnd", now: NOW }));
+
+    const read = ok(api.observations(store, { person: "ilva", area: "rnd" }));
+    assert.equal(read.count, 1);
+    assert.equal(read.areas[0].items[0].text, "Two");
+  });
+
+  it("refuses a person it cannot resolve rather than returning everybody's", () => {
+    // The dangerous default: a typo silently widening a read about one person
+    // into a read about the whole team.
+    failed(api.observations(store, { person: "Nobody At All" }));
+  });
+
+  it("is reachable through the agent surface, which is where it was missing", () => {
+    ok(api.logEvidence(store, { person: "ilva", text: "Carried the migration", area: "team-lead", now: NOW }));
+    const read = callTool(store, "tend_observations", { person: "ilva" }, NOW);
+    assert.equal(read.count, 1);
+  });
+});
+
 describe("the same thing through the agent surface", () => {
   it("binds a meeting, reads the queue, and files one - without touching the app", () => {
     /*

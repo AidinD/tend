@@ -237,6 +237,7 @@ const OPERATIONS = {
   bindSource: (/** @type {any} */ a) => api.bindSource(store, a),
   sources: (/** @type {any} */ a) => api.sources(store, a.person),
   unbindSource: (/** @type {any} */ a) => api.unbindSource(store, a.id),
+  observations: (/** @type {any} */ a) => api.observations(store, a ?? {}),
   pendingCommitments: () => api.pendingCommitments(store),
   assignCommitment: (/** @type {any} */ a) => api.assignCommitment(store, a),
   dropCommitment: (/** @type {any} */ a) => api.dropCommitment(store, a.id),
