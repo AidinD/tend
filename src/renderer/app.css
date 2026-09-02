@@ -75,6 +75,28 @@
   --t-section: 20px;
   --t-page: 25px;
 
+  /*
+   * Vertical space inside a card, as four bonds from tightest to loosest.
+   *
+   * The same fault the type scale had, and harder to see: the gaps were 2px
+   * between a line and its own sub-line, 5px between items in a list, 6px
+   * between a label and its content and 12px between blocks. Four levels inside
+   * ten pixels, so a heading, its list and the next heading all read as one
+   * stack of text.
+   *
+   * One of them was inverted, which is what did most of the damage: a label sat
+   * FURTHER from its own list (6px) than the list's items sat from each other
+   * (5px). A heading is the most tightly bound thing on the card and it had the
+   * most air, so it grouped nothing.
+   *
+   * Each step is now roughly twice the one below it. That is what makes them
+   * read as four levels rather than as one soft margin repeated.
+   */
+  --sp-sub: 2px;
+  --sp-label: 5px;
+  --sp-item: 9px;
+  --sp-block: 20px;
+
   --r: 7px;
   --font: "Segoe UI", "Segoe UI Variable", system-ui, sans-serif;
   --mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
@@ -1315,7 +1337,7 @@ button.row:hover {
 }
 
 .prep-block {
-  margin-top: 12px;
+  margin-top: var(--sp-block);
 }
 
 /*
@@ -1329,7 +1351,7 @@ button.row:hover {
  * which keeps the faint tier for what is genuinely small print.
  */
 .prep-head {
-  margin: 0 0 6px;
+  margin: 0 0 var(--sp-label);
   font-size: var(--t-micro);
   font-weight: 700;
   letter-spacing: 0.9px;
@@ -1342,8 +1364,21 @@ button.row:hover {
   padding-left: 17px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--sp-item);
   line-height: 1.5;
+}
+
+/*
+ * A list item's own second line, bound tighter than anything else on the card.
+ *
+ * It had no margin at all and got whatever the flex box happened to give it,
+ * which was fine while items sat 5px apart and wrong the moment they sat 9:
+ * the point of widening the item gap is that a line and its own detail stay
+ * closer to each other than to the next item. Said explicitly so the two
+ * numbers cannot drift apart again.
+ */
+.prep-list li > .src {
+  margin-top: var(--sp-sub);
 }
 
 .prep-note {

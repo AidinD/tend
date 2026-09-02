@@ -119,6 +119,94 @@ describe("the type scale", () => {
   });
 });
 
+describe("the spacing scale inside a card", () => {
+  /** The four bonds, tightest first. */
+  const BONDS = ["sp-sub", "sp-label", "sp-item", "sp-block"];
+
+  it("is four bonds, each clearly looser than the one before", () => {
+    const steps = [...split().root.matchAll(/--(sp-[a-z]+):\s*([\d.]+)px/g)].map((m) => ({
+      name: m[1],
+      px: Number(m[2])
+    }));
+
+    assert.equal(steps.length, BONDS.length, `found ${steps.map((s) => s.name).join(", ")}`);
+    assert.deepEqual(
+      steps.map((s) => s.name),
+      BONDS,
+      "declared out of order, which makes the file lie about the hierarchy"
+    );
+
+    /* The original numbers were 2, 6, 5 and 12 - four levels inside ten pixels,
+       which is one soft margin repeated four times as far as the eye is
+       concerned. 1.6x is the point where a gap starts reading as a different
+       kind of gap. */
+    for (let i = 1; i < steps.length; i++) {
+      const factor = steps[i].px / steps[i - 1].px;
+      assert.ok(
+        factor >= 1.6,
+        `--${steps[i - 1].name} and --${steps[i].name} are ${factor.toFixed(2)}x apart, which reads as one gap`
+      );
+    }
+  });
+
+  it("keeps a heading closer to its own content than the content is to itself", () => {
+    /*
+     * The fault that did the real damage, and the one hardest to see: a section
+     * label sat 6px from its list while the list's own items sat 5px from each
+     * other. The most tightly bound thing on the card had the most air, so a
+     * heading grouped nothing and the card read as one column of text.
+     *
+     * Proximity is what grouping IS, so this ordering is not a nicety.
+     */
+    /** @type {Record<string, number>} */
+    const t = {};
+    for (const m of split().root.matchAll(/--(sp-[a-z]+):\s*([\d.]+)px/g)) {
+      t[m[1]] = Number(m[2]);
+    }
+    /** @param {string} name */
+    const px = (name) => t[name];
+
+    for (const name of BONDS) {
+      assert.ok(t[name] !== undefined, `--${name} should be defined in :root`);
+    }
+    assert.ok(
+      px("sp-label") < px("sp-item"),
+      `a label sits ${px("sp-label")}px from its content and items sit ${px("sp-item")}px apart - the bond is inverted`
+    );
+    assert.ok(
+      px("sp-sub") < px("sp-item"),
+      "a line's own second line must sit closer to it than the next item does"
+    );
+    assert.ok(
+      px("sp-item") < px("sp-block"),
+      "two items in one list must sit closer than two separate blocks"
+    );
+  });
+
+  it("is the only source of vertical space on a prep block", () => {
+    const { rest } = split();
+
+    /* The three rules that carry the rhythm. If one goes back to a literal, the
+       scale is decorative. */
+    for (const [selector, property] of [
+      [".prep-block", "margin-top"],
+      [".prep-head", "margin"],
+      [".prep-list", "gap"]
+    ]) {
+      const at = rest.indexOf(`${selector} {`);
+      assert.ok(at >= 0, `${selector} should exist`);
+      const block = rest.slice(at, rest.indexOf("}", at));
+      const line = block.split("\n").find((l) => l.trim().startsWith(`${property}:`));
+      assert.ok(line !== undefined, `${selector} should set ${property}`);
+      assert.match(
+        line,
+        /var\(--sp-/,
+        `${selector} sets ${property} to a literal:${line.replace(/\s+/g, " ")}`
+      );
+    }
+  });
+});
+
 describe("the text ladder", () => {
   it("is readable on every surface the app draws it on", () => {
     const t = tokens();
