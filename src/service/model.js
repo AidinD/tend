@@ -153,6 +153,45 @@ export function modelStatus() {
   };
 }
 
+/**
+ * One model call, with the three things every pass does around it.
+ *
+ * Nine passes across three files each opened by checking whether a model is
+ * reachable, each returned the failure as data rather than throwing, and each
+ * closed by putting the model id and the cost on its own result. Three steps,
+ * nine times, none of them the interesting part of any pass.
+ *
+ * The duplication was not theoretical. One of the nine had already drifted: the
+ * knowledge pass never checked availability at all, so where the other eight
+ * say "no Claude Code on this machine" it would have surfaced whatever the call
+ * itself failed with. It is unreachable through the app - the view hides the
+ * button - which is exactly why it survived, and why the fix belongs in a shape
+ * that cannot be forgotten rather than in one more copy.
+ *
+ * The caller keeps what is actually its own: what to send, and what to make of
+ * what came back. `shape` receives the model's value and returns the pass's
+ * result; the model id and the cost are added here.
+ *
+ * @template T
+ * @param {typeof ask} askImpl
+ * @param {Parameters<typeof ask>[0]} options
+ * @param {(value: any) => T} shape
+ * @returns {Promise<{ error: string } | (T & { model: string, costUsd: number | null })>}
+ */
+export async function runPass(askImpl, options, shape) {
+  const status = modelStatus();
+  if (!status.available) {
+    return { error: String(status.why) };
+  }
+
+  const answer = await askImpl(options);
+  if (!answer.ok) {
+    return { error: answer.reason };
+  }
+
+  return { ...shape(answer.value ?? {}), model: answer.model, costUsd: answer.costUsd };
+}
+
 /* ---------------------------------------------------------------- brief -- */
 
 const BRIEF_SCHEMA = {
@@ -218,51 +257,38 @@ export async function draftBrief(store, { person, now, about, askImpl = ask }) {
     };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
-  const answer = await askImpl({
-    prompt: [
-      "Here is everything known about one person before a conversation with them.",
-      "",
-      JSON.stringify(card, null, 2),
-      "",
-      about ? `The conversation is specifically about: ${about}` : "",
-      "",
-      "Draft what to say. Work only from the material above."
-    ]
-      .filter((line) => line !== "")
-      .join("\n"),
-    // The writing tier, measured rather than assumed. On the same fixture the
-    // cheap tier produced a usable brief for 7 cents and this one produced a
-    // sharper one for 29 - four points instead of three, and each traced back
-    // to the fact that justified it. A brief is read before a real conversation
-    // and happens a handful of times a week, so it is the one call in this file
-    // where the better answer is worth the difference.
-    model: TIERS.write,
-    schema: BRIEF_SCHEMA,
-    system:
-      "You prepare somebody for a one-to-one conversation with a colleague they are " +
-      "responsible for. You are given a structured summary: how long since they last " +
-      "spoke, what was promised, what that person owns and how it is delegated, what " +
-      "is open on the board, and when something was last written about them. " +
-      "Your draft is read once, on the way to the room. " +
-      HOUSE_RULES
-  });
-
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  return {
-    person: found.person.name,
-    brief: answer.value,
-    model: answer.model,
-    costUsd: answer.costUsd,
-    generatedAt: now
-  };
+  return runPass(
+    askImpl,
+    {
+      prompt: [
+        "Here is everything known about one person before a conversation with them.",
+        "",
+        JSON.stringify(card, null, 2),
+        "",
+        about ? `The conversation is specifically about: ${about}` : "",
+        "",
+        "Draft what to say. Work only from the material above."
+      ]
+        .filter((line) => line !== "")
+        .join("\n"),
+      // The writing tier, measured rather than assumed. On the same fixture the
+      // cheap tier produced a usable brief for 7 cents and this one produced a
+      // sharper one for 29 - four points instead of three, and each traced back
+      // to the fact that justified it. A brief is read before a real conversation
+      // and happens a handful of times a week, so it is the one call in this file
+      // where the better answer is worth the difference.
+      model: TIERS.write,
+      schema: BRIEF_SCHEMA,
+      system:
+        "You prepare somebody for a one-to-one conversation with a colleague they are " +
+        "responsible for. You are given a structured summary: how long since they last " +
+        "spoke, what was promised, what that person owns and how it is delegated, what " +
+        "is open on the board, and when something was last written about them. " +
+        "Your draft is read once, on the way to the room. " +
+        HOUSE_RULES
+    },
+    (value) => ({ person: found.person.name, brief: value, generatedAt: now })
+  );
 }
 
 /* ------------------------------------------------------------ promises -- */
@@ -319,51 +345,41 @@ export async function extractPromises(store, { noteId, nibDir, askImpl = ask }) 
     return { error: "That note is empty, so there is nothing to read." };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
   const truncated = body.text.length > MAX_NOTE_CHARS;
   const text = truncated ? body.text.slice(0, MAX_NOTE_CHARS) : body.text;
 
-  const answer = await askImpl({
-    prompt: [
-      "Here is a note written after a conversation.",
-      "",
-      text,
-      "",
-      "List only what the note's author said they would do. Nothing else."
-    ].join("\n"),
-    model: TIERS.extract,
-    effort: "low",
-    schema: PROMISES_SCHEMA,
-    system:
-      "You extract commitments from a note somebody wrote after a conversation. " +
-      "Only what the AUTHOR committed to - not what the other person promised, not " +
-      "decisions, not observations, not things that merely need doing by somebody. " +
-      "An empty list is the right answer more often than not, and is far better " +
-      "than a plausible one. " +
-      HOUSE_RULES
-  });
-
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  const promises = Array.isArray(answer.value?.promises) ? answer.value.promises : [];
-  return {
-    noteId,
-    candidates: promises
-      .filter((/** @type {any} */ p) => String(p?.text ?? "").trim() !== "")
-      .map((/** @type {any} */ p) => ({
-        text: String(p.text).trim(),
-        confidence: p.confidence === "clear" ? "clear" : "possible"
-      })),
-    truncated,
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+  return runPass(
+    askImpl,
+    {
+      prompt: [
+        "Here is a note written after a conversation.",
+        "",
+        text,
+        "",
+        "List only what the note's author said they would do. Nothing else."
+      ].join("\n"),
+      model: TIERS.extract,
+      effort: "low",
+      schema: PROMISES_SCHEMA,
+      system:
+        "You extract commitments from a note somebody wrote after a conversation. " +
+        "Only what the AUTHOR committed to - not what the other person promised, not " +
+        "decisions, not observations, not things that merely need doing by somebody. " +
+        "An empty list is the right answer more often than not, and is far better " +
+        "than a plausible one. " +
+        HOUSE_RULES
+    },
+    (value) => ({
+      noteId,
+      candidates: (Array.isArray(value.promises) ? value.promises : [])
+        .filter((/** @type {any} */ p) => String(p?.text ?? "").trim() !== "")
+        .map((/** @type {any} */ p) => ({
+          text: String(p.text).trim(),
+          confidence: p.confidence === "clear" ? "clear" : "possible"
+        })),
+      truncated
+    })
+  );
 }
 
 /* -------------------------------------------------------------- themes -- */
@@ -454,53 +470,44 @@ export async function detectThemes(store, { person, now, nibDir, askImpl = ask }
     };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
-  const answer = await askImpl({
-    prompt: [
-      `Here are ${recent.length} notes about the same person, most recent first.`,
-      "",
-      ...recent.map(
-        (note, i) =>
-          `--- note ${i + 1}: ${note.title} (${new Date(note.edited).toISOString().slice(0, 10)}) ---\n` +
-          note.text.slice(0, MAX_NOTE_CHARS)
-      ),
-      "",
-      "What keeps coming up across them?"
-    ].join("\n"),
-    model: TIERS.extract,
-    schema: THEMES_SCHEMA,
-    system:
-      "You look across several notes about one person and name what recurs. " +
-      "A theme must appear in at least two separate notes; report nothing rather " +
-      "than stretching one note into a pattern. Describe what was observed, not " +
-      "what it says about them as a person - this is read before a conversation " +
-      "with them, and a character verdict is both wrong and unusable. " +
-      HOUSE_RULES
-  });
-
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  const themes = (Array.isArray(answer.value?.themes) ? answer.value.themes : [])
-    .filter((/** @type {any} */ t) => Number(t?.times ?? 0) >= 2 && String(t?.name ?? "").trim() !== "")
-    .map((/** @type {any} */ t) => ({
-      name: String(t.name).trim(),
-      evidence: String(t.evidence ?? "").trim(),
-      times: Number(t.times)
-    }));
-
-  return {
-    person: found.person.name,
-    themes,
-    notesRead: recent.length,
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+  return runPass(
+    askImpl,
+    {
+      prompt: [
+        `Here are ${recent.length} notes about the same person, most recent first.`,
+        "",
+        ...recent.map(
+          (note, i) =>
+            `--- note ${i + 1}: ${note.title} (${new Date(note.edited).toISOString().slice(0, 10)}) ---\n` +
+            note.text.slice(0, MAX_NOTE_CHARS)
+        ),
+        "",
+        "What keeps coming up across them?"
+      ].join("\n"),
+      model: TIERS.extract,
+      schema: THEMES_SCHEMA,
+      system:
+        "You look across several notes about one person and name what recurs. " +
+        "A theme must appear in at least two separate notes; report nothing rather " +
+        "than stretching one note into a pattern. Describe what was observed, not " +
+        "what it says about them as a person - this is read before a conversation " +
+        "with them, and a character verdict is both wrong and unusable. " +
+        HOUSE_RULES
+    },
+    (value) => ({
+      person: found.person.name,
+      // Two separate notes at least. One note stretched into a pattern is the
+      // failure this pass is most likely to have, and the cheapest to refuse.
+      themes: (Array.isArray(value.themes) ? value.themes : [])
+        .filter((/** @type {any} */ t) => Number(t?.times ?? 0) >= 2 && String(t?.name ?? "").trim() !== "")
+        .map((/** @type {any} */ t) => ({
+          name: String(t.name).trim(),
+          evidence: String(t.evidence ?? "").trim(),
+          times: Number(t.times)
+        })),
+      notesRead: recent.length
+    })
+  );
 }
 
 /**
@@ -615,11 +622,6 @@ export async function reviewJournal(store, { now, days = REVIEW_WINDOW_DAYS, ask
     return { error: enough.why };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
   const counts = ledger(
     {
       touches: store.rows("touches"),
@@ -640,86 +642,87 @@ export async function reviewJournal(store, { now, days = REVIEW_WINDOW_DAYS, ask
   // read here rather than recomputed.
   const intent = declared(store.focus(), now, days, focusSummary(store, now));
 
-  const answer = await askImpl({
-    prompt: [
-      `Here are ${cover.entries} end-of-day entries from the last ${days} days, newest first.`,
-      "Every box in the form is optional, so a short entry is a normal entry rather than a bad one.",
-      "",
-      ...window.filter(hasEntryContent).map((entry) => entryLines(entry)),
-      "",
-      "What the app recorded over the same window, which is checkable where the entries are not:",
-      ...ledgerLines(counts).map((line) => `- ${line}`),
-      "",
-      intent === null
-        ? "No focus was in force over this window, so there is no declared intention to compare against. Leave saidVsDid empty."
-        : `The declared focus over this window was "${intent.name}", in force for ${intent.overlapDays} of the ${days} days` +
-          (intent.budgetOfWeek === null
-            ? ". "
-            : `, budgeted at ${Math.round(intent.budgetOfWeek * 100)}% of the week. `) +
-          `Its measured cost: ${intent.cost}`,
-      "",
-      "Name what recurs. Two or more separate evenings, or leave it out."
-    ]
-      .filter((line) => line !== "")
-      .join("\n"),
-    // The writing tier. This runs a handful of times a month over material
-    // nothing else in the app can read, and the cheap tier's failure mode here is
-    // the expensive one: a fluent paragraph that reads the entries back instead
-    // of finding what crosses them.
-    model: TIERS.write,
-    schema: REVIEW_SCHEMA,
-    system:
-      "You read somebody's end-of-day entries across several weeks and name what recurs across " +
-      "them. You are looking for two things they cannot see for themselves: where the days " +
-      "actually went, and what kept being avoided. " +
-      "A pattern needs two or more separate evenings. Report nothing rather than stretching one " +
-      "evening into a pattern, and use nothingToSay when the entries support nothing. " +
-      "Quote their own words as evidence rather than paraphrasing them. " +
-      "Never pass judgement on them and never conclude anything about what sort of person they " +
-      "are; end with questions they could put to themselves. " +
-      "The counts you are given are the record. Where the entries and the counts disagree, say so " +
-      "plainly rather than picking one. " +
-      HOUSE_RULES
-  });
+  return runPass(
+    askImpl,
+    {
+      prompt: [
+        `Here are ${cover.entries} end-of-day entries from the last ${days} days, newest first.`,
+        "Every box in the form is optional, so a short entry is a normal entry rather than a bad one.",
+        "",
+        ...window.filter(hasEntryContent).map((entry) => entryLines(entry)),
+        "",
+        "What the app recorded over the same window, which is checkable where the entries are not:",
+        ...ledgerLines(counts).map((line) => `- ${line}`),
+        "",
+        intent === null
+          ? "No focus was in force over this window, so there is no declared intention to compare against. Leave saidVsDid empty."
+          : `The declared focus over this window was "${intent.name}", in force for ${intent.overlapDays} of the ${days} days` +
+            (intent.budgetOfWeek === null
+              ? ". "
+              : `, budgeted at ${Math.round(intent.budgetOfWeek * 100)}% of the week. `) +
+            `Its measured cost: ${intent.cost}`,
+        "",
+        "Name what recurs. Two or more separate evenings, or leave it out."
+      ]
+        .filter((line) => line !== "")
+        .join("\n"),
+      // The writing tier. This runs a handful of times a month over material
+      // nothing else in the app can read, and the cheap tier's failure mode here is
+      // the expensive one: a fluent paragraph that reads the entries back instead
+      // of finding what crosses them.
+      model: TIERS.write,
+      schema: REVIEW_SCHEMA,
+      system:
+        "You read somebody's end-of-day entries across several weeks and name what recurs across " +
+        "them. You are looking for two things they cannot see for themselves: where the days " +
+        "actually went, and what kept being avoided. " +
+        "A pattern needs two or more separate evenings. Report nothing rather than stretching one " +
+        "evening into a pattern, and use nothingToSay when the entries support nothing. " +
+        "Quote their own words as evidence rather than paraphrasing them. " +
+        "Never pass judgement on them and never conclude anything about what sort of person they " +
+        "are; end with questions they could put to themselves. " +
+        "The counts you are given are the record. Where the entries and the counts disagree, say so " +
+        "plainly rather than picking one. " +
+        HOUSE_RULES
+    },
+    (value) => {
+      /*
+       * The one pass that does something besides shape its answer, so it is
+       * worth saying out loud that a write lives inside a callback named for
+       * shaping. It runs here because here is exactly where "the material was
+       * read" becomes true: after a successful call, before the result is handed
+       * back, and never on a refusal.
+       *
+       * The nudge that suggests reading depends on it. A reading that ran, was
+       * read and was discarded still has to silence the nudge, or it returns
+       * tomorrow to suggest reading what was just read - and a nudge that does
+       * that gets ignored, along with the rest of them.
+       *
+       * Not a breach of what this file may write. The row is a timestamp and how
+       * much was read; nothing the model said goes into it, and the reading
+       * itself is still returned and kept only if he keeps it.
+       */
+      noteReviewRun(store, { at: now, days, entries: cover.entries, spread: cover.spread });
 
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  /*
-   * The material has now been read, whether or not he keeps what came back.
-   *
-   * Recorded here rather than left to the caller, because the nudge that suggests
-   * reading depends on it: a reading that ran, was read and was discarded has to
-   * silence the nudge, or it comes back tomorrow to suggest reading what was just
-   * read - and a nudge that does that gets ignored, along with the rest of them.
-   *
-   * Not a breach of what this file may write. The row is a timestamp and how much
-   * was read; nothing the model said goes into it, and the reading itself is still
-   * returned and kept only if he keeps it.
-   */
-  noteReviewRun(store, { at: now, days, entries: cover.entries, spread: cover.spread });
-
-  const value = answer.value ?? {};
-  return {
-    at: now,
-    days,
-    coverage: cover,
-    ledger: counts,
-    declared: intent,
-    // Two or more evenings, enforced here as well as asked for. The same rule as
-    // themes: a floor stated in a prompt is a request, and a floor applied to the
-    // result is a rule.
-    wentInto: recurring(value.wentInto),
-    avoidance: recurring(value.avoidance),
-    saidVsDid: String(value.saidVsDid ?? "").trim(),
-    questions: (Array.isArray(value.questions) ? value.questions : [])
-      .map((/** @type {any} */ q) => String(q ?? "").trim())
-      .filter((/** @type {string} */ q) => q !== ""),
-    nothingToSay: String(value.nothingToSay ?? "").trim(),
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+      return {
+        at: now,
+        days,
+        coverage: cover,
+        ledger: counts,
+        declared: intent,
+        // Two or more evenings, enforced here as well as asked for. The same rule
+        // as themes: a floor stated in a prompt is a request, and a floor applied
+        // to the result is a rule.
+        wentInto: recurring(value.wentInto),
+        avoidance: recurring(value.avoidance),
+        saidVsDid: String(value.saidVsDid ?? "").trim(),
+        questions: (Array.isArray(value.questions) ? value.questions : [])
+          .map((/** @type {any} */ q) => String(q ?? "").trim())
+          .filter((/** @type {string} */ q) => q !== ""),
+        nothingToSay: String(value.nothingToSay ?? "").trim()
+      };
+    }
+  );
 }
 
 /**
@@ -866,51 +869,42 @@ export async function checkOwnPart({ text, askImpl = ask }) {
     return { error: "There is nothing written to read back." };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
-  const answer = await askImpl({
-    prompt: [
+  return runPass(
+    askImpl,
+    {
+      prompt: [
       "Here is one end-of-day entry about time with somebody outside work.",
-      "",
-      written.slice(0, MAX_NOTE_CHARS),
-      "",
-      "Where does it describe them rather than the writer's own part in it?"
-    ].join("\n"),
-    model: TIERS.extract,
-    schema: OWN_PART_SCHEMA,
-    system:
-      "You check one journal entry against a single rule the writer set for themselves: an entry " +
-      "records the interaction and their own part in it, never the other person's state or " +
-      "character. \"That went badly and I got impatient\" keeps the rule; \"she was impossible\" " +
-      "breaks it. " +
-      "Describing what somebody DID or SAID is fine and is often the whole point - what breaks " +
-      "the rule is a claim about what they are, what they felt, or why they did it. " +
-      "Report nothing rather than stretching for something; an entry that already keeps the rule " +
-      "is the common case. " +
-      "You are not editing anything. Every suggestion is one they may ignore, so phrase it as an " +
-      "alternative rather than as a correction, and never moralise about the relationship. " +
-      HOUSE_RULES
-  });
-
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  const value = answer.value ?? {};
-  return {
-    lines: (Array.isArray(value.lines) ? value.lines : [])
-      .filter((/** @type {any} */ l) => String(l?.quote ?? "").trim() !== "")
-      .map((/** @type {any} */ l) => ({
-        quote: String(l.quote).trim(),
-        instead: String(l.instead ?? "").trim()
-      })),
-    ok: String(value.ok ?? "").trim(),
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+        "",
+        written.slice(0, MAX_NOTE_CHARS),
+        "",
+        "Where does it describe them rather than the writer's own part in it?"
+      ].join("\n"),
+      model: TIERS.extract,
+      schema: OWN_PART_SCHEMA,
+      system:
+        "You check one journal entry against a single rule the writer set for themselves: an entry " +
+        "records the interaction and their own part in it, never the other person's state or " +
+        "character. \"That went badly and I got impatient\" keeps the rule; \"she was impossible\" " +
+        "breaks it. " +
+        "Describing what somebody DID or SAID is fine and is often the whole point - what breaks " +
+        "the rule is a claim about what they are, what they felt, or why they did it. " +
+        "Report nothing rather than stretching for something; an entry that already keeps the rule " +
+        "is the common case. " +
+        "You are not editing anything. Every suggestion is one they may ignore, so phrase it as an " +
+        "alternative rather than as a correction, and never moralise about the relationship. " +
+        HOUSE_RULES
+    },
+    (value) => ({
+      // A finding with no quote is dropped: there would be nothing to look at.
+      lines: (Array.isArray(value.lines) ? value.lines : [])
+        .filter((/** @type {any} */ l) => String(l?.quote ?? "").trim() !== "")
+        .map((/** @type {any} */ l) => ({
+          quote: String(l.quote).trim(),
+          instead: String(l.instead ?? "").trim()
+        })),
+      ok: String(value.ok ?? "").trim()
+    })
+  );
 }
 
 /* ------------------------------------------------------------ questions -- */
@@ -955,11 +949,6 @@ export async function answerQuestion(store, { question, now, askImpl = ask }) {
     return { error: "There was no question." };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
   const material = {
     attention: attention(store, now),
     people: people(store, now),
@@ -967,34 +956,30 @@ export async function answerQuestion(store, { question, now, askImpl = ask }) {
     focus: focus(store, now)
   };
 
-  const answer = await askImpl({
-    prompt: [
+  return runPass(
+    askImpl,
+    {
+      prompt: [
       "Here is everything the tool currently knows.",
-      "",
-      JSON.stringify(material, null, 2),
-      "",
-      `Question: ${question}`
-    ].join("\n"),
-    model: TIERS.extract,
-    schema: ANSWER_SCHEMA,
-    system:
-      "You answer a question about somebody's own leadership work using only the " +
-      "material given. If the material does not contain the answer, say so plainly " +
-      "rather than reasoning towards a likely one - a confident guess about a " +
-      "colleague is worse than no answer. " +
-      HOUSE_RULES
-  });
-
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  return {
-    answer: String(answer.value?.answer ?? "").trim(),
-    from: (Array.isArray(answer.value?.from) ? answer.value.from : []).map((/** @type {any} */ f) => String(f)),
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+        "",
+        JSON.stringify(material, null, 2),
+        "",
+        `Question: ${question}`
+      ].join("\n"),
+      model: TIERS.extract,
+      schema: ANSWER_SCHEMA,
+      system:
+        "You answer a question about somebody's own leadership work using only the " +
+        "material given. If the material does not contain the answer, say so plainly " +
+        "rather than reasoning towards a likely one - a confident guess about a " +
+        "colleague is worse than no answer. " +
+        HOUSE_RULES
+    },
+    (value) => ({
+      answer: String(value.answer ?? "").trim(),
+      from: (Array.isArray(value.from) ? value.from : []).map((/** @type {any} */ f) => String(f))
+    })
+  );
 }
 
 /**
@@ -1092,67 +1077,57 @@ export async function readOwnPatterns(store, { now, days = REVIEW_WINDOW_DAYS, a
     return { error: enough.why };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
-  const answer = await askImpl({
-    prompt: [
+  return runPass(
+    askImpl,
+    {
+      prompt: [
       `Here are ${cover.moments} moments logged over ${cover.spread} separate days, newest first.`,
-      'Each has an optional "what happened" and a required "my part", which is the half that matters.',
-      "",
-      ...window.map((moment) => momentLines(moment)),
-      "",
-      "Name what recurs in what THEY did. Two or more separate days, or leave it out."
-    ].join("\n"),
-    // The writing tier. The cheap tier's failure here is the expensive one: a
-    // fluent paragraph that reads the entries back rather than finding what
-    // crosses them, over material nothing else in the app can read.
-    model: TIERS.write,
-    schema: OWN_PATTERN_SCHEMA,
-    system:
-      "You read somebody's notes about events in their own life and name what recurs in THEIR " +
-      "OWN conduct - what they did, chose, felt or avoided. " +
-      "Every single thing you report has them as its subject. You never say what anybody else " +
-      "in the entries is like, was feeling, wanted, or tends to do, even where the entries " +
-      "themselves say it and even where it would explain the pattern - that half is not yours to " +
-      "name, and the whole value of this reading is that they could show it to the people it " +
-      "mentions. Where an entry describes somebody else, use it only as the situation their own " +
-      "part happened in. " +
-      "A pattern needs two or more separate days. Report nothing rather than stretching one day " +
-      "into a pattern, and use nothingToSay when the entries support nothing. " +
-      "Quote their own words as evidence rather than paraphrasing them. " +
-      "Never pass judgement and never conclude anything about what sort of person they are; end " +
-      "with questions they could put to themselves. " +
-      HOUSE_RULES
-  });
-
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  const value = answer.value ?? {};
-  return {
-    at: now,
-    days,
-    coverage: cover,
-    // Two or more days, enforced on the result as well as asked for in the
-    // schema. Same rule as themes and the journal review: a floor stated in a
-    // prompt is a request, and a floor applied to the answer is a rule.
-    recurs: (Array.isArray(value.recurs) ? value.recurs : [])
-      .map((/** @type {any} */ r) => ({
-        what: String(r?.what ?? "").trim(),
-        days: Number(r?.days ?? 0),
-        evidence: String(r?.evidence ?? "").trim()
-      }))
-      .filter((/** @type {any} */ r) => r.what !== "" && r.days >= 2),
-    wentWell: String(value.wentWell ?? "").trim(),
-    questions: (Array.isArray(value.questions) ? value.questions : [])
-      .map((/** @type {any} */ q) => String(q ?? "").trim())
-      .filter((/** @type {string} */ q) => q !== ""),
-    nothingToSay: String(value.nothingToSay ?? "").trim(),
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+        'Each has an optional "what happened" and a required "my part", which is the half that matters.',
+        "",
+        ...window.map((moment) => momentLines(moment)),
+        "",
+        "Name what recurs in what THEY did. Two or more separate days, or leave it out."
+      ].join("\n"),
+      // The writing tier. The cheap tier's failure here is the expensive one: a
+      // fluent paragraph that reads the entries back rather than finding what
+      // crosses them, over material nothing else in the app can read.
+      model: TIERS.write,
+      schema: OWN_PATTERN_SCHEMA,
+      system:
+        "You read somebody's notes about events in their own life and name what recurs in THEIR " +
+        "OWN conduct - what they did, chose, felt or avoided. " +
+        "Every single thing you report has them as its subject. You never say what anybody else " +
+        "in the entries is like, was feeling, wanted, or tends to do, even where the entries " +
+        "themselves say it and even where it would explain the pattern - that half is not yours to " +
+        "name, and the whole value of this reading is that they could show it to the people it " +
+        "mentions. Where an entry describes somebody else, use it only as the situation their own " +
+        "part happened in. " +
+        "A pattern needs two or more separate days. Report nothing rather than stretching one day " +
+        "into a pattern, and use nothingToSay when the entries support nothing. " +
+        "Quote their own words as evidence rather than paraphrasing them. " +
+        "Never pass judgement and never conclude anything about what sort of person they are; end " +
+        "with questions they could put to themselves. " +
+        HOUSE_RULES
+    },
+    (value) => ({
+      at: now,
+      days,
+      coverage: cover,
+      // Two or more days, enforced on the result as well as asked for in the
+      // schema. Same rule as themes and the journal review: a floor stated in a
+      // prompt is a request, and a floor applied to the answer is a rule.
+      recurs: (Array.isArray(value.recurs) ? value.recurs : [])
+        .map((/** @type {any} */ r) => ({
+          what: String(r?.what ?? "").trim(),
+          days: Number(r?.days ?? 0),
+          evidence: String(r?.evidence ?? "").trim()
+        }))
+        .filter((/** @type {any} */ r) => r.what !== "" && r.days >= 2),
+      wentWell: String(value.wentWell ?? "").trim(),
+      questions: (Array.isArray(value.questions) ? value.questions : [])
+        .map((/** @type {any} */ q) => String(q ?? "").trim())
+        .filter((/** @type {string} */ q) => q !== ""),
+      nothingToSay: String(value.nothingToSay ?? "").trim()
+    })
+  );
 }

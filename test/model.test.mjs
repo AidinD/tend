@@ -168,8 +168,12 @@ describe("the rules the rest of the app relies on", () => {
     for (const file of files) {
       const source = readFileSync(join(root, "src", "service", file), "utf8");
       const declared = (source.match(/\bsystem:/g) ?? []).length;
-      // Each `system:` value, up to the end of the call's argument object.
-      const found = [...source.matchAll(/\bsystem:\s*([\s\S]*?)\n\s*\}\)/g)];
+      // Each `system:` value, up to the end of the options object - which closes
+      // with `})` when the call is inline and `},` when it is the first argument
+      // to `runPass`. Both shapes, because the pattern matching only one of them
+      // is how this check stopped seeing a prompt the moment a pass was
+      // refactored - which it did, and which the count assertion below caught.
+      const found = [...source.matchAll(/\bsystem:\s*([\s\S]*?)\n\s*\}[),]/g)];
 
       // The check that keeps this test honest. A source-reading test whose
       // pattern stops matching does not fail - it inspects nothing and passes,
@@ -250,6 +254,47 @@ describe("the rules the rest of the app relies on", () => {
 
     assert.deepEqual(snapshot(store), before, "a model pass wrote to the store");
     assert.equal(store.focus(), null, "a model pass must not touch the focus");
+  });
+
+  it("routes every model call through the one place that checks a model is there", () => {
+    /*
+     * The check nine passes each carried a copy of, and one of them silently
+     * did not: the knowledge pass went straight to the call, so where the others
+     * say "no Claude Code on this machine" it surfaced whatever the call failed
+     * with. It was unreachable through the app - the view hides the button -
+     * which is exactly why nobody noticed.
+     *
+     * Asserting the shape rather than the behaviour, because the behaviour needs
+     * a machine WITHOUT Claude Code to observe, and the machine running this has
+     * one. A call that does not go through `runPass` has no availability check
+     * and no cost on its result, whether or not anything reaches it today.
+     */
+    const files = ["model.js", "knowledge.js", "reference.js"];
+    const sources = new Map(
+      files.map((file) => [file, readFileSync(join(root, "src", "service", file), "utf8")])
+    );
+
+    /*
+     * Counted rather than located. The first version of this test tried to
+     * decide whether each call sat inside `runPass` by looking at the text
+     * before it, which passed for the wrong reason: every call later in the file
+     * looked "after the declaration" and so looked fine. A count cannot be
+     * fooled that way - there is exactly one call, and it is the one in the
+     * helper.
+     */
+    for (const [file, source] of sources) {
+      const calls = (source.match(/await askImpl\(/g) ?? []).length;
+      const expected = file === "model.js" ? 1 : 0;
+      assert.equal(
+        calls,
+        expected,
+        `${file} makes ${calls} model calls directly; every pass should go through runPass`
+      );
+    }
+
+    // And the passes really do use it, so this is not passing on empty files.
+    const uses = ([...sources.values()].join("").match(/\brunPass\(/g) ?? []).length;
+    assert.ok(uses >= 9, `only ${uses} runPass call sites found; the passes cannot have gone away`);
   });
 
   it("has no pass anywhere in the model layer that writes to the store", () => {

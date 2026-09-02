@@ -2557,8 +2557,18 @@ try {
   await page.waitFor("document.body.textContent.includes('Drafting')", "the drafting section");
   const draftingText = String(await page.evaluate("document.body.textContent"));
   check("settings says what a model may and may not do here", () => {
-    if (!/only thing a model may write is a theme/i.test(draftingText)) {
+    /*
+     * It used to say "the only thing a model may write is a theme, and only on
+     * a scheduled pass", and both halves were untrue - there was no scheduled
+     * pass and nothing ever wrote a theme. The sentence a user reads about the
+     * model boundary is the one thing here that must not be aspirational, so
+     * this now asks for the absolute version.
+     */
+    if (!/a model writes nothing here/i.test(draftingText)) {
       throw new Error("the boundary is not stated where somebody would look for it");
+    }
+    if (/may write is a theme/i.test(draftingText)) {
+      throw new Error("the old, untrue version of the boundary is still on screen");
     }
   });
 

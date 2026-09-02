@@ -51,7 +51,7 @@
 
 import { ask } from "keel/claude";
 
-import { HOUSE_STYLE, TIERS, modelStatus } from "./model.js";
+import { HOUSE_STYLE, TIERS, runPass } from "./model.js";
 
 /**
  * How much of a typed situation is sent.
@@ -160,72 +160,62 @@ export async function referenceOn({ subject, half = "work", askImpl = ask }) {
     return { error: "Say what the subject is, in a sentence." };
   }
 
-  const status = modelStatus();
-  if (!status.available) {
-    return { error: String(status.why) };
-  }
-
   const isPrivate = half === "private";
 
-  const answer = await askImpl({
-    prompt: [
-      "The subject:",
-      asked.slice(0, MAX_SUBJECT_CHARS),
-      "",
-      "What is generally understood about this, and where would somebody start?"
-    ].join("\n"),
-    model: TIERS.write,
-    schema: REFERENCE_SCHEMA,
-    system:
-      "Somebody has asked what is generally understood about a subject. Their own notes did not " +
-      "answer it, so you are answering from general knowledge and they know that - it is labelled " +
-      "as such on the screen beside your answer. " +
-      // The one place the app's usual rule is inverted, and it has to be said,
-      // because the model is otherwise being asked to do the thing every other
-      // prompt here forbids.
-      "Answer from what is generally known rather than refusing for lack of material: that is " +
-      "what this is for. But be exact about the standing of what you say - where something is " +
-      "well established say so plainly, and where it is contested or thin, say that instead of " +
-      "smoothing it into confident prose. " +
-      "You have not been told anything about the people involved and must not guess at them. Do " +
-      "not describe, diagnose or characterise anybody, and do not assume ages, roles, diagnoses " +
-      "or histories that were not stated. " +
-      (isPrivate
-        ? "The subject concerns somebody they live with or are close to, so nothing here is " +
-          "advice about that person - it is background they will weigh themselves. "
-        : "The subject concerns their working life, and they lead a team, so keep it usable " +
-          "rather than theoretical. ") +
-      // Short is not a preference here, it is the difference between a block that
-      // gets read and one that gets scrolled past - and the first real answer
-      // came back as four paragraphs that duplicated the starting points below
-      // it, at four times the cost of the version that says the same thing.
-      "Be SHORT: the summary is three sentences at most and each starting point is one line. " +
-      "Saying a thing twice in two fields is not two answers. " +
-      // Style only: this pass answers from general knowledge, so the grounding
-      // rule would make it refuse its own purpose. See GROUNDED in model.js.
+  return runPass(
+    askImpl,
+    {
+      prompt: [
+        "The subject:",
+        asked.slice(0, MAX_SUBJECT_CHARS),
+        "",
+        "What is generally understood about this, and where would somebody start?"
+      ].join("\n"),
+      model: TIERS.write,
+      schema: REFERENCE_SCHEMA,
+      system:
+        "Somebody has asked what is generally understood about a subject. Their own notes did not " +
+        "answer it, so you are answering from general knowledge and they know that - it is labelled " +
+        "as such on the screen beside your answer. " +
+        // The one place the app's usual rule is inverted, and it has to be said,
+        // because the model is otherwise being asked to do the thing every other
+        // prompt here forbids.
+        "Answer from what is generally known rather than refusing for lack of material: that is " +
+        "what this is for. But be exact about the standing of what you say - where something is " +
+        "well established say so plainly, and where it is contested or thin, say that instead of " +
+        "smoothing it into confident prose. " +
+        "You have not been told anything about the people involved and must not guess at them. Do " +
+        "not describe, diagnose or characterise anybody, and do not assume ages, roles, diagnoses " +
+        "or histories that were not stated. " +
+        (isPrivate
+          ? "The subject concerns somebody they live with or are close to, so nothing here is " +
+            "advice about that person - it is background they will weigh themselves. "
+          : "The subject concerns their working life, and they lead a team, so keep it usable " +
+            "rather than theoretical. ") +
+        // Short is not a preference here, it is the difference between a block that
+        // gets read and one that gets scrolled past - and the first real answer
+        // came back as four paragraphs that duplicated the starting points below
+        // it, at four times the cost of the version that says the same thing.
+        "Be SHORT: the summary is three sentences at most and each starting point is one line. " +
+        "Saying a thing twice in two fields is not two answers. " +
+        // Style only: this pass answers from general knowledge, so the grounding
+        // rule would make it refuse its own purpose. See GROUNDED in model.js.
       HOUSE_STYLE
-  });
-
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  const value = answer.value ?? {};
-  return {
-    subject: asked,
-    says: String(value.says ?? "").trim(),
-    starts: (Array.isArray(value.starts) ? value.starts : [])
-      .filter((/** @type {any} */ s) => String(s?.point ?? "").trim() !== "")
-      .map((/** @type {any} */ s) => ({
-        point: String(s.point).trim(),
-        because: String(s.because ?? "").trim()
-      })),
-    spread: normaliseSpread(value.spread),
-    needsThePeople: String(value.needsThePeople ?? "").trim(),
-    wouldAnswer: String(value.wouldAnswer ?? "").trim(),
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+    },
+    (value) => ({
+      subject: asked,
+      says: String(value.says ?? "").trim(),
+      starts: (Array.isArray(value.starts) ? value.starts : [])
+        .filter((/** @type {any} */ s) => String(s?.point ?? "").trim() !== "")
+        .map((/** @type {any} */ s) => ({
+          point: String(s.point).trim(),
+          because: String(s.because ?? "").trim()
+        })),
+      spread: normaliseSpread(value.spread),
+      needsThePeople: String(value.needsThePeople ?? "").trim(),
+      wouldAnswer: String(value.wouldAnswer ?? "").trim()
+    })
+  );
 }
 
 /**

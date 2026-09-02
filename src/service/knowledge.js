@@ -47,7 +47,7 @@
 
 import { ask } from "keel/claude";
 
-import { HOUSE_RULES } from "./model.js";
+import { HOUSE_RULES, runPass } from "./model.js";
 import { allNibNotes, noteBody, referenceNotes } from "./nib.js";
 
 /** The model tier used here, matching the rest of the model layer. */
@@ -224,54 +224,60 @@ export async function consider({ situation, candidates, dir, askImpl = ask }) {
     return { error: "Those notes have titles but no text yet." };
   }
 
-  const answer = await askImpl({
-    prompt: [
-      `The situation: ${situation}`,
-      "",
-      "Here is everything that might bear on it, from a personal notebook.",
-      "",
-      ...read.map((note) => `--- ${note.id} · ${note.title} (${note.trail}) ---\n${note.text.slice(0, 6000)}`),
-      "",
-      "Which of these actually help, and why this situation specifically?"
-    ].join("\n"),
-    model: TIER,
-    schema: ANSWER_SCHEMA,
-    system:
-      "You are handed a situation somebody is facing while leading a team, and a set of notes " +
-      "they wrote - principles from books they read, and records of their own conversations. " +
-      "Say which notes bear on THIS situation and what each one says. Leave out anything that " +
-      "merely shares a word with it: a shortlist of two that fit is worth more than six that " +
-      "might. Never invent advice that is not in the notes; if the material does not answer the " +
-      "situation, say so in `missing` rather than filling the gap yourself. " +
-      HOUSE_RULES
-  });
+  // Through runPass, which is where this pass gains the availability check it
+  // never had. The other eight said "no Claude Code on this machine"; this one
+  // went straight to the call and surfaced whatever that failed with. Nothing
+  // reached it in practice, because the view hides the button - which is exactly
+  // why it went unnoticed, and why the fix belongs in the shape rather than in
+  // one more copy of the check.
+  return runPass(
+    askImpl,
+    {
+      prompt: [
+        `The situation: ${situation}`,
+        "",
+        "Here is everything that might bear on it, from a personal notebook.",
+        "",
+        ...read.map((note) => `--- ${note.id} · ${note.title} (${note.trail}) ---\n${note.text.slice(0, 6000)}`),
+        "",
+        "Which of these actually help, and why this situation specifically?"
+      ].join("\n"),
+      model: TIER,
+      schema: ANSWER_SCHEMA,
+      system:
+        "You are handed a situation somebody is facing while leading a team, and a set of notes " +
+        "they wrote - principles from books they read, and records of their own conversations. " +
+        "Say which notes bear on THIS situation and what each one says. Leave out anything that " +
+        "merely shares a word with it: a shortlist of two that fit is worth more than six that " +
+        "might. Never invent advice that is not in the notes; if the material does not answer the " +
+        "situation, say so in `missing` rather than filling the gap yourself. " +
+        HOUSE_RULES
+    },
+    (value) => {
+      // A hit naming a note that was not sent is dropped rather than rendered
+      // as a note nobody can open.
+      const byId = new Map(read.map((note) => [String(note.id), note]));
+      const applies = (Array.isArray(value.applies) ? value.applies : [])
+        .map((/** @type {any} */ hit) => {
+          const note = byId.get(String(hit.id));
+          return note === undefined
+            ? null
+            : {
+                id: note.id,
+                title: note.title,
+                trail: note.trail,
+                says: String(hit.says ?? "").trim(),
+                because: String(hit.because ?? "").trim()
+              };
+        })
+        .filter(Boolean);
 
-  if (!answer.ok) {
-    return { error: answer.reason };
-  }
-
-  const byId = new Map(read.map((note) => [String(note.id), note]));
-  const applies = (Array.isArray(answer.value?.applies) ? answer.value.applies : [])
-    .map((/** @type {any} */ hit) => {
-      const note = byId.get(String(hit.id));
-      return note === undefined
-        ? null
-        : {
-            id: note.id,
-            title: note.title,
-            trail: note.trail,
-            says: String(hit.says ?? "").trim(),
-            because: String(hit.because ?? "").trim()
-          };
-    })
-    .filter(Boolean);
-
-  return {
-    situation,
-    applies,
-    missing: String(answer.value?.missing ?? "").trim(),
-    read: read.length,
-    model: answer.model,
-    costUsd: answer.costUsd
-  };
+      return {
+        situation,
+        applies,
+        missing: String(value.missing ?? "").trim(),
+        read: read.length
+      };
+    }
+  );
 }
