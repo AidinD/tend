@@ -330,19 +330,6 @@ async function personPage(id) {
     )
     .join("");
 
-  // Themes already written by a scheduled pass, listed as themes rather than as
-  // observations: an observation is something the user saw, and a theme is
-  // something a model claimed. Merging the two would let the second quietly
-  // acquire the authority of the first.
-  const themes = (p.themes ?? [])
-    .map(
-      (/** @type {any} */ t) => `<div class="line">
-        <span class="line-when">${esc(t.times)}×</span>
-        <span class="line-text">${esc(t.name)}${t.evidence ? ` - ${esc(t.evidence)}` : ""}</span>
-        <span class="line-right"><span class="pill plain">${esc(t.source ?? "model")}</span></span>
-      </div>`
-    )
-    .join("");
 
   const observations = p.observations
     .map(
@@ -381,9 +368,9 @@ async function personPage(id) {
             : ""
         }
         <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
-        ${blocks.themes ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>` : ""}
+        ${blocks.observations ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>` : ""}
         ${
-          blocks.themes && model.available
+          blocks.observations && model.available
             ? isRunning(themesKey)
               ? `<button class="act" disabled>Reading notes…</button>`
               : `<button class="act" data-act="findThemes" data-person="${esc(p.id)}">What keeps coming up</button>`
@@ -393,7 +380,6 @@ async function personPage(id) {
 
       ${resultFor(themesKey) === null ? "" : themesHtml(themesKey, resultFor(themesKey))}
 
-      ${blocks.themes && themes ? list("Themes", themes, "") : ""}
       ${blocks.cadences ? list("Cadences", cadences, "No duty in the role map applies to this relationship type.") : ""}
       ${list("Open promises", promises, "Nothing outstanding.")}
       ${waitingOn}
@@ -402,7 +388,7 @@ async function personPage(id) {
       ${blocks.cadences ? list("Recent contact", contact, "No contact recorded yet.") : ""}
       ${blocks.skips && skipped ? list("Booked and did not happen", skipped, "") : ""}
       ${
-        blocks.themes
+        blocks.observations
           ? list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")
           : ""
       }
@@ -593,10 +579,12 @@ export const actions = {
   /**
    * Read across their notes and name what recurs.
    *
-   * Deliberately not applied: this is the button, and a button produces a draft
-   * to look at. Writing themes into the record is the scheduled path's job, and
-   * a button that quietly persisted its own output would make every idle click
-   * a permanent claim about a colleague.
+   * A draft, and only ever a draft. There used to be a second path that wrote
+   * what it found into the record, guarded by an `apply` flag - and nothing
+   * ever passed it, so the collection it wrote to could not contain a row while
+   * Settings told the user a model might have put one there. The write is gone
+   * rather than wired up: a stored claim about a colleague goes stale as the
+   * notes under it change, which is the same reason a brief is never kept.
    *
    * @param {Record<string, string>} d
    */

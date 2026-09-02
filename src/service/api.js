@@ -294,23 +294,6 @@ export function person(store, query, now) {
     .slice(0, 20)
     .map((e) => ({ text: e.text, at: e.at, by: e._by }));
 
-  // Themes are the one thing here a model wrote rather than a person, so they
-  // carry where they came from all the way to the screen. Newest first: a
-  // scheduled pass refreshes a row in place, so the date is when it was last
-  // seen rather than when it was first noticed.
-  const themes = store
-    .rows("themes")
-    .filter((t) => t.person === p.id)
-    .sort((a, b) => Number(b.seenAt ?? 0) - Number(a.seenAt ?? 0))
-    .map((t) => ({
-      id: t.id,
-      name: t.name,
-      evidence: t.evidence ?? "",
-      times: Number(t.times ?? 0),
-      source: t.source ?? null,
-      seenAt: t.seenAt ?? null
-    }));
-
   const relation = String(p.relation ?? "");
 
   return {
@@ -346,8 +329,7 @@ export function person(store, query, now) {
     cadences,
     openPromises: promises,
     recentContact: history,
-    observations: evidence,
-    themes
+    observations: evidence
   };
 }
 

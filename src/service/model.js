@@ -28,16 +28,27 @@
  *
  * ## What it may write
  *
- * Themes, and nothing else. Briefs are returned and thrown away on purpose -
- * a stored brief is a second copy of facts Tend already holds, going stale from
- * the moment it is written, which is exactly the trap `prep.js` avoids by
- * showing a note's title and not its prose. Extracted promises come back as
- * candidates for a person to keep or discard, so the model never puts a row in
- * the promise list on its own; when one is kept, the promise records that it
- * came from a model and which one.
+ * Nothing. Every pass here returns a draft, and a draft is kept only when the
+ * user presses something that keeps it - at which point the row is the app's,
+ * written by hand, recording that the wording came from a model and which one.
  *
- * Structure - the role map, cadences, relationships, focus - is never written
- * here at any strength of confidence. That boundary is the whole reason the
+ * That guarantee used to be narrower and was worse for it: "themes, and nothing
+ * else, and only on a scheduled pass". There was no scheduled pass. `apply`
+ * defaulted to false, no caller ever passed it, so the collection it wrote to
+ * could never hold a row - while Settings told the user a model might have put
+ * one there. A boundary nobody can state correctly is not a boundary.
+ *
+ * It was removed rather than completed, because a stored theme has the same flaw
+ * a stored brief has: it is a second copy of a reading of notes that go on
+ * changing underneath it, so it starts going stale the moment it is written.
+ * `prep.js` avoids the same trap by showing a note's title and never its prose.
+ *
+ * "A model writes nothing" is also the version that can be checked. There is a
+ * test that reads this directory and fails if a model pass writes to the store
+ * at all, which is possible precisely because the rule has no exceptions.
+ *
+ * Structure - the role map, cadences, relationships, focus - was never written
+ * here at any strength of confidence, and that boundary is the whole reason the
  * app can be trusted to be a mirror rather than an opinion.
  */
 
@@ -391,15 +402,14 @@ const THEMES_SCHEMA = {
  * @param {object} args
  * @param {string} args.person
  * @param {number} args.now
- * @param {boolean} [args.apply] Write the themes. The scheduled path does; a button does not.
  * @param {string} [args.nibDir]
  * @param {typeof ask} [args.askImpl] Test seam.
  * @returns {Promise<{ error: string } | {
- *   person: string, themes: any[], notesRead: number, written: number,
+ *   person: string, themes: any[], notesRead: number,
  *   model: string, costUsd: number | null
  * }>}
  */
-export async function detectThemes(store, { person, now, apply = false, nibDir, askImpl = ask }) {
+export async function detectThemes(store, { person, now, nibDir, askImpl = ask }) {
   const found = resolvePerson(store, person);
   if (!found.ok) {
     return { error: found.error };
@@ -484,31 +494,10 @@ export async function detectThemes(store, { person, now, apply = false, nibDir, 
       times: Number(t.times)
     }));
 
-  let written = 0;
-  if (apply) {
-    for (const theme of themes) {
-      // Deterministic id, so a scheduled pass that runs weekly updates the same
-      // row rather than stacking a new copy of the same theme every Monday.
-      const id = `theme:${found.person.id}:${slug(theme.name)}`;
-      store.create("themes", {
-        id,
-        person: found.person.id,
-        name: theme.name,
-        evidence: theme.evidence,
-        times: theme.times,
-        source: sourceLabel(answer.model),
-        seenAt: now
-      });
-      store.update("themes", id, { evidence: theme.evidence, times: theme.times, seenAt: now });
-      written += 1;
-    }
-  }
-
   return {
     person: found.person.name,
     themes,
     notesRead: recent.length,
-    written,
     model: answer.model,
     costUsd: answer.costUsd
   };
@@ -517,27 +506,6 @@ export async function detectThemes(store, { person, now, apply = false, nibDir, 
 /**
  * How anything a model produced is labelled once it is kept.
  *
- * The store already records *which writer* wrote a row (`_by`), and that is not
- * the same question: a promise the model suggested and a person accepted is
- * written by the app, by hand, and would look identical to one typed from
- * scratch. This field is the origin rather than the writer, and it names the
- * model so that "which one said that" is answerable a month later.
- *
- * @param {string} model
- */
-export function sourceLabel(model) {
-  return `model:${model}`;
-}
-
-/** @param {string} text */
-function slug(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40);
-}
-
 /* --------------------------------------------------------------- journal -- */
 
 const REVIEW_SCHEMA = {

@@ -24,7 +24,6 @@ export const COLLECTIONS = /** @type {const} */ ([
   "duties",
   "touches",
   "evidence",
-  "themes",
   /** Pieces of work with a stated delegation level and an owner. */
   "workstreams",
   /** The questions Tend asks rather than derives, and their answers. */

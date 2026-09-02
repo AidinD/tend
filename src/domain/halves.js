@@ -245,7 +245,7 @@ export function homeViewIn(half) {
  * discovering later that it renders drift over a picture of your family.
  *
  * @param {string} half
- * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, themes: boolean, moments: boolean }}
+ * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, observations: boolean, moments: boolean }}
  */
 export function personBlocksIn(half) {
   const isPrivate = half === "private";
@@ -265,7 +265,17 @@ export function personBlocksIn(half) {
     growth: !isPrivate,
     topics: !isPrivate,
     skips: !isPrivate,
-    themes: !isPrivate,
+    /*
+     * Observations about a person, and the pass that reads across their notes.
+     *
+     * Both are material for a review conversation and are therefore ABOUT
+     * somebody else, which is exactly what the private half refuses to keep -
+     * run over a family it is a character file on your own child.
+     *
+     * This flag used to be called `themes`, after a stored model output that no
+     * longer exists and that it never actually gated.
+     */
+    observations: !isPrivate,
     /*
      * Moments: one thing that happened, and his own part in it.
      *

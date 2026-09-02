@@ -17,6 +17,7 @@
 
 import { esc, tend, toast } from "./ui.js";
 import { refresh } from "./app.js";
+import { sourceLabel } from "../domain/provenance.js";
 
 /** @type {Map<string, any>} */
 const results = new Map();
@@ -458,7 +459,7 @@ export function modelActions(onKept) {
         // The origin, not the writer. This row is written by the app like any
         // other, and without this it would be indistinguishable from one typed
         // out by hand months later when it matters which it was.
-        source: `model:${result.model}`
+        source: sourceLabel(result.model)
       });
 
       if (logged && typeof logged === "object" && "error" in logged) {

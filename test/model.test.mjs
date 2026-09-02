@@ -13,7 +13,8 @@
  *   somebody warms a cache on startup and nobody notices the window now costs
  *   four seconds and a few cents to open.
  *
- *   A model may write themes and nothing else. Structure - the role map,
+ *   A model writes NOTHING. Every pass returns a draft; a row exists only
+ *   because somebody pressed something that kept it. Structure - the role map,
  *   cadences, relationships, focus - is the user's, and a model that can edit
  *   it turns the app from a mirror into an opinion.
  */
@@ -25,7 +26,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
-import { GROUNDED, HOUSE_RULES, HOUSE_STYLE, TIERS, detectThemes, draftBrief, extractPromises, sourceLabel } from "../src/service/model.js";
+import { GROUNDED, HOUSE_RULES, HOUSE_STYLE, TIERS, detectThemes, draftBrief, extractPromises } from "../src/service/model.js";
+import { sourceLabel } from "../src/domain/provenance.js";
 import { htmlToText, noteBody } from "../src/service/nib.js";
 import { openStore } from "../src/storage/store.js";
 import { DAY_MS } from "../src/domain/time.js";
@@ -216,32 +218,65 @@ describe("the rules the rest of the app relies on", () => {
     assert.ok(HOUSE_RULES.includes(HOUSE_STYLE) && HOUSE_RULES.includes(GROUNDED));
   });
 
-  it("writes themes and nothing else", async () => {
+  it("writes nothing at all", async () => {
+    /*
+     * The rule used to be "themes, and nothing else, and only on a scheduled
+     * pass", and this test asserted the themes half of it by passing `apply`.
+     * There was no scheduled pass and no caller ever passed the flag, so the
+     * one write the app permitted was a write nothing performed - while
+     * Settings told the user a model might have made it.
+     *
+     * Removing it makes the rule absolute, and an absolute rule is the only one
+     * this test can actually check: every collection, not a list somebody
+     * remembered to extend.
+     */
     writeNote({ id: "n1", categoryId: "c1", title: "1-1", html: "<p>talked about the build times again</p>" });
     writeNote({ id: "n2", categoryId: "c1", title: "1-1", html: "<p>build times came up once more</p>", edited: NOW - DAY_MS });
     store.create("sources", { id: "s1", person: "p-nina", categoryId: "c1", subId: null, kind: "one-to-one" });
 
     const before = snapshot(store);
-    ok(
+    const found = ok(
       await detectThemes(store, {
         person: "Nina",
         now: NOW,
-        apply: true,
         nibDir,
         askImpl: fakeAsk({ themes: [{ name: "build times", evidence: "both notes", times: 2 }] })
       })
     );
-    const after = snapshot(store);
 
-    assert.equal(after.themes, before.themes + 1);
-    for (const collection of ["people", "duties", "promises", "workstreams", "sources"]) {
-      assert.equal(
-        after[collection],
-        before[collection],
-        `a model pass changed ${collection}, which is the user's to decide`
-      );
-    }
+    // The pass still has to have done its job, or this proves nothing: a call
+    // that returned no themes would write nothing either.
+    assert.equal(found.themes.length, 1, "the pass found nothing, so nothing was actually exercised");
+
+    assert.deepEqual(snapshot(store), before, "a model pass wrote to the store");
     assert.equal(store.focus(), null, "a model pass must not touch the focus");
+  });
+
+  it("has no pass anywhere in the model layer that writes to the store", () => {
+    /*
+     * The invariant, rather than one pass checked by hand. Nine passes exist and
+     * a tenth gets added without anybody remembering this file, so the check is
+     * on the source: nothing under the model layer may call a store write.
+     *
+     * `noteReviewRun` is the single exception and it is not a model writing -
+     * it records that a pass RAN, so the nudge to run it stops asking. It takes
+     * no model output.
+     */
+    const source = readFileSync(join(root, "src", "service", "model.js"), "utf8");
+
+    // Prove the file being inspected is the one with the passes in it. Without
+    // this the check passes on an empty string, which is the failure mode of
+    // every source-reading test: it stops looking and reports success.
+    const passes = [...source.matchAll(/^export async function/gm)];
+    assert.ok(passes.length >= 6, `only ${passes.length} passes found; this is not the model layer`);
+
+    const writes = [...source.matchAll(/store\.(create|update|remove)\(/g)];
+
+    assert.deepEqual(
+      writes.map((m) => m[0]),
+      [],
+      "a model pass writes to the store; drafts are the user's to keep, not the model's"
+    );
   });
 });
 
@@ -400,18 +435,19 @@ describe("themes", () => {
       detectThemes(store, {
         person: "Nina",
         now: NOW,
-        apply: true,
         nibDir,
         askImpl: fakeAsk({ themes: [{ name: "Build times", evidence: "seen again", times }] })
       });
 
-    ok(await run(2));
-    ok(await run(4));
+    const first = ok(await run(2));
+    const second = ok(await run(4));
 
-    const themes = store.rows("themes");
-    assert.equal(themes.length, 1, "a weekly pass must not leave a new copy every Monday");
-    assert.equal(themes[0].times, 4, "and it must carry the newer count");
-    assert.match(String(themes[0].source), /^model:/);
+    // Running it twice used to be about the stored row not being duplicated.
+    // With nothing stored, what matters is that a second reading simply reads
+    // again - the newer count is what comes back, and neither run left anything
+    // behind for the other to collide with.
+    assert.equal(first.themes[0].times, 2);
+    assert.equal(second.themes[0].times, 4);
   });
 });
 

@@ -360,7 +360,7 @@ function modelSection(model) {
              <p class="card-why dim">Everything else works exactly as it does with it on. Drift, cadences, promises and the focus budget are ordinary arithmetic - a model never decides what needs your attention.</p>`
       }
       <div class="card-foot">
-        <span class="src">Drafts are shown and thrown away. The only thing a model may write is a theme, and only on a scheduled pass.</span>
+        <span class="src">A model writes nothing here. Everything it produces is a draft, shown and thrown away unless you keep it yourself.</span>
       </div>
     </article>
   </div>`;

@@ -266,7 +266,7 @@ describe("what each half consists of", () => {
     assert.equal(priv.growth, false);
     // An observation records the other person's state, which is what the private
     // journal's one rule forbids.
-    assert.equal(priv.themes, false);
+    assert.equal(priv.observations, false);
     assert.equal(priv.cadences, false);
     assert.equal(priv.skips, false);
   });
