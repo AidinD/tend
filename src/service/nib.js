@@ -585,6 +585,27 @@ export function touchKey(noteId, person, kind) {
 }
 
 /**
+ * The note and the flagged block one derived commitment came from.
+ *
+ * A promise this indexer wrote is named `nib:<note>:<alert>`, and neither a Nib
+ * note id nor an alert id contains a colon, so the three parts come apart
+ * cleanly. A row it did not write returns null and is therefore never touched:
+ * a commitment typed in by hand is somebody's own record and is not Nib's to
+ * withdraw.
+ *
+ * @param {any} row A promise row, live or pending.
+ * @returns {{ noteId: string, alertId: string } | null}
+ */
+export function derivedPromise(row) {
+  const id = String(row?.id ?? "");
+  if (row?.from !== "nib" || !id.startsWith("nib:")) {
+    return null;
+  }
+  const parts = id.split(":");
+  return parts.length === 3 ? { noteId: parts[1], alertId: parts[2] } : null;
+}
+
+/**
  * Index Nib into Tend: one contact per attendee per note, one commitment per
  * open action point.
  *
@@ -602,7 +623,8 @@ export function touchKey(noteId, person, kind) {
  * @param {boolean} [opts.dry] Report what would change without writing.
  * @returns {{ error: string } | {
  *   contacts: number, promises: number, waiting: number, dropped: number,
- *   resolved: number, retracted: number, moves: number, bindings: number,
+ *   resolved: number, retracted: number, withdrawn: number, moves: number,
+ *   bindings: number,
  *   skipped: string[]
  * }}
  */
@@ -679,10 +701,49 @@ export function indexNib(store, { dir, dry = false } = {}) {
     derivedByNote.set(made.noteId, list);
   }
 
+  /*
+   * Every commitment this index derived that is still outstanding, by note.
+   *
+   * Needed for the same reason the contact map above is, and it was missing.
+   * A flagged block can be UNFLAGGED, and until now nothing noticed: the
+   * promise stayed, aged, and went critical. Found against a real note - two
+   * sentences from a career story, flagged as part of its structure, imported,
+   * unflagged weeks later, and still sitting at the top of the promise list as
+   * the two loudest things in it.
+   *
+   * That list is the shortest and most trusted thing in the app, so a permanent
+   * false entry in it is worse than a missing one. The asymmetry was documented
+   * for contact and never applied here.
+   *
+   * Only OPEN ones. A promise already resolved is a thing that happened, and
+   * unflagging the note it came from does not un-happen it.
+   */
+  const openByNote = new Map();
+  for (const collection of /** @type {const} */ (["promises", "pendingPromises"])) {
+    for (const row of store.rows(collection)) {
+      // A queued commitment has no state field and is open by definition; a
+      // filed one carries its own.
+      if (String(row.state ?? "open") !== "open") {
+        continue;
+      }
+      const made = derivedPromise(row);
+      if (made === null) {
+        continue;
+      }
+      const list = openByNote.get(made.noteId) ?? [];
+      // The collection is carried rather than inferred from the row's shape.
+      // It is known here, at the read, and guessing it later from which fields
+      // happen to be present is how a write lands in the wrong table.
+      list.push({ id: String(row.id), alertId: made.alertId, collection });
+      openByNote.set(made.noteId, list);
+    }
+  }
+
   let contacts = 0;
   let promises = 0;
   let waiting = 0;
   let dropped = 0;
+  let withdrawn = 0;
   let resolved = 0;
   let retracted = 0;
   let moves = 0;
@@ -772,6 +833,35 @@ export function indexNib(store, { dir, dry = false } = {}) {
         retracted += 1;
         if (!dry) {
           store.remove("touches", stale.id);
+        }
+      }
+
+      /*
+       * A commitment the note no longer flags is withdrawn, for the same reason
+       * and behind the same guard: only notes actually read on this pass.
+       *
+       * Marked `retracted` rather than removed, which is where this deliberately
+       * differs from the contact above. A wrongly withdrawn contact costs a
+       * nudge; a wrongly withdrawn promise hides a real obligation from the one
+       * list in the app that must not lie. Keeping the row in `rows()` means a
+       * mistake here is inspectable without reading the event log, and the state
+       * says what happened - `resolved` would claim it was done, which unflagging
+       * a note is no evidence of at all.
+       */
+      const flagged = new Set(note.alerts.map((a) => String(a.id)));
+      for (const stale of openByNote.get(String(note.id)) ?? []) {
+        if (flagged.has(stale.alertId)) {
+          continue;
+        }
+        withdrawn += 1;
+        if (!dry) {
+          if (stale.collection === "promises") {
+            store.update("promises", stale.id, { state: "retracted" });
+          } else {
+            // A queued one has nowhere to show a state, so it goes. Its id stays
+            // taken, which is what keeps it from being offered again.
+            store.remove("pendingPromises", stale.id);
+          }
         }
       }
 
@@ -912,6 +1002,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
     dropped,
     resolved,
     retracted,
+    withdrawn,
     moves,
     bindings: bindings.length,
     skipped

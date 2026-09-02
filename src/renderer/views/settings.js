@@ -158,6 +158,13 @@ function importSummary(r) {
         "the note no longer carries the tag it was counted under."
     );
   }
+  if (r.withdrawn) {
+    lines.push(
+      `${count(Number(r.withdrawn), "commitment", "commitments")} withdrawn, because the note ` +
+        "no longer flags them. Marked as retracted rather than done, and still on the person's " +
+        "page if you need to look."
+    );
+  }
   return lines.join(" ");
 }
 
