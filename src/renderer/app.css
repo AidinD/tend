@@ -1380,8 +1380,26 @@ button.row:hover {
   margin-bottom: 4px;
 }
 
+/*
+ * A hairline over every section, and the label as an object rather than a line
+ * of text that happens to be capitals.
+ *
+ * The spacing scale fixed how far apart things sit; this is about telling the
+ * three kinds of line apart at a glance - a heading, an item, and an item's own
+ * detail. Two devices doing two different jobs: the rule marks where one
+ * section ends, and the chip marks which of the remaining lines is the heading.
+ *
+ * More space above the rule than below it, so the line attaches to the section
+ * it introduces rather than floating between two.
+ *
+ * The first section gets a rule too, and deliberately: above it sit the name
+ * and the reason, which is a different kind of thing from the sections and
+ * worth a boundary of its own.
+ */
 .prep-block {
   margin-top: var(--sp-block);
+  padding-top: var(--sp-item);
+  border-top: 1px solid var(--line-soft);
 }
 
 /*
@@ -1395,12 +1413,30 @@ button.row:hover {
  * which keeps the faint tier for what is genuinely small print.
  */
 .prep-head {
+  /*
+   * `--sp-label` and not `--sp-item`, even though a chip looks like it wants
+   * more air. At 9px the heading would sit exactly as far from its list as the
+   * list's items sit from each other, which is the inverted bond the spacing
+   * scale exists to prevent - the chip's own padding already adds a couple of
+   * pixels of optical space on top of this.
+   */
   margin: 0 0 var(--sp-label);
+  /* Sized by its text, so it reads as one object and not as a full-width
+     banner. */
+  display: inline-block;
+  background: var(--surface-2);
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: var(--t-micro);
   font-weight: 700;
-  letter-spacing: 0.9px;
+  /* 0.8, not 0.9: the tracking is added AFTER the last letter too, so at 0.9
+     the right padding looked a pixel wider than the left. */
+  letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: var(--text-dim);
+  /* Full brightness now that it sits on its own surface. It was one step down
+     to keep it clear of the body text it labels; a box does that job instead,
+     and better. */
+  color: var(--text);
 }
 
 .prep-list {
