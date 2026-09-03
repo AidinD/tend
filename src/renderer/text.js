@@ -41,6 +41,254 @@
  */
 
 export const T = {
+  growth: {
+    /*
+     * The endings, written out rather than derived: `open` is not an ending, and
+     * each of the three needs a sentence saying what choosing it means. Every
+     * option carries its consequence, the way the delegation levels do.
+     */
+    endingReached: "Reached - they can do it now",
+    endingDropped: "Let go - not the direction after all",
+    endingExpectation:
+      "Stated as an expectation - the job needs it whether they want it or not",
+
+    /* The block on a person's page. */
+    blockTitle: "Growing",
+    openButton: "Open a direction",
+    empty:
+      "Nothing yet. A direction goes here when there is one - not for everybody, and not because " +
+      "the calendar says it is that time of year.",
+    /*
+     * Said, not enforced. Attention is the scarce thing this tool exists to be
+     * honest about, and a limit imposed on his judgement would be software
+     * deciding how many people he is allowed to develop at once.
+     */
+    /** @param {number} live */
+    tooMany: (live) =>
+      `${live} live at once. Two is about what anybody can actually hold - the rest tend to ` +
+      `become paperwork.`,
+
+    /* One thread. */
+    /** @param {number} talks @param {number} observations @param {string} last */
+    counts: (talks, observations, last) =>
+      `discussed ${talks}×, seen ${observations}× &middot; last talked ${last}`,
+    theirWords: "Their words",
+    through: "Through",
+    iWillSee: "I will see",
+    imPuttingIn: "I am putting in",
+    myGuess: "My guess before asking",
+    ifNothingChanges: "If nothing changes",
+    told: "Told",
+    endedBecause: "Ended because",
+    /** @param {string} label @param {string} value */
+    detailLine: (label, value) => `${label}: ${value}`,
+    /** @param {string} what */
+    stillToPrepare: (what) => `Still to prepare: ${what}`,
+    /** @param {string} what */
+    stillToAsk: (what) => `Still to ask them: ${what}`,
+
+    /*
+     * Removal belongs to the thread that should never have existed, so it is
+     * offered while nothing has happened and withdrawn the moment something has.
+     */
+    openedByMistake: "Opened by mistake",
+    afterConversation: "After the conversation",
+    itCameUp: "It came up",
+    iSawIt: "I saw it",
+    prepare: "Prepare",
+    endIt: "End it",
+    iHaveToldThem: "I have told them",
+    reword: "Reword",
+
+    /* The compact version on a prep card, read minutes before a conversation. */
+    /** @param {string} marker */
+    youWillSee: (marker) => `You will see: ${marker}`,
+    /** @param {number} talks @param {number} observations @param {string} last */
+    cardCounts: (talks, observations, last) =>
+      `Discussed ${talks}×, seen ${observations}× &middot; last talked ${last}.`,
+    /*
+     * Shown only on a stalled thread. The stall question asks whether the aim is
+     * wrong or the support is missing; the second half is something he already
+     * wrote down, and the card was posing the question without the answer next
+     * to it. An empty offering is not a gap - it IS the answer.
+     */
+    stalledNoOffering:
+      "You never wrote down what you were putting in. That is one answer to the question above.",
+    /** @param {string} offering */
+    stalledOffering: (offering) => `You said you would put in: ${offering}`,
+
+    /* Stage A: what he can work out alone, and what he is prepared to put in. */
+    fAim: "What you think the direction is, in one sentence",
+    fAimPlaceholder: "Runs the design review without me in the room",
+    fAimHint:
+      "Yours, before you have asked. What they will be able to DO, not an area to improve in - " +
+      'their own answer comes later and is kept beside this. Everything else about this thread ' +
+      'can wait until you use "Prepare" on the card.',
+    fDriver: "Do they want this, or does the job need it?",
+    fDriverHint:
+      "Two different instruments. The development one used on a performance gap reads as a " +
+      "disciplinary process with a smile. Not knowing yet is a real answer.",
+    fNeed: "Whose need is it?",
+    fNeedPlaceholder: "The team stalls whenever I am away",
+    fNeedHint: "Concretely enough that you could say it out loud to them.",
+    fIfNothing: "What happens if nothing changes?",
+    fIfNothingHint:
+      'If the honest answer is nothing, this is a wish rather than a need. "You stay where you ' +
+      'are" is a legitimate answer.',
+    fAlreadySeen: "What you have already seen them do",
+    fAlreadySeenHint:
+      "Only what has happened. Empty is itself the finding: no evidence under the direction.",
+    fOffering: "What are you putting in?",
+    fOfferingPlaceholder: "The architecture review, and I stop writing the migration plan myself",
+    fOfferingHint:
+      'Cover, a room to be let into, work you stop doing yourself. Write it as done or dated - ' +
+      '"I could" is not an offering.',
+
+    /* Stage B: what the conversation returned. */
+    fTheirWords: "What they said they want, in their words",
+    fTheirWordsHint:
+      "Theirs, not a tidied version. A plan in your words is one they will read as yours.",
+    fStance: "How did that land against your guess?",
+    fAssignment: "Which real work does this happen through?",
+    fAssignmentPlaceholder: "Owns the migration end to end",
+    fAssignmentHint:
+      "Name the assignment, not a skill area. Real stakes move people; courses feel like it.",
+    fMarker: "What will you see in three months that you do not see now?",
+    fMarkerPlaceholder: "Chairs the review once with me absent",
+    fMarkerHint:
+      'If you cannot finish that sentence the direction is too vague to follow. "Better ' +
+      'communication" is unobservable; "runs it without me" is not.',
+    fWhenTalked: "When you talked",
+    fWhenTalkedHint: "Logged as a conversation too, unless you have already logged one.",
+    fCadence: "How often should it come up?",
+    fCadenceHint: "In the one-to-one, never as its own meeting. A separate meeting kills it.",
+    fHorizon: "When should the direction itself be questioned?",
+    fHorizonHint:
+      "Not a deadline. When it passes the thread asks whether this is still the thing.",
+
+    /* Opening one. */
+    openTitle: "Open a direction",
+    openIntro:
+      "One sentence is enough to open it. The rest - whether they want this or the job needs it, " +
+      'what you have already seen, what you are putting in - comes later, from "Prepare" on the ' +
+      "card, whenever you actually have an answer for it.",
+    openConfirm: "Open it",
+    openedToast: "Opened.",
+
+    /* Rewording, which is its own concept because the thread is named after it. */
+    rewordTitle: "Reword the direction",
+    rewordIntro:
+      "The thread is named after this. Change it once you know what you actually agreed on.",
+    rewordAimLabel: "The direction as it stands",
+    rewordAimHint:
+      "What they will be able to DO. If it describes what you do for them, the marker will " +
+      "measure the wrong person.",
+    rewordGuessLabel: "What you thought before you asked",
+    rewordGuessHint: "Kept as a record, so it can sit next to what they actually said.",
+    save: "Save",
+    rewordedToast: "Reworded.",
+
+    prepareTitle: "Prepare",
+    prepareIntro: "Your side of it. Reopened where you left it rather than asking again.",
+    savedToast: "Saved.",
+
+    askedTitle: "After the conversation",
+    askedIntro: "What came back. This overwrites nothing you guessed - the guess is kept beside it.",
+
+    /*
+     * A declined direction is one of the three normal outcomes, so it is asked
+     * about immediately rather than left as a status he has to remember to
+     * change. The follow-up is the only question that matters.
+     */
+    declinedTitle: "They are not interested. Does the job require it anyway?",
+    declinedBody:
+      "If it does, this stops being development and becomes an expectation - which has to be " +
+      'said once, plainly, including what follows if it is not met. "You stay where you are" ' +
+      "is a legitimate thing for that to be.\n\nIf it does not, the right move is to let it go " +
+      "and tell them you have. Quietly keeping the hope alive is the one option that costs you " +
+      "the relationship.",
+    declinedConfirm: "The job requires it",
+    expectationTitle: "State it as an expectation",
+    letGoTitle: "Let it go",
+    expectationIntro:
+      "Write the expectation as you will say it to them. Clarity about whether, encouragement " +
+      "about how.",
+    letGoIntro:
+      "Write why you let it go. It stays readable, so this cannot become a quiet disappointment " +
+      "nobody named.",
+    expectationWhy: "The expectation, in your words",
+    letGoWhy: "Why you let it go",
+    saidLabel: "I have told them",
+    saidHint: "Leave it unchecked if you have not yet. The thread will keep asking until you have.",
+    recordedToast: "Recorded.",
+
+    talkedTitle: "It came up",
+    talkedIntro:
+      "This moves the conversation clock and nothing else. Whether they have actually done the " +
+      "thing is a separate answer, because the gap between the two counts is the only useful " +
+      "reading here.",
+    talkedNoteLabel: "One line, optional",
+    talkedNotePlaceholder: "Where it stands",
+    when: "When",
+    logIt: "Log it",
+    loggedToast: "Logged.",
+
+    /*
+     * The marker seen, and the only right moment to ask who else needs to hear
+     * it. Development nobody outside the one-to-one ever sees converts into
+     * nothing: no level, no salary, no next assignment.
+     */
+    observedTitle: "I saw it",
+    observedIntro:
+      "The marker, actually observed rather than discussed. The only evidence in here that any " +
+      "of this is working.",
+    observedNoteLabel: "What you saw",
+    observedNotePlaceholder: "Chaired the review on the 14th, I said nothing",
+    tellLabel: "Who else needs to hear this?",
+    tellNobody: "Nobody, it stays between us",
+    tellHint:
+      "Growth only you two saw converts into nothing. Picking somebody logs it as a promise, so " +
+      "it cannot quietly not happen.",
+    recordIt: "Record it",
+    /** @param {string} name @param {string} said */
+    tellPromise: (name, said) => `Tell ${name}: ${said}`,
+    /** @param {string} name */
+    tellPromiseToast: (name) => `Promise to tell ${name} logged.`,
+    them: "them",
+
+    endTitle: "End it",
+    endIntro:
+      "Every ending here is a legitimate one, including letting it go. Somebody who is content " +
+      "where they are and doing solid work is not a problem to be fixed.",
+    endHowLabel: "How it ends",
+    endWhyLabel: "Why",
+    endWhyHint:
+      "Kept and readable afterwards. A thread that ends with no reason turns into a mood in the " +
+      "room six months later that neither of you can name.",
+    endSaidHint:
+      "Unchecked until you actually have. Letting a direction go silently is worse than either " +
+      "pushing or accepting: they still feel the disappointment and never hear that it is over.",
+    notedToast: "Noted.",
+
+    /*
+     * The removal wording says which fact it asserts rather than which mechanism
+     * it runs, and the loss comes first. The old version opened with the
+     * reassuring half - the events stay in the log - and put the loss in a
+     * subordinate clause, so the sentence a reader took away said nothing was
+     * lost.
+     */
+    removeTitle: "Was this direction never real?",
+    /** @param {string} aim */
+    removeBody: (aim) =>
+      `"${aim}" goes, and stops being readable anywhere - the person's page, a prep card, ` +
+      `anything an agent reads. Right for a thread opened against the wrong person or twice ` +
+      `by accident.\n\nIf it was real and it is over, close it with "End it" instead. That ` +
+      `keeps the direction and the reason it ended, which is what answers "why do we not talk ` +
+      `about this any more" next spring.`,
+    removeConfirm: "It was never real",
+    removedToast: "Removed."
+  },
+
   settings: {
     title: "Settings",
     sub: "Where things are kept, and how notes reach the rest of the app.",

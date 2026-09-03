@@ -25,6 +25,9 @@ import {
   tend
 } from "../ui.js";
 import { refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.growth;
 
 /**
  * The endings offered in the window.
@@ -35,9 +38,9 @@ import { refresh } from "../app.js";
  * the delegation levels do.
  */
 const ENDINGS = [
-  { value: "reached", label: "Reached - they can do it now" },
-  { value: "dropped", label: "Let go - not the direction after all" },
-  { value: "expectation", label: "Stated as an expectation - the job needs it whether they want it or not" }
+  { value: "reached", label: t.endingReached },
+  { value: "dropped", label: t.endingDropped },
+  { value: "expectation", label: t.endingExpectation }
 ];
 
 /**
@@ -54,16 +57,13 @@ export async function threadsBlock(personId) {
 
   const threads = Array.isArray(result.threads) ? result.threads : [];
 
-  const head = `<div class="block-title">Growing</div>`;
-  const open = `<button class="act" data-act="openThread" data-person="${esc(personId)}">Open a direction</button>`;
+  const head = `<div class="block-title">${t.blockTitle}</div>`;
+  const open = `<button class="act" data-act="openThread" data-person="${esc(personId)}">${t.openButton}</button>`;
 
   if (threads.length === 0) {
     return `<div class="block">
       ${head}
-      <div class="empty">
-        Nothing yet. A direction goes here when there is one - not for everybody,
-        and not because the calendar says it is that time of year.
-      </div>
+      <div class="empty">${t.empty}</div>
       <div class="button-row">${open}</div>
     </div>`;
   }
@@ -73,7 +73,7 @@ export async function threadsBlock(personId) {
   // deciding how many people he is allowed to develop at once.
   const tooMany =
     result.live > result.comfortable
-      ? `<p class="card-why dim">${result.live} live at once. Two is about what anybody can actually hold - the rest tend to become paperwork.</p>`
+      ? `<p class="card-why dim">${t.tooMany(result.live)}</p>`
       : "";
 
   return `<div class="block">
@@ -84,39 +84,39 @@ export async function threadsBlock(personId) {
   </div>`;
 }
 
-/** @param {any} t */
-function thread(t) {
-  const live = isLiveStatus(t.status);
+/** @param {any} row */
+function thread(row) {
+  const live = isLiveStatus(row.status);
 
-  const counts = `discussed ${t.talks}×, seen ${t.observations}× &middot; last talked ${esc(t.lastTalkedWords)}`;
+  const counts = t.counts(row.talks, row.observations, esc(row.lastTalkedWords));
 
-  const asks = t.asks
-    ? `<p class="card-why warn-text">${esc(t.asks)}</p>`
+  const asks = row.asks
+    ? `<p class="card-why warn-text">${esc(row.asks)}</p>`
     : "";
 
   // The guess is left out while it is still word for word the aim, which it is
   // from the moment a thread is opened until the direction gets reworded. Showing
   // it then would print the same sentence twice under two labels, which reads as
   // the tool having lost track of which is which.
-  const guess = String(t.fields.hypothesis ?? "").trim() === String(t.aim ?? "").trim() ? "" : t.fields.hypothesis;
+  const guess = String(row.fields.hypothesis ?? "").trim() === String(row.aim ?? "").trim() ? "" : row.fields.hypothesis;
 
   const detail = [
-    ["Their words", t.fields.theirWords],
-    ["Through", t.fields.assignment],
-    ["I will see", t.marker],
-    ["I am putting in", t.fields.offering],
-    ["My guess before asking", guess],
-    ["If nothing changes", t.fields.ifNothingChanges],
-    ["Told", (t.told ?? []).join(", ")],
-    ["Ended because", t.fields.endedWhy]
+    [t.theirWords, row.fields.theirWords],
+    [t.through, row.fields.assignment],
+    [t.iWillSee, row.marker],
+    [t.imPuttingIn, row.fields.offering],
+    [t.myGuess, guess],
+    [t.ifNothingChanges, row.fields.ifNothingChanges],
+    [t.told, (row.told ?? []).join(", ")],
+    [t.endedBecause, row.fields.endedWhy]
   ]
     .filter(([, value]) => String(value ?? "").trim() !== "")
-    .map(([label, value]) => `<li>${esc(label)}: ${esc(value)}</li>`)
+    .map(([label, value]) => `<li>${t.detailLine(esc(label), esc(value))}</li>`)
     .join("");
 
   const still = [
-    t.missing.prepare.length > 0 ? `Still to prepare: ${t.missing.prepare.join(" ")}` : "",
-    t.missing.ask.length > 0 ? `Still to ask them: ${t.missing.ask.join(" ")}` : ""
+    row.missing.prepare.length > 0 ? t.stillToPrepare(row.missing.prepare.join(" ")) : "",
+    row.missing.ask.length > 0 ? t.stillToAsk(row.missing.ask.join(" ")) : ""
   ]
     .filter((line) => line !== "")
     .map((line) => `<p class="card-why dim">${esc(line)}</p>`)
@@ -125,7 +125,7 @@ function thread(t) {
   // "It came up" only appears once their view is on record, because until then
   // the first conversation has somewhere better to go: the second sitting, which
   // logs the conversation itself as well as what came back.
-  const asked = t.stance !== "unasked";
+  const asked = row.stance !== "unasked";
 
   // Removal belongs to the thread that should never have existed, so it is
   // offered while nothing has happened yet and withdrawn the moment something
@@ -135,30 +135,30 @@ function thread(t) {
   // as the last step of that path rather than as the erasure of it, and what it
   // erased was the reason the previous two steps had just asked for.
   const mistake =
-    live && Number(t.talks ?? 0) === 0
-      ? `<button class="act tiny danger" data-act="threadRemove" data-id="${esc(t.id)}" data-aim="${esc(t.aim)}">Opened by mistake</button>`
+    live && Number(row.talks ?? 0) === 0
+      ? `<button class="act tiny danger" data-act="threadRemove" data-id="${esc(row.id)}" data-aim="${esc(row.aim)}">${t.openedByMistake}</button>`
       : "";
 
   const buttons = live
     ? `
-      <button class="act${asked ? "" : " primary"}" data-act="threadAsked" data-id="${esc(t.id)}">After the conversation</button>
-      ${asked ? `<button class="act" data-act="threadTalked" data-id="${esc(t.id)}">It came up</button>` : ""}
-      ${t.marker ? `<button class="act" data-act="threadObserved" data-id="${esc(t.id)}">I saw it</button>` : ""}
-      <button class="act" data-act="threadPrepare" data-id="${esc(t.id)}">Prepare</button>
-      <button class="act" data-act="threadEnd" data-id="${esc(t.id)}">End it</button>
+      <button class="act${asked ? "" : " primary"}" data-act="threadAsked" data-id="${esc(row.id)}">${t.afterConversation}</button>
+      ${asked ? `<button class="act" data-act="threadTalked" data-id="${esc(row.id)}">${t.itCameUp}</button>` : ""}
+      ${row.marker ? `<button class="act" data-act="threadObserved" data-id="${esc(row.id)}">${t.iSawIt}</button>` : ""}
+      <button class="act" data-act="threadPrepare" data-id="${esc(row.id)}">${t.prepare}</button>
+      <button class="act" data-act="threadEnd" data-id="${esc(row.id)}">${t.endIt}</button>
       ${mistake}`
-    : t.fields.endingSaid
+    : row.fields.endingSaid
       ? ""
-      : `<button class="act" data-act="threadSaid" data-id="${esc(t.id)}">I have told them</button>`;
+      : `<button class="act" data-act="threadSaid" data-id="${esc(row.id)}">${t.iHaveToldThem}</button>`;
 
   return `<div class="thread">
     <div class="thread-top">
-      <span class="thread-aim">${esc(t.aim)}</span>
-      ${live ? `<button class="act tiny" data-act="threadReword" data-id="${esc(t.id)}">Reword</button>` : ""}
+      <span class="thread-aim">${esc(row.aim)}</span>
+      ${live ? `<button class="act tiny" data-act="threadReword" data-id="${esc(row.id)}">${t.reword}</button>` : ""}
       <span class="line-right">
-        <span class="pill plain">${esc(t.driverLabel)}</span>
-        <span class="pill plain">${esc(t.stanceLabel)}</span>
-        ${live ? "" : `<span class="pill plain">${esc(t.statusLabel)}</span>`}
+        <span class="pill plain">${esc(row.driverLabel)}</span>
+        <span class="pill plain">${esc(row.stanceLabel)}</span>
+        ${live ? "" : `<span class="pill plain">${esc(row.statusLabel)}</span>`}
       </span>
     </div>
     <p class="card-why dim">${counts}</p>
@@ -186,23 +186,23 @@ export function growingBlock(c) {
   }
   return `
     <div class="prep-block">
-      <h3 class="prep-head">Growing</h3>
+      <h3 class="prep-head">${t.blockTitle}</h3>
       <ul class="prep-list prep-topics">
         ${threads
           .map(
-            (/** @type {any} */ t) => `
+            (/** @type {any} */ row) => `
           <li class="prep-topic">
             <div class="topic-line">
-              <span class="topic-text">${esc(t.aim)}</span>
+              <span class="topic-text">${esc(row.aim)}</span>
               ${
-                String(t.stance ?? "unasked") === "unasked"
-                  ? `<button class="act" data-act="threadAsked" data-id="${esc(t.id)}">After the conversation</button>`
-                  : `<button class="act" data-act="threadTalked" data-id="${esc(t.id)}">It came up</button>`
+                String(row.stance ?? "unasked") === "unasked"
+                  ? `<button class="act" data-act="threadAsked" data-id="${esc(row.id)}">${t.afterConversation}</button>`
+                  : `<button class="act" data-act="threadTalked" data-id="${esc(row.id)}">${t.itCameUp}</button>`
               }
             </div>
-            ${t.marker ? `<span class="src">You will see: ${esc(t.marker)}</span>` : ""}
-            <span class="src">Discussed ${t.talks}×, seen ${t.observations}× &middot; last talked ${esc(t.lastTalked)}.</span>
-            ${t.asks ? `<span class="src">${esc(t.asks)}</span>` : ""}
+            ${row.marker ? `<span class="src">${t.youWillSee(esc(row.marker))}</span>` : ""}
+            <span class="src">${t.cardCounts(row.talks, row.observations, esc(row.lastTalked))}</span>
+            ${row.asks ? `<span class="src">${esc(row.asks)}</span>` : ""}
             ${
               /*
                * Shown only on a stalled thread, and only there.
@@ -215,10 +215,10 @@ export function growingBlock(c) {
                * a gap in the card - it IS the answer, and worth saying in as
                * many words.
                */
-               t.stalled
-                 ? String(t.offering ?? "").trim() === ""
-                   ? `<span class="src warn-text">You never wrote down what you were putting in. That is one answer to the question above.</span>`
-                   : `<span class="src">You said you would put in: ${esc(t.offering)}</span>`
+               row.stalled
+                 ? String(row.offering ?? "").trim() === ""
+                   ? `<span class="src warn-text">${t.stalledNoOffering}</span>`
+                   : `<span class="src">${t.stalledOffering(esc(row.offering))}</span>`
                  : ""
             }
           </li>`
@@ -255,14 +255,11 @@ function prepareFields(values = {}, opening = false) {
   if (opening) {
     fields.push({
       name: "aim",
-      label: "What you think the direction is, in one sentence",
+      label: t.fAim,
       required: true,
       type: "textarea",
-      placeholder: "Runs the design review without me in the room",
-      hint:
-        "Yours, before you have asked. What they will be able to DO, not an area to improve in - " +
-        "their own answer comes later and is kept beside this. Everything else about this thread " +
-        "can wait until you use \"Prepare\" on the card."
+      placeholder: t.fAimPlaceholder,
+      hint: t.fAimHint
     });
     return fields;
   }
@@ -270,13 +267,11 @@ function prepareFields(values = {}, opening = false) {
   fields.push(
     {
       name: "driver",
-      label: "Do they want this, or does the job need it?",
+      label: t.fDriver,
       type: "select",
       options: DRIVER_OPTIONS,
       value: values.driver || "unknown",
-      hint:
-        "Two different instruments. The development one used on a performance gap reads as a " +
-        "disciplinary process with a smile. Not knowing yet is a real answer."
+      hint: t.fDriverHint
     },
     // Both of these belong to one answer above, so neither is on the screen
     // under any other. Switching back to "they want it" clears them, which is
@@ -284,42 +279,38 @@ function prepareFields(values = {}, opening = false) {
     // record of anything.
     {
       name: "need",
-      label: "Whose need is it?",
+      label: t.fNeed,
       type: "textarea",
       value: values.need,
-      placeholder: "The team stalls whenever I am away",
+      placeholder: t.fNeedPlaceholder,
       showIf: { field: "driver", equals: "needs" },
-      hint: "Concretely enough that you could say it out loud to them."
+      hint: t.fNeedHint
     },
     {
       name: "ifNothingChanges",
-      label: "What happens if nothing changes?",
+      label: t.fIfNothing,
       type: "textarea",
       value: values.ifNothingChanges,
       showIf: { field: "driver", equals: "needs" },
-      hint:
-        "If the honest answer is nothing, this is a wish rather than a need. \"You stay where you " +
-        "are\" is a legitimate answer."
+      hint: t.fIfNothingHint
     },
     // Past tense in the label, and about them. Phrased as a question it collected
     // a plan instead: "talk to their lead and find out" is a thing he will do,
     // and it landed here because an empty box invites being filled.
     {
       name: "alreadySeen",
-      label: "What you have already seen them do",
+      label: t.fAlreadySeen,
       type: "textarea",
       value: values.alreadySeen,
-      hint: "Only what has happened. Empty is itself the finding: no evidence under the direction."
+      hint: t.fAlreadySeenHint
     },
     {
       name: "offering",
-      label: "What are you putting in?",
+      label: t.fOffering,
       type: "textarea",
       value: values.offering,
-      placeholder: "The architecture review, and I stop writing the migration plan myself",
-      hint:
-        "Cover, a room to be let into, work you stop doing yourself. Write it as done or dated - " +
-        "\"I could\" is not an offering."
+      placeholder: t.fOfferingPlaceholder,
+      hint: t.fOfferingHint
     }
   );
 
@@ -335,35 +326,33 @@ function askedFields(values) {
   return /** @type {import("../ui.js").Field[]} */ ([
     {
       name: "theirWords",
-      label: "What they said they want, in their words",
+      label: t.fTheirWords,
       type: "textarea",
       value: values.theirWords,
-      hint: "Theirs, not a tidied version. A plan in your words is one they will read as yours."
+      hint: t.fTheirWordsHint
     },
     {
       name: "stance",
-      label: "How did that land against your guess?",
+      label: t.fStance,
       type: "select",
       options: STANCE_OPTIONS,
       value: values.stance || "unasked"
     },
     {
       name: "assignment",
-      label: "Which real work does this happen through?",
+      label: t.fAssignment,
       type: "textarea",
       value: values.assignment,
-      placeholder: "Owns the migration end to end",
-      hint: "Name the assignment, not a skill area. Real stakes move people; courses feel like it."
+      placeholder: t.fAssignmentPlaceholder,
+      hint: t.fAssignmentHint
     },
     {
       name: "marker",
-      label: "What will you see in three months that you do not see now?",
+      label: t.fMarker,
       type: "textarea",
       value: values.marker,
-      placeholder: "Chairs the review once with me absent",
-      hint:
-        "If you cannot finish that sentence the direction is too vague to follow. \"Better " +
-        "communication\" is unobservable; \"runs it without me\" is not."
+      placeholder: t.fMarkerPlaceholder,
+      hint: t.fMarkerHint
     },
     // Recording what somebody said IS proof you spoke to them, so this dialog
     // carries the date of the conversation and logs it. Without that, filling in
@@ -373,25 +362,25 @@ function askedFields(values) {
     // form the obvious way.
     {
       name: "at",
-      label: "When you talked",
+      label: t.fWhenTalked,
       type: "date",
       value: asDateInput(Date.now()),
-      hint: "Logged as a conversation too, unless you have already logged one."
+      hint: t.fWhenTalkedHint
     },
     {
       name: "cadenceDays",
-      label: "How often should it come up?",
+      label: t.fCadence,
       type: "number",
       min: 1,
       value: values.cadenceDays || DEFAULT_CADENCE_DAYS,
-      hint: "In the one-to-one, never as its own meeting. A separate meeting kills it."
+      hint: t.fCadenceHint
     },
     {
       name: "horizon",
-      label: "When should the direction itself be questioned?",
+      label: t.fHorizon,
       type: "date",
       value: values.horizon ? asDateInput(values.horizon) : "",
-      hint: "Not a deadline. When it passes the thread asks whether this is still the thing."
+      hint: t.fHorizonHint
     }
   ]);
 }
@@ -444,13 +433,10 @@ export const actions = {
   /** @param {Record<string, string>} d */
   openThread: async (d) => {
     const values = await form({
-      title: "Open a direction",
-      intro:
-        "One sentence is enough to open it. The rest - whether they want this or the job needs " +
-        "it, what you have already seen, what you are putting in - comes later, from \"Prepare\" " +
-        "on the card, whenever you actually have an answer for it.",
+      title: t.openTitle,
+      intro: t.openIntro,
       fields: prepareFields({}, true),
-      confirm: "Open it"
+      confirm: t.openConfirm
     });
     if (!values) {
       return;
@@ -459,7 +445,7 @@ export const actions = {
     // he thought before asking. Stored twice on purpose: the aim can be reworded
     // to whatever they agree on, and the guess must survive that so the two can
     // be read side by side afterwards.
-    if (await act("openThread", { person: d.person, ...values, hypothesis: values.aim }, "Opened.")) {
+    if (await act("openThread", { person: d.person, ...values, hypothesis: values.aim }, t.openedToast)) {
       refresh();
     }
   },
@@ -486,31 +472,31 @@ export const actions = {
       return;
     }
     const values = await form({
-      title: "Reword the direction",
-      intro: "The thread is named after this. Change it once you know what you actually agreed on.",
+      title: t.rewordTitle,
+      intro: t.rewordIntro,
       fields: [
         {
           name: "aim",
-          label: "The direction as it stands",
+          label: t.rewordAimLabel,
           required: true,
           type: "textarea",
           value: current.fields.aim,
-          hint: "What they will be able to DO. If it describes what you do for them, the marker will measure the wrong person."
+          hint: t.rewordAimHint
         },
         {
           name: "hypothesis",
-          label: "What you thought before you asked",
+          label: t.rewordGuessLabel,
           type: "note",
           value: current.fields.hypothesis,
-          hint: "Kept as a record, so it can sit next to what they actually said."
+          hint: t.rewordGuessHint
         }
       ],
-      confirm: "Save"
+      confirm: t.save
     });
     if (!values) {
       return;
     }
-    if (await act("updateThread", { id: d.id, fields: { aim: values.aim } }, "Reworded.")) {
+    if (await act("updateThread", { id: d.id, fields: { aim: values.aim } }, t.rewordedToast)) {
       refresh();
     }
   },
@@ -523,15 +509,15 @@ export const actions = {
     }
     const fields = prepareFields(current.fields);
     const values = await form({
-      title: "Prepare",
-      intro: "Your side of it. Reopened where you left it rather than asking again.",
+      title: t.prepareTitle,
+      intro: t.prepareIntro,
       fields,
-      confirm: "Save"
+      confirm: t.save
     });
     if (!values) {
       return;
     }
-    if (await act("updateThread", { id: d.id, fields: patchFrom(fields, values) }, "Saved.")) {
+    if (await act("updateThread", { id: d.id, fields: patchFrom(fields, values) }, t.savedToast)) {
       refresh();
     }
   },
@@ -553,10 +539,10 @@ export const actions = {
     }
     const fields = askedFields(current.fields);
     const values = await form({
-      title: "After the conversation",
-      intro: "What came back. This overwrites nothing you guessed - the guess is kept beside it.",
+      title: t.askedTitle,
+      intro: t.askedIntro,
       fields,
-      confirm: "Save"
+      confirm: t.save
     });
     if (!values) {
       return;
@@ -566,7 +552,7 @@ export const actions = {
     const patch = patchFrom(fields, values);
     delete patch.at;
 
-    if (!(await act("updateThread", { id: d.id, fields: patch }, "Saved."))) {
+    if (!(await act("updateThread", { id: d.id, fields: patch }, t.savedToast))) {
       return;
     }
 
@@ -580,31 +566,24 @@ export const actions = {
     }
 
     const required = await ask({
-      title: "They are not interested. Does the job require it anyway?",
-      body:
-        "If it does, this stops being development and becomes an expectation - which has to be " +
-        "said once, plainly, including what follows if it is not met. \"You stay where you are\" " +
-        "is a legitimate thing for that to be.\n\nIf it does not, the right move is to let it go " +
-        "and tell them you have. Quietly keeping the hope alive is the one option that costs you " +
-        "the relationship.",
-      confirm: "The job requires it"
+      title: t.declinedTitle,
+      body: t.declinedBody,
+      confirm: t.declinedConfirm
     });
 
     const ending = await form({
-      title: required ? "State it as an expectation" : "Let it go",
-      intro: required
-        ? "Write the expectation as you will say it to them. Clarity about whether, encouragement about how."
-        : "Write why you let it go. It stays readable, so this cannot become a quiet disappointment nobody named.",
+      title: required ? t.expectationTitle : t.letGoTitle,
+      intro: required ? t.expectationIntro : t.letGoIntro,
       fields: [
-        { name: "why", label: required ? "The expectation, in your words" : "Why you let it go", type: "textarea", required: true },
+        { name: "why", label: required ? t.expectationWhy : t.letGoWhy, type: "textarea", required: true },
         {
           name: "said",
-          label: "I have told them",
+          label: t.saidLabel,
           type: "checkbox",
-          hint: "Leave it unchecked if you have not yet. The thread will keep asking until you have."
+          hint: t.saidHint
         }
       ],
-      confirm: "Save"
+      confirm: t.save
     });
     if (!ending) {
       refresh();
@@ -614,7 +593,7 @@ export const actions = {
       await act(
         "endThread",
         { id: d.id, status: required ? "expectation" : "dropped", why: ending.why, said: ending.said },
-        "Recorded."
+        t.recordedToast
       )
     ) {
       refresh();
@@ -624,21 +603,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   threadTalked: async (d) => {
     const values = await form({
-      title: "It came up",
-      intro:
-        "This moves the conversation clock and nothing else. Whether they have actually done the " +
-        "thing is a separate answer, because the gap between the two counts is the only useful " +
-        "reading here.",
+      title: t.talkedTitle,
+      intro: t.talkedIntro,
       fields: [
-        { name: "note", label: "One line, optional", placeholder: "Where it stands" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: t.talkedNoteLabel, placeholder: t.talkedNotePlaceholder },
+        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: "Log it"
+      confirm: t.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logGrowthNote", { growth: d.id, ...values, observed: false }, "Logged.")) {
+    if (await act("logGrowthNote", { growth: d.id, ...values, observed: false }, t.loggedToast)) {
       refresh();
     }
   },
@@ -666,40 +642,36 @@ export const actions = {
       .map((/** @type {any} */ p) => ({ value: String(p.id), label: String(p.name) }));
 
     const values = await form({
-      title: "I saw it",
-      intro:
-        "The marker, actually observed rather than discussed. The only evidence in here that any " +
-        "of this is working.",
+      title: t.observedTitle,
+      intro: t.observedIntro,
       fields: [
-        { name: "note", label: "What you saw", type: "textarea", placeholder: "Chaired the review on the 14th, I said nothing" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) },
+        { name: "note", label: t.observedNoteLabel, type: "textarea", placeholder: t.observedNotePlaceholder },
+        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) },
         {
           name: "tell",
-          label: "Who else needs to hear this?",
+          label: t.tellLabel,
           type: "select",
-          options: [{ value: "", label: "Nobody, it stays between us" }, ...others],
-          hint:
-            "Growth only you two saw converts into nothing. Picking somebody logs it as a promise, " +
-            "so it cannot quietly not happen."
+          options: [{ value: "", label: t.tellNobody }, ...others],
+          hint: t.tellHint
         }
       ],
-      confirm: "Record it"
+      confirm: t.recordIt
     });
     if (!values) {
       return;
     }
-    if (!(await act("logGrowthNote", { growth: d.id, ...values, observed: true }, "Recorded."))) {
+    if (!(await act("logGrowthNote", { growth: d.id, ...values, observed: true }, t.recordedToast))) {
       return;
     }
 
     const tell = String(values.tell ?? "");
     if (tell !== "") {
       const said = String(values.note ?? "").trim() || String(current?.marker ?? "");
-      const name = others.find((o) => o.value === tell)?.label ?? "them";
+      const name = others.find((o) => o.value === tell)?.label ?? t.them;
       // A promise rather than a note to self, deliberately: promises here escalate
       // past a week and no focus can dampen them, which is exactly the weight this
       // deserves. If it turns out not to be worth saying, closing it costs a click.
-      await act("logPromise", { person: tell, text: `Tell ${name}: ${said}` }, `Promise to tell ${name} logged.`);
+      await act("logPromise", { person: tell, text: t.tellPromise(name, said) }, t.tellPromiseToast(name));
     }
     refresh();
   },
@@ -707,44 +679,37 @@ export const actions = {
   /** @param {Record<string, string>} d */
   threadEnd: async (d) => {
     const values = await form({
-      title: "End it",
-      intro:
-        "Every ending here is a legitimate one, including letting it go. Somebody who is content " +
-        "where they are and doing solid work is not a problem to be fixed.",
+      title: t.endTitle,
+      intro: t.endIntro,
       fields: [
-        { name: "status", label: "How it ends", type: "select", options: ENDINGS, value: "reached" },
+        { name: "status", label: t.endHowLabel, type: "select", options: ENDINGS, value: "reached" },
         {
           name: "why",
-          label: "Why",
+          label: t.endWhyLabel,
           type: "textarea",
           required: true,
-          hint:
-            "Kept and readable afterwards. A thread that ends with no reason turns into a mood in " +
-            "the room six months later that neither of you can name."
+          hint: t.endWhyHint
         },
         {
           name: "said",
-          label: "I have told them",
+          label: t.saidLabel,
           type: "checkbox",
-          hint:
-            "Unchecked until you actually have. Letting a direction go silently is worse than " +
-            "either pushing or accepting: they still feel the disappointment and never hear that " +
-            "it is over."
+          hint: t.endSaidHint
         }
       ],
-      confirm: "End it"
+      confirm: t.endIt
     });
     if (!values) {
       return;
     }
-    if (await act("endThread", { id: d.id, ...values }, "Recorded.")) {
+    if (await act("endThread", { id: d.id, ...values }, t.recordedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   threadSaid: async (d) => {
-    if (await act("updateThread", { id: d.id, fields: { endingSaid: true } }, "Noted.")) {
+    if (await act("updateThread", { id: d.id, fields: { endingSaid: true } }, t.notedToast)) {
       refresh();
     }
   },
@@ -766,17 +731,12 @@ export const actions = {
    */
   threadRemove: async (d) => {
     const sure = await ask({
-      title: "Was this direction never real?",
-      body:
-        `"${d.aim}" goes, and stops being readable anywhere - the person's page, a prep card, ` +
-        "anything an agent reads. Right for a thread opened against the wrong person or twice " +
-        "by accident.\n\nIf it was real and it is over, close it with \"End it\" instead. That " +
-        "keeps the direction and the reason it ended, which is what answers \"why do we not talk " +
-        "about this any more\" next spring.",
-      confirm: "It was never real",
+      title: t.removeTitle,
+      body: t.removeBody(d.aim),
+      confirm: t.removeConfirm,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "growth", id: d.id }, "Removed."))) {
+    if (sure && (await act("removeRow", { collection: "growth", id: d.id }, t.removedToast))) {
       refresh();
     }
   }
