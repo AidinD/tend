@@ -116,7 +116,8 @@ export const STANCES = /** @type {const} */ ({
 /** @typedef {keyof typeof STANCES} Stance */
 
 /**
- * What a thread can end as. Only `open` is a live thread.
+ * What a thread can end as. `open` and `expectation` are the live ones - see
+ * {@link isLiveStatus}.
  *
  * `expectation` is the branch almost no manager uses and most situations need:
  * they do not want it and the job requires it anyway, so it stops being
@@ -229,11 +230,33 @@ export const COMFORTABLE_THREADS = 2;
  */
 
 /**
+ * Whether a thread is still running, from its status alone.
+ *
+ * The one definition, because there were four and two of them disagreed. The
+ * word appeared in `threadState`, in the service's live count, in the window
+ * and in `isLive` below - and `isLive` said `open` alone while every other copy
+ * counted `expectation` too. That is how `missing()` came to hand out homework
+ * on a thread that had ended: no single copy was wrong, they simply were not the
+ * same copy.
+ *
+ * An `expectation` counts as running because somebody still has to see
+ * something happen. It is an ending for the development conversation and not for
+ * the watching, which is why the clocks, the stall reading and the form all
+ * treat it as live.
+ *
+ * @param {Status} status
+ * @returns {boolean}
+ */
+export function isLiveStatus(status) {
+  return status === "open" || status === "expectation";
+}
+
+/**
  * @param {GrowthRow} row
  * @returns {boolean}
  */
 export function isLive(row) {
-  return !row._deleted && statusOf(row) === "open";
+  return !row._deleted && isLiveStatus(statusOf(row));
 }
 
 /**
@@ -315,7 +338,7 @@ export function threadState(row, notes, person, now) {
   const daysSinceTalked = Math.max(0, daysBetween(from, now));
 
   const status = statusOf(row);
-  const live = status === "open" || status === "expectation";
+  const live = isLiveStatus(status);
 
   // A closed thread has no clock. Leaving one running would put a finished
   // decision back on the card every month, which is the reverse of the point.
@@ -369,7 +392,7 @@ function question({ row, status, stalled, pastHorizon, talks }) {
   if (status === "dropped" && row.endingSaid !== true) {
     return "Have you told them you let this go, and why? A quiet ending is the one that costs you.";
   }
-  if (status !== "open" && status !== "expectation") {
+  if (!isLiveStatus(status)) {
     return null;
   }
   // Before the first conversation the question is the conversation, NOT the
@@ -519,10 +542,27 @@ function latest(notes) {
  * manager ends up writing somebody else's plan for them at their own desk, which
  * is the exact failure this whole design is arranged around.
  *
+ * Both lists are empty for a thread that has ended, which matters beyond the
+ * card: this is returned over MCP and read back from opening and updating a
+ * thread, so an agent would otherwise be handed questions to help with that
+ * nobody can answer any more.
+ *
  * @param {GrowthRow} row
  * @returns {{ prepare: string[], ask: string[] }}
  */
 export function missing(row) {
+  // An ended thread wants nothing prepared and nothing asked. The questions are
+  // homework for a conversation that is not going to happen, and on a dropped
+  // thread they are worse than noise: "which real work does this happen
+  // through?" against a direction that was let go reads as the tool not having
+  // noticed the decision - the one thing a dropped thread is supposed to make
+  // unmissable. `question()` has always returned null here; these two lists
+  // disagreed with it, and the disagreement was legible on the card as "Still to
+  // ask them" printed under an ending.
+  if (!isLiveStatus(statusOf(row))) {
+    return { prepare: [], ask: [] };
+  }
+
   /** @type {string[]} */
   const prepare = [];
   /** @type {string[]} */

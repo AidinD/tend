@@ -548,8 +548,12 @@ export { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
  * offers - what drives the direction, how the person took it, how it ended - are
  * each a set with a meaning attached to every entry, and a copy of any of them
  * in the window would eventually offer a choice the service refuses to store.
+ *
+ * `isLiveStatus` is here for the same reason and it is not a list: the window
+ * decides what a card offers from whether the thread is still running, and its
+ * own copy of that test is how the card came to print homework under an ending.
  */
-export { DEFAULT_CADENCE_DAYS, DRIVER_OPTIONS, STANCE_OPTIONS } from "../domain/growth.js";
+export { DEFAULT_CADENCE_DAYS, DRIVER_OPTIONS, STANCE_OPTIONS, isLiveStatus } from "../domain/growth.js";
 
 /* Both endings of a wait, from the definition that also holds what each means. */
 export { DEFAULT_WAIT_DAYS, WAIT_ENDING_OPTIONS } from "../domain/waiting.js";

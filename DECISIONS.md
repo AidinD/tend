@@ -3,6 +3,62 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-03 - An ended growth thread asks for nothing
+
+**Decided.** `missing()` returns two empty lists for a thread whose status is
+not live, and `expectation` counts as live. The rule is in the domain, not in the
+window.
+
+**What was wrong.** The dropped thread on one person came back from
+`tend_growth` with `missing.ask` holding "which real work does this happen
+through?" and "what will you see in three months that you do not see now?" - on
+a direction that had been let go, with the reason written and the ending said.
+Both questions are unanswerable now and neither is worth answering. The window
+printed them as "Still to ask them" directly underneath the ending pill, which
+reads as the tool not having noticed the decision - and noticing the decision is
+the entire reason a dropped thread keeps its reason and stays on the page.
+
+**Two readings of one row disagreed.** `question()` already returned null for a
+closed thread, except for the unsaid ending it exists to chase. So the same row
+said "this thread wants nothing" and "this thread wants four things" depending on
+which field you read. Neither answer was wrong on its own terms; they were two
+copies of a rule that was only ever written once.
+
+**`expectation` is live, and that is the interesting half.** It looks like an
+ending - it is in the ending list in the window and it stops the development
+conversation - but somebody still has to see something happen. An expectation
+with no marker on it is an expectation nobody can ever be shown to have met,
+which is exactly the shape a stated expectation must not have, so the marker
+question has to survive. `threadState` already ran the clocks and the stall
+reading on it; this agrees with that rather than inventing a second notion of
+finished.
+
+**In the domain rather than in the renderer.** Suppressing the block in
+`growth.js` in the renderer would have fixed the card and nothing else.
+`missing` is returned by `tend_growth` and by the replies to opening and editing
+a thread, so an agent asked to help him prepare would still have been handed
+homework for a conversation that is not going to happen - the one client where
+nobody sees the ending pill sitting next to it.
+
+**One definition of live, because there were four.** `threadState`, the service's
+live count, the window's card and `isLive` each had their own copy, and `isLive`
+said `open` alone while the other three counted `expectation` too. That is the
+mechanism behind the bug: no single copy was wrong. `isLiveStatus` is now the
+definition, exported, re-exported through `ui.js` the way the growth option lists
+already are, and used by all four.
+
+**Three tests and a check in the window.** An ended thread wants nothing, an
+expectation still wants its marker - that one fails if this is written as
+`status === "open"`, which was the obvious version - and the empty lists reach
+the service reply both clients read.
+
+**The first version of that app check asserted nothing**, and it is worth
+recording because it passed against the bug it was written for. It sat on the
+thread the harness had already filled in completely, where both lists are empty
+either way. It now opens a second direction, leaves it unprepared, checks that
+the page does say what is still to prepare and ask, and only then lets it go -
+the before half is what makes the after half mean anything.
+
 ## 2026-09-02 - A flag on a principle is not a promise
 
 **Decided.** `indexNib` no longer derives a commitment from a flagged block on a
