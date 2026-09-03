@@ -38,6 +38,9 @@
 import { act, asDateInput, esc, form, tend, toast } from "../ui.js";
 import { discard, isRunning, modelActions, modelStatus, ownPartHtml, resultFor, reviewHtml, run, stamp } from "../model.js";
 import { refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.journal;
 
 /** The key the current reading is held under. One at a time is enough. */
 const REVIEW_KEY = "review:journal";
@@ -62,7 +65,7 @@ export async function render() {
 
   if (result?.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">Could not read the journal</h2></div>
+      <h2 class="card-title">${t.readFailedTitle}</h2></div>
       <p class="card-why">${esc(result.error)}</p></div>`;
   }
 
@@ -73,19 +76,8 @@ export async function render() {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">The day</h1>
-          <p class="view-sub">
-            ${
-              isPrivate
-                ? `Four boxes, all optional, no reminder and no streak. One rule, and it is the
-                   whole reason this is safe to write: record what happened and your own part in
-                   it, never the other person's state. That is the half you can change, and it is
-                   the only version you could show the person it is about.`
-                : `Four boxes, all optional, no reminder and no streak. Missing days is
-                   expected - the value is in a month of them rather than in any one, so
-                   the only thing that matters is that writing one is cheap.`
-            }
-          </p>
+          <h1 class="view-title">${t.title}</h1>
+          <p class="view-sub">${isPrivate ? t.subPrivate : t.subWork}</p>
         </div>
         <span class="foot-actions">
           <!--
@@ -96,8 +88,8 @@ export async function render() {
             holds. Folding either into the other is what produced the first two
             wrong versions of this.
           -->
-          ${isPrivate ? `<button class="act" data-act="logMoment">Log something</button>` : ""}
-          <button class="act primary" data-act="writeEntry">Write today</button>
+          ${isPrivate ? `<button class="act" data-act="logMoment">${t.logMomentButton}</button>` : ""}
+          <button class="act primary" data-act="writeEntry">${t.writeButton}</button>
         </span>
       </div>
     </div>`;
@@ -106,7 +98,7 @@ export async function render() {
     <p class="prep-dropped">
       ${esc(cover.summary)}${
         cover.spread > 0 && cover.thin
-          ? " Too few to call anything a pattern yet, which is worth knowing before any reading is read."
+          ? t.tooThinNote
           : ""
       }
     </p>`;
@@ -114,11 +106,7 @@ export async function render() {
   if (entries.length === 0) {
     return `${head}
       ${isPrivate ? await momentsSection(model) : ""}
-      <div class="empty">
-        Nothing written yet. The questions are what took the day, what you
-        avoided, and what you would do differently - none of them things Tend can
-        work out on its own, which is the only reason it asks.
-      </div>`;
+      <div class="empty">${t.empty}</div>`;
   }
 
   const fields = Array.isArray(result.fields) ? result.fields : [];
@@ -151,7 +139,7 @@ async function momentsSection(model) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">Moments</span>
+      <span class="group-title">${t.momentsGroup}</span>
       <span class="group-rule"></span>
       <span class="group-meta">${logged.length}</span>
     </div>
@@ -171,7 +159,7 @@ async function momentsSection(model) {
     </div>
     ${
       logged.length > 12
-        ? `<p class="card-why dim">${logged.length - 12} more, on the pages of the people they involved.</p>`
+        ? `<p class="card-why dim">${t.momentsMore(logged.length - 12)}</p>`
         : ""
     }
     ${patternsBlock(logged, model)}
@@ -215,20 +203,18 @@ function patternsBlock(logged, model) {
   const tooThin = logged.length < 4 || days < 3;
 
   const why = tooThin
-    ? `${logged.length} ${logged.length === 1 ? "moment" : "moments"} across ${days} ${
-        days === 1 ? "day" : "days"
-      }. A reading needs at least four across at least three separate days, because several logged in one sitting describe one afternoon however many rows they make.`
+    ? t.patternsTooThin(logged.length, days)
     : model.available
-      ? "Reads what you wrote and names what recurs in what YOU did. Never what anybody else in them is like - that half is not the app's to name, and it is why this is safe to run at all."
-      : String(model.why ?? "No model is reachable, so these can only be read by you.");
+      ? t.patternsReady
+      : String(model.why ?? t.patternsNoModel);
 
   return `<article class="card">
-    <div class="card-top"><h2 class="card-title">What keeps happening</h2></div>
+    <div class="card-top"><h2 class="card-title">${t.patternsTitle}</h2></div>
     <p class="card-why">${esc(why)}</p>
     <div class="card-foot">
-      <span class="src">Nothing is written, kept or sent anywhere</span>
+      <span class="src">${t.patternsNote}</span>
       <button class="act" data-act="readMoments" ${tooThin || !model.available || running ? "disabled" : ""}>
-        ${running ? "Reading..." : "Read across them"}
+        ${running ? t.patternsReading : t.patternsRead}
       </button>
     </div>
   </article>`;
@@ -247,9 +233,9 @@ function patternsBlock(logged, model) {
 function patternsHtml(result) {
   if (result?.error) {
     return `<article class="card sev-critical">
-      <div class="card-top"><h2 class="card-title">Could not read across them</h2></div>
+      <div class="card-top"><h2 class="card-title">${t.patternsFailedTitle}</h2></div>
       <p class="card-why">${esc(String(result.error))}</p>
-      <div class="card-foot"><button class="act" data-act="dropMoments">Close</button></div>
+      <div class="card-foot"><button class="act" data-act="dropMoments">${t.close}</button></div>
     </article>`;
   }
 
@@ -260,13 +246,13 @@ function patternsHtml(result) {
     recurs.length === 0 && questions.length === 0
       ? `<p class="draft-opening">${esc(
           String(result?.nothingToSay ?? "").trim() ||
-            "Nothing recurs across these yet, which is a real answer rather than a failure."
+            t.patternsNothing
         )}</p>`
       : `${
           recurs
             .map(
               (/** @type {any} */ r) => `<div class="line">
-                <span class="line-when">${esc(String(r.days))} days</span>
+                <span class="line-when">${t.patternsDays(esc(String(r.days)))}</span>
                 <span class="line-text"><strong>${esc(String(r.what))}</strong>${
                   r.evidence ? ` - "${esc(String(r.evidence))}"` : ""
                 }</span>
@@ -282,20 +268,20 @@ function patternsHtml(result) {
         ${
           questions.length === 0
             ? ""
-            : `<div class="block"><div class="block-title">To put to yourself</div>${questions
+            : `<div class="block"><div class="block-title">${t.toPutToYourself}</div>${questions
                 .map((/** @type {string} */ q) => `<div class="line"><span class="line-text">${esc(q)}</span></div>`)
                 .join("")}</div>`
         }`;
 
   return `<article class="card draft">
     <div class="card-top">
-      <h2 class="card-title">What keeps happening</h2>
+      <h2 class="card-title">${t.patternsTitle}</h2>
       <span class="tag">${esc(stamp(result))}</span>
     </div>
     ${body}
     <div class="card-foot">
       <span class="src">${esc(String(result?.coverage?.summary ?? ""))}</span>
-      <button class="act" data-act="dropMoments">Done with it</button>
+      <button class="act" data-act="dropMoments">${t.doneWithIt}</button>
     </div>
   </article>`;
 }
@@ -314,7 +300,7 @@ function readingSection(cover, model, backlog) {
   const current = resultFor(REVIEW_KEY);
   if (current !== null) {
     return `<div class="group">
-      <div class="group-head"><span class="group-title">The reading</span><span class="group-rule"></span></div>
+      <div class="group-head"><span class="group-title">${t.readingGroup}</span><span class="group-rule"></span></div>
       ${reviewHtml(REVIEW_KEY, current)}
     </div>`;
   }
@@ -326,23 +312,17 @@ function readingSection(cover, model, backlog) {
   const tooThin = Number(cover.entries ?? 0) < 4 || Number(cover.spread ?? 0) < 3;
 
   const why = tooThin
-    ? "A reading needs at least four entries across at least three separate days. Fewer than that and a pattern is one evening restated with confidence - which then gets remembered next month as a fact."
+    ? t.readTooThin
     : model.available
-      ? "Reads every entry in the window and names what recurs: where the days actually went, and what kept being avoided. Nothing is written unless you keep it."
-      : String(model.why ?? "No model is reachable, so the entries can only be read by you.");
+      ? t.readReady
+      : String(model.why ?? t.readNoModel);
 
   return `<div class="group">
-    <div class="group-head"><span class="group-title">The reading</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${t.readingGroup}</span><span class="group-rule"></span></div>
     <article class="card">
-      <div class="card-top"><h2 class="card-title">Read the last 30 days</h2></div>
+      <div class="card-top"><h2 class="card-title">${t.readTitle}</h2></div>
       <p class="card-why">${esc(why)}</p>
-      <p class="card-why dim">
-        What it looks for is the pair of things that are invisible on the day and
-        obvious across a month. It asks questions rather than reaching verdicts,
-        and the counts the app recorded over the same days travel with it - a
-        memory of a month is worse than a memory of a day, and only one of the two
-        is checkable.
-      </p>
+      <p class="card-why dim">${t.readWhatItLooksFor}</p>
       <!--
         What has gone unread, when anything has.
         A line on the page you are already standing on rather than a badge in the
@@ -362,7 +342,7 @@ function readingSection(cover, model, backlog) {
       <div class="card-foot">
         <span class="src">${esc(String(cover.summary ?? ""))}</span>
         <button class="act primary" data-act="readJournal" ${tooThin || !model.available || running ? "disabled" : ""}>
-          ${running ? "Reading..." : "Read them"}
+          ${running ? t.reading : t.readThem}
         </button>
       </div>
     </article>
@@ -386,7 +366,7 @@ function keptSection(kept) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">Kept readings</span>
+      <span class="group-title">${t.keptGroup}</span>
       <span class="group-rule"></span>
       <span class="group-meta">${kept.length}</span>
     </div>
@@ -425,25 +405,26 @@ function keptCard(r) {
         has since moved, which is how a reading built on six evenings ends up
         looking like one built on twenty-six.
       -->
-      <span class="badge">${esc(String(r.entries))} entries over ${esc(String(r.spread))} days</span>
+      <span class="badge">${t.keptCoverage(esc(String(r.entries)), esc(String(r.spread)))}</span>
     </div>
-    ${block("Kept being avoided", avoidance)}
-    ${block("Where the days went", wentInto)}
+    ${block(t.keptAvoided, avoidance)}
+    ${block(t.keptWentInto, wentInto)}
     ${r.saidVsDid ? `<div class="prep-block">
-      <h3 class="prep-head">Against what you said you would do</h3>
+      <h3 class="prep-head">${t.keptSaidVsDid}</h3>
       <p class="prep-note">${esc(r.saidVsDid)}</p>
     </div>` : ""}
     ${questions.length ? `<div class="prep-block">
-      <h3 class="prep-head">Worth asking yourself</h3>
+      <h3 class="prep-head">${t.keptQuestions}</h3>
       <ul class="draft-list">${questions.map((/** @type {string} */ q) => `<li>${esc(q)}</li>`).join("")}</ul>
     </div>` : ""}
     <div class="card-foot">
-      <span class="src">Covered the ${esc(String(r.days))} days to then${
-        r.source ? `, read by ${esc(String(r.source).replace(/^model:/, ""))}` : ""
-      }.</span>
+      <span class="src">${t.keptFoot(
+        esc(String(r.days)),
+        r.source ? t.keptReadBy(esc(String(r.source).replace(/^model:/, ""))) : ""
+      )}</span>
       <span class="foot-actions">
         <button class="act danger" data-act="dropReview" data-id="${esc(r.id)}"
-          data-day="${esc(new Date(r.at).toLocaleDateString("sv-SE"))}">Remove</button>
+          data-day="${esc(new Date(r.at).toLocaleDateString("sv-SE"))}">${t.remove}</button>
       </span>
     </div>
   </article>`;
@@ -489,15 +470,15 @@ function entry(e, fields, isPrivate = false, model = { available: false, why: nu
     ${lines}
     ${isPrivate ? ownPartBlock(e, model) : ""}
     <div class="card-foot">
-      <span class="src">Written by you. Read by the pass above, when you ask for it.</span>
+      <span class="src">${t.entryFoot}</span>
       <span class="foot-actions">
         ${
           isPrivate && model.available
-            ? `<button class="act" data-act="readBack" data-at="${esc(String(e.at))}">Read it back</button>`
+            ? `<button class="act" data-act="readBack" data-at="${esc(String(e.at))}">${t.readBackButton}</button>`
             : ""
         }
-        <button class="act" data-act="writeEntry" data-at="${esc(String(e.at))}">Edit</button>
-        <button class="act danger" data-act="dropEntry" data-id="${esc(e.id)}" data-day="${esc(new Date(e.at).toLocaleDateString("sv-SE"))}">Remove</button>
+        <button class="act" data-act="writeEntry" data-at="${esc(String(e.at))}">${t.edit}</button>
+        <button class="act danger" data-act="dropEntry" data-id="${esc(e.id)}" data-day="${esc(new Date(e.at).toLocaleDateString("sv-SE"))}">${t.remove}</button>
       </span>
     </div>
   </article>`;
@@ -516,13 +497,13 @@ function entry(e, fields, isPrivate = false, model = { available: false, why: nu
 function ownPartBlock(e, model) {
   const key = ownPartKey(e.at);
   if (isRunning(key)) {
-    return `<p class="src">Reading it back...</p>`;
+    return `<p class="src">${t.readingBack}</p>`;
   }
   const result = resultFor(key);
   if (result === null) {
     return model.available
       ? ""
-      : `<p class="src">${esc(String(model.why ?? "No model is reachable, so nothing can read this back."))}</p>`;
+      : `<p class="src">${esc(String(model.why ?? t.ownPartNoModel))}</p>`;
   }
   return ownPartHtml(key, result);
 }
@@ -561,33 +542,30 @@ export const actions = {
     const roster = /** @type {any[]} */ (await tend.invoke("people"));
     const people = Array.isArray(roster) ? roster : [];
     if (people.length === 0) {
-      toast("Add somebody first - a moment is about the people who were in it.", "bad");
+      toast(t.momentNoRoster, "bad");
       return;
     }
 
     const values = await form({
-      title: "What happened?",
-      intro:
-        "An event rather than a day, so log as many as the day holds. Your own part in it is the " +
-        "half worth keeping - it is the half you can change, and the only version you could show " +
-        "the person it is about.",
+      title: t.momentTitle,
+      intro: t.momentIntro,
       fields: [
         {
           name: "what",
-          label: "What happened",
+          label: t.momentWhatLabel,
           type: /** @type {const} */ ("textarea"),
-          hint: "Optional. Often obvious to you, and leaving it out costs nothing."
+          hint: t.momentWhatHint
         },
         {
           name: "part",
-          label: "My part in it",
+          label: t.momentPartLabel,
           type: /** @type {const} */ ("textarea"),
           required: true,
-          hint: "What you did, chose, felt or avoided. Not what they were like."
+          hint: t.momentPartHint
         },
         {
           name: "who",
-          label: "Who was in it",
+          label: t.momentWhoLabel,
           type: /** @type {const} */ ("multiselect"),
           required: true,
           options: people.map((/** @type {any} */ person) => ({
@@ -595,16 +573,16 @@ export const actions = {
             label: String(person.name)
           })),
           value: d.person ? [String(d.person)] : [],
-          hint: "Written once, and it appears on each of their pages."
+          hint: t.momentWhoHint
         },
         {
           name: "at",
-          label: "When",
+          label: t.momentWhenLabel,
           type: /** @type {const} */ ("date"),
           value: asDateInput(Date.now())
         }
       ],
-      confirm: "Keep it"
+      confirm: t.momentConfirm
     });
     if (!values) {
       return;
@@ -613,7 +591,7 @@ export const actions = {
     const chosen = Array.isArray(values.who) ? values.who : [];
 
     if (chosen.length === 0) {
-      toast("Tick at least one person - a moment with nobody in it belongs in the day.", "bad");
+      toast(t.momentNobody, "bad");
       return;
     }
 
@@ -621,7 +599,7 @@ export const actions = {
       await act(
         "logMoment",
         { what: values.what, part: values.part, at: values.at, people: chosen },
-        "Kept."
+        t.keptToast
       )
     ) {
       refresh();
@@ -658,7 +636,7 @@ export const actions = {
     if (review === null) {
       return;
     }
-    if (await act("keepReview", { review }, "Kept.")) {
+    if (await act("keepReview", { review }, t.keptToast)) {
       // Cleared so the page does not show the same reading twice, once as a
       // draft and once as a kept card - which reads as two readings.
       modelActions().discardDraft({ key: d.key });
@@ -667,7 +645,7 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   dropReview: async (d) => {
-    if (await act("removeRow", { collection: "reviews", id: d.id }, "Removed.")) {
+    if (await act("removeRow", { collection: "reviews", id: d.id }, t.removedToast)) {
       refresh();
     }
   },
@@ -692,11 +670,8 @@ export const actions = {
     const fields = Array.isArray(result?.fields) ? result.fields : [];
 
     const values = await form({
-      title: existing ? `Edit ${new Date(at).toLocaleDateString("sv-SE")}` : "How was the day?",
-      intro:
-        "Leave any of them empty. One filled box is a real entry, and three required ones would " +
-        "only produce something invented at eleven at night - which reads like a fact afterwards " +
-        "and is worse than nothing.",
+      title: existing ? t.writeEditTitle(new Date(at).toLocaleDateString("sv-SE")) : t.writeTitle,
+      intro: t.writeIntro,
       fields: [
         ...fields.map((/** @type {any} */ f) => ({
           name: f.name,
@@ -705,21 +680,21 @@ export const actions = {
           value: existing?.[f.name] ?? "",
           hint: f.hint
         })),
-        { name: "at", label: "Which day", type: /** @type {const} */ ("date"), value: asDateInput(at) }
+        { name: "at", label: t.writeWhichDay, type: /** @type {const} */ ("date"), value: asDateInput(at) }
       ],
-      confirm: "Keep it"
+      confirm: t.writeConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("logEntry", values, "Kept.")) {
+    if (await act("logEntry", values, t.keptToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   dropEntry: async (d) => {
-    if (await act("removeRow", { collection: "entries", id: d.id }, "Removed.")) {
+    if (await act("removeRow", { collection: "entries", id: d.id }, t.removedToast)) {
       refresh();
     }
   }

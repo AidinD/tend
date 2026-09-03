@@ -41,6 +41,138 @@
  */
 
 export const T = {
+  journal: {
+    readFailedTitle: "Could not read the journal",
+    title: "The day",
+    /*
+     * The private half's version carries the rule, because the cheaper half of
+     * enforcing it is upstream: the labels say it while the entry is being
+     * written, which is worth more than reading it back afterwards.
+     */
+    subPrivate:
+      "Four boxes, all optional, no reminder and no streak. One rule, and it is the whole reason " +
+      "this is safe to write: record what happened and your own part in it, never the other " +
+      "person's state. That is the half you can change, and it is the only version you could show " +
+      "the person it is about.",
+    subWork:
+      "Four boxes, all optional, no reminder and no streak. Missing days is expected - the value " +
+      "is in a month of them rather than in any one, so the only thing that matters is that " +
+      "writing one is cheap.",
+    logMomentButton: "Log something",
+    writeButton: "Write today",
+    tooThinNote:
+      " Too few to call anything a pattern yet, which is worth knowing before any reading is read.",
+    empty:
+      "Nothing written yet. The questions are what took the day, what you avoided, and what you " +
+      "would do differently - none of them things Tend can work out on its own, which is the only " +
+      "reason it asks.",
+
+    /* Moments, on this page because one involving three people has no single
+       page it belongs to. */
+    momentsGroup: "Moments",
+    /** @param {number} n */
+    momentsMore: (n) => `${n} more, on the pages of the people they involved.`,
+
+    /* Reading across the moments. Every finding has the writer as its subject,
+       which is what makes pattern-finding safe to have in this half at all. */
+    patternsTitle: "What keeps happening",
+    /** @param {number} moments @param {number} days */
+    patternsTooThin: (moments, days) =>
+      `${moments} ${moments === 1 ? "moment" : "moments"} across ${days} ${days === 1 ? "day" : "days"}. ` +
+      `A reading needs at least four across at least three separate days, because several logged ` +
+      `in one sitting describe one afternoon however many rows they make.`,
+    patternsReady:
+      "Reads what you wrote and names what recurs in what YOU did. Never what anybody else in " +
+      "them is like - that half is not the app's to name, and it is why this is safe to run at all.",
+    patternsNoModel: "No model is reachable, so these can only be read by you.",
+    patternsNote: "Nothing is written, kept or sent anywhere",
+    patternsReading: "Reading...",
+    patternsRead: "Read across them",
+    patternsFailedTitle: "Could not read across them",
+    close: "Close",
+    patternsNothing: "Nothing recurs across these yet, which is a real answer rather than a failure.",
+    /** @param {string} days */
+    patternsDays: (days) => `${days} days`,
+    toPutToYourself: "To put to yourself",
+    doneWithIt: "Done with it",
+
+    /* The journal reading. Every state says what would change it, because a
+       disabled button that says nothing reads as broken. */
+    readingGroup: "The reading",
+    readTitle: "Read the last 30 days",
+    readTooThin:
+      "A reading needs at least four entries across at least three separate days. Fewer than that " +
+      "and a pattern is one evening restated with confidence - which then gets remembered next " +
+      "month as a fact.",
+    readReady:
+      "Reads every entry in the window and names what recurs: where the days actually went, and " +
+      "what kept being avoided. Nothing is written unless you keep it.",
+    readNoModel: "No model is reachable, so the entries can only be read by you.",
+    readWhatItLooksFor:
+      "What it looks for is the pair of things that are invisible on the day and obvious across a " +
+      "month. It asks questions rather than reaching verdicts, and the counts the app recorded " +
+      "over the same days travel with it - a memory of a month is worse than a memory of a day, " +
+      "and only one of the two is checkable.",
+    reading: "Reading...",
+    readThem: "Read them",
+
+    /* Kept readings. The second one is where this earns anything: a pattern that
+       survived three months is a different fact from one noticed tonight. */
+    keptGroup: "Kept readings",
+    /** @param {string} entries @param {string} spread */
+    keptCoverage: (entries, spread) => `${entries} entries over ${spread} days`,
+    keptAvoided: "Kept being avoided",
+    keptWentInto: "Where the days went",
+    keptSaidVsDid: "Against what you said you would do",
+    keptQuestions: "Worth asking yourself",
+    /** @param {string} days @param {string} by */
+    keptFoot: (days, by) => `Covered the ${days} days to then${by}.`,
+    /** @param {string} who */
+    keptReadBy: (who) => `, read by ${who}`,
+    remove: "Remove",
+
+    /* One day. */
+    entryFoot: "Written by you. Read by the pass above, when you ask for it.",
+    readBackButton: "Read it back",
+    edit: "Edit",
+    readingBack: "Reading it back...",
+    ownPartNoModel: "No model is reachable, so nothing can read this back.",
+
+    /* Logging a moment. */
+    momentNoRoster: "Add somebody first - a moment is about the people who were in it.",
+    momentTitle: "What happened?",
+    momentIntro:
+      "An event rather than a day, so log as many as the day holds. Your own part in it is the " +
+      "half worth keeping - it is the half you can change, and the only version you could show " +
+      "the person it is about.",
+    momentWhatLabel: "What happened",
+    momentWhatHint: "Optional. Often obvious to you, and leaving it out costs nothing.",
+    momentPartLabel: "My part in it",
+    momentPartHint: "What you did, chose, felt or avoided. Not what they were like.",
+    momentWhoLabel: "Who was in it",
+    momentWhoHint: "Written once, and it appears on each of their pages.",
+    momentWhenLabel: "When",
+    momentConfirm: "Keep it",
+    momentNobody: "Tick at least one person - a moment with nobody in it belongs in the day.",
+    keptToast: "Kept.",
+    removedToast: "Removed.",
+
+    /*
+     * Writing the day. No people on this form, deliberately - a whole-day
+     * retrospective ticked against four names put one day's text onto four
+     * people's pages. What belongs to a person is a moment.
+     */
+    /** @param {string} day */
+    writeEditTitle: (day) => `Edit ${day}`,
+    writeTitle: "How was the day?",
+    writeIntro:
+      "Leave any of them empty. One filled box is a real entry, and three required ones would " +
+      "only produce something invented at eleven at night - which reads like a fact afterwards " +
+      "and is worse than nothing.",
+    writeWhichDay: "Which day",
+    writeConfirm: "Keep it"
+  },
+
   now: {
     readFailedTitle: "Could not read the data",
 
