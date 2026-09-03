@@ -41,6 +41,269 @@
  */
 
 export const T = {
+  people: {
+    title: "People",
+    subPrivate: "Who they are, and what you have said you would do. Nothing here is on a schedule.",
+    subWork: "Grouped by the relationship, not the org chart.",
+    addButton: "Add someone",
+
+    /* "Nobody yet" and "everybody is archived" are different facts, and after a
+       bulk archive the second is the common one. */
+    emptyArchived:
+      "Nobody active. Everybody here is archived - open the group below to bring anyone back, or " +
+      "add somebody new.",
+    emptyPrivate:
+      "Nobody here yet. Adding somebody gives you a place to put what you promised them - and " +
+      "nothing else, because nothing outside work runs on a cadence.",
+    emptyWork: "Nobody here yet. Add the people you lead or manage, and the leads you work beside.",
+
+    /* A roster row's right-hand side. */
+    awayNothing: "nothing expected while they are away",
+    leftNothing: "history kept, nothing expected",
+    noDuty: "no duty applies",
+
+    archivedGroup: "Archived",
+    /** @param {string} date */
+    archivedOn: (date) => `archived ${date}`,
+    view: "View",
+    unarchive: "Unarchive",
+
+    notFoundTitle: "Not found",
+    allPeople: "All people",
+    back: "← All people",
+    edit: "Edit",
+    notRight: "Not right",
+    remove: "Remove",
+
+    /* A folded run of identical history rows. */
+    /** @param {number} n */
+    identical: (n) => `${n} identical`,
+
+    /*
+     * What the rows amount to, counted in the service over the whole set rather
+     * than the capped twenty rendered above.
+     */
+    noContactYet: "No contact recorded yet",
+    conversationOne: "conversation",
+    conversationMany: "conversations",
+    /** @param {number} n @param {string} word */
+    countOf: (n, word) => `${n} ${word}`,
+    /** @param {string} month */
+    since: (month) => `since ${month}`,
+    /** @param {number} days @param {string} word */
+    roughlyEvery: (days, word) => `roughly every ${days} ${word}`,
+    dayOne: "day",
+    dayMany: "days",
+    /** @param {string} words */
+    lastAt: (words) => `last ${words}`,
+
+    /* A cancellation, kept legible as a different thing from a conversation. */
+    /** @param {string} kind @param {string} why */
+    didNotHappen: (kind, why) => `<strong>${kind}</strong> did not happen${why}`,
+    /** @param {string} why */
+    skipWhy: (why) => ` - ${why}`,
+    /** @param {string} kind */
+    skipWhat: (kind) => `${kind} that did not happen`,
+
+    /* Moments, and the people also in them. */
+    /** @param {string} who */
+    alsoThere: (who) => `with ${who}`,
+
+    /* The action row on a person's page. */
+    logContactButton: "Log contact",
+    logSkipButton: "It did not happen",
+    logMomentButton: "Something happened",
+    linkButton: "Link something",
+    observationButton: "Record an observation",
+    readingNotes: "Reading notes…",
+    themesButton: "What keeps coming up",
+
+    /* The blocks, in the order they answer a question about somebody. */
+    cadencesBlock: "Cadences",
+    cadencesNone: "No duty in the role map applies to this relationship type.",
+    promisesBlock: "Open promises",
+    promisesNone: "Nothing outstanding.",
+    observationsBlock: "Observations",
+    observationsNone: "Nothing recorded. This is what a review conversation is built from.",
+    historyBlock: "Contact history",
+    skippedBlock: "Booked and did not happen",
+    linkedBlock: "Linked",
+    linkedNone:
+      "Nothing linked. Prepared notes and anything else that lives outside Tend can be pointed " +
+      "at from here.",
+    momentsBlock: "Moments",
+    momentsNone:
+      "Nothing yet. One thing that happened and your own part in it - which is the half you can " +
+      "change, and the only half worth keeping.",
+
+    /* Archiving, in its own block because it is reversible and Remove is not. */
+    /** @param {string} date */
+    archivedNote: (date) =>
+      `Archived on ${date}. They stop appearing in Now, prep, attention nudges and duty ` +
+      `cadences - everything already on this page stays exactly as it is.`,
+    /** @param {string} name */
+    unarchiveNamed: (name) => `Unarchive ${name}`,
+    /** @param {string} name */
+    archiveNamed: (name) => `Archive ${name}`,
+    /** @param {string} name */
+    removeNamed: (name) => `Remove ${name}`,
+
+    /* Adding somebody. */
+    addTitle: "Add someone",
+    /*
+     * No mention of duties in the private half, because there are none. The
+     * relationship there is a label: it groups the list and sits on their page,
+     * and nothing is derived from it. Saying so is the difference between a
+     * field somebody answers carefully and one they answer wrong on purpose.
+     */
+    addIntroPrivate: "Who they are, for your own reference. Nothing is scheduled from it.",
+    addIntroWork: "The relationship type decides which duties apply to them.",
+    nameLabel: "Name",
+    namePlaceholderPrivate: "What you call them",
+    namePlaceholderWork: "Their full name",
+    relationPrivate: "Who they are",
+    relationWork: "How you relate to them",
+    sinceLabel: "Since when",
+    addSinceHint:
+      "When the relationship started, not today. Leave it as today for someone who just joined; " +
+      "set it back for someone you have had for months, or Tend will think you are perfectly in " +
+      "step with them.",
+    add: "Add",
+    /** @param {string} name */
+    addedNamed: (name) => `${name} added.`,
+
+    /* Taking a moment back. */
+    unlogMomentTitle: "Take it back?",
+    /** @param {string} what */
+    unlogMomentBody: (what) => `"${what}" is removed. The log keeps the history; the page stops showing it.`,
+    removedToast: "Removed.",
+
+    /* A cancellation, recorded - and it satisfies nothing. */
+    skipTitle: "What did not happen?",
+    skipIntro:
+      "Recorded, and it satisfies nothing - the conversation still has not taken place, so " +
+      "the clock keeps running. The point is the difference between never having booked it " +
+      "and having cancelled it three times, which contact alone cannot show.",
+    skipKindLabel: "What it would have been",
+    skipWhyLabel: "Why, in a line",
+    skipWhyPlaceholder: "Release week, moved it myself for the third time",
+    skipWhyHint:
+      'Your own words rather than a category. The difference between "he was ill" and ' +
+      '"I moved it again" is the whole reason to write it down.',
+    skipWhenLabel: "When it should have been",
+    recordIt: "Record it",
+    recordedToast: "Recorded.",
+
+    takeBackTitle: "Take this back?",
+    /** @param {string} what */
+    unlogSkipBody: (what) =>
+      `"${what}" stops being on record. Nothing else changes - a skip never satisfied anything.`,
+    /** @param {string} what */
+    unlogContactBody: (what) =>
+      `"${what}" stops counting, so whatever cadence it satisfied goes back to where it was. The ` +
+      `event stays in the log - nothing here is ever really deleted - it just stops being evidence.`,
+    takeItBack: "Take it back",
+    takenBackToast: "Taken back.",
+
+    /* Editing. */
+    /** @param {string} name */
+    editTitle: (name) => `Edit ${name}`,
+    editIntro:
+      "Their history comes with them whatever you change here - everything that points at " +
+      "somebody holds their id, so the name is only what is shown and what Ctrl+K matches.",
+    editSinceHint:
+      "When the relationship started. Every cadence measures from here until there is " +
+      "contact to measure from instead, so a placeholder puts somebody months behind on " +
+      "their first day - or perfectly in step with somebody you have never spoken to.",
+    awayLabel: "Away until",
+    awayHint:
+      "Parental leave, a sabbatical, a long illness. Nothing is expected of you while " +
+      "they are away, and the clock restarts from the day they are back rather than from " +
+      "the last time you spoke. Clear it if they return early.",
+    leftLabel: "Last day",
+    leftHint:
+      "Set it as soon as you know it. Everything holds until that day - a promise to " +
+      "somebody leaving next week is exactly the promise to keep - and after it their " +
+      "cadences go quiet while the whole history stays. Better than removing them.",
+    save: "Save",
+    updatedToast: "Updated.",
+
+    /* Logging contact. A second-hand report is not having spoken to them. */
+    logTitle: "Log contact",
+    logIntro:
+      "The kind decides which cadence this satisfies. A second-hand report does not count as " +
+      "having spoken to them.",
+    logKindLabel: "What kind",
+    logNoteLabel: "One line, optional",
+    logNotePlaceholder: "What it was about",
+    when: "When",
+    logWhenHint: "Backdate it if you are catching up.",
+    logIt: "Log it",
+    loggedToast: "Logged.",
+
+    /* A promise. When unsure, log it. */
+    promiseTitle: "Something you promised",
+    promiseIntro:
+      "When you are not sure it counts, log it. A false one costs a click; a missed one costs " +
+      "trust with a real person.",
+    promiseTextLabel: "What you said you would do",
+    promiseTextPlaceholder: "Check with Nina about the conference",
+    promiseDueLabel: "By when, optional",
+    promiseMadeLabel: "When you said it",
+    promiseMadeHint:
+      "Backdate it and it ages correctly. Anything open past two weeks escalates whatever else " +
+      "is going on.",
+
+    /* A link: the address, never a copy. */
+    linkTitle: "Link something",
+    linkIntro:
+      "The address is stored, never a copy - the same arrangement as the Nib pointer. Every " +
+      "row shows how old it is, because prepared notes stop being current once the " +
+      "conversation happens and nothing here expires on its own.",
+    linkUrlLabel: "Address",
+    linkUrlPlaceholder: "https://",
+    linkTitleLabel: "What it is",
+    linkTitlePlaceholder: "Prep for the next 1-1",
+    linkNoteLabel: "Why, if it is not obvious",
+    linkConfirm: "Link it",
+    linkedToast: "Linked.",
+    /** @param {string} name */
+    unlinkTitle: (name) => `Remove the link to ${name}?`,
+    unlinkBody: "Only the pointer goes. Whatever it pointed at is untouched.",
+
+    /* An observation, so a review is built on notes rather than on memory. */
+    observationTitle: "Record an observation",
+    observationIntro:
+      "What they delivered, how they handled something. Written down now so a review is built " +
+      "on notes rather than on memory of the last three weeks.",
+    observationTextLabel: "What happened",
+    observationAreaLabel: "Tag, optional",
+    observationAreaPlaceholder: "code, ownership, communication",
+
+    closedToast: "Closed.",
+
+    /* Archiving is reversible, so it gets its own gentler dialog. */
+    /** @param {string} name */
+    archiveTitle: (name) => `Archive ${name}?`,
+    archiveBody:
+      "They stop appearing in Now, prep, attention nudges and duty cadences. Every 1-1, promise, " +
+      "decision and growth thread about them stays exactly as it is and can be looked at again. " +
+      "Fully reversible - unarchive them any time from their page.",
+    archive: "Archive",
+    /** @param {string} name */
+    archivedToast: (name) => `${name} archived.`,
+    /** @param {string} name */
+    unarchivedToast: (name) => `${name} unarchived.`,
+    /** @param {string} name */
+    removeTitle: (name) => `Remove ${name}?`,
+    removeBody:
+      "They stop appearing and their cadences stop counting. Nothing is destroyed - the history " +
+      "stays in the log and can be recovered - but the app will act as though they were never " +
+      "your responsibility.",
+    /** @param {string} name */
+    removedNamed: (name) => `${name} removed.`
+  },
+
   growth: {
     /*
      * The endings, written out rather than derived: `open` is not an ending, and

@@ -36,6 +36,9 @@ import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from
 import { actions as growthActions, threadsBlock } from "./growth.js";
 import { actions as journalActions } from "./journal.js";
 import { actions as waitingActions, waitingBlock } from "./waiting.js";
+import { T } from "../text.js";
+
+const t = T.people;
 
 /**
  * This half's vocabulary, asked once per draw.
@@ -74,14 +77,14 @@ export async function render(params) {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">People</h1>
+          <h1 class="view-title">${t.title}</h1>
           <p class="view-sub">${
             isPrivate
-              ? "Who they are, and what you have said you would do. Nothing here is on a schedule."
-              : "Grouped by the relationship, not the org chart."
+              ? t.subPrivate
+              : t.subWork
           }</p>
         </div>
-        <button class="act primary" data-act="addPerson">Add someone</button>
+        <button class="act primary" data-act="addPerson">${t.addButton}</button>
       </div>
     </div>`;
 
@@ -106,10 +109,10 @@ export async function render(params) {
     return `${header}<div class="empty">
       ${
         anyArchived
-          ? "Nobody active. Everybody here is archived - open the group below to bring anyone back, or add somebody new."
+          ? t.emptyArchived
           : isPrivate
-            ? "Nobody here yet. Adding somebody gives you a place to put what you promised them - and nothing else, because nothing outside work runs on a cadence."
-            : "Nobody here yet. Add the people you lead or manage, and the leads you work beside."
+            ? t.emptyPrivate
+            : t.emptyWork
       }
     </div>${archivedGroup}`;
   }
@@ -146,7 +149,7 @@ export async function render(params) {
                   ""
                 : p.worstDrift
                   ? `<span class="row-meta">${esc(p.worstDrift.duty)}</span>${pill(p.worstDrift.urgency)}<span class="pill plain">${esc(p.worstDrift.behindBy)}</span>`
-                  : `<span class="row-meta">${p.availability === "away" ? "nothing expected while they are away" : p.availability === "left" ? "history kept, nothing expected" : "no duty applies"}</span>`
+                  : `<span class="row-meta">${p.availability === "away" ? t.awayNothing : p.availability === "left" ? t.leftNothing : t.noDuty}</span>`
             }
           </span>
         </button>`
@@ -188,16 +191,16 @@ function archivedGroupHtml(archived) {
       (/** @type {any} */ p) => `<div class="row static">
         <span class="row-name">${esc(p.name)}</span>
         <span class="row-right">
-          <span class="pill plain">archived ${esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10))}</span>
-          <button class="act tiny" data-act="open" data-person="${esc(p.id)}">View</button>
-          <button class="act tiny" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Unarchive</button>
+          <span class="pill plain">${t.archivedOn(esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10)))}</span>
+          <button class="act tiny" data-act="open" data-person="${esc(p.id)}">${t.view}</button>
+          <button class="act tiny" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.unarchive}</button>
         </span>
       </div>`
     )
     .join("");
   return `<details class="group archived-group">
     <summary class="group-head archived-summary">
-      <span class="group-title">Archived</span><span class="group-rule"></span><span class="group-meta">${rows.length}</span>
+      <span class="group-title">${t.archivedGroup}</span><span class="group-rule"></span><span class="group-meta">${rows.length}</span>
     </summary>
     <div class="rows">${items}</div>
   </details>`;
@@ -208,8 +211,8 @@ async function personPage(id) {
   const p = await tend.invoke("person", { person: id });
   if (p.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">Not found</h2></div><p class="card-why">${esc(p.error)}</p>
-      <div class="card-foot"><button class="act" data-act="back">All people</button></div></div>`;
+      <h2 class="card-title">${t.notFoundTitle}</h2></div><p class="card-why">${esc(p.error)}</p>
+      <div class="card-foot"><button class="act" data-act="back">${t.allPeople}</button></div></div>`;
   }
 
   const list = (/** @type {string} */ title, /** @type {string} */ body, /** @type {string} */ emptyText) =>
@@ -277,9 +280,9 @@ async function personPage(id) {
    * row grew to fit it. Three rows had been written without it.
    */
   /** One history row, with its own take-it-back button. */
-  const contactLine = (/** @type {any} */ t) => `<div class="line">
-        <span class="line-when">${esc(t.when)}</span>
-        <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` - ${esc(t.note)}` : ""}</span>
+  const contactLine = (/** @type {any} */ row) => `<div class="line">
+        <span class="line-when">${esc(row.when)}</span>
+        <span class="line-text"><strong>${esc(row.kind)}</strong>${row.note ? ` - ${esc(row.note)}` : ""}</span>
         <span class="line-right">
           ${
             /*
@@ -288,10 +291,10 @@ async function personPage(id) {
              * needs marking is the row nobody typed, because that is the one
              * whose text and date came from a note rather than from a decision.
              */
-            t.from === "nib" ? `<span class="pill plain">from a note</span>` : ""
+            row.from === "nib" ? `<span class="pill plain">from a note</span>` : ""
           }
-          <button class="act tiny danger" data-act="unlogContact" data-id="${esc(t.id)}"
-            data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
+          <button class="act tiny danger" data-act="unlogContact" data-id="${esc(row.id)}"
+            data-what="${esc(row.kind)}${row.note ? ` - ${esc(row.note)}` : ""}">${t.notRight}</button>
         </span>
       </div>`;
 
@@ -310,7 +313,7 @@ async function personPage(id) {
    */
   /** @type {{ key: string, rows: any[] }[]} */
   const runs = [];
-  for (const t of p.recentContact) {
+  for (const row of p.recentContact) {
     /*
      * `JSON.stringify` rather than the two joined by a separator character.
      *
@@ -320,12 +323,12 @@ async function personPage(id) {
      * binary while behaving correctly. An encoded array has no separator to
      * lose, and `nib.js` reaches for it for the same reason.
      */
-    const key = JSON.stringify([t.kind ?? null, t.note ?? null]);
+    const key = JSON.stringify([row.kind ?? null, row.note ?? null]);
     const last = runs[runs.length - 1];
     if (last !== undefined && last.key === key) {
-      last.rows.push(t);
+      last.rows.push(row);
     } else {
-      runs.push({ key, rows: [t] });
+      runs.push({ key, rows: [row] });
     }
   }
 
@@ -341,7 +344,7 @@ async function personPage(id) {
         <summary class="line">
           <span class="line-when">${esc(first.when)} - ${esc(latest.when)}</span>
           <span class="line-text"><strong>${esc(one.kind)}</strong>${one.note ? ` - ${esc(one.note)}` : ""}</span>
-          <span class="line-right"><span class="pill plain">${run.rows.length} identical</span></span>
+          <span class="line-right"><span class="pill plain">${t.identical(run.rows.length)}</span></span>
         </summary>
         <div class="line-fold-rows">${run.rows.map(contactLine).join("")}</div>
       </details>`;
@@ -358,12 +361,14 @@ async function personPage(id) {
     new Date(at).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
   const contactSummaryLine =
     cs.total === 0
-      ? "No contact recorded yet"
+      ? t.noContactYet
       : [
-          `${cs.total} ${cs.total === 1 ? "conversation" : "conversations"}`,
-          cs.firstAt === null || cs.total < 2 ? null : `since ${month(cs.firstAt)}`,
-          cs.everyDays === null ? null : `roughly every ${cs.everyDays} ${cs.everyDays === 1 ? "day" : "days"}`,
-          cs.lastWords === null || cs.lastWords === undefined ? null : `last ${cs.lastWords}`
+          t.countOf(cs.total, cs.total === 1 ? t.conversationOne : t.conversationMany),
+          cs.firstAt === null || cs.total < 2 ? null : t.since(month(cs.firstAt)),
+          cs.everyDays === null
+            ? null
+            : t.roughlyEvery(cs.everyDays, cs.everyDays === 1 ? t.dayOne : t.dayMany),
+          cs.lastWords === null || cs.lastWords === undefined ? null : t.lastAt(cs.lastWords)
         ]
           .filter((part) => part !== null)
           .join(" · ");
@@ -375,10 +380,10 @@ async function personPage(id) {
     .map(
       (/** @type {any} */ sk) => `<div class="line">
         <span class="line-when">${esc(sk.when)}</span>
-        <span class="line-text"><strong>${esc(sk.kind)}</strong> did not happen${sk.why ? ` - ${esc(sk.why)}` : ""}</span>
+        <span class="line-text">${t.didNotHappen(esc(sk.kind), sk.why ? t.skipWhy(esc(sk.why)) : "")}</span>
         <span class="line-right">
           <button class="act tiny danger" data-act="unlogSkip" data-id="${esc(sk.id)}"
-            data-what="${esc(sk.kind)} that did not happen">Not right</button>
+            data-what="${t.skipWhat(esc(sk.kind))}">${t.notRight}</button>
         </span>
       </div>`
     )
@@ -429,12 +434,12 @@ async function personPage(id) {
           m.what ? `<span class="src">${esc(m.what)}</span>` : ""
         }${
           (m.alsoThere ?? []).length > 0
-            ? `<span class="src">with ${esc(m.alsoThere.join(", "))}</span>`
+            ? `<span class="src">${t.alsoThere(esc(m.alsoThere.join(", ")))}</span>`
             : ""
         }</span>
         <span class="line-right">
           <button class="act tiny danger" data-act="unlogMoment" data-id="${esc(m.id)}"
-            data-what="${esc(m.part)}">Not right</button>
+            data-what="${esc(m.part)}">${t.notRight}</button>
         </span>
       </div>`
     )
@@ -473,14 +478,14 @@ async function personPage(id) {
           ${l.note ? `<span class="src"> ${esc(l.note)}</span>` : ""}
         </span>
         <span class="line-right">
-          <button class="act tiny danger" data-act="unlink" data-id="${esc(l.id)}" data-name="${esc(l.title)}">Remove</button>
+          <button class="act tiny danger" data-act="unlink" data-id="${esc(l.id)}" data-name="${esc(l.title)}">${t.remove}</button>
         </span>
       </div>`
     )
     .join("");
 
   return `
-    <div class="view-head"><button class="act" data-act="back">← All people</button></div>
+    <div class="view-head"><button class="act" data-act="back">${t.back}</button></div>
     <div class="panel">
       <div class="panel-head">
         <div>
@@ -489,13 +494,13 @@ async function personPage(id) {
         </div>
         <div class="panel-actions">
           <span class="tag">${esc(p.relation)}</span>
-          <button class="act" data-act="edit" data-person="${esc(p.id)}">Edit</button>
+          <button class="act" data-act="edit" data-person="${esc(p.id)}">${t.edit}</button>
         </div>
       </div>
 
       <div class="button-row">
-        ${blocks.cadences ? `<button class="act primary" data-act="logContact" data-person="${esc(p.id)}">Log contact</button>` : ""}
-        ${blocks.skips ? `<button class="act" data-act="logSkip" data-person="${esc(p.id)}">It did not happen</button>` : ""}
+        ${blocks.cadences ? `<button class="act primary" data-act="logContact" data-person="${esc(p.id)}">${t.logContactButton}</button>` : ""}
+        ${blocks.skips ? `<button class="act" data-act="logSkip" data-person="${esc(p.id)}">${t.logSkipButton}</button>` : ""}
         <!--
           The one action that is in both halves, and the primary one where it is
           the only one. A promise is owed the same way to somebody you live with,
@@ -503,25 +508,25 @@ async function personPage(id) {
         -->
         ${
           blocks.moments
-            ? `<button class="act primary" data-act="logMoment" data-person="${esc(p.id)}">Something happened</button>`
+            ? `<button class="act primary" data-act="logMoment" data-person="${esc(p.id)}">${t.logMomentButton}</button>`
             : ""
         }
         <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
-        <button class="act" data-act="link" data-person="${esc(p.id)}">Link something</button>
-        ${blocks.observations ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">Record an observation</button>` : ""}
+        <button class="act" data-act="link" data-person="${esc(p.id)}">${t.linkButton}</button>
+        ${blocks.observations ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">${t.observationButton}</button>` : ""}
         ${
           blocks.observations && model.available
             ? isRunning(themesKey)
-              ? `<button class="act" disabled>Reading notes…</button>`
-              : `<button class="act" data-act="findThemes" data-person="${esc(p.id)}">What keeps coming up</button>`
+              ? `<button class="act" disabled>${t.readingNotes}</button>`
+              : `<button class="act" data-act="findThemes" data-person="${esc(p.id)}">${t.themesButton}</button>`
             : ""
         }
       </div>
 
       ${resultFor(themesKey) === null ? "" : themesHtml(themesKey, resultFor(themesKey))}
 
-      ${blocks.cadences ? list("Cadences", cadences, "No duty in the role map applies to this relationship type.") : ""}
-      ${list("Open promises", promises, "Nothing outstanding.")}
+      ${blocks.cadences ? list(t.cadencesBlock, cadences, t.cadencesNone) : ""}
+      ${list(t.promisesBlock, promises, t.promisesNone)}
       ${waitingOn}
       ${growing}
       ${blocks.skips && p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
@@ -536,22 +541,22 @@ async function personPage(id) {
          * wanted when something looks wrong.
          */
         blocks.observations
-          ? list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")
+          ? list(t.observationsBlock, observations, t.observationsNone)
           : ""
       }
       ${
         blocks.cadences
-          ? folded("Contact history", contactSummaryLine, contact, "No contact recorded yet.")
+          ? folded(t.historyBlock, contactSummaryLine, contact, t.noContactYet)
           : ""
       }
-      ${blocks.skips && skipped ? list("Booked and did not happen", skipped, "") : ""}
-      ${list("Linked", linked, "Nothing linked. Prepared notes and anything else that lives outside Tend can be pointed at from here.")}
+      ${blocks.skips && skipped ? list(t.skippedBlock, skipped, "") : ""}
+      ${list(t.linkedBlock, linked, t.linkedNone)}
       ${
         blocks.moments
           ? list(
-              "Moments",
+              t.momentsBlock,
               momentLines,
-              "Nothing yet. One thing that happened and your own part in it - which is the half you can change, and the only half worth keeping."
+              t.momentsNone
             )
           : ""
       }
@@ -564,14 +569,14 @@ async function personPage(id) {
       <div class="block">
         ${
           p.archivedAt
-            ? `<p class="card-why dim">Archived on ${esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10))}. They stop appearing in Now, prep, attention nudges and duty cadences - everything already on this page stays exactly as it is.</p>
-               <button class="act" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Unarchive ${esc(p.name)}</button>`
-            : `<button class="act" data-act="archive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Archive ${esc(p.name)}</button>`
+            ? `<p class="card-why dim">${t.archivedNote(esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10)))}</p>
+               <button class="act" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.unarchiveNamed(esc(p.name))}</button>`
+            : `<button class="act" data-act="archive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.archiveNamed(esc(p.name))}</button>`
         }
       </div>
 
       <div class="block danger-zone">
-        <button class="act danger" data-act="remove" data-person="${esc(p.id)}" data-name="${esc(p.name)}">Remove ${esc(p.name)}</button>
+        <button class="act danger" data-act="remove" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.removeNamed(esc(p.name))}</button>
       </div>
     </div>
   `;
@@ -587,19 +592,19 @@ export async function addPersonDialog() {
   const isPrivate = vocab.half === "private";
 
   const values = await form({
-    title: "Add someone",
+    title: t.addTitle,
     intro: isPrivate
       ? // No mention of duties, because there are none. The relationship here is a
         // label: it groups the list and it sits on their page, and nothing is
         // derived from it. Saying so is the difference between a field somebody
         // answers carefully and a field somebody answers wrong on purpose.
-        "Who they are, for your own reference. Nothing is scheduled from it."
-      : "The relationship type decides which duties apply to them.",
+        t.addIntroPrivate
+      : t.addIntroWork,
     fields: [
-      { name: "name", label: "Name", required: true, placeholder: isPrivate ? "What you call them" : "Their full name" },
+      { name: "name", label: t.nameLabel, required: true, placeholder: isPrivate ? t.namePlaceholderPrivate : t.namePlaceholderWork },
       {
         name: "relation",
-        label: isPrivate ? "Who they are" : "How you relate to them",
+        label: isPrivate ? t.relationPrivate : t.relationWork,
         type: "select",
         // Asked, not compiled in. This is the field that offered six management
         // relationships for somebody's family.
@@ -615,19 +620,19 @@ export async function addPersonDialog() {
         : [
             {
               name: "since",
-              label: "Since when",
+              label: t.sinceLabel,
               type: /** @type {const} */ ("date"),
               value: asDateInput(Date.now()),
-              hint: "When the relationship started, not today. Leave it as today for someone who just joined; set it back for someone you have had for months, or Tend will think you are perfectly in step with them."
+              hint: t.addSinceHint
             }
           ])
     ],
-    confirm: "Add"
+    confirm: t.add
   });
   if (!values) {
     return false;
   }
-  return Boolean(await act("addPerson", values, `${values.name} added.`));
+  return Boolean(await act("addPerson", values, t.addedNamed(values.name)));
 }
 
 export const actions = {
@@ -654,12 +659,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogMoment: async (d) => {
     const sure = await ask({
-      title: "Take it back?",
-      body: `"${d.what}" is removed. The log keeps the history; the page stops showing it.`,
-      confirm: "Remove",
+      title: t.unlogMomentTitle,
+      body: t.unlogMomentBody(d.what),
+      confirm: t.remove,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "moments", id: d.id }, "Removed."))) {
+    if (sure && (await act("removeRow", { collection: "moments", id: d.id }, t.removedToast))) {
       refresh();
     }
   },
@@ -667,35 +672,30 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logSkip: async (d) => {
     const values = await form({
-      title: "What did not happen?",
-      intro:
-        "Recorded, and it satisfies nothing - the conversation still has not taken place, so " +
-        "the clock keeps running. The point is the difference between never having booked it " +
-        "and having cancelled it three times, which contact alone cannot show.",
+      title: t.skipTitle,
+      intro: t.skipIntro,
       fields: [
         {
           name: "kind",
-          label: "What it would have been",
+          label: t.skipKindLabel,
           type: "select",
           options: kindsFor("person").filter((k) => k.value !== "second-hand" && k.value !== "survey"),
           value: "one-to-one"
         },
         {
           name: "why",
-          label: "Why, in a line",
-          placeholder: "Release week, moved it myself for the third time",
-          hint:
-            "Your own words rather than a category. The difference between \"he was ill\" and " +
-            "\"I moved it again\" is the whole reason to write it down."
+          label: t.skipWhyLabel,
+          placeholder: t.skipWhyPlaceholder,
+          hint: t.skipWhyHint
         },
-        { name: "at", label: "When it should have been", type: "date", value: asDateInput(Date.now()) }
+        { name: "at", label: t.skipWhenLabel, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: "Record it"
+      confirm: t.recordIt
     });
     if (!values) {
       return;
     }
-    if (await act("logSkip", { person: d.person, ...values }, "Recorded.")) {
+    if (await act("logSkip", { person: d.person, ...values }, t.recordedToast)) {
       refresh();
     }
   },
@@ -703,12 +703,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogSkip: async (d) => {
     const sure = await ask({
-      title: "Take this back?",
-      body: `"${d.what}" stops being on record. Nothing else changes - a skip never satisfied anything.`,
-      confirm: "Take it back",
+      title: t.takeBackTitle,
+      body: t.unlogSkipBody(d.what),
+      confirm: t.takeItBack,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "skips", id: d.id }, "Taken back."))) {
+    if (sure && (await act("removeRow", { collection: "skips", id: d.id }, t.takenBackToast))) {
       refresh();
     }
   },
@@ -716,12 +716,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogContact: async (d) => {
     const sure = await ask({
-      title: "Take this back?",
-      body: `"${d.what}" stops counting, so whatever cadence it satisfied goes back to where it was. The event stays in the log - nothing here is ever really deleted - it just stops being evidence.`,
-      confirm: "Take it back",
+      title: t.takeBackTitle,
+      body: t.unlogContactBody(d.what),
+      confirm: t.takeItBack,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, "Taken back."))) {
+    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, t.takenBackToast))) {
       refresh();
     }
   },
@@ -762,15 +762,13 @@ export const actions = {
       return;
     }
     const values = await form({
-      title: `Edit ${p.name}`,
-      intro:
-        "Their history comes with them whatever you change here - everything that points at " +
-        "somebody holds their id, so the name is only what is shown and what Ctrl+K matches.",
+      title: t.editTitle(p.name),
+      intro: t.editIntro,
       fields: [
-        { name: "name", label: "Name", value: p.name, required: true },
+        { name: "name", label: t.nameLabel, value: p.name, required: true },
         {
           name: "relation",
-          label: editVocab.half === "private" ? "Who they are" : "How you relate to them",
+          label: editVocab.half === "private" ? t.relationPrivate : t.relationWork,
           type: "select",
           // The half's own vocabulary. Offering the work list here would let a
           // private person be edited into a management relationship, and the
@@ -780,36 +778,27 @@ export const actions = {
         },
         {
           name: "since",
-          label: "Since when",
+          label: t.sinceLabel,
           type: "date",
           value: p.since ? asDateInput(p.since) : "",
-          hint:
-            "When the relationship started. Every cadence measures from here until there is " +
-            "contact to measure from instead, so a placeholder puts somebody months behind on " +
-            "their first day - or perfectly in step with somebody you have never spoken to."
+          hint: t.editSinceHint
         },
         {
           name: "awayUntil",
-          label: "Away until",
+          label: t.awayLabel,
           type: "date",
           value: p.awayUntil ? asDateInput(p.awayUntil) : "",
-          hint:
-            "Parental leave, a sabbatical, a long illness. Nothing is expected of you while " +
-            "they are away, and the clock restarts from the day they are back rather than from " +
-            "the last time you spoke. Clear it if they return early."
+          hint: t.awayHint
         },
         {
           name: "leftAt",
-          label: "Last day",
+          label: t.leftLabel,
           type: "date",
           value: p.leftAt ? asDateInput(p.leftAt) : "",
-          hint:
-            "Set it as soon as you know it. Everything holds until that day - a promise to " +
-            "somebody leaving next week is exactly the promise to keep - and after it their " +
-            "cadences go quiet while the whole history stays. Better than removing them."
+          hint: t.leftHint
         }
       ],
-      confirm: "Save"
+      confirm: t.save
     });
     if (!values) {
       return;
@@ -822,7 +811,7 @@ export const actions = {
       awayUntil: values.awayUntil ?? null,
       leftAt: values.leftAt ?? null
     };
-    if (await act("updatePerson", { person: d.person, fields }, "Updated.")) {
+    if (await act("updatePerson", { person: d.person, fields }, t.updatedToast)) {
       refresh();
     }
   },
@@ -830,22 +819,22 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logContact: async (d) => {
     const values = await form({
-      title: "Log contact",
-      intro: "The kind decides which cadence this satisfies. A second-hand report does not count as having spoken to them.",
+      title: t.logTitle,
+      intro: t.logIntro,
       fields: [
         // A person can only be the subject of the person kinds. The project and
         // workstream ones were on this list too, and picking one recorded
         // something that satisfied nothing while the toast still said Logged.
-        { name: "kind", label: "What kind", type: "select", options: kindsFor("person"), value: "one-to-one" },
-        { name: "note", label: "One line, optional", placeholder: "What it was about" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()), hint: "Backdate it if you are catching up." }
+        { name: "kind", label: t.logKindLabel, type: "select", options: kindsFor("person"), value: "one-to-one" },
+        { name: "note", label: t.logNoteLabel, placeholder: t.logNotePlaceholder },
+        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()), hint: t.logWhenHint }
       ],
-      confirm: "Log it"
+      confirm: t.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.person, ...values }, "Logged.")) {
+    if (await act("logTouch", { subject: d.person, ...values }, t.loggedToast)) {
       refresh();
     }
   },
@@ -853,19 +842,19 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logPromise: async (d) => {
     const values = await form({
-      title: "Something you promised",
-      intro: "When you are not sure it counts, log it. A false one costs a click; a missed one costs trust with a real person.",
+      title: t.promiseTitle,
+      intro: t.promiseIntro,
       fields: [
-        { name: "text", label: "What you said you would do", required: true, type: "textarea", placeholder: "Check with Nina about the conference" },
-        { name: "due", label: "By when, optional", type: "date" },
-        { name: "madeAt", label: "When you said it", type: "date", value: asDateInput(Date.now()), hint: "Backdate it and it ages correctly. Anything open past two weeks escalates whatever else is going on." }
+        { name: "text", label: t.promiseTextLabel, required: true, type: "textarea", placeholder: t.promiseTextPlaceholder },
+        { name: "due", label: t.promiseDueLabel, type: "date" },
+        { name: "madeAt", label: t.promiseMadeLabel, type: "date", value: asDateInput(Date.now()), hint: t.promiseMadeHint }
       ],
-      confirm: "Log it"
+      confirm: t.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logPromise", { person: d.person, ...values }, "Logged.")) {
+    if (await act("logPromise", { person: d.person, ...values }, t.loggedToast)) {
       refresh();
     }
   },
@@ -878,22 +867,19 @@ export const actions = {
    */
   link: async (d) => {
     const values = await form({
-      title: "Link something",
-      intro:
-        "The address is stored, never a copy - the same arrangement as the Nib pointer. Every " +
-        "row shows how old it is, because prepared notes stop being current once the " +
-        "conversation happens and nothing here expires on its own.",
+      title: t.linkTitle,
+      intro: t.linkIntro,
       fields: [
-        { name: "url", label: "Address", placeholder: "https://", required: true },
-        { name: "title", label: "What it is", placeholder: "Prep for the next 1-1" },
-        { name: "note", label: "Why, if it is not obvious", type: "textarea" }
+        { name: "url", label: t.linkUrlLabel, placeholder: t.linkUrlPlaceholder, required: true },
+        { name: "title", label: t.linkTitleLabel, placeholder: t.linkTitlePlaceholder },
+        { name: "note", label: t.linkNoteLabel, type: "textarea" }
       ],
-      confirm: "Link it"
+      confirm: t.linkConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("linkTo", { person: d.person, ...values }, "Linked.")) {
+    if (await act("linkTo", { person: d.person, ...values }, t.linkedToast)) {
       refresh();
     }
   },
@@ -901,12 +887,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlink: async (d) => {
     const sure = await ask({
-      title: `Remove the link to ${d.name}?`,
-      body: "Only the pointer goes. Whatever it pointed at is untouched.",
-      confirm: "Remove",
+      title: t.unlinkTitle(d.name),
+      body: t.unlinkBody,
+      confirm: t.remove,
       tone: "danger"
     });
-    if (sure && (await act("unlink", { id: d.id }, "Removed."))) {
+    if (sure && (await act("unlink", { id: d.id }, t.removedToast))) {
       refresh();
     }
   },
@@ -914,25 +900,25 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logEvidence: async (d) => {
     const values = await form({
-      title: "Record an observation",
-      intro: "What they delivered, how they handled something. Written down now so a review is built on notes rather than on memory of the last three weeks.",
+      title: t.observationTitle,
+      intro: t.observationIntro,
       fields: [
-        { name: "text", label: "What happened", type: "textarea", required: true },
-        { name: "area", label: "Tag, optional", placeholder: "code, ownership, communication" }
+        { name: "text", label: t.observationTextLabel, type: "textarea", required: true },
+        { name: "area", label: t.observationAreaLabel, placeholder: t.observationAreaPlaceholder }
       ],
-      confirm: "Record it"
+      confirm: t.recordIt
     });
     if (!values) {
       return;
     }
-    if (await act("logEvidence", { person: d.person, ...values }, "Recorded.")) {
+    if (await act("logEvidence", { person: d.person, ...values }, t.recordedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   resolvePromise: async (d) => {
-    if (await act("resolvePromise", { id: d.id, as: "resolved" }, "Closed.")) {
+    if (await act("resolvePromise", { id: d.id, as: "resolved" }, t.closedToast)) {
       refresh();
     }
   },
@@ -945,22 +931,22 @@ export const actions = {
    */
   archive: async (d) => {
     const sure = await ask({
-      title: `Archive ${d.name}?`,
-      body: "They stop appearing in Now, prep, attention nudges and duty cadences. Every 1-1, promise, decision and growth thread about them stays exactly as it is and can be looked at again. Fully reversible - unarchive them any time from their page.",
-      confirm: "Archive",
+      title: t.archiveTitle(d.name),
+      body: t.archiveBody,
+      confirm: t.archive,
       tone: "danger"
     });
     if (!sure) {
       return;
     }
-    if (await act("archivePerson", { id: d.person }, `${d.name} archived.`)) {
+    if (await act("archivePerson", { id: d.person }, t.archivedToast(d.name))) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   unarchive: async (d) => {
-    if (await act("unarchivePerson", { id: d.person }, `${d.name} unarchived.`)) {
+    if (await act("unarchivePerson", { id: d.person }, t.unarchivedToast(d.name))) {
       refresh();
     }
   },
@@ -968,15 +954,15 @@ export const actions = {
   /** @param {Record<string, string>} d */
   remove: async (d) => {
     const sure = await ask({
-      title: `Remove ${d.name}?`,
-      body: "They stop appearing and their cadences stop counting. Nothing is destroyed - the history stays in the log and can be recovered - but the app will act as though they were never your responsibility.",
-      confirm: "Remove",
+      title: t.removeTitle(d.name),
+      body: t.removeBody,
+      confirm: t.remove,
       tone: "danger"
     });
     if (!sure) {
       return;
     }
-    if (await act("removeRow", { collection: "people", id: d.person }, `${d.name} removed.`)) {
+    if (await act("removeRow", { collection: "people", id: d.person }, t.removedNamed(d.name))) {
       go("people");
     }
   }
