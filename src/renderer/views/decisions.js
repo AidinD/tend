@@ -10,13 +10,16 @@
 
 import { act, ask, esc, form, tend } from "../ui.js";
 import { refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.decisions;
 
 export async function render() {
   const [all, roster] = await Promise.all([tend.invoke("decisions"), tend.invoke("people")]);
 
   if (all?.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">Could not read the data</h2></div>
+      <h2 class="card-title">${t.readFailedTitle}</h2></div>
       <p class="card-why">${esc(all.error)}</p></div>`;
   }
 
@@ -27,31 +30,22 @@ export async function render() {
 
   const head = `
     <div class="view-head">
-      <h1 class="view-title">Decisions</h1>
-      <p class="view-sub">
-        What was decided about the organisation, why, and what was rejected. Every
-        one carries a date it comes back on, which is what makes it something you
-        can decide quickly: a decision with a revisit date is not forever.
-      </p>
+      <h1 class="view-title">${t.title}</h1>
+      <p class="view-sub">${t.sub}</p>
       <div class="card-foot">
-        <span class="src">Code has DECISIONS.md. This is the half that has no commit history.</span>
-        <button class="act" data-act="add">Record a decision</button>
+        <span class="src">${t.codeNote}</span>
+        <button class="act" data-act="add">${t.addButton}</button>
       </div>
     </div>`;
 
   if (list.length === 0) {
-    return `${head}
-      <div class="empty">
-        Nothing logged yet. The ones worth recording are the ones that get
-        renegotiated: who owns what, who is not being backfilled, what is waiting
-        a cycle.
-      </div>`;
+    return `${head}<div class="empty">${t.empty}</div>`;
   }
 
   return `${head}
-    ${block("Suggested, not yet recorded", proposed, proposal, "An agent read these somewhere. Recording one is what starts its clock.")}
-    ${block("Worth another look", due, revisit, "The date you set has passed. Saying it still holds takes one click.")}
-    ${block("Logged", logged, entry)}`;
+    ${block(t.proposedBand, proposed, proposal, t.proposedNote)}
+    ${block(t.revisitBand, due, revisit, t.revisitNote)}
+    ${block(t.loggedBand, logged, entry)}`;
 }
 
 /**
@@ -78,14 +72,14 @@ function proposal(d) {
     <div class="card sev-nudge">
       <div class="card-top">
         <h2 class="card-title">${esc(d.what)}</h2>
-        <span class="badge">proposed</span>
+        <span class="badge">${t.proposedBadge}</span>
       </div>
       ${body(d)}
       <div class="card-foot">
-        <span class="src">${d.source ? `Read in ${esc(d.source)}` : "No source given"}${d.proposedBy ? ` &middot; by ${esc(d.proposedBy)}` : ""}</span>
-        <button class="act" data-act="record" data-id="${esc(d.id)}">Record it</button>
-        <button class="act" data-act="edit" data-id="${esc(d.id)}">Edit first</button>
-        <button class="act" data-act="drop" data-id="${esc(d.id)}">Not a decision</button>
+        <span class="src">${d.source ? t.readIn(esc(d.source)) : t.noSource}${d.proposedBy ? t.proposedBy(esc(d.proposedBy)) : ""}</span>
+        <button class="act" data-act="record" data-id="${esc(d.id)}">${t.recordIt}</button>
+        <button class="act" data-act="edit" data-id="${esc(d.id)}">${t.editFirst}</button>
+        <button class="act" data-act="drop" data-id="${esc(d.id)}">${t.notADecision}</button>
       </div>
     </div>`;
 }
@@ -96,14 +90,14 @@ function revisit(d) {
     <div class="card sev-critical">
       <div class="card-top">
         <h2 class="card-title">${esc(d.what)}</h2>
-        <span class="badge">due ${esc(d.revisitOverdueBy ?? "now")}</span>
+        <span class="badge">${t.dueBadge(esc(d.revisitOverdueBy ?? t.dueNow))}</span>
       </div>
       ${body(d)}
       <div class="card-foot">
-        <span class="src">You set this date. Nothing has happened to the decision.</span>
-        <button class="act" data-act="holds" data-id="${esc(d.id)}">It still holds</button>
-        <button class="act" data-act="edit" data-id="${esc(d.id)}">Change it</button>
-        <button class="act" data-act="reverse" data-id="${esc(d.id)}">Reverse it</button>
+        <span class="src">${t.revisitSrc}</span>
+        <button class="act" data-act="holds" data-id="${esc(d.id)}">${t.stillHolds}</button>
+        <button class="act" data-act="edit" data-id="${esc(d.id)}">${t.changeIt}</button>
+        <button class="act" data-act="reverse" data-id="${esc(d.id)}">${t.reverseIt}</button>
       </div>
     </div>`;
 }
@@ -120,9 +114,9 @@ function entry(d) {
       <div class="card-foot">
         <span class="src">
           ${esc(new Date(d.decidedAt).toLocaleDateString("sv-SE"))}
-          ${d.revisitAt ? `&middot; back on ${esc(new Date(d.revisitAt).toLocaleDateString("sv-SE"))}` : "&middot; no revisit date"}
+          ${d.revisitAt ? t.backOn(esc(new Date(d.revisitAt).toLocaleDateString("sv-SE"))) : t.noRevisit}
         </span>
-        <button class="act" data-act="edit" data-id="${esc(d.id)}">Edit</button>
+        <button class="act" data-act="edit" data-id="${esc(d.id)}">${t.edit}</button>
       </div>
     </div>`;
 }
@@ -151,9 +145,9 @@ function body(d) {
        * measuring the markup rather than the behaviour.
        */ ""
     }
-    ${d.rejected ? `<p class="card-why dim"><span class="inline-label">Rejected:</span> ${esc(d.rejected)}</p>` : ""}
-    ${d.consulted.length > 0 ? `<p class="card-why dim"><span class="inline-label">Consulted:</span> ${esc(d.consulted.join(", "))}</p>` : ""}
-    ${d.missing.length > 0 ? `<p class="card-why warn-text">Missing ${esc(d.missing.join(" Missing "))}</p>` : ""}`;
+    ${d.rejected ? `<p class="card-why dim"><span class="inline-label">${t.rejectedLabel}</span> ${esc(d.rejected)}</p>` : ""}
+    ${d.consulted.length > 0 ? `<p class="card-why dim"><span class="inline-label">${t.consultedLabel}</span> ${esc(d.consulted.join(", "))}</p>` : ""}
+    ${d.missing.length > 0 ? `<p class="card-why warn-text">${t.missing(esc(d.missing.join(" Missing ")))}</p>` : ""}`;
 }
 
 /**
@@ -161,25 +155,25 @@ function body(d) {
  * @returns {import("../ui.js").Field[]}
  */
 const fields = (roster) => [
-  { name: "what", label: "What was decided", type: "text", required: true },
+  { name: "what", label: t.fWhat, type: "text", required: true },
   // The ledger has always modelled a proposal and the window never offered one,
   // so the only way to record something not yet agreed was to call it decided.
   {
     name: "status",
-    label: "Is this decided, or are you proposing it?",
+    label: t.fStatus,
     type: "select",
     options: [
-      { value: "recorded", label: "Decided - this is what we are doing" },
-      { value: "proposed", label: "Proposed - waiting for somebody to agree" }
+      { value: "recorded", label: t.fStatusRecorded },
+      { value: "proposed", label: t.fStatusProposed }
     ],
     value: "recorded",
-    hint: "A proposal gets no revisit date. Nothing has been decided yet, so there is nothing to come back to."
+    hint: t.fStatusHint
   },
-  { name: "because", label: "Why. In a year this is the only field that matters", type: "textarea" },
-  { name: "rejected", label: "What was considered and not chosen", type: "textarea" },
+  { name: "because", label: t.fBecause, type: "textarea" },
+  { name: "rejected", label: t.fRejected, type: "textarea" },
   {
     name: "consulted",
-    label: "Who was consulted",
+    label: t.fConsulted,
     /*
      * Picked from the roster, not typed.
      *
@@ -205,21 +199,15 @@ const fields = (roster) => [
     // be worse than leaving it empty: everyone on the roster is counted by the
     // attention signals, so a dozen colleagues you have no duties toward turns
     // "I have not spoken to 11 of 13 people this month" into noise.
-    hint:
-      (roster ?? []).length > 0
-        ? "Anybody not on this list belongs in the reason instead - adding them to the roster to name them here would make every attention signal noisier."
-        : "Nobody on the roster yet, so name whoever it was in the reason instead."
+    hint: (roster ?? []).length > 0 ? t.fConsultedHint : t.fConsultedHintEmpty
   },
   {
     name: "revisitDays",
-    label: "Come back to it in how many days",
+    label: t.fRevisit,
     type: "number",
     value: "90",
     showIf: { field: "status", equals: "recorded" },
-    hint:
-      "A date is a poor stand-in for a real trigger. When what should bring it back is an event - " +
-      "the next project of a certain kind, a new hire - write the event into the reason and treat " +
-      "this as the backstop that catches it if the event passes unnoticed."
+    hint: t.fRevisitHint
   }
 ];
 
@@ -231,11 +219,10 @@ export const actions = {
     // be rejected by the service, which is the worst possible combination for
     // closing on failure.
     const values = await form({
-      title: "Record a decision",
-      intro:
-        "The revisit date is the field that makes this a tool. A decision that comes back to you is one you can make today instead of gathering information you will not use.",
+      title: t.addTitle,
+      intro: t.addIntro,
       fields: fields(roster),
-      confirm: "Record it",
+      confirm: t.addConfirm,
       attempt: async (v) => {
         const result = await tend.invoke("logDecision", {
           what: v.what,
@@ -268,9 +255,9 @@ export const actions = {
   /** @param {Record<string, string>} d */
   reverse: async (d) => {
     const sure = await ask({
-      title: "Reverse it?",
-      body: "It stays in the log as reversed, and stops coming back. The reasoning is still readable, which is the point of keeping it.",
-      confirm: "Reverse it"
+      title: t.reverseTitle,
+      body: t.reverseBody,
+      confirm: t.reverseConfirm
     });
     if (!sure) {
       return;
@@ -282,9 +269,9 @@ export const actions = {
   /** @param {Record<string, string>} d */
   drop: async (d) => {
     const sure = await ask({
-      title: "Not a decision?",
-      body: "The proposal is removed and nothing else changes. Turning one down is information too - it says the reading was wrong.",
-      confirm: "Remove it"
+      title: t.dropTitle,
+      body: t.dropBody,
+      confirm: t.dropConfirm
     });
     if (!sure) {
       return;
@@ -301,7 +288,7 @@ export const actions = {
       return;
     }
     const values = await form({
-      title: "Edit",
+      title: t.editTitle,
       fields: fields(roster).map((f) => ({
         ...f,
         value:
@@ -314,7 +301,7 @@ export const actions = {
               ? "90"
               : String(current[f.name] ?? "")
       })),
-      confirm: "Save"
+      confirm: t.editConfirm
     });
     if (!values) {
       return;

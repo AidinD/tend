@@ -41,6 +41,106 @@
  */
 
 export const T = {
+  decisions: {
+    readFailedTitle: "Could not read the data",
+    title: "Decisions",
+    sub:
+      "What was decided about the organisation, why, and what was rejected. Every " +
+      "one carries a date it comes back on, which is what makes it something you " +
+      "can decide quickly: a decision with a revisit date is not forever.",
+    codeNote: "Code has DECISIONS.md. This is the half that has no commit history.",
+    addButton: "Record a decision",
+    empty:
+      "Nothing logged yet. The ones worth recording are the ones that get " +
+      "renegotiated: who owns what, who is not being backfilled, what is waiting " +
+      "a cycle.",
+
+    /* The three bands, in the order they need you. */
+    proposedBand: "Suggested, not yet recorded",
+    proposedNote: "An agent read these somewhere. Recording one is what starts its clock.",
+    revisitBand: "Worth another look",
+    revisitNote: "The date you set has passed. Saying it still holds takes one click.",
+    loggedBand: "Logged",
+
+    /* A proposal. */
+    proposedBadge: "proposed",
+    /** @param {string} source */
+    readIn: (source) => `Read in ${source}`,
+    noSource: "No source given",
+    /** @param {string} who */
+    proposedBy: (who) => ` &middot; by ${who}`,
+    recordIt: "Record it",
+    editFirst: "Edit first",
+    notADecision: "Not a decision",
+
+    /* One asking to be looked at again. */
+    /** @param {string} by */
+    dueBadge: (by) => `due ${by}`,
+    dueNow: "now",
+    revisitSrc: "You set this date. Nothing has happened to the decision.",
+    stillHolds: "It still holds",
+    changeIt: "Change it",
+    reverseIt: "Reverse it",
+
+    /* One in the log. */
+    noRevisit: "&middot; no revisit date",
+    /** @param {string} date */
+    backOn: (date) => `&middot; back on ${date}`,
+    edit: "Edit",
+
+    /* Fields, and what is missing. */
+    rejectedLabel: "Rejected:",
+    consultedLabel: "Consulted:",
+    /** @param {string} what */
+    missing: (what) => `Missing ${what}`,
+
+    fWhat: "What was decided",
+    fStatus: "Is this decided, or are you proposing it?",
+    fStatusRecorded: "Decided - this is what we are doing",
+    fStatusProposed: "Proposed - waiting for somebody to agree",
+    fStatusHint:
+      "A proposal gets no revisit date. Nothing has been decided yet, so there is nothing to come back to.",
+    fBecause: "Why. In a year this is the only field that matters",
+    fRejected: "What was considered and not chosen",
+    fConsulted: "Who was consulted",
+    /*
+     * Only people Tend already knows, and the list is the enforcement rather
+     * than a warning. Adding somebody to the roster just to name them here
+     * would be worse than leaving it empty: everyone on the roster is counted
+     * by the attention signals.
+     */
+    fConsultedHint:
+      "Anybody not on this list belongs in the reason instead - adding them to the roster to name " +
+      "them here would make every attention signal noisier.",
+    fConsultedHintEmpty: "Nobody on the roster yet, so name whoever it was in the reason instead.",
+    fRevisit: "Come back to it in how many days",
+    fRevisitHint:
+      "A date is a poor stand-in for a real trigger. When what should bring it back is an event - " +
+      "the next project of a certain kind, a new hire - write the event into the reason and treat " +
+      "this as the backstop that catches it if the event passes unnoticed.",
+
+    /* Recording one. */
+    addTitle: "Record a decision",
+    addIntro:
+      "The revisit date is the field that makes this a tool. A decision that comes back to you is " +
+      "one you can make today instead of gathering information you will not use.",
+    addConfirm: "Record it",
+
+    /* Reversing, dropping, editing. */
+    reverseTitle: "Reverse it?",
+    reverseBody:
+      "It stays in the log as reversed, and stops coming back. The reasoning is still readable, " +
+      "which is the point of keeping it.",
+    reverseConfirm: "Reverse it",
+    dropTitle: "Not a decision?",
+    dropBody:
+      "The proposal is removed and nothing else changes. Turning one down is information too - it " +
+      "says the reading was wrong.",
+    dropConfirm: "Remove it",
+    editTitle: "Edit",
+    editConfirm: "Save"
+  },
+
   waiting: {
     /* On the daily page. The note is the whole ethic of the block: not an alarm. */
     groupTitle: "Waiting on someone",
