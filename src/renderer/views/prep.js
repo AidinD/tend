@@ -11,6 +11,7 @@
 
 import { esc, tend } from "../ui.js";
 import { go } from "../app.js";
+import { T } from "../text.js";
 import { actions as growthActions, growingBlock } from "./growth.js";
 import {
   briefHtml,
@@ -22,13 +23,15 @@ import {
   run
 } from "../model.js";
 
+const t = T.prep;
+
 export async function render() {
   const result = await tend.invoke("prep");
   const model = await modelStatus();
 
   if (result.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">Could not read the data</h2></div>
+      <h2 class="card-title">${t.readFailedTitle}</h2></div>
       <p class="card-why">${esc(result.error)}</p></div>`;
   }
 
@@ -36,28 +39,21 @@ export async function render() {
 
   const head = `
     <div class="view-head">
-      <h1 class="view-title">Before you talk to them</h1>
-      <p class="view-sub">
-        Who has drifted or is owed something, with what they own, what is open on
-        the board, and the last thing you wrote. Worst first, and only a few:
-        this is meant to be read and finished.
-      </p>
+      <h1 class="view-title">${t.title}</h1>
+      <p class="view-sub">${t.sub}</p>
     </div>`;
 
   if (cards.length === 0) {
     return `${head}
       ${practices(result.practising)}
-      <div class="empty">
-        Nobody is behind and nothing is owed. This page is empty most days, which
-        is the point of it.
-      </div>
+      <div class="empty">${t.empty}</div>
       ${sources(result)}`;
   }
 
   return `${head}
     ${practices(result.practising)}
     ${cards.map((/** @type {any} */ c) => card(c, model)).join("")}
-    ${result.dropped > 0 ? `<p class="prep-dropped">${result.dropped} more further behind than nobody, held back so this page ends.</p>` : ""}
+    ${result.dropped > 0 ? `<p class="prep-dropped">${t.dropped(result.dropped)}</p>` : ""}
     ${sources(result)}`;
 }
 
@@ -80,7 +76,7 @@ function practices(practising) {
   }
   if (practising.available === false) {
     return `<div class="card prep-practice">
-      <div class="card-top"><h2 class="card-title">Nothing to practise</h2></div>
+      <div class="card-top"><h2 class="card-title">${t.practiceNoneTitle}</h2></div>
       <p class="card-why">${esc(practising.why)}</p>
     </div>`;
   }
@@ -104,26 +100,22 @@ function practices(practising) {
     .map(
       (/** @type {any} */ a) => `<li>
         ${esc(a.text)}
-        <span class="src">you wrote this on ${esc(a.noteTitle)}</span>
+        <span class="src">${t.practiceWrote(esc(a.noteTitle))}</span>
       </li>`
     )
     .join("");
 
   return `<article class="card prep-practice">
     <div class="card-top">
-      <h2 class="card-title">What you are working on</h2>
+      <h2 class="card-title">${t.practiceTitle}</h2>
       <span class="badge">${active.length}</span>
     </div>
-    <p class="card-why">
-      Flagged in Nib, read from there every time. Lower the flag when it starts
-      coming naturally and pick up the next one - the timing is yours, and Tend
-      deliberately puts no date on it.
-    </p>
+    <p class="card-why">${t.practiceWhy}</p>
     ${lines ? `<div class="prep-block"><ul class="prep-list">${lines}</ul></div>` : ""}
     ${
       todo
         ? `<div class="prep-block">
-             <h3 class="prep-head">And one thing you said you would do</h3>
+             <h3 class="prep-head">${t.practiceTodoTitle}</h3>
              <ul class="prep-list">${todo}</ul>
            </div>`
         : ""
@@ -144,19 +136,15 @@ function practices(practising) {
 function sources(result) {
   const missing = [];
   if (!result.jotFound) {
-    missing.push("the Jot board");
+    missing.push(t.sourceJot);
   }
   if (!result.nibFound) {
-    missing.push("Nib's notes");
+    missing.push(t.sourceNib);
   }
   if (missing.length === 0) {
     return "";
   }
-  return `<p class="prep-missing">
-    Could not read ${esc(missing.join(" or "))}, so those parts of every card are
-    blank rather than empty. Check the data directories in
-    <button class="act" data-act="openSettings">Settings</button>.
-  </p>`;
+  return `<p class="prep-missing">${t.sourcesMissing(esc(missing.join(" or ")))}<button class="act" data-act="openSettings">${t.sourcesSettings}</button>.</p>`;
 }
 
 /**
@@ -180,29 +168,29 @@ function card(c, model) {
         }
       </div>
       <p class="card-why">
-        ${esc(c.why)}. Last spoke ${esc(c.lastSpoke)}.
+        ${t.cardWhy(esc(c.why), esc(c.lastSpoke))}
         ${c.relationMeans ? `<span class="src">${esc(c.relationMeans)}</span>` : ""}
       </p>
 
-      ${section("You promised them", c.youPromised, (/** @type {any} */ p) => `${esc(p.text)} <span class="src">open ${esc(p.openFor)}</span>`)}
+      ${section(t.promisedTitle, c.youPromised, (/** @type {any} */ p) => `${esc(p.text)} <span class="src">${t.promisedOpen(esc(p.openFor))}</span>`)}
 
       ${growingBlock(c)}
 
       ${raising(c)}
 
-      ${section("They own", c.theyOwn, (/** @type {any} */ w) => `${esc(w.name)} <span class="src">${esc(w.mandate)} &middot; reviewed ${esc(w.lastReviewed)}</span>`)}
+      ${section(t.theyOwnTitle, c.theyOwn, (/** @type {any} */ w) => `${esc(w.name)} <span class="src">${t.theyOwnMeta(esc(w.mandate), esc(w.lastReviewed))}</span>`)}
 
       ${
         c.openWork === null
-          ? `<div class="prep-block"><h3 class="prep-head">Open on the board</h3><p class="src">Jot could not be read.</p></div>`
-          : section("Open on the board", c.openWork, (/** @type {any} */ w) =>
-              `${esc(w.text)} <span class="src">${esc(w.category)} &middot; ${esc(w.status)}${w.found === "named" ? " &middot; matched on their name" : ""}</span>`
+          ? `<div class="prep-block"><h3 class="prep-head">${t.openWorkTitle}</h3><p class="src">${t.jotUnreadable}</p></div>`
+          : section(t.openWorkTitle, c.openWork, (/** @type {any} */ w) =>
+              `${esc(w.text)} <span class="src">${t.openWorkMeta(esc(w.category), esc(w.status), w.found === "named")}</span>`
             )
       }
 
       ${
         c.lastWrote
-          ? `<div class="prep-block"><h3 class="prep-head">You last wrote</h3>
+          ? `<div class="prep-block"><h3 class="prep-head">${t.lastWroteTitle}</h3>
                <p class="prep-note">${esc(c.lastWrote.title)}
                <span class="src">${esc(new Date(c.lastWrote.edited).toLocaleDateString("sv-SE"))}</span></p></div>`
           : ""
@@ -211,10 +199,10 @@ function card(c, model) {
       ${draft(c, model)}
 
       <div class="card-foot">
-        <span class="src">Everything here is already in Tend, Jot or Nib.</span>
+        <span class="src">${t.footNote}</span>
         <span class="foot-actions">
           ${modelButtons(c, model)}
-          <button class="act" data-act="openPerson" data-person="${esc(c.person)}">Open ${esc(c.person)}</button>
+          <button class="act" data-act="openPerson" data-person="${esc(c.person)}">${t.openPerson(esc(c.person))}</button>
         </span>
       </div>
     </div>`;
@@ -241,18 +229,18 @@ function raising(c) {
   }
   return `
     <div class="prep-block">
-      <h3 class="prep-head">Worth raising</h3>
+      <h3 class="prep-head">${t.raisingTitle}</h3>
       <ul class="prep-list prep-topics">
         ${topics
           .map(
-            (/** @type {any} */ t) => `
+            (/** @type {any} */ topic) => `
           <li class="prep-topic">
             <div class="topic-line">
-              <span class="topic-text">${esc(t.text)}</span>
-              <button class="act" data-act="markRaised" data-topic="${esc(t.id)}" data-person="${esc(c.person)}">Raised it</button>
+              <span class="topic-text">${esc(topic.text)}</span>
+              <button class="act" data-act="markRaised" data-topic="${esc(topic.id)}" data-person="${esc(c.person)}">${t.raisedButton}</button>
             </div>
-            <span class="src">${esc(t.why)}</span>
-            <span class="src">Last raised ${esc(t.lastRaised)}.</span>
+            <span class="src">${esc(topic.why)}</span>
+            <span class="src">${t.lastRaised(esc(topic.lastRaised))}</span>
           </li>`
           )
           .join("")}
@@ -293,15 +281,15 @@ function section(title, items, line) {
  */
 function modelButtons(c, model) {
   if (!model.available) {
-    return `<span class="src" title="${esc(model.why ?? "")}">Drafting is off - no Claude Code on this machine.</span>`;
+    return `<span class="src" title="${esc(model.why ?? "")}">${t.draftingOff}</span>`;
   }
 
   const briefKey = `brief:${c.person}`;
   const noteKey = c.lastWrote ? `note:${c.lastWrote.id}` : null;
 
   const brief = isRunning(briefKey)
-    ? `<button class="act" disabled>Drafting…</button>`
-    : `<button class="act" data-act="draftBrief" data-person="${esc(c.person)}">Draft a brief</button>`;
+    ? `<button class="act" disabled>${t.drafting}</button>`
+    : `<button class="act" data-act="draftBrief" data-person="${esc(c.person)}">${t.draftButton}</button>`;
 
   // Only where there is a note to read. Nothing here invents a reason to spend
   // a model call.
@@ -309,8 +297,8 @@ function modelButtons(c, model) {
     noteKey === null
       ? ""
       : isRunning(noteKey)
-        ? `<button class="act" disabled>Reading…</button>`
-        : `<button class="act" data-act="readNote" data-note="${esc(c.lastWrote.id)}" data-person="${esc(c.person)}">Read that note</button>`;
+        ? `<button class="act" disabled>${t.reading}</button>`
+        : `<button class="act" data-act="readNote" data-note="${esc(c.lastWrote.id)}" data-person="${esc(c.person)}">${t.readNoteButton}</button>`;
 
   return `${note}${brief}`;
 }

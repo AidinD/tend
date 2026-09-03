@@ -41,6 +41,79 @@
  */
 
 export const T = {
+  prep: {
+    readFailedTitle: "Could not read the data",
+    title: "Before you talk to them",
+    sub:
+      "Who has drifted or is owed something, with what they own, what is open on the board, and " +
+      "the last thing you wrote. Worst first, and only a few: this is meant to be read and " +
+      "finished.",
+    empty:
+      "Nobody is behind and nothing is owed. This page is empty most days, which is the point of it.",
+    /** @param {number} n */
+    dropped: (n) => `${n} more further behind than nobody, held back so this page ends.`,
+
+    /* What he is practising, once for the page rather than on every card. */
+    practiceNoneTitle: "Nothing to practise",
+    practiceTitle: "What you are working on",
+    practiceWhy:
+      "Flagged in Nib, read from there every time. Lower the flag when it starts coming naturally " +
+      "and pick up the next one - the timing is yours, and Tend deliberately puts no date on it.",
+    practiceTodoTitle: "And one thing you said you would do",
+    /** @param {string} noteTitle */
+    practiceWrote: (noteTitle) => `you wrote this on ${noteTitle}`,
+
+    /*
+     * Where the card could not reach, said out loud. A card with no open work
+     * looks identical whether the board was empty or unreachable, and an
+     * integration that fails quietly sits there for weeks looking like a calm
+     * week.
+     */
+    sourceJot: "the Jot board",
+    sourceNib: "Nib's notes",
+    /** @param {string} which */
+    sourcesMissing: (which) =>
+      `Could not read ${which}, so those parts of every card are blank rather than empty. ` +
+      `Check the data directories in `,
+    sourcesSettings: "Settings",
+
+    /* One person's card. */
+    /** @param {string} why @param {string} lastSpoke */
+    cardWhy: (why, lastSpoke) => `${why}. Last spoke ${lastSpoke}.`,
+    promisedTitle: "You promised them",
+    /** @param {string} openFor */
+    promisedOpen: (openFor) => `open ${openFor}`,
+    theyOwnTitle: "They own",
+    /** @param {string} mandate @param {string} reviewed */
+    theyOwnMeta: (mandate, reviewed) => `${mandate} &middot; reviewed ${reviewed}`,
+    openWorkTitle: "Open on the board",
+    jotUnreadable: "Jot could not be read.",
+    /** @param {string} category @param {string} status @param {boolean} named */
+    openWorkMeta: (category, status, named) =>
+      `${category} &middot; ${status}${named ? " &middot; matched on their name" : ""}`,
+    lastWroteTitle: "You last wrote",
+    footNote: "Everything here is already in Tend, Jot or Nib.",
+    /** @param {string} person */
+    openPerson: (person) => `Open ${person}`,
+
+    /*
+     * Each topic carries its own reason, and that is not padding: the whole set
+     * is questions whose value is not obvious in the moment, and a question you
+     * do not believe in is one you skip.
+     */
+    raisingTitle: "Worth raising",
+    raisedButton: "Raised it",
+    /** @param {string} when */
+    lastRaised: (when) => `Last raised ${when}.`,
+
+    /* The model buttons, or a disabled pair that says why. */
+    draftingOff: "Drafting is off - no Claude Code on this machine.",
+    drafting: "Drafting…",
+    draftButton: "Draft a brief",
+    reading: "Reading…",
+    readNoteButton: "Read that note"
+  },
+
   reflection: {
     title: "Reflection",
     sub:
