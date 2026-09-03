@@ -1775,6 +1775,44 @@ try {
     }
   });
 
+  // A second direction, opened and let go without ever being prepared. The one
+  // above had every field answered by the time it ended, so it cannot show what
+  // this is about - and a check written against it passed while the bug was
+  // still there. An ending has to silence the form as well as the clock, and
+  // only a thread with gaps left in it can prove that it does.
+  await page.click('[data-act="openThread"]');
+  await page.fillDialog({ aim: "Tar över kravarbetet i höst" });
+  await page.waitFor("document.body.textContent.includes('kravarbetet')", "the second thread");
+
+  const bare = await page.text(".panel");
+  check("a live thread with gaps in it says what is still to prepare and to ask", () => {
+    if (!/Still to prepare/.test(bare)) {
+      throw new Error(`nothing was deferred, so an ending cannot be shown to silence it: ${bare}`);
+    }
+    if (!/Still to ask them/.test(bare)) {
+      throw new Error("the questions belonging to the conversation are not on the page at all");
+    }
+  });
+
+  await page.click('[data-act="threadEnd"]');
+  await page.fillDialog({ status: "dropped", why: "riktningen var min, inte hans", said: true });
+  await sleep(300);
+
+  const letGoBare = await page.text(".panel");
+  check("and letting it go takes the homework with it", () => {
+    // The symptom this was found by: "Still to ask them: which real work does
+    // this happen through?" printed under the ending of a direction that had
+    // been let go. Both questions are unanswerable by then and neither is worth
+    // answering, and printing them reads as the tool not having noticed the
+    // decision.
+    if (/Still to (prepare|ask them)/.test(letGoBare)) {
+      throw new Error(`an ended thread is still asking for its form to be filled in: ${letGoBare}`);
+    }
+    if (!/riktningen var min/.test(letGoBare)) {
+      throw new Error("the reason for the ending did not survive");
+    }
+  });
+
   /* ------------------------------------------------------------- work -- */
 
   step("Handing work over");

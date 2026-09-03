@@ -1,7 +1,7 @@
 /**
  * Tests for growth threads.
  *
- * Three of these pin decisions that were argued about rather than derived, and
+ * Four of these pin decisions that were argued about rather than derived, and
  * they are the ones to read first if this file ever needs changing:
  *
  * - A thread's clock starts when the thread does, unlike a topic's, which reaches
@@ -13,6 +13,9 @@
  * - A dropped thread keeps asking until he confirms he told them. Letting a
  *   direction go is fine; letting it go silently is the one option that costs
  *   him the relationship.
+ * - An ended thread wants nothing prepared and nothing asked, but a thread
+ *   stated as an expectation is not ended in that sense: somebody still has to
+ *   see something happen, so it keeps wanting a marker.
  */
 
 import assert from "node:assert/strict";
@@ -197,6 +200,50 @@ describe("what the form still wants", () => {
   it("asks which of the two it is before anything else, when it is unset", () => {
     const blank = missing({ id: "g1" });
     assert.match(blank.prepare[0], /want this, or does the job need it/);
+  });
+
+  it("wants nothing at all once the thread has ended", () => {
+    // The real dropped thread came back over MCP still asking which real work
+    // this happens through and what he would see in three months. Both are
+    // unanswerable and neither is worth answering: the direction was let go.
+    // Two readings of the same row disagreed about it - `question()` has always
+    // returned null for a closed thread - and the window printed the difference
+    // as "Still to ask them" underneath an ending.
+    const letGo = missing({
+      id: "g1",
+      status: "dropped",
+      endedWhy: "not the direction after all",
+      endingSaid: true
+    });
+    assert.deepEqual(letGo, { prepare: [], ask: [] });
+
+    // Reached is the same. There is nothing to prepare for something that has
+    // already happened, and the fields it was opened without stay unfilled
+    // forever without that being a gap in anything.
+    assert.deepEqual(missing({ id: "g1", status: "reached" }), { prepare: [], ask: [] });
+  });
+
+  it("still wants a marker on a thread stated as an expectation", () => {
+    // Why this asks about liveness rather than about `open`. An expectation is
+    // the one ending that keeps running: an expectation with nothing observable
+    // on it is one nobody can ever be shown to have met, which is precisely the
+    // shape a stated expectation must not have. The clocks and the stall reading
+    // treat it as live for the same reason.
+    const stated = missing({
+      id: "g1",
+      status: "expectation",
+      driver: "needs",
+      need: "the team, and it is not negotiable",
+      ifNothingChanges: "the reviews stay with me",
+      hypothesis: "h",
+      alreadySeen: "s",
+      offering: "o",
+      theirWords: "he does not want to",
+      stance: "declined",
+      assignment: "the design review"
+    });
+    assert.deepEqual(stated.prepare, []);
+    assert.match(stated.ask.join(" "), /see in three months/);
   });
 
   it("is satisfied once every field is answered", () => {
@@ -500,6 +547,18 @@ describe("through the service", () => {
     assert.equal(seen.threads.length, 1);
     assert.equal(seen.live, 0);
     assert.equal(seen.threads[0].fields.endedWhy, "no interest, not required");
+  });
+
+  it("stops handing out homework once the thread has ended", () => {
+    // The same rule reaching both clients. The card and every agent read
+    // `missing` off this call and off the reply to an edit, so leaving it in the
+    // domain is what keeps the window and MCP from needing the rule twice.
+    ok(api.endThread(store, id, { status: "dropped", why: "not the direction after all", said: true }));
+    const seen = ok(api.growth(store, "Halvar", NOW));
+    assert.deepEqual(seen.threads[0].missing, { prepare: [], ask: [] });
+
+    const edited = ok(api.updateThread(store, id, { endedWhy: "he wants to go deep on rendering instead" }));
+    assert.deepEqual(edited.missing, { prepare: [], ask: [] });
   });
 
   it("keeps his guess beside what they actually said", () => {

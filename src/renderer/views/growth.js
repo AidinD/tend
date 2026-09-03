@@ -20,6 +20,7 @@ import {
   DRIVER_OPTIONS,
   esc,
   form,
+  isLiveStatus,
   STANCE_OPTIONS,
   tend
 } from "../ui.js";
@@ -85,7 +86,7 @@ export async function threadsBlock(personId) {
 
 /** @param {any} t */
 function thread(t) {
-  const live = t.status === "open" || t.status === "expectation";
+  const live = isLiveStatus(t.status);
 
   const counts = `discussed ${t.talks}×, seen ${t.observations}× &middot; last talked ${esc(t.lastTalkedWords)}`;
 

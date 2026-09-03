@@ -21,6 +21,7 @@ import {
   STANCES,
   STATUSES,
   isDriver,
+  isLiveStatus,
   isStance,
   isStatus,
   missing,
@@ -87,7 +88,7 @@ export function growth(store, who, now) {
     };
   });
 
-  const live = threads.filter((t) => t.status === "open" || t.status === "expectation").length;
+  const live = threads.filter((t) => isLiveStatus(t.status)).length;
 
   return {
     person: person.name,
