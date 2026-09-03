@@ -190,3 +190,34 @@ drifted", "a drift nobody noticed", "not a drift". All the English verb or the
 English noun, none of them the mechanism's name. `marker` remains only in a
 parameter name and two comments; `verdict` only in "asks questions rather than
 reaching verdicts", where saying it is the point.
+
+## B and C, decided
+
+**`half`: the mode is renamed, the other sense stays.** The app's mode is now
+**the private side** and **the work side** - nine sentences, all in Settings.
+`side` rather than `mode` because it was already the app's own word for it:
+`settings.privateWhy` has said "read by nothing on the work side" all along, so
+one of the two names was right and the other nine were the drift.
+
+The five sentences using `half` to mean your own part in what happened are
+untouched, and so are four that are ordinary English ("half-way through a
+sentence", "the book you half remember", "the monitoring half", "the half that
+has no commit history").
+
+**`half` remains the internal name**, in `src/domain/halves.js`, in
+`SIGNAL_HALVES`, in this repo's documents and in the module's own comments -
+the same split as `thread`. Whoever edits the code needs the connection to the
+declaration; the reader does not. Do not "fix" the comments to match the UI.
+
+**`waiting`: only the import is renamed.** "waiting commitments" is now
+**unassigned commitments**, which is what they are - promises out of a note
+several people were in, with nobody named yet. The two directions of waiting
+stay: they never appear on the same screen, and each carries its direction in
+its own heading ("Waiting on them" / "Waiting to hear from you").
+
+**`level` stays.** The collision is with the IC ladder outside the app, not with
+anything inside it, and the form already says "How closely you follow up" in the
+hint under it.
+
+**C stays as it is.** `direction` for somebody else, `aim` for yourself,
+confirmed rather than changed.

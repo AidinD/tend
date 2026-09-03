@@ -137,7 +137,7 @@ function importSummary(r) {
     lines.push(words.importResolved(count(Number(r.resolved), words.promiseOne, words.promiseMany)));
   }
   if (r.dropped) {
-    lines.push(words.importDropped(count(Number(r.dropped), words.waitingCommitmentOne, words.waitingCommitmentMany)));
+    lines.push(words.importDropped(count(Number(r.dropped), words.unassignedCommitmentOne, words.unassignedCommitmentMany)));
   }
   if (r.retracted) {
     lines.push(words.importRetracted(count(Number(r.retracted), words.contactRecordOne, words.contactRecordMany)));

@@ -576,11 +576,11 @@ export const T = {
 
     /* Which half. Two stores rather than one with a filter, because a filter is
        a rule and a rule can be got wrong once. */
-    halfGroup: "Which half",
+    halfGroup: "Which side",
     halfPrivate: "private",
     halfWork: "work",
-    privateTitle: "The private half",
-    workTitle: "The work half",
+    privateTitle: "The private side",
+    workTitle: "The work side",
     privateWhy:
       "Its own store, read by nothing on the work side and never merged with it. What is " +
       "behind, cadences, duties, prep and a focus budget are not here - contact with somebody " +
@@ -594,7 +594,7 @@ export const T = {
       "person's state. That is the half you can change, and it is the only version you could show " +
       "the person it is about.",
     workNote:
-      "The private half keeps family and everything outside work in a separate store. Switching " +
+      "The private side keeps family and everything outside work in a separate store. Switching " +
       "restarts the app, so it cannot happen while you are half-way through a sentence.",
     backToWork: "Back to work",
     switchToPrivate: "Switch to private",
@@ -620,8 +620,8 @@ export const T = {
       `were in, so copying them onto everybody would turn one obligation into several. They are on Now.`,
     /** @param {string} counted */
     importResolved: (counted) => `${counted} closed, ticked off in Nib.`,
-    waitingCommitmentOne: "waiting commitment",
-    waitingCommitmentMany: "waiting commitments",
+    unassignedCommitmentOne: "unassigned commitment",
+    unassignedCommitmentMany: "unassigned commitments",
     /** @param {string} counted */
     importDropped: (counted) => `${counted} dropped, settled in Nib before anybody filed them.`,
     /** @param {string} counted */
@@ -814,13 +814,13 @@ export const T = {
     importedBody: (summary) => `${summary} Safe to run again whenever - nothing is ever duplicated.`,
     good: "Good",
 
-    switchPrivateTitle: "Switch to the private half?",
-    switchWorkTitle: "Back to the work half?",
+    switchPrivateTitle: "Switch to the private side?",
+    switchWorkTitle: "Back to the work side?",
     switchPrivateBody:
-      "The app restarts and opens a different store. Nothing from the work half is visible there, " +
+      "The app restarts and opens a different store. Nothing from the work side is visible there, " +
       "and nothing written there is ever read here.",
     switchWorkBody:
-      "The app restarts and opens the work store again. Nothing written in the private half comes " +
+      "The app restarts and opens the work store again. Nothing written in the private side comes " +
       "with it.",
     switchConfirm: "Switch",
     switchBackConfirm: "Switch back",
