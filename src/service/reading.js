@@ -16,6 +16,7 @@
 
 import { buildAttention, expandCadences } from "../domain/attention.js";
 import { archivedIds, isArchived } from "../domain/archive.js";
+import { contactSummary } from "../domain/contact.js";
 import { personBlocksIn, relationsIn } from "../domain/halves.js";
 import { myAttention } from "../domain/myattention.js";
 import { availability } from "../domain/people.js";
@@ -127,9 +128,15 @@ export function person(store, query, now) {
     .filter((x) => x.person === p.id)
     .map((x) => ({ id: x.id, text: x.text, openFor: humanDays(x.status.ageDays), urgency: x.status.severity }));
 
-  const history = store
-    .rows("touches")
-    .filter((t) => t.subject === p.id)
+  /*
+   * The whole set, kept so the summary can be counted over it. The page is given
+   * a capped twenty rows below, and a total taken from those would report the
+   * cap the moment somebody has twenty-one conversations.
+   */
+  const allTouches = store.rows("touches").filter((t) => t.subject === p.id);
+
+  const history = allTouches
+    .slice()
     .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
     .slice(0, 20)
     .map((t) => ({
@@ -196,6 +203,15 @@ export function person(store, query, now) {
     cadences,
     openPromises: promises,
     recentContact: history,
+    // What those rows amount to, counted over ALL of them rather than the
+    // twenty above. See domain/contact.js for why the page is handed the
+    // numbers instead of deriving them.
+    contactSummary: (() => {
+      const s = contactSummary(allTouches, now);
+      // The age in words, from the same helper every row above uses. Two
+      // spellings of "4 days ago" on one page is one too many.
+      return { ...s, lastWords: s.sinceLastDays === null ? null : agoWords(s.sinceLastDays) };
+    })(),
     observations: evidence,
     // Material about them that lives elsewhere, newest first and carrying its
     // age. See domain/links.js for why the age is the part that matters.

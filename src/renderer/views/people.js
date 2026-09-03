@@ -215,6 +215,33 @@ async function personPage(id) {
   const list = (/** @type {string} */ title, /** @type {string} */ body, /** @type {string} */ emptyText) =>
     `<div class="block"><div class="block-title">${esc(title)}</div>${body || `<div class="empty">${esc(emptyText)}</div>`}</div>`;
 
+  /*
+   * A block whose rows are shut, with a line saying what they amount to.
+   *
+   * `<details>` rather than a button wired to a refresh, the same choice the
+   * archived roster group makes and for the same reason: the open state is free
+   * and it needs no action of its own.
+   *
+   * The summary line is not a repeat of the title. The title says what the
+   * block is; the line says what is in it, which is the part that decides
+   * whether it is worth opening.
+   */
+  const folded = (
+    /** @type {string} */ title,
+    /** @type {string} */ summary,
+    /** @type {string} */ body,
+    /** @type {string} */ emptyText
+  ) =>
+    body === ""
+      ? `<div class="block"><div class="block-title">${esc(title)}</div><div class="empty">${esc(emptyText)}</div></div>`
+      : `<details class="block block-fold">
+          <summary class="block-fold-head">
+            <span class="block-title">${esc(title)}</span>
+            <span class="block-fold-sum">${esc(summary)}</span>
+          </summary>
+          ${body}
+        </details>`;
+
   const cadences = p.cadences
     .map(
       (/** @type {any} */ c) => `<div class="line">
@@ -249,9 +276,8 @@ async function personPage(id) {
    * long note squeezed "Not right" until the label wrapped onto two lines and the
    * row grew to fit it. Three rows had been written without it.
    */
-  const contact = p.recentContact
-    .map(
-      (/** @type {any} */ t) => `<div class="line">
+  /** One history row, with its own take-it-back button. */
+  const contactLine = (/** @type {any} */ t) => `<div class="line">
         <span class="line-when">${esc(t.when)}</span>
         <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` - ${esc(t.note)}` : ""}</span>
         <span class="line-right">
@@ -267,9 +293,80 @@ async function personPage(id) {
           <button class="act tiny danger" data-act="unlogContact" data-id="${esc(t.id)}"
             data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
         </span>
-      </div>`
-    )
+      </div>`;
+
+  /*
+   * Runs of identical rows fold into one, and open again on a click.
+   *
+   * Fifteen consecutive rows reading "1-1 (backfilled from the calendar)" are
+   * one fact - an import ran - written fifteen times. Folding them is not
+   * hiding anything: each row keeps its own "Not right" button one click away,
+   * which matters because a mislogged contact moves a clock and then looks
+   * exactly like a real one.
+   *
+   * Consecutive only. Two identical rows either side of a real conversation are
+   * not the same run, and merging across it would put the conversation inside a
+   * fold that claims to be about the import.
+   */
+  /** @type {{ key: string, rows: any[] }[]} */
+  const runs = [];
+  for (const t of p.recentContact) {
+    /*
+     * `JSON.stringify` rather than the two joined by a separator character.
+     *
+     * A separator has to be a byte that cannot appear in either half, and the
+     * obvious choices are exactly the bytes that get eaten in transit - a space
+     * written here once arrived as a NUL, which left the file classified as
+     * binary while behaving correctly. An encoded array has no separator to
+     * lose, and `nib.js` reaches for it for the same reason.
+     */
+    const key = JSON.stringify([t.kind ?? null, t.note ?? null]);
+    const last = runs[runs.length - 1];
+    if (last !== undefined && last.key === key) {
+      last.rows.push(t);
+    } else {
+      runs.push({ key, rows: [t] });
+    }
+  }
+
+  const contact = runs
+    .map((run) => {
+      if (run.rows.length < 3) {
+        return run.rows.map(contactLine).join("");
+      }
+      const first = run.rows[run.rows.length - 1];
+      const latest = run.rows[0];
+      const one = run.rows[0];
+      return `<details class="line-fold">
+        <summary class="line">
+          <span class="line-when">${esc(first.when)} - ${esc(latest.when)}</span>
+          <span class="line-text"><strong>${esc(one.kind)}</strong>${one.note ? ` - ${esc(one.note)}` : ""}</span>
+          <span class="line-right"><span class="pill plain">${run.rows.length} identical</span></span>
+        </summary>
+        <div class="line-fold-rows">${run.rows.map(contactLine).join("")}</div>
+      </details>`;
+    })
     .join("");
+
+  /*
+   * What the rows amount to, said in one line so the rows themselves can stay
+   * shut. Every number comes from the service, counted over the whole set
+   * rather than the capped twenty rendered above - see domain/contact.js.
+   */
+  const cs = p.contactSummary ?? { total: 0 };
+  const month = (/** @type {number} */ at) =>
+    new Date(at).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+  const contactSummaryLine =
+    cs.total === 0
+      ? "No contact recorded yet"
+      : [
+          `${cs.total} ${cs.total === 1 ? "conversation" : "conversations"}`,
+          cs.firstAt === null || cs.total < 2 ? null : `since ${month(cs.firstAt)}`,
+          cs.everyDays === null ? null : `roughly every ${cs.everyDays} ${cs.everyDays === 1 ? "day" : "days"}`,
+          cs.lastWords === null || cs.lastWords === undefined ? null : `last ${cs.lastWords}`
+        ]
+          .filter((part) => part !== null)
+          .join(" · ");
 
   // Kept as its own block. A cancellation is not a conversation, and the two
   // have to stay legible as different things - the whole value is in the
@@ -428,13 +525,26 @@ async function personPage(id) {
       ${waitingOn}
       ${growing}
       ${blocks.skips && p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
-      ${blocks.cadences ? list("Recent contact", contact, "No contact recorded yet.") : ""}
-      ${blocks.skips && skipped ? list("Booked and did not happen", skipped, "") : ""}
       ${
+        /*
+         * Observations first, history after, and the history shut.
+         *
+         * The order was the other way round, which put fifteen rows saying an
+         * import ran above the material a review conversation is built from.
+         * Contact history answers "are we in step", which the cadences block
+         * above has already answered in one badge; the rows themselves are only
+         * wanted when something looks wrong.
+         */
         blocks.observations
           ? list("Observations", observations, "Nothing recorded. This is what a review conversation is built from.")
           : ""
       }
+      ${
+        blocks.cadences
+          ? folded("Contact history", contactSummaryLine, contact, "No contact recorded yet.")
+          : ""
+      }
+      ${blocks.skips && skipped ? list("Booked and did not happen", skipped, "") : ""}
       ${list("Linked", linked, "Nothing linked. Prepared notes and anything else that lives outside Tend can be pointed at from here.")}
       ${
         blocks.moments

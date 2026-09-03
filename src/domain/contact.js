@@ -28,6 +28,8 @@
  * are different questions and only the second one has a fixed answer.
  */
 
+import { DAY_MS } from "./time.js";
+
 /** @typedef {"person" | "project" | "workstream" | "stake"} SubjectKind */
 
 /**
@@ -152,3 +154,90 @@ export function evidenceFor(subjectKind) {
  * question with no answer, twice.
  */
 export const NOTE_CONTACT_KINDS = kindsFor("person").filter((k) => k.value !== "survey");
+
+/**
+ * A stored touch, as much of one as this file needs.
+ *
+ * `id` is required and the rest is not, which is deliberate: a type made only
+ * of optional properties is a weak type, and TypeScript will not let a store row
+ * be passed to one - correctly, since such a type accepts anything at all.
+ *
+ * @typedef {object} TouchRow
+ * @property {string} id
+ * @property {number} [at] When it happened, ms since epoch.
+ * @property {string} [kind]
+ * @property {string} [note]
+ */
+
+/**
+ * What a contact history amounts to, in one line's worth of numbers.
+ *
+ * ## Why this exists
+ *
+ * A person's history was eighteen rows on the page, fifteen of them the
+ * identical string "1-1 (backfilled from the calendar)". That is not a history,
+ * it is a record that an import ran - and it sat above the observations, which
+ * are the part a review conversation is actually built from.
+ *
+ * The fix is to say what the rows amount to and fold the rows themselves away.
+ * The summary answers the only questions the list was being scanned for: how
+ * many, since when, how often, and how long ago the last one was.
+ *
+ * ## Why it is computed here rather than in the view
+ *
+ * The page receives a capped twenty rows. A count taken from those would report
+ * the cap rather than the total the moment somebody has twenty-one - so the
+ * total has to be counted where the whole set still exists, and the view has to
+ * be handed the number rather than allowed to derive it.
+ *
+ * Arithmetic only, and no model anywhere near it. A brief you cannot trace to
+ * the state that produced it is worse than no brief, and this line is the first
+ * thing read on the page.
+ *
+ * `everyDays` is the MEAN gap and it is deliberately blunt. A median would
+ * survive one long absence better, but the mean is what "roughly every N days"
+ * means to a reader, and a cadence with one three-month hole in it should read
+ * as looser than one without.
+ *
+ * @param {TouchRow[]} touches Every touch about the subject, not a page of them.
+ * @param {number} now
+ * @returns {{
+ *   total: number,
+ *   firstAt: number | null,
+ *   lastAt: number | null,
+ *   spanDays: number | null,
+ *   everyDays: number | null,
+ *   sinceLastDays: number | null
+ * }}
+ */
+export function contactSummary(touches, now) {
+  const at = (Array.isArray(touches) ? touches : [])
+    .map((t) => Number(t?.at ?? NaN))
+    .filter((n) => Number.isFinite(n))
+    .sort((a, b) => a - b);
+
+  if (at.length === 0) {
+    return { total: 0, firstAt: null, lastAt: null, spanDays: null, everyDays: null, sinceLastDays: null };
+  }
+
+  const firstAt = at[0];
+  const lastAt = at[at.length - 1];
+  const spanDays = Math.floor((lastAt - firstAt) / DAY_MS);
+
+  /*
+   * One touch has a date and no cadence. Two touches a day apart have a cadence
+   * of one day, which is true and useless - but saying nothing there would be
+   * worse, because "we spoke twice" with no interval reads as if the app failed
+   * to work it out.
+   */
+  const everyDays = at.length < 2 ? null : Math.max(1, Math.round(spanDays / (at.length - 1)));
+
+  return {
+    total: at.length,
+    firstAt,
+    lastAt,
+    spanDays,
+    everyDays,
+    sinceLastDays: Math.max(0, Math.floor((now - lastAt) / DAY_MS))
+  };
+}

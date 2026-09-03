@@ -1097,6 +1097,71 @@ try {
   await page.click('[data-act="open"]');
   await page.waitFor("document.querySelector('.line') !== null", "the contact history");
 
+  /*
+   * What a person's page puts first.
+   *
+   * The history used to sit above the observations, and on a real roster it was
+   * eighteen rows with fifteen of them the same string from a calendar import -
+   * so the page opened on a record that an import had run, above the material a
+   * review conversation is built from. Order is structural rather than visual,
+   * so it is checked here rather than looked at in a screenshot.
+   */
+  const blockOrder = await page.evaluate(
+    "JSON.stringify([...document.querySelectorAll('.block-title')].map((b) => b.textContent.trim()))"
+  );
+  check("observations come before the contact history, not after it", () => {
+    const titles = JSON.parse(String(blockOrder));
+    const obs = titles.indexOf("Observations");
+    const hist = titles.indexOf("Contact history");
+    if (obs < 0 || hist < 0) {
+      throw new Error(`one of the two blocks is missing: ${blockOrder}`);
+    }
+    if (obs > hist) {
+      throw new Error(`history at ${hist} is above observations at ${obs}`);
+    }
+  });
+
+  /*
+   * Read first, assert second.
+   *
+   * `check` takes a synchronous function. The first version of this did the
+   * reading INSIDE it and returned the promise, so the assertion ran after the
+   * check had already been recorded as passing - a check that could not fail,
+   * and a mutation putting the fold back to a plain block proved it by staying
+   * green. Every await belongs out here.
+   */
+  const foldState = await page.evaluate(
+    `(() => { const f = document.querySelector('.block-fold');
+      return JSON.stringify({ exists: f !== null, open: f === null ? null : f.open,
+        summary: f === null ? "" : (f.querySelector('.block-fold-sum')?.textContent ?? '').trim() }); })()`
+  );
+  check("the history is shut, with a line saying what it amounts to", () => {
+    // Shut is the point: the rows answer "is anything wrong with the record",
+    // which is not the question the page is opened to answer.
+    const s = JSON.parse(String(foldState));
+    if (s.exists !== true) {
+      throw new Error("no folded block on the page");
+    }
+    if (s.open !== false) {
+      throw new Error("the history is open by default");
+    }
+    // The line stands in for the rows, so an empty one is worse than the rows
+    // would have been.
+    if (!/\d/.test(String(s.summary))) {
+      throw new Error(`the summary line carries no numbers: "${s.summary}"`);
+    }
+  });
+
+  /*
+   * Opened the way a person would have to, before the rows below are counted.
+   *
+   * `querySelectorAll` finds elements inside a closed `<details>`, so the check
+   * that follows passed without this - against a button nobody could reach.
+   * That is a check asserting the DOM rather than the app.
+   */
+  await page.evaluate("(document.querySelector('.block-fold') ?? {}).open = true");
+  await sleep(150);
+
   // A contact logged against the wrong person or as the wrong kind is worse than
   // no log: it moves a clock and then looks identical to a real one. The history
   // was read-only, so there was no way to undo it - which is how a wrong entry
@@ -3519,6 +3584,30 @@ try {
     const shot = await page.screenshot(join(root, "docs", `${name}.png`));
     if (shot !== null) {
       console.log(`  --   ${view}: ${shot}`);
+    }
+  }
+
+  /*
+   * A person's own page, which the sweep above never reaches - the roster is a
+   * view, a person is a route within it. It is also the longest page in the app
+   * and the one carrying the most blocks, so it is the one where an ordering or
+   * spacing mistake has the most room to hide.
+   */
+  if (wantShots) {
+    await page.click('.nav-btn[data-view="people"]');
+    await sleep(300);
+    const opened = await page.evaluate(
+      "String(document.querySelector('.row[data-act=\"open\"]') !== null)"
+    );
+    if (opened === "true") {
+      await page.click('.row[data-act="open"]');
+      await sleep(400);
+      const shot = await page.screenshot(join(root, "docs", "view-person.png"));
+      if (shot !== null) {
+        console.log(`  --   person: ${shot}`);
+      }
+    } else {
+      console.log("  --   person: no roster row to open");
     }
   }
 

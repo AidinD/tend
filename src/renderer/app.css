@@ -2043,3 +2043,85 @@ kbd {
 .prep-practice + .prep-card {
   margin-top: 14px;
 }
+
+/*
+ * A block whose rows are shut, with a line saying what they amount to.
+ *
+ * Built on the same chevron the archived roster group uses rather than a second
+ * disclosure idiom - one arrangement, learned once. What differs is the head:
+ * a roster group's summary IS its heading, and this one carries a heading plus
+ * a derived line, because the line is what decides whether opening is worth it.
+ */
+.block-fold-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: var(--sp-label);
+}
+
+.block-fold-head::-webkit-details-marker {
+  display: none;
+}
+
+.block-fold-head > .block-title {
+  margin-bottom: 0;
+  flex: none;
+}
+
+.block-fold-sum {
+  font-size: var(--t-meta);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.block-fold-head::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--text-faint);
+  border-bottom: 1.5px solid var(--text-faint);
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+  flex: none;
+  margin-left: auto;
+  /* Sits on the cap height of the line beside it rather than its baseline,
+     which is where a rotated square looks centred. */
+  align-self: center;
+}
+
+.block-fold[open] > .block-fold-head::after {
+  transform: rotate(225deg);
+}
+
+/*
+ * A run of identical history rows, folded into one.
+ *
+ * The summary IS a `.line`, so a folded run and a single row are the same
+ * object at the same size - the count on the right is the only difference, and
+ * it should read as "there are more of these" rather than as a different kind
+ * of entry.
+ */
+.line-fold {
+  min-width: 0;
+}
+
+.line-fold > summary.line {
+  cursor: pointer;
+  list-style: none;
+}
+
+.line-fold > summary.line::-webkit-details-marker {
+  display: none;
+}
+
+.line-fold-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sub);
+  /* Indented under the row that stands for them, so an opened run still reads
+     as belonging to its summary rather than as loose rows in the list. */
+  margin: var(--sp-sub) 0 0 14px;
+}
