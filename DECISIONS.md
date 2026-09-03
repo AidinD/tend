@@ -3,6 +3,60 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-03 - Ten walkthrough checks that asserted nothing
+
+**Decided.** Every `check()` in `scripts/e2e-app.mjs` with an empty body now
+reads something back off the page. There were ten, not the three CLAUDE.md
+remembered: accepting a proposal, a backdated promise, a backdated project, a
+stakeholder update, a delegation review, the way back off a project page,
+marking a topic raised, binding a Nib folder, reopening its tag mapping, and
+Ctrl+K.
+
+**They were not harmless.** Each one sat after a real interaction and printed
+`ok`, so the run counted ten passes for behaviour nothing looked at. The
+`waitFor` above each of them was doing the only work - and a `waitFor` that
+fails is a harness timeout, which reads as a broken click rather than as the
+claim in the label being false.
+
+**Each assertion is about what the interaction should have produced**, not that
+the page changed. Accepting a proposal has to move the duty into the active
+list under the name it was proposed under, because a click that dropped it on
+the floor leaves the same one-fewer count. A stakeholder update has to land on
+the row that names the person AND the project, since the clock is per pair and
+a fresh date somewhere on the page is not the same fact. Both dates are checked
+as counts rather than as "not today": a project 200 days old against a
+fortnightly cadence reads about +26w, and anything else - including the wrong
+old date - fails.
+
+**The project's date is read off its own page, before the first look is logged.**
+`since` is printed nowhere as a date; what it produces is drift, and the drift
+badge is on the project page rather than the row. Logging a look resets it, so
+read afterwards there is nothing left to tell a backdated project from one taken
+on today. The detour back to the lists uses the rail rather than the back link,
+because the back link has its own check below and a detour that leaned on it
+would turn that check's failure into a timeout here.
+
+**Tolerances are a week wide**, and stated. Dates are stored at midday, so which
+side of noon a run happens on decides whether the app has counted 20 days or 21,
+and the reading floors to weeks. A tighter bound would fail in the afternoon.
+
+**What the checks found.** The workstream card said "reviewed today ago" every
+day something had just been reviewed - `humanDays(...) + " ago"`, the exact
+fault `agoWords` exists to prevent and that the prep card already has a check
+against. Fixed in `src/service/workstreams.js`; it was the last hand-rolled
+suffix in the tree.
+
+**Nothing was deleted.** Every label named something no adjacent check covered.
+
+**Each one was shown to fail.** The app was broken on purpose, one fault at a
+time, and each check was read: a project that ignores the form's date, an update
+that keeps the date and drops the note, a binding that loses the person, a tag
+dialog that opens blank, a palette that opens unfocused, a proposal that is
+declined instead of accepted, and the "today ago" line put back. Where an
+existing `waitFor` swallows the app-level break - the harness stops before the
+verdict - the expectation was flipped instead, to show the clause is evaluated
+and reads the node it names.
+
 ## 2026-09-02 - A flag on a principle is not a promise
 
 **Decided.** `indexNib` no longer derives a commitment from a flagged block on a
