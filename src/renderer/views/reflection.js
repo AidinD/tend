@@ -15,6 +15,9 @@
 import { REFLECTION_FIELDS } from "../../domain/reflection.js";
 import { act, esc, form, readFailed, readFailedHtml, tend } from "../ui.js";
 import { refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.reflection;
 
 export async function render() {
   const [rows, mine, aimRows] = await Promise.all([
@@ -33,16 +36,11 @@ export async function render() {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">Reflection</h1>
-          <p class="view-sub">
-            Occasional, never late, and two fixed questions rather than a blank
-            box: what went well over the last week or so, and what you would do
-            differently. Nothing here is required, and nothing here is read back
-            to anyone.
-          </p>
+          <h1 class="view-title">${t.title}</h1>
+          <p class="view-sub">${t.sub}</p>
         </div>
         <span class="foot-actions">
-          <button class="act primary" data-act="addReflection">Add a reflection</button>
+          <button class="act primary" data-act="addReflection">${t.addButton}</button>
         </span>
       </div>
       ${
@@ -66,10 +64,7 @@ export async function render() {
 
   if (reflections.length === 0) {
     return `${head}${goals}
-      <div class="empty">
-        Nothing written yet. The two questions are what went well and what you
-        would do differently - answer either one, or both.
-      </div>`;
+      <div class="empty">${t.empty}</div>`;
   }
 
   return `${head}${goals}${reflections.map(reflectionCard).join("")}`;
@@ -93,25 +88,20 @@ function aimsBlock(rows) {
   const live = all.filter((/** @type {any} */ a) => a.status === "open");
 
   const head = `<div class="group-head">
-    <span class="group-title">What I am working on in myself</span>
+    <span class="group-title">${t.aimsTitle}</span>
     <span class="group-rule"></span>
     <span class="foot-actions">
       ${
         live.length >= 2
-          ? `<span class="src">Two is the limit. Reach or let one go first.</span>`
-          : `<button class="act" data-act="setAim">Set an aim</button>`
+          ? `<span class="src">${t.aimsAtLimit}</span>`
+          : `<button class="act" data-act="setAim">${t.aimsSetButton}</button>`
       }
     </span>
   </div>`;
 
   if (all.length === 0) {
     return `<div class="group">${head}
-      <div class="empty">
-        Nothing set. An aim says what you want to be able to do and where its
-        verdict comes from - the record counting it, somebody else saying so, or
-        you logging the occasions. Without one of those it can only ever be kept
-        to next time.
-      </div>
+      <div class="empty">${t.aimsEmpty}</div>
     </div>`;
   }
 
@@ -124,14 +114,14 @@ function aimCard(a) {
     a.missing.length === 0
       ? ""
       : `<div class="prep-block">
-           <h3 class="prep-head">Still to answer</h3>
+           <h3 class="prep-head">${t.aimStillToAnswer}</h3>
            <ul class="prep-list">${a.missing.map((/** @type {string} */ m) => `<li>${esc(m)}</li>`).join("")}</ul>
          </div>`;
 
   const counts =
     a.logged === 0
-      ? `<span class="src">Nothing logged yet.</span>`
-      : `<span class="src">${a.seen} taken, ${a.missed} missed, last ${esc(String(a.lastLogged))}</span>`;
+      ? `<span class="src">${t.aimNothingLogged}</span>`
+      : `<span class="src">${t.aimCounts(a.seen, a.missed, esc(String(a.lastLogged)))}</span>`;
 
   const live = a.status === "open";
 
@@ -143,23 +133,23 @@ function aimCard(a) {
     ${a.why ? `<p class="card-why">${esc(String(a.why))}</p>` : ""}
     ${
       a.measure
-        ? `<div class="prep-block"><h3 class="prep-head">How I will know</h3><p class="prep-note">${esc(String(a.measure))}</p></div>`
+        ? `<div class="prep-block"><h3 class="prep-head">${t.aimHowIKnow}</h3><p class="prep-note">${esc(String(a.measure))}</p></div>`
         : ""
     }
     ${
       a.through
-        ? `<div class="prep-block"><h3 class="prep-head">Where it happens</h3><p class="prep-note">${esc(String(a.through))}</p></div>`
+        ? `<div class="prep-block"><h3 class="prep-head">${t.aimWhereItHappens}</h3><p class="prep-note">${esc(String(a.through))}</p></div>`
         : ""
     }
-    ${a.asksWho ? `<div class="prep-block"><h3 class="prep-head">Asking</h3><p class="prep-note">${esc(String(a.asksWho))}</p></div>` : ""}
+    ${a.asksWho ? `<div class="prep-block"><h3 class="prep-head">${t.aimAsking}</h3><p class="prep-note">${esc(String(a.asksWho))}</p></div>` : ""}
     ${gaps}
     <div class="card-foot">
       ${counts}
       ${
         live
           ? `<span class="foot-actions">
-               <button class="act" data-act="logAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">Log an occasion</button>
-               <button class="act" data-act="endAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">Close it</button>
+               <button class="act" data-act="logAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">${t.aimLogButton}</button>
+               <button class="act" data-act="endAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">${t.aimCloseButton}</button>
              </span>`
           : `<span class="src">${esc(String(a.endedWhy || a.statusLabel))}</span>`
       }
@@ -185,9 +175,9 @@ function reflectionCard(r) {
     </div>
     ${blocks}
     <div class="card-foot">
-      <span class="src">Written by you.</span>
+      <span class="src">${t.writtenBy}</span>
       <span class="foot-actions">
-        <button class="act danger" data-act="removeReflection" data-id="${esc(String(r.id))}">Remove</button>
+        <button class="act danger" data-act="removeReflection" data-id="${esc(String(r.id))}">${t.remove}</button>
       </span>
     </div>
   </article>`;
@@ -203,40 +193,37 @@ export const actions = {
    */
   setAim: async () => {
     const values = await form({
-      title: "Set an aim",
-      intro:
-        "Something you want to be able to do, and where its verdict comes from. Without a " +
-        "source it can only ever be kept to next time, which is what a development point with " +
-        "no marker becomes.",
+      title: t.setTitle,
+      intro: t.setIntro,
       fields: [
-        { name: "aim", label: "What you want to be able to do", type: "textarea", required: true },
+        { name: "aim", label: t.setAimLabel, type: "textarea", required: true },
         {
           name: "source",
-          label: "How you will know",
+          label: t.setSourceLabel,
           type: "select",
           value: "logged",
           options: [
-            { value: "logged", label: "You log the occasions, taken and missed" },
-            { value: "record", label: "The record can count it" },
-            { value: "asked", label: "Somebody else says so" }
+            { value: "logged", label: t.setSourceLogged },
+            { value: "record", label: t.setSourceRecord },
+            { value: "asked", label: t.setSourceAsked }
           ]
         },
-        { name: "measure", label: "The actual test, in words" },
-        { name: "asksWho", label: "Who you are asking, if somebody else decides" },
+        { name: "measure", label: t.setMeasureLabel },
+        { name: "asksWho", label: t.setAsksWhoLabel },
         {
           name: "through",
-          label: "Which real work this happens in",
-          placeholder: "The Tuesday meeting, every 1-1",
-          hint: "Without this it waits for a free evening."
+          label: t.setThroughLabel,
+          placeholder: t.setThroughPlaceholder,
+          hint: t.setThroughHint
         },
-        { name: "why", label: "Why it is worth the months", type: "textarea" }
+        { name: "why", label: t.setWhyLabel, type: "textarea" }
       ],
-      confirm: "Set it"
+      confirm: t.setConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("setAim", values, "Set.")) {
+    if (await act("setAim", values, t.setToast)) {
       refresh();
     }
   },
@@ -251,24 +238,22 @@ export const actions = {
    */
   logAim: async (d) => {
     const values = await form({
-      title: `One occasion: ${d.aim}`,
-      intro:
-        "Both kinds count. The gap between the occasions you took and the ones you missed is " +
-        "what makes this measurable rather than a feeling about the quarter.",
+      title: t.logTitle(d.aim),
+      intro: t.logIntro,
       fields: [
-        { name: "note", label: "What happened", type: "textarea", required: true },
+        { name: "note", label: t.logNoteLabel, type: "textarea", required: true },
         {
           name: "happened",
-          label: "Which was it",
+          label: t.logWhichLabel,
           type: "select",
           value: "yes",
           options: [
-            { value: "yes", label: "I did the thing" },
-            { value: "no", label: "The occasion came and I did not" }
+            { value: "yes", label: t.logYes },
+            { value: "no", label: t.logNo }
           ]
         }
       ],
-      confirm: "Log it"
+      confirm: t.logConfirm
     });
     if (!values) {
       return;
@@ -277,7 +262,7 @@ export const actions = {
       await act(
         "logAim",
         { aim: d.id, note: values.note, happened: values.happened === "yes" },
-        "Logged."
+        t.logToast
       )
     ) {
       refresh();
@@ -287,29 +272,27 @@ export const actions = {
   /** @param {Record<string, string>} d */
   endAim: async (d) => {
     const values = await form({
-      title: `Close: ${d.aim}`,
-      intro:
-        "Reached and let go are both endings and only one is a success. Saying which is the " +
-        "point - an aim quietly abandoned is what this shape exists to prevent.",
+      title: t.closeTitle(d.aim),
+      intro: t.closeIntro,
       fields: [
         {
           name: "status",
-          label: "How it ended",
+          label: t.closeHowLabel,
           type: "select",
           value: "reached",
           options: [
-            { value: "reached", label: "Reached - it comes naturally now" },
-            { value: "dropped", label: "Let go - not the thing after all" }
+            { value: "reached", label: t.closeReached },
+            { value: "dropped", label: t.closeDropped }
           ]
         },
-        { name: "why", label: "What decided it", type: "textarea" }
+        { name: "why", label: t.closeWhyLabel, type: "textarea" }
       ],
-      confirm: "Close it"
+      confirm: t.closeConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("endAim", { id: d.id, ...values }, "Closed.")) {
+    if (await act("endAim", { id: d.id, ...values }, t.closeToast)) {
       refresh();
     }
   },
@@ -326,27 +309,27 @@ export const actions = {
    */
   addReflection: async () => {
     const values = await form({
-      title: "How did the week go?",
-      intro: "Answer at least one of the first two - notes alone is not a reflection.",
+      title: t.writeTitle,
+      intro: t.writeIntro,
       fields: REFLECTION_FIELDS.map((f) => ({
         name: f.name,
         label: f.label,
         type: /** @type {const} */ ("textarea"),
         hint: f.hint
       })),
-      confirm: "Keep it"
+      confirm: t.writeConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("logReflection", values, "Kept.")) {
+    if (await act("logReflection", values, t.writeToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   removeReflection: async (d) => {
-    if (await act("removeRow", { collection: "reflections", id: d.id }, "Removed.")) {
+    if (await act("removeRow", { collection: "reflections", id: d.id }, t.removedToast)) {
       refresh();
     }
   }

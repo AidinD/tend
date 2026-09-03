@@ -41,6 +41,101 @@
  */
 
 export const T = {
+  reflection: {
+    title: "Reflection",
+    sub:
+      "Occasional, never late, and two fixed questions rather than a blank box: what went well " +
+      "over the last week or so, and what you would do differently. Nothing here is required, and " +
+      "nothing here is read back to anyone.",
+    addButton: "Add a reflection",
+    empty:
+      "Nothing written yet. The two questions are what went well and what you would do " +
+      "differently - answer either one, or both.",
+    writtenBy: "Written by you.",
+    remove: "Remove",
+
+    /* The aims block. */
+    aimsTitle: "What I am working on in myself",
+    aimsAtLimit: "Two is the limit. Reach or let one go first.",
+    aimsSetButton: "Set an aim",
+    aimsEmpty:
+      "Nothing set. An aim says what you want to be able to do and where its verdict comes from - " +
+      "the record counting it, somebody else saying so, or you logging the occasions. Without one " +
+      "of those it can only ever be kept to next time.",
+
+    /* One aim's card. The three headings are the fields doing one job each. */
+    aimStillToAnswer: "Still to answer",
+    aimHowIKnow: "How I will know",
+    aimWhereItHappens: "Where it happens",
+    aimAsking: "Asking",
+    aimNothingLogged: "Nothing logged yet.",
+    /**
+     * The two counts side by side rather than as one number, because the pair IS
+     * the evaluation: eight occasions logged and two of them taken says something
+     * neither figure says alone.
+     *
+     * @param {number} seen
+     * @param {number} missed
+     * @param {string} last
+     */
+    aimCounts: (seen, missed, last) => `${seen} taken, ${missed} missed, last ${last}`,
+    aimLogButton: "Log an occasion",
+    aimCloseButton: "Close it",
+
+    /* Setting one. The source is asked before the test, deliberately. */
+    setTitle: "Set an aim",
+    setIntro:
+      "Something you want to be able to do, and where its verdict comes from. Without a " +
+      "source it can only ever be kept to next time, which is what a development point with " +
+      "no marker becomes.",
+    setAimLabel: "What you want to be able to do",
+    setSourceLabel: "How you will know",
+    setSourceLogged: "You log the occasions, taken and missed",
+    setSourceRecord: "The record can count it",
+    setSourceAsked: "Somebody else says so",
+    setMeasureLabel: "The actual test, in words",
+    setAsksWhoLabel: "Who you are asking, if somebody else decides",
+    setThroughLabel: "Which real work this happens in",
+    setThroughPlaceholder: "The Tuesday meeting, every 1-1",
+    setThroughHint: "Without this it waits for a free evening.",
+    setWhyLabel: "Why it is worth the months",
+    setConfirm: "Set it",
+    setToast: "Set.",
+
+    /* Logging an occasion. A miss is a choice on the form, not prose. */
+    /** @param {string} aim */
+    logTitle: (aim) => `One occasion: ${aim}`,
+    logIntro:
+      "Both kinds count. The gap between the occasions you took and the ones you missed is " +
+      "what makes this measurable rather than a feeling about the quarter.",
+    logNoteLabel: "What happened",
+    logWhichLabel: "Which was it",
+    logYes: "I did the thing",
+    logNo: "The occasion came and I did not",
+    logConfirm: "Log it",
+    logToast: "Logged.",
+
+    /* Closing one. */
+    /** @param {string} aim */
+    closeTitle: (aim) => `Close: ${aim}`,
+    closeIntro:
+      "Reached and let go are both endings and only one is a success. Saying which is the " +
+      "point - an aim quietly abandoned is what this shape exists to prevent.",
+    closeHowLabel: "How it ended",
+    closeReached: "Reached - it comes naturally now",
+    closeDropped: "Let go - not the thing after all",
+    closeWhyLabel: "What decided it",
+    closeConfirm: "Close it",
+    closeToast: "Closed.",
+
+    /* Writing a reflection. */
+    writeTitle: "How did the week go?",
+    writeIntro: "Answer at least one of the first two - notes alone is not a reflection.",
+    writeConfirm: "Keep it",
+    writeToast: "Kept.",
+    removedToast: "Removed."
+  },
+
   decisions: {
     readFailedTitle: "Could not read the data",
     title: "Decisions",
