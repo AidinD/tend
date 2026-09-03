@@ -2013,5 +2013,117 @@ export const T = {
 
     /* A collapsed multiselect with nothing ticked. */
     noneChosen: "Nobody chosen yet"
+  },
+
+  /*
+   * Ctrl+K. Every row here is a whole sentence somebody reads at speed, and
+   * three of them are the only place in the app where a band name ("Capture",
+   * "Go", "Ask") tells the reader what sort of thing they are about to do.
+   */
+  palette: {
+    label: "Command palette",
+    placeholder: "Say what happened, or where you want to go",
+    footMove: "move",
+    footDo: "do it",
+    footClose: "close",
+
+    /* Nothing typed yet, so this is the only instruction the palette gives. */
+    empty:
+      "Type what just happened - <em>Nina: look at the render pass</em> - and it is logged " +
+      "without leaving this page. Or type a view, or ask a question.",
+
+    /* The three bands, in the order they are offered. */
+    bandCapture: "Capture",
+    bandGo: "Go",
+    bandAsk: "Ask",
+
+    /* Capture: what typing a name and a sentence offers to do with it. */
+    /** @param {string} name @param {string} rest */
+    promiseTo: (name, rest) => `Promise to ${name}: ${rest}`,
+    loggedStraightAway: "logged straight away",
+    /** @param {string} name */
+    promiseLoggedToast: (name) => `Promise to ${name} logged.`,
+    /** @param {string} name */
+    logContactWith: (name) => `Log contact with ${name}`,
+    spokeToThem: "you spoke to them",
+    /** @param {string} text */
+    logPromiseOf: (text) => `Log a promise: ${text}`,
+    asksWhoTo: "asks who it was made to",
+
+    /* Go: the rail, then the things that would mean finding a view first. */
+    /** @param {string} name */
+    goTo: (name) => `Go to ${name}`,
+    addSomeone: "Add someone",
+    addSomeoneHint: "a new person here",
+    setFocus: "Set a focus",
+    setFocusHint: "a time-boxed priority",
+    recordDecision: "Record a decision",
+    recordDecisionHint: "with a date it comes back",
+    importNib: "Import notes from Nib",
+    importNibHint: "contact and flagged action points",
+    /** @param {number} contacts @param {number} promises @param {number} resolved */
+    importedToast: (contacts, promises, resolved) =>
+      `${contacts} contact records, ${promises} promises, ${resolved} closed.`,
+    openDataDir: "Open the data folder",
+    openDataDirHint: "where the log lives",
+    checkUpdates: "Check for updates",
+    checkUpdatesHint: "against the published releases",
+    checkingToast: "Checking.",
+
+    /* Ask: what Tend can answer from its own data. */
+    whatNeedsYou: "What needs you",
+    whatNeedsYouHint: "from the drift log",
+    allInStep: "Nothing is behind. That is the whole answer.",
+    /** @param {number} needs @param {number} nudges */
+    behindCount: (needs, nudges) => `${needs} need you, ${nudges} worth a nudge.`,
+    /** @param {string} what @param {string} why */
+    behindLine: (what, why) => `${what} - ${why}`,
+
+    notSpokenTo: "Who you have not really spoken to",
+    notSpokenToHint: "this month",
+    nothingStandsOut: "Nothing stands out in how this month went.",
+
+    /** @param {string} name */
+    whatYouOwe: (name) => `What you owe ${name}`,
+    whatYouOweHint: "open promises",
+    /** @param {string} name */
+    oweNothing: (name) => `Nothing outstanding to ${name}.`,
+    /** @param {string} text @param {string} openFor */
+    oweLine: (text, openFor) => `${text} - open ${openFor}`,
+
+    /** @param {string} name */
+    whenYouLastSpoke: (name) => `When you last spoke to ${name}`,
+    whenYouLastSpokeHint: "from the contact log",
+    /** @param {string} kind @param {string} when */
+    lastSpokeLine: (kind, when) => `${kind}, ${when}.`,
+    /** @param {string} name */
+    neverSpoke: (name) => `No contact with ${name} recorded at all.`,
+
+    /*
+     * The fallthrough, and only the fallthrough. The hint says what it costs,
+     * because this is the one row in the palette that spends money.
+     */
+    askModel: "Ask a model instead",
+    askModelHint: "nothing here matched, so this costs a few seconds",
+    thinking: "Thinking…",
+
+    /* Logging contact from here, which asks less than the person page does. */
+    /** @param {string} name */
+    contactTitle: (name) => `Contact with ${name}`,
+    contactIntro: "The kind matters: a 1-1 satisfies the 1-1 cadence and nothing else does.",
+    contactKindLabel: "What kind",
+    contactNoteLabel: "A line about it",
+    when: "When",
+    logIt: "Log it",
+    contactLoggedToast: "Contact logged.",
+
+    /* And a promise, when the text carried no name to attach it to. */
+    promiseTitle: "Log a promise",
+    promiseIntro: "Who did you say this to?",
+    promiseWhoLabel: "To whom",
+    promiseTextLabel: "What you said you would do",
+    promiseDueLabel: "By when",
+    promiseDueHint: "Optional. Drift is measured either way.",
+    promiseLoggedPlain: "Promise logged."
   }
 };

@@ -25,6 +25,9 @@ import { CONTACT_KINDS, act, asDateInput, esc, form, tend, toast } from "./ui.js
 import { currentHalf, go, refresh } from "./app.js";
 import { modelStatus } from "./model.js";
 import { looksLikeQuestion, matchPerson, matchesWords, splitAddressed } from "../domain/parse.js";
+import { T } from "./text.js";
+
+const words = T.palette;
 
 /** The views, as the palette offers them. */
 /*
@@ -94,14 +97,14 @@ async function open() {
   host = document.createElement("div");
   host.className = "palette-scrim";
   host.innerHTML = `
-    <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="palette" role="dialog" aria-modal="true" aria-label="${words.label}">
       <input class="palette-input" type="text" autocomplete="off" spellcheck="false"
-        placeholder="Say what happened, or where you want to go">
+        placeholder="${words.placeholder}">
       <div class="palette-results"></div>
       <div class="palette-foot">
-        <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
-        <span><kbd>Enter</kbd> do it</span>
-        <span><kbd>Esc</kbd> close</span>
+        <span><kbd>↑</kbd><kbd>↓</kbd> ${words.footMove}</span>
+        <span><kbd>Enter</kbd> ${words.footDo}</span>
+        <span><kbd>Esc</kbd> ${words.footClose}</span>
       </div>
     </div>`;
 
@@ -173,10 +176,7 @@ function paint() {
   }
 
   if (items.length === 0) {
-    results.innerHTML = `<div class="palette-empty">
-      Type what just happened - <em>Nina: look at the render pass</em> - and it is logged
-      without leaving this page. Or type a view, or ask a question.
-    </div>`;
+    results.innerHTML = `<div class="palette-empty">${words.empty}</div>`;
     return;
   }
 
@@ -245,11 +245,11 @@ function captures(text) {
   if (addressed) {
     const { person, rest } = addressed;
     out.push({
-      band: "Capture",
-      label: `Promise to ${person.name}: ${rest}`,
-      hint: "logged straight away",
+      band: words.bandCapture,
+      label: words.promiseTo(person.name, rest),
+      hint: words.loggedStraightAway,
       run: async () => {
-        const done = await act("logPromise", { person: person.id, text: rest }, `Promise to ${person.name} logged.`);
+        const done = await act("logPromise", { person: person.id, text: rest }, words.promiseLoggedToast(person.name));
         if (done) {
           close();
           refresh();
@@ -257,8 +257,8 @@ function captures(text) {
       }
     });
     out.push({
-      band: "Capture",
-      label: `Log contact with ${person.name}`,
+      band: words.bandCapture,
+      label: words.logContactWith(person.name),
       hint: rest,
       run: () => logContact(person, rest)
     });
@@ -270,9 +270,9 @@ function captures(text) {
   const named = matchPerson(roster, text);
   if (named) {
     out.push({
-      band: "Capture",
-      label: `Log contact with ${named.name}`,
-      hint: "you spoke to them",
+      band: words.bandCapture,
+      label: words.logContactWith(named.name),
+      hint: words.spokeToThem,
       run: () => logContact(named, "")
     });
     return out;
@@ -281,9 +281,9 @@ function captures(text) {
   // No person in it, so who it is for still has to be asked. The text carries
   // over, which is the whole point - it is already typed.
   out.push({
-    band: "Capture",
-    label: `Log a promise: ${text}`,
-    hint: "asks who it was made to",
+    band: words.bandCapture,
+    label: words.logPromiseOf(text),
+    hint: words.asksWhoTo,
     run: () => promiseDialog(text)
   });
 
@@ -304,10 +304,10 @@ function commands(text) {
   const inHalf = (view) => here.views.length === 0 || here.views.some((v) => v.id === view);
 
   for (const view of here.views) {
-    all.push(command(`Go to ${view.name}`, view.hint, () => navigate(view.id)));
+    all.push(command(words.goTo(view.name), view.hint, () => navigate(view.id)));
   }
 
-  all.push(command("Add someone", "a new person here", async () => {
+  all.push(command(words.addSomeone, words.addSomeoneHint, async () => {
     close();
     const { addPersonDialog } = await import("./views/people.js");
     if (await addPersonDialog()) {
@@ -316,27 +316,27 @@ function commands(text) {
   }));
 
   if (inHalf("focus")) {
-    all.push(command("Set a focus", "a time-boxed priority", () => navigate("focus")));
+    all.push(command(words.setFocus, words.setFocusHint, () => navigate("focus")));
   }
   if (inHalf("decisions")) {
-    all.push(command("Record a decision", "with a date it comes back", () => navigate("decisions")));
+    all.push(command(words.recordDecision, words.recordDecisionHint, () => navigate("decisions")));
   }
 
-  all.push(command("Import notes from Nib", "contact and flagged action points", async () => {
+  all.push(command(words.importNib, words.importNibHint, async () => {
     close();
     const result = await act("indexNib", {});
     if (result) {
-      toast(`${result.contacts} contact records, ${result.promises} promises, ${result.resolved} closed.`);
+      toast(words.importedToast(result.contacts, result.promises, result.resolved));
       refresh();
     }
   }));
-  all.push(command("Open the data folder", "where the log lives", async () => {
+  all.push(command(words.openDataDir, words.openDataDirHint, async () => {
     close();
     await act("openDataDir", {});
   }));
-  all.push(command("Check for updates", "against the published releases", async () => {
+  all.push(command(words.checkUpdates, words.checkUpdatesHint, async () => {
     close();
-    await act("checkForUpdates", {}, "Checking.");
+    await act("checkForUpdates", {}, words.checkingToast);
   }));
 
   return all.filter((item) => matchesWords(text, item.label + " " + (item.hint ?? ""))).slice(0, 6);
@@ -356,23 +356,27 @@ function questions(text) {
   const asks = q.includes("?") || /^(who|what|when|how|why|which)\b/.test(q);
 
   if (/needs? me|should i|what.*(now|today)|forgotten/.test(q)) {
-    out.push(question("What needs you", "from the drift log", async () => {
+    out.push(question(words.whatNeedsYou, words.whatNeedsYouHint, async () => {
       const a = await tend.invoke("attention");
       show(
         a.allInStep
-          ? "Nothing is behind. That is the whole answer."
-          : `${a.needsYou.length} need you, ${a.nudges.length} worth a nudge.` +
-              list(a.needsYou.concat(a.nudges).map((/** @type {any} */ i) => `${i.what} - ${i.why}`))
+          ? words.allInStep
+          : words.behindCount(a.needsYou.length, a.nudges.length) +
+              list(
+                a.needsYou
+                  .concat(a.nudges)
+                  .map((/** @type {any} */ i) => words.behindLine(i.what, i.why))
+              )
       );
     }));
   }
 
   if (/not spoken|haven.t spoken|neglect|quiet|second.hand|only heard/.test(q)) {
-    out.push(question("Who you have not really spoken to", "this month", async () => {
+    out.push(question(words.notSpokenTo, words.notSpokenToHint, async () => {
       const signals = await tend.invoke("myAttention");
       show(
         !Array.isArray(signals) || signals.length === 0
-          ? "Nothing stands out in how this month went."
+          ? words.nothingStandsOut
           : list(signals.map((/** @type {any} */ s) => s.text ?? String(s)))
       );
     }));
@@ -380,21 +384,21 @@ function questions(text) {
 
   const about = matchPerson(roster, text);
   if (about && /promis|owe|said i/.test(q)) {
-    out.push(question(`What you owe ${about.name}`, "open promises", async () => {
+    out.push(question(words.whatYouOwe(about.name), words.whatYouOweHint, async () => {
       const p = await tend.invoke("person", { person: about.id });
       show(
         p.openPromises.length === 0
-          ? `Nothing outstanding to ${about.name}.`
-          : list(p.openPromises.map((/** @type {any} */ x) => `${x.text} - open ${x.openFor}`))
+          ? words.oweNothing(about.name)
+          : list(p.openPromises.map((/** @type {any} */ x) => words.oweLine(x.text, x.openFor)))
       );
     }));
   }
 
   if (about && /last|when did|how long/.test(q)) {
-    out.push(question(`When you last spoke to ${about.name}`, "from the contact log", async () => {
+    out.push(question(words.whenYouLastSpoke(about.name), words.whenYouLastSpokeHint, async () => {
       const p = await tend.invoke("person", { person: about.id });
       const last = p.recentContact[0];
-      show(last ? `${last.kind}, ${last.when}.` : `No contact with ${about.name} recorded at all.`);
+      show(last ? words.lastSpokeLine(last.kind, last.when) : words.neverSpoke(about.name));
     }));
   }
 
@@ -402,8 +406,8 @@ function questions(text) {
   // than something that happens on its own: this is the one thing in the
   // palette that costs money and takes seconds.
   if (out.length === 0 && asks && model?.available) {
-    out.push(question("Ask a model instead", "nothing here matched, so this costs a few seconds", async () => {
-      show("Thinking…");
+    out.push(question(words.askModel, words.askModelHint, async () => {
+      show(words.thinking);
       const result = await tend.invoke("answerQuestion", { question: text });
       show(result?.error ? esc(result.error) : `${esc(result.answer)}${list(result.from ?? [])}`);
     }));
@@ -416,12 +420,12 @@ function questions(text) {
 
 /** @param {string} label @param {string} hint @param {() => any} run */
 function command(label, hint, run) {
-  return { band: "Go", label, hint, run };
+  return { band: words.bandGo, label, hint, run };
 }
 
 /** @param {string} label @param {string} hint @param {() => any} run */
 function question(label, hint, run) {
-  return { band: "Ask", label, hint, run };
+  return { band: words.bandAsk, label, hint, run };
 }
 
 /** @param {string} view */
@@ -434,16 +438,16 @@ function navigate(view) {
 async function logContact(person, note) {
   close();
   const values = await form({
-    title: `Contact with ${person.name}`,
-    intro: "The kind matters: a 1-1 satisfies the 1-1 cadence and nothing else does.",
+    title: words.contactTitle(person.name),
+    intro: words.contactIntro,
     fields: [
-      { name: "kind", label: "What kind", type: "select", options: CONTACT_KINDS, value: "one-to-one" },
-      { name: "note", label: "A line about it", type: "textarea", value: note },
-      { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+      { name: "kind", label: words.contactKindLabel, type: "select", options: CONTACT_KINDS, value: "one-to-one" },
+      { name: "note", label: words.contactNoteLabel, type: "textarea", value: note },
+      { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()) }
     ],
-    confirm: "Log it"
+    confirm: words.logIt
   });
-  if (values && (await act("logTouch", { subject: person.id, ...values }, "Contact logged."))) {
+  if (values && (await act("logTouch", { subject: person.id, ...values }, words.contactLoggedToast))) {
     refresh();
   }
 }
@@ -452,21 +456,21 @@ async function logContact(person, note) {
 async function promiseDialog(text) {
   close();
   const values = await form({
-    title: "Log a promise",
-    intro: "Who did you say this to?",
+    title: words.promiseTitle,
+    intro: words.promiseIntro,
     fields: [
       {
         name: "person",
-        label: "To whom",
+        label: words.promiseWhoLabel,
         type: "select",
         options: roster.map((p) => ({ value: String(p.id), label: String(p.name) }))
       },
-      { name: "text", label: "What you said you would do", value: text, required: true },
-      { name: "due", label: "By when", type: "date", hint: "Optional. Drift is measured either way." }
+      { name: "text", label: words.promiseTextLabel, value: text, required: true },
+      { name: "due", label: words.promiseDueLabel, type: "date", hint: words.promiseDueHint }
     ],
-    confirm: "Log it"
+    confirm: words.logIt
   });
-  if (values && (await act("logPromise", values, "Promise logged."))) {
+  if (values && (await act("logPromise", values, words.promiseLoggedPlain))) {
     refresh();
   }
 }
