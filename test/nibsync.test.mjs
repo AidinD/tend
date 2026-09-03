@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import {
-  agoWords,
+  recentlyWords,
   describeSync,
   idleState,
   startNibSync,
@@ -348,11 +348,11 @@ describe("saying what happened", () => {
   });
 
   it("words a duration in the unit somebody watching the screen thinks in", () => {
-    assert.equal(agoWords(null, NOW), "never");
-    assert.equal(agoWords(NOW - 5_000, NOW), "just now");
-    assert.equal(agoWords(NOW - 120_000, NOW), "2 minutes ago");
-    assert.equal(agoWords(NOW - 2 * 60 * 60 * 1000, NOW), "2 hours ago");
+    assert.equal(recentlyWords(null, NOW), "never");
+    assert.equal(recentlyWords(NOW - 5_000, NOW), "just now");
+    assert.equal(recentlyWords(NOW - 120_000, NOW), "2 minutes ago");
+    assert.equal(recentlyWords(NOW - 2 * 60 * 60 * 1000, NOW), "2 hours ago");
     // A clock that moved backwards must not produce "in -3 minutes".
-    assert.equal(agoWords(NOW + 60_000, NOW), "just now");
+    assert.equal(recentlyWords(NOW + 60_000, NOW), "just now");
   });
 });

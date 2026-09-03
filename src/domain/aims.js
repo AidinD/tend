@@ -47,6 +47,8 @@
  * Nothing here touches the store.
  */
 
+import { daysSince } from "./time.js";
+
 /**
  * Where an aim's verdict comes from. See the header for why there are three.
  *
@@ -169,7 +171,7 @@ export function aimStanding(row, notes, now) {
     .map((n) => Number(n.at ?? 0))
     .sort((a, b) => b - a)[0];
   const from = last ?? Number(row.startedAt ?? now);
-  const daysSince = Math.max(0, Math.floor((now - from) / 86_400_000));
+  const sinceDays = daysSince(from, now) ?? 0;
   const cadence = Number(row.cadenceDays) > 0 ? Number(row.cadenceDays) : DEFAULT_CADENCE_DAYS;
 
   return {
@@ -185,12 +187,12 @@ export function aimStanding(row, notes, now) {
     seen: seen.length,
     missed: missed.length,
     lastAt: last ?? null,
-    daysSince,
+    daysSince: sinceDays,
     cadenceDays: cadence,
     // Nothing is late when a horizon passes. It stops being taken for granted.
     pastHorizon:
       typeof row.horizon === "number" && Number.isFinite(row.horizon) ? now > row.horizon : false,
-    overdue: isLive(row) && daysSince > cadence,
+    overdue: isLive(row) && sinceDays > cadence,
     missing: missing(row)
   };
 }

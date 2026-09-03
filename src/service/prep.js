@@ -38,7 +38,7 @@ import { isArchived } from "../domain/archive.js";
 import { RELATIONS, SEVERITY_ORDER, isRelation } from "../domain/cadence.js";
 import { openPromises } from "../domain/promises.js";
 import { boundPeople } from "../domain/sources.js";
-import { agoWords, driftBadge, humanDays } from "../domain/time.js";
+import { agoWords, daysSince, driftBadge, humanDays } from "../domain/time.js";
 import { threadsFor } from "../domain/growth.js";
 import { topicsFor } from "../domain/topics.js";
 import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
@@ -203,7 +203,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       lastSpoke:
         lastTouch === undefined
           ? "never"
-          : agoWords(Math.max(0, Math.floor((now - Number(lastTouch.at ?? now)) / 86_400_000))),
+          : agoWords((daysSince(lastTouch.at, now) ?? 0)),
 
       youPromised: theirPromises.map((x) => ({
         text: x.text,
@@ -221,7 +221,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
           mandate: isLevel(level) ? LEVELS[level].authority : "nobody has said who decides",
           reviewEvery: `${reviewInterval(w.level)} days`,
           lastReviewed: reviewed
-            ? agoWords(Math.max(0, Math.floor((now - Number(reviewed.at)) / 86_400_000)))
+            ? agoWords(daysSince(reviewed.at, now) ?? 0)
             : "never"
         };
       }),

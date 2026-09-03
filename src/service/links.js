@@ -7,7 +7,7 @@
  */
 
 import { hostOf, webAddress } from "../domain/links.js";
-import { agoWords } from "../domain/time.js";
+import { agoWords, daysSince } from "../domain/time.js";
 import { resolvePerson } from "./resolve.js";
 
 /**
@@ -45,7 +45,7 @@ export function linkTo(store, { person: who, url, title, note, now }) {
     return {
       error:
         `That link is already on ${found.person.name}, added ` +
-        `${agoWords(Math.max(0, Math.floor((now - Number(already.at ?? 0)) / 86_400_000)))}.`
+        `${agoWords((daysSince(already.at ?? 0, now) ?? 0))}.`
     };
   }
 
@@ -126,6 +126,6 @@ export function linksFor(store, subject, now) {
       title: String(l.title ?? ""),
       note: String(l.note ?? ""),
       at: Number(l.at ?? 0),
-      added: agoWords(Math.max(0, Math.floor((now - Number(l.at ?? 0)) / 86_400_000)))
+      added: agoWords((daysSince(l.at ?? 0, now) ?? 0))
     }));
 }

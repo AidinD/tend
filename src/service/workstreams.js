@@ -12,7 +12,7 @@
  */
 
 import { isArchived } from "../domain/archive.js";
-import { agoWords } from "../domain/time.js";
+import { agoWords, daysSince } from "../domain/time.js";
 import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../domain/workstreams.js";
 import { badArchiveInstant } from "./guards.js";
 import { resolvePerson, resolveProject, resolveWorkstream } from "./resolve.js";
@@ -49,7 +49,7 @@ export function workstreams(store, now) {
       // `agoWords`, not `humanDays` plus " ago" - the helper exists because the
       // hand-rolled version says "today ago", and this card said it every day a
       // workstream had just been reviewed. Same fault the project list had.
-      lastReviewed: last ? agoWords(Math.max(0, daysSinceMs(Number(last.at), now))) : "never",
+      lastReviewed: last ? agoWords(daysSince(last.at, now) ?? 0) : "never",
       unspecified: isUnspecified(w)
     };
   });
@@ -68,14 +68,6 @@ export function archivedWorkstreams(store, now) {
     .filter((w) => isArchived(w))
     .map((w) => ({ id: w.id, name: w.name, archivedAt: w.archivedAt }))
     .sort((a, b) => b.archivedAt - a.archivedAt);
-}
-
-/**
- * @param {number} at
- * @param {number} now
- */
-function daysSinceMs(at, now) {
-  return Math.floor((now - at) / 86_400_000);
 }
 
 /**

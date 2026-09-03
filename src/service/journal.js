@@ -11,7 +11,7 @@
  */
 
 import { coverage, entriesSince, hasContent, JOURNAL_FIELDS, REVIEW_WINDOW_DAYS } from "../domain/journal.js";
-import { agoWords, isLaterDay } from "../domain/time.js";
+import { agoWords, daysSince, isLaterDay } from "../domain/time.js";
 import { resolvePerson } from "./resolve.js";
 
 /**
@@ -85,7 +85,7 @@ export function journal(store, now, days = REVIEW_WINDOW_DAYS) {
     entries: window.map((e) => ({
       id: String(e.id),
       at: Number(e.at ?? 0),
-      when: agoWords(Math.max(0, Math.floor((now - Number(e.at ?? now)) / 86_400_000))),
+      when: agoWords((daysSince(e.at, now) ?? 0)),
       took: e.took ?? null,
       avoided: e.avoided ?? null,
       differently: e.differently ?? null,
@@ -238,7 +238,7 @@ export function momentsFor(store, who, now) {
     .map((m) => ({
       id: String(m.id),
       at: Number(m.at ?? 0),
-      when: agoWords(Math.max(0, Math.floor((now - Number(m.at ?? now)) / 86_400_000))),
+      when: agoWords((daysSince(m.at, now) ?? 0)),
       what: m.what ?? null,
       part: String(m.part ?? ""),
       alsoThere: momentPeople(m)
@@ -261,7 +261,7 @@ export function moments(store, now) {
     .map((m) => ({
       id: String(m.id),
       at: Number(m.at ?? 0),
-      when: agoWords(Math.max(0, Math.floor((now - Number(m.at ?? now)) / 86_400_000))),
+      when: agoWords((daysSince(m.at, now) ?? 0)),
       what: m.what ?? null,
       part: String(m.part ?? ""),
       who: momentPeople(m).map((id) => names.get(id) ?? "somebody")

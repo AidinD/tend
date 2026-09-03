@@ -15,7 +15,7 @@ import {
   isLive,
   isSource
 } from "../domain/aims.js";
-import { agoWords } from "../domain/time.js";
+import { DAY_MS, agoWords, daysSince } from "../domain/time.js";
 
 /** @param {unknown} value */
 const text = (value) => String(value ?? "").trim();
@@ -77,7 +77,7 @@ export function setAim(store, { aim, source, why, measure, asksWho, through, cad
     asksWho: text(asksWho),
     through: text(through),
     cadenceDays: Number(cadenceDays) > 0 ? Number(cadenceDays) : DEFAULT_CADENCE_DAYS,
-    horizon: now + days * 86_400_000,
+    horizon: now + days * DAY_MS,
     status: "open",
     startedAt: now
   });
@@ -235,7 +235,7 @@ export function aim(store, id, now = Date.now()) {
         note: String(n.note ?? ""),
         happened: n.happened === true,
         at: Number(n.at ?? 0),
-        when: agoWords(Math.max(0, Math.floor((now - Number(n.at ?? 0)) / 86_400_000)))
+        when: agoWords((daysSince(n.at ?? 0, now) ?? 0))
       }))
   };
 }

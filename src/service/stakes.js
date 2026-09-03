@@ -11,7 +11,7 @@
 
 import { isArchived } from "../domain/archive.js";
 import { DEFAULT_STAKE_DAYS, namedStakes, stakeInterval } from "../domain/stakes.js";
-import { agoWords, driftBadge } from "../domain/time.js";
+import { agoWords, daysSince, driftBadge } from "../domain/time.js";
 import { resolvePerson, resolveProject, resolveStake } from "./resolve.js";
 
 /**
@@ -49,7 +49,7 @@ export function stakeholders(store, now, project) {
       const last = touches
         .filter((t) => t.subject === s.id && t.kind === "update" && typeof t.at === "number")
         .sort((a, b) => Number(b.at) - Number(a.at))[0];
-      const days = last ? Math.max(0, Math.floor((now - Number(last.at)) / 86_400_000)) : null;
+      const days = last ? daysSince(last.at, now) : null;
       const interval = stakeInterval(s);
       return {
         id: String(s.id),

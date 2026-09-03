@@ -45,6 +45,51 @@ export function daysBetween(from, to) {
 }
 
 /**
+ * Whole days from an instant until now, never negative, or null if there is no
+ * instant.
+ *
+ * `daysBetween` answers "how far apart", which can be negative and should be.
+ * This answers "how long since", which cannot: the date pickers in this app
+ * parse a chosen day at midday, so something logged this morning against a
+ * clock at nine is minus one day, and every caller that wanted "how long ago"
+ * had to remember the floor.
+ *
+ * Nine of them remembered it by writing the arithmetic out by hand, with the
+ * constant spelled rather than `DAY_MS`.
+ *
+ * ## Null rather than a number, for a missing instant
+ *
+ * The hand-written ones each carried their own fallback inside the expression -
+ * `?? now` at six sites and `?? 0` at three - so a row with no timestamp read
+ * as today in six places and as 1970 in three. Both are plausible wrong
+ * answers, which is the failure `daysBetween` throws to avoid.
+ *
+ * So this returns null and the caller says what that means. "Never" and
+ * "today" are different facts, and this codebase has the rule already: Jot's
+ * board is null when it cannot be read and empty when nothing is open,
+ * because rendering those the same way is how a broken integration hides for
+ * weeks.
+ *
+ * @param {unknown} at Milliseconds since epoch, if there is one.
+ * @param {number} now
+ * @returns {number | null} null when `at` is not an instant.
+ */
+export function daysSince(at, now) {
+  /*
+   * `typeof` and not `Number(at)`, which the first version of this used and a
+   * test caught within the minute: `Number(null)` is 0, so a row with a null
+   * timestamp came back as twenty thousand days rather than as nothing. Same
+   * for `""` and `false`. The number 0 itself is a real instant - three call
+   * sites pass it deliberately to mean the epoch - so it has to be the type
+   * that is checked and not the value.
+   */
+  if (typeof at !== "number" || !Number.isFinite(at) || !Number.isFinite(now)) {
+    return null;
+  }
+  return Math.max(0, daysBetween(at, now));
+}
+
+/**
  * Name a bad value in a way that points at the mistake.
  *
  * `undefined` and `NaN` print identically through template interpolation once

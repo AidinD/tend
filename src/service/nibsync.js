@@ -155,7 +155,7 @@ export function describeSync(state, now = Date.now()) {
     return "Nothing is bound to anybody yet, so there is nothing to import.";
   }
   if (state.outcome === "failed") {
-    return `Last import failed ${agoWords(state.at, now)}: ${state.error ?? "unknown reason"}`;
+    return `Last import failed ${recentlyWords(state.at, now)}: ${state.error ?? "unknown reason"}`;
   }
 
   /** @type {string[]} */
@@ -178,7 +178,7 @@ export function describeSync(state, now = Date.now()) {
 
   const found = parts.length === 0 ? "found nothing new" : `brought in ${parts.join(", ")}`;
   const skipped = state.skipped.length > 0 ? ` Skipped: ${state.skipped.join("; ")}.` : "";
-  return `Imported ${agoWords(state.at, now)} and ${found}.${skipped}`;
+  return `Imported ${recentlyWords(state.at, now)} and ${found}.${skipped}`;
 }
 
 /**
@@ -188,11 +188,17 @@ export function describeSync(state, now = Date.now()) {
  * durations in days - the right unit for a cadence and the wrong one for
  * something that ran while you were looking at the screen.
  *
+ * Named `recentlyWords` and not `agoWords`, which is what it was called while
+ * the domain layer also exported an `agoWords` taking a day count. Two
+ * exported functions, one name, different signatures and different units: the
+ * same hazard as the one-letter text alias that shadowed a row variable seven
+ * times over, and it fails the same way, by compiling and answering plausibly.
+ *
  * @param {number | null} at
  * @param {number} now
  * @returns {string}
  */
-export function agoWords(at, now) {
+export function recentlyWords(at, now) {
   if (at === null) {
     return "never";
   }

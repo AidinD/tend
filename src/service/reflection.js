@@ -19,7 +19,7 @@
 import { REVIEW_WINDOW_DAYS } from "../domain/journal.js";
 import { REFLECTION_FIELDS } from "../domain/reflection.js";
 import { declared, ledger as reviewLedger, ledgerLines, readiness, unread } from "../domain/review.js";
-import { agoWords, isLaterDay } from "../domain/time.js";
+import { agoWords, daysSince, isLaterDay } from "../domain/time.js";
 import { focus } from "./focus.js";
 import { journal } from "./journal.js";
 
@@ -83,7 +83,7 @@ export function reflections(store, now, { limit, since } = {}) {
   return rows.map((r) => ({
     id: String(r.id),
     at: Number(r.at ?? 0),
-    when: agoWords(Math.max(0, Math.floor((now - Number(r.at ?? now)) / 86_400_000))),
+    when: agoWords((daysSince(r.at, now) ?? 0)),
     wellDone: r.wellDone ?? null,
     differently: r.differently ?? null,
     notes: r.notes ?? null

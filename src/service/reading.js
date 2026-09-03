@@ -23,7 +23,7 @@ import { availability } from "../domain/people.js";
 import { openPromises } from "../domain/promises.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import { namedStakes } from "../domain/stakes.js";
-import { agoWords, driftBadge, humanDays } from "../domain/time.js";
+import { agoWords, daysSince, driftBadge, humanDays } from "../domain/time.js";
 import { isUnspecified } from "../domain/workstreams.js";
 import { lastReviewRun } from "./reflection.js";
 import { linksFor } from "./links.js";
@@ -148,7 +148,7 @@ export function person(store, query, now) {
       // was read-only and a wrong entry was permanent.
       id: t.id,
       kind: t.kind,
-      when: agoWords(Math.max(0, Math.floor((now - Number(t.at ?? now)) / 86_400_000))),
+      when: agoWords((daysSince(t.at, now) ?? 0)),
       at: t.at ?? null,
       note: t.note ?? null,
       /*
@@ -194,7 +194,7 @@ export function person(store, query, now) {
       id: String(s.id),
       kind: String(s.kind ?? ""),
       why: s.why ?? null,
-      when: agoWords(Math.max(0, Math.floor((now - Number(s.at ?? now)) / 86_400_000)))
+      when: agoWords((daysSince(s.at, now) ?? 0))
     })),
     skipPattern: skipPattern(skipsFor(store.rows("skips"), p.id, now, "one-to-one"), "1-1"),
     awayUntil: p.awayUntil ?? null,
@@ -425,7 +425,7 @@ export function project(store, query, now) {
     .map((t) => ({
       id: t.id,
       kind: t.kind,
-      when: agoWords(Math.max(0, Math.floor((now - Number(t.at ?? now)) / 86_400_000))),
+      when: agoWords((daysSince(t.at, now) ?? 0)),
       at: t.at ?? null,
       note: t.note ?? null,
       from: t.from ?? null

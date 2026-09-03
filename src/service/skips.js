@@ -10,7 +10,7 @@
 
 import { kindsFor, subjectOf } from "../domain/contact.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
-import { agoWords, isLaterDay } from "../domain/time.js";
+import { agoWords, daysSince, isLaterDay } from "../domain/time.js";
 import { resolvePerson } from "./resolve.js";
 
 /**
@@ -85,7 +85,7 @@ export function skips(store, who, now) {
       id: String(s.id),
       kind: String(s.kind ?? ""),
       why: s.why ?? null,
-      when: agoWords(Math.max(0, Math.floor((now - Number(s.at ?? now)) / 86_400_000)))
+      when: agoWords((daysSince(s.at, now) ?? 0))
     })),
     pattern: skipPattern(skipsFor(rows, id, now, "one-to-one"), "1-1")
   };

@@ -28,6 +28,7 @@ import {
   DAY_MS,
   agoWords,
   daysBetween,
+  daysSince,
   driftBadge,
   driftOf,
   durationOf,
@@ -196,6 +197,38 @@ describe("time", () => {
     assert.equal(driftBadge(0), "on time");
     assert.equal(driftBadge(5), "+5d");
     assert.equal(driftBadge(28), "+4w");
+  });
+
+  describe("how long since an instant", () => {
+    it("floors at zero, because a midday timestamp can be ahead of the clock", () => {
+      /*
+       * The date pickers parse a chosen day at midday, so something logged
+       * this morning against a clock at nine is minus one day. Every caller
+       * that wanted "how long ago" used to remember that floor by hand.
+       */
+      assert.equal(daysSince(daysAgo(3), NOW), 3);
+      assert.equal(daysSince(inDays(1), NOW), 0);
+      assert.equal(daysSince(NOW, NOW), 0);
+    });
+
+    it("answers null for no instant, rather than picking a plausible day", () => {
+      /*
+       * The nine hand-written copies each carried their own fallback: six read
+       * a missing timestamp as today and three as 1970. Both are answers the
+       * caller did not choose, so this one refuses to choose either. "Never"
+       * and "today" are different facts - the same rule as Jot board being
+       * null when it cannot be read and empty when nothing is open.
+       */
+      assert.equal(daysSince(undefined, NOW), null);
+      assert.equal(daysSince(null, NOW), null);
+      assert.equal(daysSince("not a date", NOW), null);
+      assert.equal(daysSince(NaN, NOW), null);
+      assert.equal(daysSince(daysAgo(3), NaN), null);
+    });
+
+    it("and null is not nought, which is the whole point of it", () => {
+      assert.notEqual(daysSince(undefined, NOW), 0);
+    });
   });
 
   describe("a duration as parts rather than a phrase", () => {

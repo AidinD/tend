@@ -29,7 +29,7 @@ import {
   threadsFor
 } from "../domain/growth.js";
 import { inScope } from "../domain/people.js";
-import { agoWords, daysBetween, isLaterDay } from "../domain/time.js";
+import { DAY_MS, agoWords, daysBetween, isLaterDay } from "../domain/time.js";
 import { resolvePerson } from "./resolve.js";
 
 /**
@@ -220,7 +220,7 @@ export function openThread(store, { person: who, aim, cadenceDays, horizonDays, 
     stance: "unasked",
     status: "open",
     cadenceDays: cadence,
-    horizon: now + days * 86_400_000,
+    horizon: now + days * DAY_MS,
     startedAt: now
   });
 
