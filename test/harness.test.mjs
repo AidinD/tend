@@ -10,6 +10,7 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
@@ -197,4 +198,55 @@ test("a difference in spelling is not read as a difference in identity", () => {
   // And case still matters where the filesystem says it does.
   assert.equal(samePath("/tmp/Tend-App-X", "/tmp/tend-app-x", "linux"), false);
   assert.equal(samePath("/tmp/tend-app-x", "/tmp/tend-app-y", "linux"), false);
+});
+
+/*
+ * No check in either walkthrough may have an empty body.
+ *
+ * CLAUDE.md has said "a check that asserts nothing is worse than no check" and
+ * "if a check() body is empty, it is a bug" since the first three were found.
+ * Sixteen have now been found in this project: those three, ten more landed as
+ * a batch on 2026-09-03, one written the same day and caught only by mutating
+ * the feature away and noticing the suite stayed green, and two others earlier.
+ *
+ * Every one of them reported `ok` on every run from the day it was written. That
+ * is the specific harm: not a missing check, which shows up as a gap, but a
+ * check that testifies. It is the most expensive shape of bug this harness can
+ * carry, because the whole point of the suite is to be believed.
+ *
+ * So the rule stops being a sentence. A sentence in a document does not survive
+ * a session that is busy finishing something else - which is exactly how ten of
+ * them accumulated under a document that forbade them.
+ *
+ * Deliberately a source check rather than a runtime one. An empty body cannot be
+ * detected by running it: it passes, which is the problem.
+ */
+test("no walkthrough check has an empty body", () => {
+  const files = ["../scripts/e2e-app.mjs", "../scripts/e2e-private.mjs"];
+  /** @type {string[]} */
+  const empty = [];
+  let found = 0;
+
+  for (const file of files) {
+    const source = readFileSync(new URL(file, import.meta.url), "utf8");
+
+    /*
+     * `check("name", () => {})` and the same with an await in front, allowing
+     * whitespace and newlines between the braces. Nothing else counts: a body
+     * holding only a comment is a decision somebody wrote down, and a body
+     * holding a `return` is doing something.
+     */
+    for (const m of source.matchAll(/check\(\s*(["'`])((?:(?!\1).)*)\1\s*,\s*(?:async\s*)?\(\s*\)\s*=>\s*\{\s*\}\s*\)/g)) {
+      empty.push(`${file.replace("../", "")}: ${m[2]}`);
+    }
+    found += [...source.matchAll(/\bcheck\(\s*["'`]/g)].length;
+  }
+
+  /*
+   * The vacuous case, and it is the same fault this test is about: a regex that
+   * matches nothing would pass here for ever while proving nothing.
+   */
+  assert.ok(found > 150, `only ${found} checks found across the two walkthroughs, so the parse is wrong`);
+
+  assert.deepEqual(empty, [], `these checks assert nothing:\n  ${empty.join("\n  ")}`);
 });
