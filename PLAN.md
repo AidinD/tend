@@ -146,16 +146,18 @@ Tend event log <──┤
    verified present verbatim in the module against the commit before each file
    moved, because a diff that both relocates and rewrites four hundred strings
    is a diff nobody can review.
-8. **The vocabulary pass.** The reported symptom was not knowing what several
-   of the words mean, and reading the module through says why - see
-   [docs/vocabulary.md](docs/vocabulary.md) for the survey and the twelve terms
-   it found. The short version is that the questions the app asks are in plain
-   first-person English and the words that confuse are almost all in the
-   *explanations* around them: five internal names leak into prose without ever
-   labelling anything, three words carry two meanings each, and three name the
-   same family of thing on three screens. **The list goes in front of the user
-   before anything is reworded**, because most of it is a naming choice rather
-   than a bug.
+8. ~~**The vocabulary pass**~~ done. [docs/vocabulary.md](docs/vocabulary.md)
+   is the survey and the decisions. It refuted its own premise: the app is not
+   full of jargon, the questions it asks are plain first-person English, and
+   `driver`, `stance` and `horizon` never reach the screen at all. What was
+   actually wrong was five internal names leaking into the sentences that
+   explain a field, so a reader met each word for the first time in an
+   explanation of something else - worst of them a Ctrl+K row hinted "from the
+   drift log", naming a page that does not exist. Twenty sentences fixed.
+   Then three words carrying two meanings, of which one moved: the app's mode
+   is now **the private side** and **the work side**, because `side` was
+   already the app's own word for it. `half` stays as the internal name and
+   the comments must not be "fixed" to match.
 
 ## Not built, and why
 
