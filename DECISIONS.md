@@ -3,6 +3,63 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-03 - Extract every string before rewording any of it
+
+**Decided.** One module, `src/renderer/text.js`, holding every word the app
+says, namespaced by the screen the words appear on. Done as a pure move across
+seventeen commits, with no wording changed. The rewrite is the next pass.
+
+**What forced it.** The reported symptom was "jag vet inte vad många ord
+betyder". The words were literals inside HTML templates in seventeen files, so
+answering "what does the app actually say?" meant reading its markup - and a
+vocabulary nobody can see all of at once is one that drifts. It had: the growth
+dialogs ask "what will you see in three months that you do not see now?", which
+is the question asked well, and the summaries then print `marker` beside the
+answer. Same idea, two names, two screens.
+
+**Why not reword on the way through.** It was suggested twice, both times on the
+reasonable ground that touching each file once is cheaper than touching it
+twice. It loses because a diff that relocates and rewrites four hundred strings
+at the same time cannot be reviewed - nobody can tell a move from a rewrite
+inside it, so nothing in it can be checked at all. Extracting first makes the
+whole change mechanically verifiable, and the wording pass afterwards is a diff
+where every line is a decision about words and nothing else.
+
+That verification is the entry's real content: for each of the seventeen files,
+every sentence that left it had to be present verbatim in the module, checked
+against the commit before the move. 472 sentences. The script that checks it was
+wrong five times and every one of its mistakes reported a change that had not
+happened, which is the only direction that is safe to be wrong in.
+
+**Namespaced by view, not flat.** A flat map of eleven hundred keys is a file you
+search rather than read. Grouped by screen, somebody rewriting the wording can
+take one screen at a time and see every sentence it says together - which is how
+two contradicting each other becomes visible.
+
+**Whole sentences, not fragments.** A key holds the whole line even when the
+markup splits it, and a computed value is a function parameter rather than a
+second key. A translator handed "Does" and "stretches the thresholds" as
+separate keys cannot tell they are one line, and word order is the first thing
+that moves between languages.
+
+**Class names and `data-act` values stay out.** They are identifiers that
+happen to be strings. Putting them here would make renaming a CSS class a
+translation question.
+
+**The alias is `words`, not `t`.** `t` is the conventional name and it was
+the first choice. It collided with a row variable in seven of thirteen views,
+and every collision compiled: `t.name` silently read a text key where a
+person's name belonged. Renamed across all fourteen files. A one-letter alias
+that shadows the most common loop variable in the app is the wrong name whatever
+the convention says.
+
+**What holds it.** Three tests rather than a rule in a document: no renderer file
+may keep a sentence of its own, no key in the module may go unread, and the
+rail's static labels must equal the names the palette uses for the same views -
+the last one because those two copies agree today with nothing making them, and
+editing one gives a view two names. All three were mutation-tested red before
+being believed.
+
 ## 2026-09-03 - Aims belong to both halves, and a drift signal to one
 
 **Decided.** `reflection` is `halves: ["work", "private"]`. Each half keeps its

@@ -13,6 +13,7 @@
 
 import { esc, tend, toast } from "./ui.js";
 import { installPalette } from "./palette.js";
+import { T } from "./text.js";
 import * as now from "./views/now.js";
 import * as prep from "./views/prep.js";
 import * as journal from "./views/journal.js";
@@ -25,9 +26,12 @@ import * as focus from "./views/focus.js";
 import * as knowledge from "./views/knowledge.js";
 import * as settings from "./views/settings.js";
 
+const words = T.shell;
+
 /** @type {string[]} */
 const errors = [];
 /** @type {any} */ (window).__errors = errors;
+
 window.addEventListener("error", (e) => errors.push(String(e.message)));
 window.addEventListener("unhandledrejection", (e) => errors.push(String(e.reason)));
 
@@ -100,7 +104,7 @@ async function draw() {
     main.innerHTML = await view.render(route.params);
   } catch (err) {
     main.innerHTML = `<div class="card sev-critical">
-      <div class="card-top"><h2 class="card-title">This view could not be drawn</h2></div>
+      <div class="card-top"><h2 class="card-title">${words.renderFailed}</h2></div>
       <p class="card-why">${esc(err instanceof Error ? err.message : String(err))}</p>
     </div>`;
   }
@@ -150,8 +154,16 @@ async function updateCounts() {
   const nudges = attention?.nudges?.length ?? 0;
   set("count-now", needs > 0 ? String(needs) : nudges > 0 ? String(nudges) : "", needs > 0 ? "urgent" : "");
   set("count-people", Array.isArray(roster) && roster.length ? String(roster.length) : "");
-  set("count-role", map?.proposed?.length ? `${map.proposed.length} new` : "", map?.proposed?.length ? "new" : "");
-  set("count-focus", current?.active ? (current.overrun ? "over" : "on") : "", current?.overrun ? "urgent" : "");
+  set(
+    "count-role",
+    map?.proposed?.length ? words.proposedCount(map.proposed.length) : "",
+    map?.proposed?.length ? "new" : ""
+  );
+  set(
+    "count-focus",
+    current?.active ? (current.overrun ? words.focusOverrun : words.focusOn) : "",
+    current?.overrun ? "urgent" : ""
+  );
   set("count-prep", cards?.cards?.length ? String(cards.cards.length) : "");
 
   // Proposals and overdue revisits, together. Both are "this needs a decision
@@ -236,7 +248,7 @@ function applyHalf(answer) {
 
   const badge = document.getElementById("mode-badge");
   if (badge) {
-    badge.textContent = half.half === "private" ? "private" : "";
+    badge.textContent = half.half === "private" ? words.privateBadge : "";
   }
 
   /*

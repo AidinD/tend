@@ -2229,5 +2229,36 @@ export const T = {
     couldBe: (instead) => `Could be: ${instead}`,
     /** @param {string} model @param {string} cost */
     readByUntouched: (model, cost) => `Read by ${model}${cost}. Your entry is untouched.`
+  },
+
+  /*
+   * The shell: the rail's badges, the half marker, and the card that appears
+   * when a view throws.
+   *
+   * Short by design. A rail count that is always there stops being read, so
+   * everything at zero shows nothing at all - which means these five words are
+   * the whole vocabulary of the rail, and each has to be legible on its own at
+   * eleven pixels beside a button.
+   *
+   * The tone names next to them in app.js - "urgent", "new" - are CSS classes
+   * and stay out of here, even though two of them read like words.
+   */
+  shell: {
+    /* A view that threw. Shown in place of the view, so it says what failed. */
+    renderFailed: "This view could not be drawn",
+
+    /** @param {number} n Proposed duties waiting to be accepted. */
+    proposedCount: (n) => `${n} new`,
+
+    /* A focus, in two characters of rail. */
+    focusOn: "on",
+    focusOverrun: "over",
+
+    /*
+     * The half, spelled out in the title bar. Only the private half is
+     * marked: the work half is the default and naming it would put a label on
+     * the state nobody needs telling about.
+     */
+    privateBadge: "private"
   }
 };

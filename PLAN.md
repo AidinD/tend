@@ -51,7 +51,7 @@ lead, along with the attention signals and the journal.
   design tokens, frameless with its own header like Jot and Nib
 - Monthly signal questions, delegation levels on workstreams, and Nib bindings:
   `src/domain/signals.js`, `src/domain/workstreams.js`, `src/service/nib.js`
-- 885 unit tests, 8 MCP end-to-end checks, a 176-check walkthrough of the whole
+- 902 unit tests, 8 MCP end-to-end checks, a 180-check walkthrough of the whole
   product driven over the Chrome DevTools Protocol, and 17 more for the private
   half. Type check clean (`npm test`, `npm run test:e2e`, `npm run test:app`,
   `npm run test:private`, `npm run typecheck`)
@@ -70,6 +70,13 @@ lead, along with the attention signals and the journal.
   begin when the debugging port is already taken, naming the PID, and checks the
   attached app's data directory against this run's scratch folder. `--port=N`
   for a second run at once. See `scripts/e2e-port.mjs`
+- **Every word the app says is in one file**, `src/renderer/text.js`, namespaced
+  by the screen it appears on. Seventeen renderer files were carrying their own
+  prose, so reading what the app says meant reading its markup. Three tests hold
+  the line: no renderer file may keep a sentence of its own, no key may go
+  unread, and the rail's labels must match the names the palette uses for the
+  same views. The move changed no wording - that is the next pass and a separate
+  one
 - Concurrency design: [docs/storage.md](docs/storage.md)
 - Role map research across several books and current practice:
   [docs/role-map-research.md](docs/role-map-research.md) - **needs a review pass
@@ -134,6 +141,19 @@ Tend event log <──┤
    Tend's own data, and only what falls through that list is *offered* to a
    model. The parsing lives in `src/domain/parse.js` rather than in the overlay,
    because that is the part where a bug attaches a promise to the wrong person.
+7. ~~**One file for the words**~~ done. `src/renderer/text.js`, and the first
+   slice of the wording overhaul. Moved, not reworded: 472 sentences were
+   verified present verbatim in the module against the commit before each file
+   moved, because a diff that both relocates and rewrites four hundred strings
+   is a diff nobody can review.
+8. **The vocabulary pass.** The reported symptom was not knowing what several
+   of the words mean. Now that they can all be read together, the two faults
+   are visible: the same idea has two names on two screens - the growth
+   dialogs ask "what will you see in three months?" and the summaries then
+   print `marker` beside the answer - and a handful of terms are Tend's own
+   coinages with nothing anywhere saying what they mean. **Stop and put the
+   list in front of the user before rewording anything**, because half of these
+   are a naming choice and not a bug.
 
 ## Not built, and why
 
