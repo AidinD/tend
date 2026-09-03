@@ -24,7 +24,16 @@ import {
 import { DEFAULT_STRETCH, focusCost, focusStatus, stretchFor } from "../src/domain/focus.js";
 import { defaultUserDataDir, resolveDataDir } from "../src/domain/paths.js";
 import { PROMISE_GUARD_DAYS, openPromises, promiseStatus } from "../src/domain/promises.js";
-import { DAY_MS, daysBetween, driftBadge, humanDays, middayOn } from "../src/domain/time.js";
+import {
+  DAY_MS,
+  agoWords,
+  daysBetween,
+  driftBadge,
+  driftOf,
+  durationOf,
+  humanDays,
+  middayOn
+} from "../src/domain/time.js";
 
 const NOW = 1_800_000_000_000;
 /** @param {number} n */
@@ -187,6 +196,74 @@ describe("time", () => {
     assert.equal(driftBadge(0), "on time");
     assert.equal(driftBadge(5), "+5d");
     assert.equal(driftBadge(28), "+4w");
+  });
+
+  describe("a duration as parts rather than a phrase", () => {
+    /*
+     * The parts exist so a language that wraps the number can be composed at
+     * all. Swedish says "för 5 veckor sedan" - a word on each side - which a
+     * suffix cannot express and which no care at the call site can recover
+     * from a finished English string.
+     */
+
+    it("splits a count into the number and the unit a person would use", () => {
+      assert.deepEqual(durationOf(1), { unit: "day", n: 1 });
+      assert.deepEqual(durationOf(9), { unit: "day", n: 9 });
+      assert.deepEqual(durationOf(13), { unit: "day", n: 13 });
+      assert.deepEqual(durationOf(14), { unit: "week", n: 2 });
+      assert.deepEqual(durationOf(38), { unit: "week", n: 5 });
+    });
+
+    it("carries no number for today, because several languages word it without one", () => {
+      /*
+       * Not a zero-length duration. "That was today" is a different answer
+       * from "that was 0 days ago", and a null count is what stops a caller
+       * rendering the second one by accident.
+       */
+      assert.deepEqual(durationOf(0), { unit: "today", n: null });
+      assert.deepEqual(durationOf(-3), { unit: "today", n: null });
+    });
+
+    it("answers nothing at all when nothing is late", () => {
+      assert.equal(driftOf(0), null);
+      assert.equal(driftOf(-1), null);
+      assert.deepEqual(driftOf(5), { unit: "day", n: 5 });
+      assert.deepEqual(driftOf(28), { unit: "week", n: 4 });
+    });
+
+    it("and the English still comes out of the parts, for every count", () => {
+      /*
+       * The guard that matters. Two ways to say the same thing agree today and
+       * nothing would make them agree tomorrow, so the agreement is asserted
+       * over the whole range rather than at four sample points - which is how
+       * the old shape would have been changed under a passing suite.
+       */
+      let checked = 0;
+      for (let days = -5; days <= 400; days++) {
+        const d = durationOf(days);
+        const expected =
+          d.unit === "today"
+            ? "today"
+            : d.unit === "day"
+              ? `${d.n} ${d.n === 1 ? "day" : "days"}`
+              : `${d.n} weeks`;
+        assert.equal(humanDays(days), expected, `humanDays(${days})`);
+        assert.equal(
+          agoWords(days),
+          expected === "today" ? "today" : `${expected} ago`,
+          `agoWords(${days})`
+        );
+
+        const drift = driftOf(days);
+        assert.equal(
+          driftBadge(days),
+          drift === null ? "on time" : `+${drift.n}${drift.unit === "day" ? "d" : "w"}`,
+          `driftBadge(${days})`
+        );
+        checked++;
+      }
+      assert.ok(checked >= 400, `only checked ${checked} counts`);
+    });
   });
 
   describe("a calendar day as an instant", () => {

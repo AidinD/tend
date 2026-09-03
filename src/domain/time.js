@@ -65,26 +65,77 @@ function describe(value) {
 }
 
 /**
- * Render a day count the way a person reads it.
+ * A duration, as the parts a sentence is built from rather than the sentence.
+ *
+ * `unit: "today"` carries no count and is not a zero-length duration - it is
+ * the answer "that was today", which several languages word with no number in
+ * it at all.
+ *
+ * @typedef {{ unit: "today", n: null } | { unit: "day" | "week", n: number }} Duration
+ */
+
+/**
+ * Split a day count into the number and the unit a person would use for it.
  *
  * Weeks past a fortnight, because "38 days" makes you do arithmetic and
- * "5 weeks" does not.
+ * "5 weeks" does not. That judgement is the reusable part and it is language
+ * independent, which is why it lives here while the words do not.
+ *
+ * ## Why this returns parts rather than a phrase
+ *
+ * It used to return the finished English - "5 weeks" - and `agoWords` put
+ * " ago" on the end of it. That works in English and in no language that wraps
+ * a duration. Swedish says "för 5 veckor sedan", with a word on each side, so a
+ * suffix cannot express it and no amount of care at the call site recovers the
+ * pieces from the string.
+ *
+ * So the shape had to change before anything new was written against it. The
+ * English composers below are unchanged in what they produce, and they now
+ * produce it from these parts.
+ *
+ * @param {number} days
+ * @returns {Duration}
+ */
+export function durationOf(days) {
+  if (days <= 0) {
+    return { unit: "today", n: null };
+  }
+  if (days < 14) {
+    return { unit: "day", n: days };
+  }
+  return { unit: "week", n: Math.floor(days / 7) };
+}
+
+/**
+ * How far behind, as parts. Negative or nought is not a duration at all.
+ *
+ * @param {number} days Positive means behind.
+ * @returns {Duration | null} null when nothing is late.
+ */
+export function driftOf(days) {
+  return days <= 0 ? null : durationOf(days);
+}
+
+/**
+ * Render a day count the way a person reads it.
+ *
+ * The English composer. Kept because the service layer's payload is read by a
+ * model over MCP as well as by the window, and that half stays in English
+ * until the boundary between copy and payload is drawn properly - while a
+ * string is both, every rewording is an API change.
  *
  * @param {number} days
  * @returns {string}
  */
 export function humanDays(days) {
-  if (days <= 0) {
+  const d = durationOf(days);
+  if (d.unit === "today") {
     return "today";
   }
-  if (days === 1) {
-    return "1 day";
+  if (d.unit === "day") {
+    return d.n === 1 ? "1 day" : `${d.n} days`;
   }
-  if (days < 14) {
-    return `${days} days`;
-  }
-  const weeks = Math.floor(days / 7);
-  return `${weeks} weeks`;
+  return `${d.n} weeks`;
 }
 
 /**
@@ -95,6 +146,11 @@ export function humanDays(days) {
  * morning. The two words are not interchangeable and the suffix has to know
  * that - which Prep learned once and the person page did not, so it lives here
  * now rather than in whichever file noticed first.
+ *
+ * That asymmetry is also the smaller half of why `durationOf` exists: a
+ * language wrapping the number needs the parts, and a language with a
+ * no-number answer for nought needs to know which case it is in. Both facts
+ * are in the unit.
  *
  * @param {number} days
  */
@@ -110,13 +166,11 @@ export function agoWords(days) {
  * @returns {string}
  */
 export function driftBadge(days) {
-  if (days <= 0) {
+  const d = driftOf(days);
+  if (d === null) {
     return "on time";
   }
-  if (days < 14) {
-    return `+${days}d`;
-  }
-  return `+${Math.floor(days / 7)}w`;
+  return d.unit === "day" ? `+${d.n}d` : `+${d.n}w`;
 }
 
 /**
