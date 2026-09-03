@@ -980,6 +980,7 @@ try {
     }
   });
 
+  const proposedTitle = (await page.text(".card.sev-proposed .card-title")).trim();
   await page.click('.card.sev-proposed [data-act="accept"]');
   // One fewer than whatever was there, read rather than hardcoded. The literal
   // that used to be here had to be edited every time the seed set changed, and
@@ -989,7 +990,27 @@ try {
     `document.querySelectorAll('.card.sev-proposed').length === ${proposedCount - 1}`,
     "one fewer proposal"
   );
-  check("a proposal can be accepted with one click", () => {});
+  const proposalsLeft = await page.evaluate(
+    "document.querySelectorAll('.card.sev-proposed').length"
+  );
+  const activeTitles = (await page.texts(".card.sev-ok .card-title")).map((t) => t.trim());
+  check("a proposal can be accepted with one click", () => {
+    if (proposalsLeft !== proposedCount - 1) {
+      throw new Error(`expected ${proposedCount - 1} proposals left, saw ${proposalsLeft}`);
+    }
+    // Accepted, not discarded. The count going down says only that the card
+    // left the undecided pile - a click that dropped the duty on the floor
+    // reads exactly the same way. So the duty has to turn up among the active
+    // ones, under the name it was proposed under.
+    if (!activeTitles.includes(proposedTitle)) {
+      throw new Error(
+        `"${proposedTitle}" left the proposals without joining the active duties: ${JSON.stringify(activeTitles)}`
+      );
+    }
+    if (activeTitles.length !== activeCount + 1) {
+      throw new Error(`expected ${activeCount + 1} active duties, saw ${activeTitles.length}`);
+    }
+  });
 
   /* ----------------------------------------------------------- people -- */
 
@@ -1020,7 +1041,12 @@ try {
     }
   });
 
-  const longAgo = new Date(Date.now() - 200 * 86_400_000).toISOString().slice(0, 10);
+  // Long enough that every view reading it says "months", and named rather
+  // than written inline: the project further down works out what the drift
+  // against a fortnightly cadence should be from this number, and a second
+  // copy of it would agree until one of them was edited.
+  const BACKDATE_DAYS = 200;
+  const longAgo = new Date(Date.now() - BACKDATE_DAYS * 86_400_000).toISOString().slice(0, 10);
   await page.fillDialog({ name: "Testperson Ström", relation: "manage-remotely", since: longAgo });
   await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
 
@@ -1341,11 +1367,61 @@ try {
   });
 
   await page.click('[data-act="logPromise"]');
-  const threeWeeksAgo = new Date(Date.now() - 21 * 86_400_000).toISOString().slice(0, 10);
+  // Named for the same reason as BACKDATE_DAYS: the check below works out what
+  // the row should say from this number.
+  const PROMISE_DAYS = 21;
+  const threeWeeksAgo = new Date(Date.now() - PROMISE_DAYS * 86_400_000).toISOString().slice(0, 10);
   await page.fillDialog({ text: "Kolla lönerevisionen och återkom", madeAt: threeWeeksAgo });
   await page.waitFor("document.body.textContent.includes('lönerevisionen')", "the promise");
 
-  check("a backdated promise is logged and keeps its Swedish text", () => {});
+  // Read as a row rather than as a substring of the page. "lönerevisionen is
+  // somewhere in the document" would pass with the promise filed against the
+  // wrong person, or logged today - and the date is the whole point of
+  // backdating it, since the escalation checked next depends on it.
+  const promiseLine = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify((() => {
+        const line = [...document.querySelectorAll('.line')].find(
+          (row) => /lönerevisionen/.test(row.textContent || '')
+        );
+        if (line === undefined) { return null; }
+        return {
+          when: (line.querySelector('.line-when') || {}).textContent.trim(),
+          text: (line.querySelector('.line-text') || {}).textContent.trim(),
+          resolvable: line.querySelector('[data-act="resolvePromise"]') !== null
+        };
+      })())`)
+    )
+  );
+
+  check("a backdated promise is logged and keeps its Swedish text", () => {
+    if (promiseLine === null) {
+      throw new Error("no row on the person's page mentions the promise at all");
+    }
+    if (promiseLine.text !== "Kolla lönerevisionen och återkom") {
+      throw new Error(`the row reads "${promiseLine.text}"`);
+    }
+    if (!promiseLine.resolvable) {
+      throw new Error("the row is not an open promise - nothing on it closes it");
+    }
+    // How long it has been open, in the app's own words. A promise logged with
+    // the form's date thrown away says "today" here, which is the failure this
+    // catches - and the count is checked rather than just the unit, since "some
+    // number of weeks" would pass on any date at all a fortnight or more old.
+    const weeks = /^(\d+) weeks$/.exec(promiseLine.when);
+    if (weeks === null) {
+      throw new Error(`open for "${promiseLine.when}", expected the ${PROMISE_DAYS} days it was backdated by`);
+    }
+    // A week of slack, and it is a whole week because the reading floors to
+    // weeks: the form stores the day at midday, so which side of noon the run
+    // happens to be on decides whether the app counts 20 days or 21, and 20
+    // floors to two weeks.
+    if (Math.abs(Number(weeks[1]) - Math.floor(PROMISE_DAYS / 7)) > 1) {
+      throw new Error(
+        `backdated ${PROMISE_DAYS} days and the row says "${promiseLine.when}"`
+      );
+    }
+  });
 
   await page.click('.nav-btn[data-view="now"]');
   await page.waitFor("document.querySelector('.card') !== null", "Now");
@@ -1709,7 +1785,92 @@ try {
   await page.click('[data-act="addProject"]');
   await page.fillDialog({ name: "Bergsklyftan", since: longAgo });
   await page.waitFor("document.body.textContent.includes('Bergsklyftan')", "the project");
-  check("a project can be added and backdated", () => {});
+  /*
+   * The row, and then the backdate.
+   *
+   * A project's `since` is printed nowhere as a date. What it produces is drift
+   * against the fortnightly project check-in, so the project's own page - which
+   * carries the drift badge - is the only place in the window where the value
+   * typed into the form is legible. Read here rather than when the page is
+   * opened further down: by then a look has been logged, which stops the clock
+   * and makes a project taken on today indistinguishable from this one.
+   */
+  const projectRow = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify((() => {
+        const row = [...document.querySelectorAll('.row.static')].find(
+          (r) => ((r.querySelector('.row-name') || {}).textContent || '').trim() === 'Bergsklyftan'
+        );
+        if (row === undefined) { return null; }
+        return {
+          meta: ((row.querySelector('.row-meta') || {}).textContent || '').trim(),
+          opens: row.querySelector('[data-act="openProject"]') !== null
+        };
+      })())`)
+    )
+  );
+
+  await page.click('[data-act="openProject"]');
+  await page.waitFor("document.querySelector('.panel-name') !== null", "the project page");
+  const projectDrift = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify((() => {
+        const line = [...document.querySelectorAll('.line')].find(
+          (row) => /Project check-in/.test(row.textContent || '')
+        );
+        if (line === undefined) { return null; }
+        return {
+          behind: ((line.querySelector('.line-when') || {}).textContent || '').trim(),
+          text: ((line.querySelector('.line-text') || {}).textContent || '').replace(/\\s+/g, ' ').trim()
+        };
+      })())`)
+    )
+  );
+  // Back out by the rail rather than by the back link, on purpose: the back
+  // link has its own check further down, and a detour that depended on it would
+  // take that check's failure and turn it into a timeout here instead.
+  await page.click('.nav-btn[data-view="work"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"addProject\"]') !== null",
+    "the work lists again"
+  );
+
+  check("a project can be added and backdated", () => {
+    if (projectRow === null) {
+      throw new Error("no row on Work is named Bergsklyftan, so the project was never added");
+    }
+    if (!projectRow.opens) {
+      throw new Error(`the row carries no way into the project: ${JSON.stringify(projectRow)}`);
+    }
+    // Nothing has been looked at yet, which is a different fact from a look
+    // that happened today, and the row has to say so rather than count zero.
+    if (!/last looked at never/.test(projectRow.meta)) {
+      throw new Error(`the row says "${projectRow.meta}"`);
+    }
+    if (projectDrift === null) {
+      throw new Error("the project's page shows no check-in cadence, so nothing dates it");
+    }
+    const target = /target every (\d+) days/.exec(projectDrift.text);
+    if (target === null) {
+      throw new Error(`the cadence line names no interval: "${projectDrift.text}"`);
+    }
+    const weeks = /^\+(\d+)w$/.exec(projectDrift.behind);
+    if (weeks === null) {
+      throw new Error(
+        `the drift badge reads "${projectDrift.behind}" - a project taken on today reads "on time", so the backdate was dropped`
+      );
+    }
+    // The badge floors to whole weeks and which side of midday the run happens
+    // to be on moves the day count by one, hence a week of slack. Weeks rather
+    // than a boolean: "behind by something" would pass on any date at all more
+    // than a fortnight old, including the wrong one.
+    const expected = Math.floor((BACKDATE_DAYS - Number(target[1])) / 7);
+    if (Math.abs(Number(weeks[1]) - expected) > 1) {
+      throw new Error(
+        `taken on ${BACKDATE_DAYS} days ago against a ${target[1]}-day cadence should read about +${expected}w, the page says ${projectDrift.behind}`
+      );
+    }
+  });
 
   await page.click('[data-act="addStream"]');
   const ownerOptions = await page.dialogOptions("owner");
@@ -1775,7 +1936,39 @@ try {
     "/last today/.test(document.querySelector('[data-group=\"stakeholders\"] .row-meta').textContent)",
     "the update to land on the pair"
   );
-  check("an update can be recorded against the person-and-project pair", () => {});
+  const stakeRow = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify((() => {
+        const row = document.querySelector('[data-group="stakeholders"] .row');
+        if (row === null) { return null; }
+        return {
+          name: ((row.querySelector('.row-name') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+          meta: ((row.querySelector('.row-meta') || {}).textContent || '').replace(/\\s+/g, ' ').trim()
+        };
+      })())`)
+    )
+  );
+
+  check("an update can be recorded against the person-and-project pair", () => {
+    if (stakeRow === null) {
+      throw new Error("the stakeholder row is gone, so there is nothing the update landed on");
+    }
+    // Both halves named on the row it landed on. The clock is per person AND
+    // project, and an update filed against either one alone would still leave
+    // a fresh date somewhere on this page.
+    if (!/Testperson Ström, about Bergsklyftan/.test(stakeRow.name)) {
+      throw new Error(`the row names "${stakeRow.name}", which is not the pair`);
+    }
+    if (!/last today/.test(stakeRow.meta)) {
+      throw new Error(`the clock did not move: "${stakeRow.meta}"`);
+    }
+    // What was said, not just that something was. The note is the only record
+    // of it, and a write that kept the date and dropped the note leaves the
+    // row looking exactly right.
+    if (!/last time: Told them the import is done/.test(stakeRow.name)) {
+      throw new Error(`the note is not on the row: "${stakeRow.name}"`);
+    }
+  });
 
   // A delegation review is contact with a piece of WORK, not with a person or a
   // project. It used to answer "No project matching <uuid>" - the button was
@@ -1788,7 +1981,43 @@ try {
     "document.body.textContent.includes('reviewed today')",
     "the review to land on the workstream"
   );
-  check("a delegation review can be recorded against a piece of work", () => {});
+  const streamCard = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify((() => {
+        const card = [...document.querySelectorAll('.card')].find(
+          (c) => ((c.querySelector('.card-title') || {}).textContent || '').trim() === 'Renderingen'
+        );
+        if (card === undefined) { return null; }
+        return {
+          src: ((card.querySelector('.src') || {}).textContent || '').replace(/\\s+/g, ' ').trim()
+        };
+      })())`)
+    )
+  );
+
+  check("a delegation review can be recorded against a piece of work", () => {
+    if (streamCard === null) {
+      throw new Error("the workstream card is gone, so nothing here says what was reviewed");
+    }
+    // Read off the workstream, not off the page. The project and the person
+    // are both on this view, and a review recorded against either of them
+    // would put today's date on screen while the piece of work that was
+    // actually reviewed still read "never".
+    if (!/reviewed today/.test(streamCard.src)) {
+      throw new Error(`the workstream still reads "${streamCard.src}"`);
+    }
+    // Not "today ago", which is what appending " ago" to a duration produces
+    // for something that happened this morning. The prep card has the same
+    // check; this one found the card saying it.
+    if (/today ago/.test(streamCard.src)) {
+      throw new Error(`the card reads "${streamCard.src}"`);
+    }
+    // And it says today because of the review, not because it always did:
+    // `streamText` is the same line read before the review was logged.
+    if (/reviewed today/.test(streamText)) {
+      throw new Error(`it already read as reviewed today beforehand: "${streamText}"`);
+    }
+  });
 
   /*
    * A project's own page.
@@ -1837,7 +2066,30 @@ try {
     "document.querySelector('[data-act=\"addProject\"]') !== null",
     "the work lists again"
   );
-  check("and the way back is one press, like the person page", () => {});
+  const backOnWork = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify({
+        title: ((document.querySelector('.view-title') || {}).textContent || '').trim(),
+        panels: document.querySelectorAll('.panel-name').length,
+        rows: [...document.querySelectorAll('.row-name')].map((n) => n.textContent.trim())
+      })`)
+    )
+  );
+
+  check("and the way back is one press, like the person page", () => {
+    if (backOnWork.title !== "Work") {
+      throw new Error(`one press landed on "${backOnWork.title}"`);
+    }
+    // The panel has to be gone rather than merely covered. A back link that
+    // left the project page mounted under the lists reads as a return and then
+    // answers the next click as the project page.
+    if (backOnWork.panels !== 0) {
+      throw new Error("the project panel is still on the page after the press back");
+    }
+    if (!backOnWork.rows.some((/** @type {string} */ r) => /Bergsklyftan/.test(r))) {
+      throw new Error(`the lists did not come back with it: ${JSON.stringify(backOnWork.rows)}`);
+    }
+  });
 
   /* ------------------------------------------------------------- prep -- */
 
@@ -2104,7 +2356,33 @@ try {
     "[...document.querySelectorAll('.prep-card .card-title')].every(t => !/Chefen/.test(t.textContent))",
     "the card to go once the question has been asked"
   );
-  check("marking it raised clears it, so the block cannot become wallpaper", () => {});
+  const afterRaised = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify({
+        cards: [...document.querySelectorAll('.prep-card .card-title')].map((t) => t.textContent.trim()),
+        page: (document.querySelector('#main') || {}).textContent || ''
+      })`)
+    )
+  );
+
+  check("marking it raised clears it, so the block cannot become wallpaper", () => {
+    if (afterRaised.cards.some((/** @type {string} */ t) => /Chefen/.test(t))) {
+      throw new Error(`the card is still there: ${JSON.stringify(afterRaised.cards)}`);
+    }
+    // The question itself, and read against the whole page rather than against
+    // the topic rows - a question that survives anywhere on the page is the
+    // wallpaper this is about, and the card going is what makes the block worth
+    // reading next time. `manager.text` is the wording taken off the card
+    // before it was raised, so this cannot pass by looking for the wrong words.
+    if (afterRaised.page.includes(manager.text)) {
+      throw new Error(`the question is still on the page: "${manager.text}"`);
+    }
+    // And it cleared one card rather than the view. A page that went blank
+    // would satisfy both checks above while having lost the other cards too.
+    if (afterRaised.cards.length === 0) {
+      throw new Error("every prep card went, so nothing here is about the one that was raised");
+    }
+  });
 
   /* -------------------------------------------------------- decisions -- */
 
@@ -2467,7 +2745,42 @@ try {
   // The row reads "as second-hand", not "as one-to-one": the folder no longer
   // has a kind of its own, so what it counts as IS the mapping on it.
   await page.waitFor("document.body.textContent.includes('second-hand')", "the binding");
-  check("a folder can be bound to a person without leaving the app", () => {});
+  const bindingRow = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify((() => {
+        const row = [...document.querySelectorAll('.row.static')].find(
+          (r) => r.querySelector('[data-act="unbind"]') !== null
+        );
+        const importable = [...document.querySelectorAll('[data-act="index"]')].some((b) => !b.disabled);
+        if (row === undefined) { return { found: false, importable }; }
+        return {
+          found: true,
+          folder: ((row.querySelector('.row-name') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+          points: ((row.querySelector('.row-meta') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+          importable
+        };
+      })())`)
+    )
+  );
+
+  check("a folder can be bound to a person without leaving the app", () => {
+    if (!bindingRow.found) {
+      throw new Error("no bound row on Settings, so the dialog wrote nothing");
+    }
+    if (!/Testperson/.test(bindingRow.folder)) {
+      throw new Error(`the row names the folder as "${bindingRow.folder}"`);
+    }
+    // Which person it points at, from the row. A binding that saved the folder
+    // and lost the person renders as "→ unknown" and otherwise looks done.
+    if (!/→ Testperson Ström/.test(bindingRow.points)) {
+      throw new Error(`the row points at "${bindingRow.points}"`);
+    }
+    // Importing is disabled while nothing is bound, so this is the window
+    // saying the binding exists as far as the rest of the page is concerned.
+    if (!bindingRow.importable) {
+      throw new Error("importing is still disabled, which is what Settings shows with nothing bound");
+    }
+  });
 
   const boundRow = String(await page.evaluate("document.body.textContent"));
   check("and the row says what it counts as, which is now the mapping itself", () => {
@@ -2718,9 +3031,53 @@ try {
     }
   });
 
-  await page.fillDialog({ "kind:second-hand": "tag-second-hand", "kind:one-to-one": "" });
+  // What the reopened dialog is already holding. The dialog is built from the
+  // binding's own rules, so this is the saved mapping read back - and a form
+  // that opens blank would save whatever it was left showing, which is how a
+  // mapping gets quietly cleared by somebody looking at it.
+  const tagPrefill = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify({
+        secondHand: document.querySelector('[name="kind:second-hand"]').value,
+        oneToOne: document.querySelector('[name="kind:one-to-one"]').value
+      })`)
+    )
+  );
+
+  // Changed, not re-saved: the meeting tag now supplies one-to-ones as well.
+  // Nothing in this folder carries that tag, so no evidence changes hands -
+  // what changes is what the row says the folder counts as.
+  await page.fillDialog({ "kind:second-hand": "tag-second-hand", "kind:one-to-one": "tag-meeting" });
   await page.waitFor("document.body.textContent.includes('tag rule')", "the saved rule");
-  check("the mapping can also be reopened and changed from the binding's row", () => {});
+
+  const rulesRow = String(
+    await page.evaluate(
+      `(() => {
+        const row = [...document.querySelectorAll('.row.static')].find(
+          (r) => r.querySelector('[data-act="unbind"]') !== null
+        );
+        return row === undefined ? '' : (row.querySelector('.row-meta') || {}).textContent.replace(/\\s+/g, ' ').trim();
+      })()`
+    )
+  );
+
+  check("the mapping can also be reopened and changed from the binding's row", () => {
+    if (tagPrefill.secondHand !== "tag-second-hand") {
+      throw new Error(
+        `reopened showing "${tagPrefill.secondHand}" for second-hand, so the saved mapping was not read back`
+      );
+    }
+    if (tagPrefill.oneToOne !== "") {
+      throw new Error(`one-to-one came back mapped to "${tagPrefill.oneToOne}", which was left unmapped`);
+    }
+    // The change reached the row, which is where the folder's meaning is read.
+    if (!/as .*one-to-one/.test(rulesRow)) {
+      throw new Error(`the row still says "${rulesRow}" after the second kind was mapped`);
+    }
+    if (!/second-hand/.test(rulesRow)) {
+      throw new Error(`saving the new kind dropped the old one: "${rulesRow}"`);
+    }
+  });
 
   /* ------------------------------------------------------------ model -- */
 
@@ -2934,11 +3291,54 @@ try {
   // The one thing in the app that is meant to work from anywhere, so it is
   // opened from wherever the walkthrough happens to have left off rather than
   // from a known page.
+  const viewBefore = String(
+    await page.evaluate(
+      "(document.querySelector('.nav-btn[aria-current=\"true\"]') || {}).dataset?.view ?? ''"
+    )
+  );
   await page.evaluate(
     "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))"
   );
   await page.waitFor("document.querySelector('.palette-input') !== null", "the palette");
-  check("Ctrl+K opens it from wherever you are", () => {});
+
+  const paletteOpen = JSON.parse(
+    String(
+      await page.evaluate(`JSON.stringify({
+        focused: document.activeElement !== null
+          && document.activeElement.classList.contains('palette-input'),
+        typed: document.querySelector('.palette-input').value,
+        rows: document.querySelectorAll('.palette-row').length,
+        view: (document.querySelector('.nav-btn[aria-current="true"]') || {}).dataset?.view ?? ''
+      })`)
+    )
+  );
+
+  check("Ctrl+K opens it from wherever you are", () => {
+    // Where "wherever you are" actually was. Read from the rail's own
+    // aria-current, and checked for emptiness first: two blank answers compare
+    // equal, so without this the last clause below would pass on a page that
+    // marks no view at all as current.
+    if (viewBefore === "") {
+      throw new Error("no view in the rail is marked current, so there is no 'here' to stay on");
+    }
+    // Focused, not merely present. The palette is opened with the keyboard and
+    // typed into immediately, so an input that has to be clicked first is a
+    // palette that does not work from anywhere.
+    if (!paletteOpen.focused) {
+      throw new Error("the palette opened without the caret in it");
+    }
+    if (paletteOpen.typed !== "") {
+      throw new Error(`it opened holding "${paletteOpen.typed}"`);
+    }
+    if (paletteOpen.rows === 0) {
+      throw new Error("it opened offering nothing, so there is nowhere to go from it");
+    }
+    // Over wherever the walkthrough had got to, rather than by going somewhere.
+    // A palette that navigated first would be open and useless from here.
+    if (paletteOpen.view !== viewBefore) {
+      throw new Error(`opening it moved from "${viewBefore}" to "${paletteOpen.view}"`);
+    }
+  });
 
   await page.evaluate(`(() => {
     const input = document.querySelector('.palette-input');

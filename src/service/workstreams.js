@@ -12,7 +12,7 @@
  */
 
 import { isArchived } from "../domain/archive.js";
-import { humanDays } from "../domain/time.js";
+import { agoWords } from "../domain/time.js";
 import { LEVELS, isLevel, isUnspecified, reviewInterval } from "../domain/workstreams.js";
 import { badArchiveInstant } from "./guards.js";
 import { resolvePerson, resolveProject, resolveWorkstream } from "./resolve.js";
@@ -46,7 +46,10 @@ export function workstreams(store, now) {
       // should be able to read to them.
       mandate: isLevel(level) ? LEVELS[level].authority : "Nobody has said who decides.",
       reviewEvery: `${reviewInterval(w.level)} days`,
-      lastReviewed: last ? humanDays(Math.max(0, daysSinceMs(Number(last.at), now))) + " ago" : "never",
+      // `agoWords`, not `humanDays` plus " ago" - the helper exists because the
+      // hand-rolled version says "today ago", and this card said it every day a
+      // workstream had just been reviewed. Same fault the project list had.
+      lastReviewed: last ? agoWords(Math.max(0, daysSinceMs(Number(last.at), now))) : "never",
       unspecified: isUnspecified(w)
     };
   });
