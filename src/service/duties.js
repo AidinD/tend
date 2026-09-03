@@ -20,6 +20,7 @@
 
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { SUBJECT_KINDS, evidenceFor, subjectOf } from "../domain/contact.js";
+import { isKeptRecord } from "../domain/growth.js";
 
 /**
  * Can a duty about this sort of subject be satisfied by this evidence?
@@ -154,6 +155,13 @@ export function updateDuty(store, id, fields) {
  * Remove a row. Tombstoned, so the history stays readable and nothing an agent
  * or a note already referenced dangles.
  *
+ * Tombstoned is not the same as recoverable, and one collection made the
+ * difference matter. The events survive, but every read path filters `_deleted`,
+ * so from the outside - the window, `tend_growth`, a prep card - the row is
+ * simply gone. For most rows that is what "remove" is supposed to mean. For a
+ * growth thread that has ended with a reason on it, it destroyed the one thing
+ * the feature exists to hand back.
+ *
  * @param {import("../storage/store.js").TendStore} store
  * @param {string} collection
  * @param {string} id
@@ -190,6 +198,17 @@ export function removeRow(store, collection, id) {
   const row = store.rows(collection).find((r) => r.id === id);
   if (!row) {
     return { error: `No ${collection} row with id "${id}".` };
+  }
+  // An ended growth thread is the record, not the leftovers of one. Refused
+  // here rather than by hiding a button, because the window is one of two
+  // clients and a rule that lives in a button is a rule MCP does not have.
+  if (collection === "growth" && isKeptRecord(/** @type {any} */ (row))) {
+    return {
+      error:
+        "That thread has ended and its reason is the record. Removing it would delete why the " +
+        "direction was let go, which is the answer to why it is no longer discussed. Reword the " +
+        "direction if it is wrong; a thread only becomes removable before it has an ending."
+    };
   }
   store.remove(collection, id);
   // A touch has neither a name nor a text, so say what it actually was.

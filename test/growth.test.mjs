@@ -515,6 +515,53 @@ describe("through the service", () => {
     assert.equal(ok(api.growth(store, "Halvar", NOW)).threads.length, 0);
   });
 
+  /*
+   * The case this whole guard exists for, and it is a real one: a direction let
+   * go because the person said they wanted something else, the reason written
+   * down, and the ending actually said to them. Every step of that is the
+   * responsible path, and the flow used to finish by offering to delete it.
+   */
+  it("refuses to remove an ended thread, because its reason is the record", () => {
+    ok(
+      api.endThread(store, id, {
+        status: "dropped",
+        why: "ingen efterfrågar rollen längre, så vi lägger ner riktningen",
+        said: true
+      })
+    );
+    const err = failed(api.removeRow(store, "growth", id));
+    assert.match(err, /reason is the record/i);
+
+    const seen = ok(api.growth(store, "Halvar", NOW));
+    assert.equal(seen.threads.length, 1, "the thread survived the attempt");
+    assert.equal(
+      seen.threads[0].fields.endedWhy,
+      "ingen efterfrågar rollen längre, så vi lägger ner riktningen"
+    );
+  });
+
+  /*
+   * The most consequential of the three endings, and the one the window never
+   * offered a Remove for - so this pins the service side rather than a button.
+   * A stated expectation is the wording somebody will be held to; it is the last
+   * thing that should be erasable by a click.
+   */
+  it("refuses it for a stated expectation too, not only a dropped one", () => {
+    ok(api.endThread(store, id, { status: "expectation", why: "he leads the review or he stays put" }));
+    assert.match(failed(api.removeRow(store, "growth", id)), /reason is the record/i);
+  });
+
+  /*
+   * The escape hatch has to stay open, or the guard turns a stray field into a
+   * permanent row. `endThread` cannot produce this state - it refuses `open` -
+   * but `updateThread` can, and a half-typed edit is not a decision.
+   */
+  it("still removes an open thread that happens to carry an ending reason", () => {
+    ok(api.updateThread(store, id, { endedWhy: "typed into the wrong thread" }));
+    ok(api.removeRow(store, "growth", id));
+    assert.equal(ok(api.growth(store, "Halvar", NOW)).threads.length, 0);
+  });
+
   it("can take back a conversation logged by mistake", () => {
     const noted = ok(api.logGrowthNote(store, { growth: id, note: "wrong thread", now: NOW }));
     ok(api.removeRow(store, "growthNotes", noted.id));

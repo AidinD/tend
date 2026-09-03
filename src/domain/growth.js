@@ -229,6 +229,30 @@ export const COMFORTABLE_THREADS = 2;
  */
 
 /**
+ * Whether the thread has stopped being a plan and become a record.
+ *
+ * The ending and its reason are the product, not the leftovers of one. A
+ * direction let go six months ago is the answer to "why do we not talk about
+ * this any more", and `tend_growth` promises to hand that answer back - so the
+ * moment a thread has an ending with a reason on it, there is nothing left to
+ * tidy away and something worth keeping.
+ *
+ * Read by `removeRow` rather than only by the window, because the window is one
+ * of two clients. A rule that lives in a button is a rule the other client does
+ * not have.
+ *
+ * Both halves are required. An `open` row carrying an `endedWhy` is a half-typed
+ * edit, not a decision - `endThread` refuses to write one - and protecting it
+ * would make a stray field permanent.
+ *
+ * @param {GrowthRow} row
+ * @returns {boolean}
+ */
+export function isKeptRecord(row) {
+  return statusOf(row) !== "open" && String(row.endedWhy ?? "").trim() !== "";
+}
+
+/**
  * @param {GrowthRow} row
  * @returns {boolean}
  */
