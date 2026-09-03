@@ -37,6 +37,9 @@
 
 import { esc, tend, toast } from "../ui.js";
 import { isRunning, modelStatus, resultFor, run } from "../model.js";
+import { T } from "../text.js";
+
+const t = T.knowledge;
 
 /** Kept here rather than in the module state, because it is a query, not data. */
 let situation = "";
@@ -55,33 +58,17 @@ export async function render() {
 
   const head = `
     <div class="view-head">
-      <h1 class="view-title">What do I know about this?</h1>
-      <p class="view-sub">
-        Ask about the situation you are in, not the book you half remember. Your
-        own notes answer - what you read and wrote down, and ${
-          isPrivate ? "the evenings you wrote up" : "the conversations you had"
-        }.
-      </p>
+      <h1 class="view-title">${t.title}</h1>
+      <p class="view-sub">${t.sub(isPrivate)}</p>
     </div>
 
     <div class="card">
       <div class="ask-row">
         <input class="ask-field" id="situation" type="text" value="${esc(situation)}"
-          placeholder="${
-            isPrivate
-              ? "I keep getting short with somebody when I am tired"
-              : "Someone on my team has stopped disagreeing with me"
-          }">
-        <button class="act primary" data-act="search">Search</button>
+          placeholder="${isPrivate ? t.placeholderPrivate : t.placeholderWork}">
+        <button class="act primary" data-act="search">${t.searchButton}</button>
       </div>
-      <p class="card-why dim">
-        Searching only titles and opening lines. Nothing is opened until you ask for it.
-        ${
-          isPrivate
-            ? "What you have read reaches both halves; notes about people stay in the one they were written in."
-            : ""
-        }
-      </p>
+      <p class="card-why dim">${t.searchNote(isPrivate)}</p>
     </div>`;
 
   if (found === null) {
@@ -90,7 +77,7 @@ export async function render() {
 
   if (found.error) {
     return `${head}<div class="card sev-warn"><div class="card-top">
-      <h2 class="card-title">Could not search</h2></div>
+      <h2 class="card-title">${t.searchFailedTitle}</h2></div>
       <p class="card-why">${esc(found.error)}</p></div>`;
   }
 
@@ -98,11 +85,7 @@ export async function render() {
 
   if (matches.length === 0) {
     return `${head}
-      <div class="empty">
-        Nothing in ${esc(String(found.searched))} notes shares wording with that.
-        This search matches words, so try the words you would have written at the
-        time - or write the note, and it will be here next time.
-      </div>
+      <div class="empty">${t.nothingShares(esc(String(found.searched)))}</div>
       ${askGeneral(model, true)}
       ${general === null ? "" : generalHtml(general)}`;
   }
@@ -111,19 +94,19 @@ export async function render() {
 
     <div class="group">
       <div class="group-head">
-        <span class="group-title">Shares wording</span>
+        <span class="group-title">${t.sharesGroup}</span>
         <span class="group-rule"></span>
-        <span class="group-meta">${matches.length} of ${esc(String(found.searched))}</span>
+        <span class="group-meta">${t.sharesMeta(matches.length, esc(String(found.searched)))}</span>
       </div>
       ${matches.map(hit).join("")}
       <div class="card-foot ask-foot">
-        <span class="src">A word match. It finds the obvious and misses the rest.</span>
+        <span class="src">${t.wordMatchNote}</span>
         ${
           model.available
             ? isRunning(KEY)
-              ? `<button class="act" disabled>Reading…</button>`
-              : `<button class="act primary" data-act="consider">Read them properly</button>`
-            : `<span class="src">Reading is off - no Claude Code on this machine.</span>`
+              ? `<button class="act" disabled>${t.reading}</button>`
+              : `<button class="act primary" data-act="consider">${t.readProperly}</button>`
+            : `<span class="src">${t.readingOff}</span>`
         }
       </div>
     </div>
@@ -157,16 +140,11 @@ function askGeneral(model, onlyThingLeft) {
 
   return `<div class="card">
     <div class="card-foot ask-foot">
-      <span class="src">
-        Not from your notes: what is generally understood about this. Only the
-        sentence you typed is sent - no notes, and nobody from your roster.
-      </span>
+      <span class="src">${t.generalOffer}</span>
       ${
         isRunning(KEY_REF)
-          ? `<button class="act" disabled>Looking it up…</button>`
-          : `<button class="act ${onlyThingLeft ? "primary" : ""}" data-act="general">
-               What is generally understood?
-             </button>`
+          ? `<button class="act" disabled>${t.generalLooking}</button>`
+          : `<button class="act ${onlyThingLeft ? "primary" : ""}" data-act="general">${t.generalAsk}</button>`
       }
     </div>
   </div>`;
@@ -190,10 +168,10 @@ function generalHtml(result) {
 
   return `<div class="draft general">
     <div class="draft-head">
-      <span class="draft-title">Generally understood - not from your notes</span>
+      <span class="draft-title">${t.generalTitle}</span>
       <span class="foot-actions">
-        <button class="act tiny" data-act="copyGeneral">Copy</button>
-        <button class="act tiny" data-act="discardDraft" data-key="${KEY_REF}">Discard</button>
+        <button class="act tiny" data-act="copyGeneral">${t.copy}</button>
+        <button class="act tiny" data-act="discardDraft" data-key="${KEY_REF}">${t.discard}</button>
       </span>
     </div>
 
@@ -201,13 +179,13 @@ function generalHtml(result) {
 
     ${
       result?.needsThePeople
-        ? `<p class="draft-watch">Only they can answer: ${esc(result.needsThePeople)}</p>`
+        ? `<p class="draft-watch">${t.onlyTheyCanAnswer(esc(result.needsThePeople))}</p>`
         : ""
     }
 
     ${
       starts.length
-        ? `<h4 class="draft-head-small">Where people start</h4>
+        ? `<h4 class="draft-head-small">${t.wherePeopleStart}</h4>
            <ul class="draft-list">${starts
              .map(
                (/** @type {any} */ s) =>
@@ -219,21 +197,15 @@ function generalHtml(result) {
 
     ${
       result?.wouldAnswer
-        ? `<p class="draft-note">What would actually answer it: ${esc(result.wouldAnswer)}</p>`
+        ? `<p class="draft-note">${t.wouldAnswer(esc(result.wouldAnswer))}</p>`
         : ""
     }
 
     <div class="draft-foot">
-      <span class="src">
-        ${
-          wide
-            ? "General, and this varies widely between people - a starting point, and the people involved outrank it. "
-            : "General. "
-        }Written by ${esc(result?.model ?? "a model")}${
-          typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : ""
-        } from its own knowledge, not from anything you have read. Nothing was saved - copy it into
-        Nib if it is worth keeping.
-      </span>
+      <span class="src">${wide ? t.generalWide : t.generalNarrow}${t.generalFoot(
+        esc(result?.model ?? t.someModel),
+        typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : ""
+      )}</span>
     </div>
   </div>`;
 }
@@ -273,16 +245,15 @@ function generalText(result) {
     `${result?.subject ?? ""}`,
     "",
     result?.says ?? "",
-    result?.needsThePeople ? `\nOnly they can answer: ${result.needsThePeople}` : "",
+    result?.needsThePeople ? t.textOnlyThey(result.needsThePeople) : "",
     starts.length
-      ? `\nWhere people start:\n${starts
+      ? `${t.textStarts}\n${starts
           .map((/** @type {any} */ s) => `- ${s.point}${s.because ? ` (${s.because})` : ""}`)
           .join("\n")}`
       : "",
-    result?.wouldAnswer ? `\nWhat would actually answer it: ${result.wouldAnswer}` : "",
+    result?.wouldAnswer ? t.textWouldAnswer(result.wouldAnswer) : "",
     `\n---`,
-    `General knowledge, written by ${result?.model ?? "a model"}. Not from anything I have read.` +
-      (result?.spread === "wide" ? " Varies widely between people; the people involved outrank it." : "")
+    t.textProvenance(result?.model ?? t.someModel, result?.spread === "wide")
   ]
     .filter((part) => part !== "")
     .join("\n");
@@ -291,7 +262,7 @@ function generalText(result) {
 /** @param {any} h */
 function hit(h) {
   return `<div class="row static">
-    <span class="row-name">${esc(h.title || "Untitled")}</span>
+    <span class="row-name">${esc(h.title || t.untitled)}</span>
     <span class="row-right"><span class="row-meta">${esc(h.trail)}</span></span>
   </div>`;
 }
@@ -310,13 +281,13 @@ function answerHtml(answer) {
 
   return `<div class="draft">
     <div class="draft-head">
-      <span class="draft-title">Read ${esc(String(answer.read ?? 0))} of them</span>
-      <button class="act tiny" data-act="discardDraft" data-key="${KEY}">Discard</button>
+      <span class="draft-title">${t.readTitle(esc(String(answer.read ?? 0)))}</span>
+      <button class="act tiny" data-act="discardDraft" data-key="${KEY}">${t.discard}</button>
     </div>
 
     ${
       applies.length === 0
-        ? `<p class="draft-opening">None of them actually bear on this.</p>`
+        ? `<p class="draft-opening">${t.noneBear}</p>`
         : `<ul class="draft-list">${applies
             .map(
               (/** @type {any} */ a) => `<li>
@@ -328,14 +299,13 @@ function answerHtml(answer) {
             .join("")}</ul>`
     }
 
-    ${answer.missing ? `<p class="draft-watch">Not answered by anything you have written: ${esc(answer.missing)}</p>` : ""}
+    ${answer.missing ? `<p class="draft-watch">${t.notAnswered(esc(answer.missing))}</p>` : ""}
 
     <div class="draft-foot">
-      <span class="src">
-        Read from your own notes${answer.model ? ` by ${esc(answer.model)}` : ""}${
-          typeof answer.costUsd === "number" ? ` · ${(answer.costUsd * 100).toFixed(1)}¢` : ""
-        }. Nothing was saved.
-      </span>
+      <span class="src">${t.answerFoot(
+        answer.model ? t.answerBy(esc(answer.model)) : "",
+        typeof answer.costUsd === "number" ? ` · ${(answer.costUsd * 100).toFixed(1)}¢` : ""
+      )}</span>
     </div>
   </div>`;
 }
@@ -371,9 +341,9 @@ export const actions = {
     }
     try {
       await navigator.clipboard.writeText(generalText(result));
-      toast("Copied, with the line saying it is general.");
+      toast(t.copiedToast);
     } catch {
-      toast("Could not reach the clipboard. Select the text and copy it.", "bad");
+      toast(t.copyFailedToast, "bad");
     }
   },
 

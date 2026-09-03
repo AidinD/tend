@@ -41,6 +41,106 @@
  */
 
 export const T = {
+  knowledge: {
+    title: "What do I know about this?",
+    /*
+     * The example has to belong to the half. The placeholder is the only
+     * instruction anybody reads here, and a work situation offered on a page
+     * about family teaches the wrong use of the feature in the half where the
+     * feature is newest.
+     */
+    /** @param {boolean} isPrivate */
+    sub: (isPrivate) =>
+      "Ask about the situation you are in, not the book you half remember. Your own notes " +
+      `answer - what you read and wrote down, and ${isPrivate ? "the evenings you wrote up" : "the conversations you had"}.`,
+    placeholderPrivate: "I keep getting short with somebody when I am tired",
+    placeholderWork: "Someone on my team has stopped disagreeing with me",
+    searchButton: "Search",
+    /** @param {boolean} isPrivate */
+    searchNote: (isPrivate) =>
+      "Searching only titles and opening lines. Nothing is opened until you ask for it." +
+      (isPrivate
+        ? " What you have read reaches both halves; notes about people stay in the one they were written in."
+        : ""),
+
+    searchFailedTitle: "Could not search",
+    /** @param {string} searched */
+    nothingShares: (searched) =>
+      `Nothing in ${searched} notes shares wording with that. This search matches words, so try ` +
+      `the words you would have written at the time - or write the note, and it will be here next time.`,
+
+    sharesGroup: "Shares wording",
+    /** @param {number} n @param {string} searched */
+    sharesMeta: (n, searched) => `${n} of ${searched}`,
+    wordMatchNote: "A word match. It finds the obvious and misses the rest.",
+    reading: "Reading…",
+    readProperly: "Read them properly",
+    readingOff: "Reading is off - no Claude Code on this machine.",
+    untitled: "Untitled",
+
+    /*
+     * The general-knowledge offer, below the notes and never the primary action
+     * while the notes had something to say. It says what it sends, because every
+     * other model button here opens notes and a name typed into the box travels
+     * with this one.
+     */
+    generalOffer:
+      "Not from your notes: what is generally understood about this. Only the sentence you typed " +
+      "is sent - no notes, and nobody from your roster.",
+    generalLooking: "Looking it up…",
+    generalAsk: "What is generally understood?",
+
+    /* The general answer, framed as the weakest thing on the page. */
+    generalTitle: "Generally understood - not from your notes",
+    copy: "Copy",
+    discard: "Discard",
+    /** @param {string} who */
+    onlyTheyCanAnswer: (who) => `Only they can answer: ${who}`,
+    wherePeopleStart: "Where people start",
+    /** @param {string} what */
+    wouldAnswer: (what) => `What would actually answer it: ${what}`,
+    generalWide:
+      "General, and this varies widely between people - a starting point, and the people involved outrank it. ",
+    generalNarrow: "General. ",
+    /** @param {string} model @param {string} cost */
+    generalFoot: (model, cost) =>
+      `Written by ${model}${cost} from its own knowledge, not from anything you have read. ` +
+      `Nothing was saved - copy it into Nib if it is worth keeping.`,
+    someModel: "a model",
+
+    /*
+     * The copy, with its provenance line. A general summary pasted into Nib
+     * without one is indistinguishable next year from a note about something he
+     * actually read, which is the confusion this block is drawn to prevent.
+     */
+    /** @param {string} who */
+    textOnlyThey: (who) => `\nOnly they can answer: ${who}`,
+    textStarts: "\nWhere people start:",
+    /** @param {string} what */
+    textWouldAnswer: (what) => `\nWhat would actually answer it: ${what}`,
+    /** @param {string} model @param {boolean} wide */
+    textProvenance: (model, wide) =>
+      `General knowledge, written by ${model}. Not from anything I have read.` +
+      (wide ? " Varies widely between people; the people involved outrank it." : ""),
+    copiedToast: "Copied, with the line saying it is general.",
+    copyFailedToast: "Could not reach the clipboard. Select the text and copy it.",
+
+    /*
+     * `missing` is printed as prominently as the hits, deliberately. The useful
+     * answer to "what do I know about this" is often "less than you think", and
+     * a view that only ever lists matches implies the opposite.
+     */
+    /** @param {string} n */
+    readTitle: (n) => `Read ${n} of them`,
+    noneBear: "None of them actually bear on this.",
+    /** @param {string} what */
+    notAnswered: (what) => `Not answered by anything you have written: ${what}`,
+    /** @param {string} by @param {string} cost */
+    answerFoot: (by, cost) => `Read from your own notes${by}${cost}. Nothing was saved.`,
+    /** @param {string} model */
+    answerBy: (model) => ` by ${model}`
+  },
+
   role: {
     title: "Role map",
     sub:
