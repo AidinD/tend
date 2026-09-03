@@ -11,6 +11,9 @@
 import { act, ask, esc, form, NOTE_CONTACT_KINDS, tend, toast } from "../ui.js";
 import { refresh } from "../app.js";
 import { modelStatus } from "../model.js";
+import { T } from "../text.js";
+
+const t = T.settings;
 
 /**
  * How the data directory was decided, in words.
@@ -23,10 +26,9 @@ import { modelStatus } from "../model.js";
  */
 /** @type {Record<string, string>} */
 const WHERE_FROM = {
-  env: "Set by the TEND_DATA_DIR environment variable, inherited when this app started.",
-  "user-env": "Set by TEND_DATA_DIR, read from your Windows user environment rather than inherited.",
-  default:
-    "The default per-user location, because nothing set TEND_DATA_DIR. Set it to keep the data somewhere synced, and somewhere a helper process can reach."
+  env: t.whereFromEnv,
+  "user-env": t.whereFromUserEnv,
+  default: t.whereFromDefault
 };
 
 export async function render() {
@@ -41,8 +43,8 @@ export async function render() {
 
   return `
     <div class="view-head">
-      <h1 class="view-title">Settings</h1>
-      <p class="view-sub">Where things are kept, and how notes reach the rest of the app.</p>
+      <h1 class="view-title">${t.title}</h1>
+      <p class="view-sub">${t.sub}</p>
     </div>
 
     ${modeSection(status)}
@@ -82,32 +84,24 @@ function modeSection(status) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">Which half</span>
+      <span class="group-title">${t.halfGroup}</span>
       <span class="group-rule"></span>
-      <span class="group-meta">${isPrivate ? "private" : "work"}</span>
+      <span class="group-meta">${isPrivate ? t.halfPrivate : t.halfWork}</span>
     </div>
     <article class="card">
       <div class="card-top">
-        <h2 class="card-title">${isPrivate ? "The private half" : "The work half"}</h2>
+        <h2 class="card-title">${isPrivate ? t.privateTitle : t.workTitle}</h2>
       </div>
       <p class="card-why">
-        ${
-          isPrivate
-            ? "Its own store, read by nothing on the work side and never merged with it. Drift, cadences, duties, prep and a focus budget are not here - contact with somebody you live with is continuous, so a cadence over it would read as permanently fine and mean nothing."
-            : "Everything the app has always been. People you are responsible for, what you owe them, and what has fallen behind."
-        }
+        ${isPrivate ? t.privateWhy : t.workWhy}
       </p>
       <p class="card-why dim">
-        ${
-          isPrivate
-            ? "What an entry here records is the interaction and your own part in it - not the other person's state. That is the half you can change, and it is the only version you could show the person it is about."
-            : "The private half keeps family and everything outside work in a separate store. Switching restarts the app, so it cannot happen while you are half-way through a sentence."
-        }
+        ${isPrivate ? t.privateNote : t.workNote}
       </p>
       <div class="card-foot">
         <span class="src mono-text">${esc(String(status?.dataDir ?? ""))}</span>
         <button class="act" data-act="switchMode" data-to="${isPrivate ? "work" : "private"}">
-          ${isPrivate ? "Back to work" : "Switch to private"}
+          ${isPrivate ? t.backToWork : t.switchToPrivate}
         </button>
       </div>
     </article>
@@ -130,40 +124,26 @@ function importSummary(r) {
   /** @param {number} n @param {string} one @param {string} many */
   const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-  const parts = [`${count(Number(r.contacts ?? 0), "contact record", "contact records")} added`];
+  const parts = [t.importAdded(count(Number(r.contacts ?? 0), t.contactRecordOne, t.contactRecordMany))];
   if (r.promises) {
-    parts.push(count(Number(r.promises), "promise", "promises"));
+    parts.push(count(Number(r.promises), t.promiseOne, t.promiseMany));
   }
   const lines = [`${parts.join(" and ")}.`];
 
   if (r.waiting) {
-    lines.push(
-      `${count(Number(r.waiting), "commitment is", "commitments are")} waiting for you to say ` +
-        "whose they are - they came out of notes several people were in, so copying them onto " +
-        "everybody would turn one obligation into several. They are on Now."
-    );
+    lines.push(t.importWaiting(count(Number(r.waiting), t.commitmentIsOne, t.commitmentAreMany)));
   }
   if (r.resolved) {
-    lines.push(`${count(Number(r.resolved), "promise", "promises")} closed, ticked off in Nib.`);
+    lines.push(t.importResolved(count(Number(r.resolved), t.promiseOne, t.promiseMany)));
   }
   if (r.dropped) {
-    lines.push(
-      `${count(Number(r.dropped), "waiting commitment", "waiting commitments")} dropped, ` +
-        "settled in Nib before anybody filed them."
-    );
+    lines.push(t.importDropped(count(Number(r.dropped), t.waitingCommitmentOne, t.waitingCommitmentMany)));
   }
   if (r.retracted) {
-    lines.push(
-      `${count(Number(r.retracted), "contact record", "contact records")} withdrawn, because ` +
-        "the note no longer carries the tag it was counted under."
-    );
+    lines.push(t.importRetracted(count(Number(r.retracted), t.contactRecordOne, t.contactRecordMany)));
   }
   if (r.withdrawn) {
-    lines.push(
-      `${count(Number(r.withdrawn), "commitment", "commitments")} withdrawn, because the note ` +
-        "no longer flags them. Marked as retracted rather than done, and still on the person's " +
-        "page if you need to look."
-    );
+    lines.push(t.importWithdrawn(count(Number(r.withdrawn), t.commitmentOne, t.commitmentMany)));
   }
   return lines.join(" ");
 }
@@ -179,11 +159,12 @@ function nibSection(folders, bindings, roster, status) {
           b.name && b.name !== b.nibFolder ? `<span class="src"> ${esc(b.nibFolder)}</span>` : ""
         }</span>
         <span class="row-right">
-          <span class="row-meta">→ ${esc(b.person ?? "unknown")}${
-            b.countsAs ? ` as ${esc(b.countsAs)}` : " - no tags mapped, so nothing counts yet"
-          }</span>
-          <button class="act tiny" data-act="rules" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">Tags</button>
-          <button class="act tiny danger" data-act="unbind" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">Unbind</button>
+          <span class="row-meta">${t.bindingMeta(
+            esc(b.person ?? t.unknownPerson),
+            b.countsAs ? t.bindingCountsAs(esc(b.countsAs)) : t.bindingNoTags
+          )}</span>
+          <button class="act tiny" data-act="rules" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">${t.tagsButton}</button>
+          <button class="act tiny danger" data-act="unbind" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">${t.unbindButton}</button>
         </span>
       </div>`
     )
@@ -191,11 +172,11 @@ function nibSection(folders, bindings, roster, status) {
 
   if (!folders?.available) {
     return `<div class="group">
-      <div class="group-head"><span class="group-title">Notes from Nib</span><span class="group-rule"></span></div>
+      <div class="group-head"><span class="group-title">${t.nibGroup}</span><span class="group-rule"></span></div>
       <article class="card sev-warn">
-        <div class="card-top"><h2 class="card-title">Nib is not readable</h2></div>
-        <p class="card-why">${esc(folders?.why ?? "Unknown reason.")}</p>
-        <p class="card-why dim">Tend only ever reads Nib. It never writes to it.</p>
+        <div class="card-top"><h2 class="card-title">${t.nibUnreadableTitle}</h2></div>
+        <p class="card-why">${esc(folders?.why ?? t.nibUnknownReason)}</p>
+        <p class="card-why dim">${t.nibReadOnly}</p>
       </article>
     </div>`;
   }
@@ -204,9 +185,9 @@ function nibSection(folders, bindings, roster, status) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">Notes from Nib</span>
+      <span class="group-title">${t.nibGroup}</span>
       <span class="group-rule"></span>
-      <span class="group-meta">${bound.length} bound</span>
+      <span class="group-meta">${t.nibBound(bound.length)}</span>
     </div>
 
     <!--
@@ -215,12 +196,12 @@ function nibSection(folders, bindings, roster, status) {
       old one still parses and still lists folders - so reading the wrong one
       looks exactly like reading the right one.
     -->
-    <p class="card-why dim mono-text">Reading ${esc(folders.dir ?? "an unknown folder")}</p>
+    <p class="card-why dim mono-text">${t.nibReading(esc(folders.dir ?? t.nibUnknownFolder))}</p>
 
     <article class="card">
-      <div class="card-top"><h2 class="card-title">How this works</h2></div>
-      <p class="card-why">Point a Nib folder at a person, then say which of your Nib tags supplies each kind of contact Tend tracks. Writing a tagged note is then the evidence that the contact happened, with nothing to confirm afterwards - and an untagged note counts as nothing, so a folder can hold every sort of note about somebody.</p>
-      <p class="card-why dim">Flagged action points inside those notes become promises here, and ticking one off in Nib closes it here too. Tend only reads Nib.</p>
+      <div class="card-top"><h2 class="card-title">${t.nibHowTitle}</h2></div>
+      <p class="card-why">${t.nibHowWhy}</p>
+      <p class="card-why dim">${t.nibHowNote}</p>
       <!--
         The state of the automatic import, because a background job nobody can
         see is a background job nobody believes. Without this line the honest
@@ -228,19 +209,19 @@ function nibSection(folders, bindings, roster, status) {
         habit the automatic import exists to remove.
       -->
       <p class="card-why ${status?.nibWatching ? "dim" : ""}">
-        ${status?.nibWatching ? "Notes import themselves, within a second of being tagged." : "Notes import on a timer only - this window is not watching the notebook."}
+        ${status?.nibWatching ? t.nibWatching : t.nibTimerOnly}
         ${esc(String(status?.nibSync ?? ""))}
       </p>
       <div class="card-foot">
-        <span class="src">${folders.folders.length} folder(s) found in Nib</span>
-        <button class="act primary" data-act="bind" ${noPeople ? "disabled" : ""}>Bind a folder</button>
-        <button class="act" data-act="indexDry" ${bound.length === 0 ? "disabled" : ""}>Preview import</button>
-        <button class="act" data-act="index" ${bound.length === 0 ? "disabled" : ""}>Import now</button>
+        <span class="src">${t.nibFolderCount(folders.folders.length)}</span>
+        <button class="act primary" data-act="bind" ${noPeople ? "disabled" : ""}>${t.bindButton}</button>
+        <button class="act" data-act="indexDry" ${bound.length === 0 ? "disabled" : ""}>${t.previewButton}</button>
+        <button class="act" data-act="index" ${bound.length === 0 ? "disabled" : ""}>${t.importButton}</button>
       </div>
     </article>
 
-    ${noPeople ? `<div class="muted-row">Add people first - a binding points a folder at somebody.</div>` : ""}
-    ${rows ? `<div class="rows">${rows}</div>` : `<div class="empty">Nothing bound yet.</div>`}
+    ${noPeople ? `<div class="muted-row">${t.nibNoPeople}</div>` : ""}
+    ${rows ? `<div class="rows">${rows}</div>` : `<div class="empty">${t.nibNothingBound}</div>`}
   </div>`;
 }
 
@@ -251,17 +232,17 @@ function dataSection(status) {
     : "";
 
   return `<div class="group">
-    <div class="group-head"><span class="group-title">Your data</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${t.dataGroup}</span><span class="group-rule"></span></div>
     <article class="card">
-      <div class="card-top"><h2 class="card-title">Where it is kept</h2></div>
+      <div class="card-top"><h2 class="card-title">${t.dataTitle}</h2></div>
 
       <p class="card-why mono-text">${esc(status.dataDir)}</p>
       <p class="card-why dim">${esc(WHERE_FROM[String(status.dataDirFrom)] ?? WHERE_FROM.default)}</p>
-      <p class="card-why dim">Written as an append-only log, one file per writer, so this app and anything else reaching the same folder can write at once without losing each other's changes. Nothing is ever overwritten, which is also why nothing is ever truly lost.</p>
+      <p class="card-why dim">${t.dataAppendOnly}</p>
       ${warning}
       <div class="card-foot">
-        <span class="src">This folder holds notes about named colleagues. It stays on your machine.</span>
-        <button class="act" data-act="openData">Open the folder</button>
+        <span class="src">${t.dataNote}</span>
+        <button class="act" data-act="openData">${t.openFolder}</button>
       </div>
     </article>
   </div>`;
@@ -281,14 +262,14 @@ function dataSection(status) {
 /** @param {any} undoable */
 function archiveSection(undoable) {
   return `<div class="group">
-    <div class="group-head"><span class="group-title">Leaving a job</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${t.leavingGroup}</span><span class="group-rule"></span></div>
     <article class="card">
-      <div class="card-top"><h2 class="card-title">Archive everyone and everything active</h2></div>
-      <p class="card-why">For the moment a job ends. Archives every person, project and workstream that is currently active - all at once, instead of one at a time.</p>
-      <p class="card-why dim">Nothing is deleted. Every 1-1, promise, decision and growth thread stays exactly as it is. Each one can be brought back on its own, whenever it is relevant again, from its archived list.</p>
+      <div class="card-top"><h2 class="card-title">${t.archiveAllTitle}</h2></div>
+      <p class="card-why">${t.archiveAllWhy}</p>
+      <p class="card-why dim">${t.archiveAllNote}</p>
       <div class="card-foot">
-        <span class="src">Safe to run again - anything already archived is left untouched.</span>
-        <button class="act danger" data-act="archiveEverything">Archive everything active</button>
+        <span class="src">${t.archiveAllSafe}</span>
+        <button class="act danger" data-act="archiveEverything">${t.archiveAllButton}</button>
       </div>
     </article>
     ${undoCard(undoable)}
@@ -321,22 +302,22 @@ function undoCard(undoable) {
   }
   const when = Number.isFinite(Number(undoable.at))
     ? new Date(Number(undoable.at)).toLocaleDateString("sv-SE")
-    : "an earlier run";
+    : t.undoEarlierRun;
   const parts = [
-    [undoable.people, "person", "people"],
-    [undoable.projects, "project", "projects"],
-    [undoable.workstreams, "workstream", "workstreams"]
+    [undoable.people, t.personOne, t.personMany],
+    [undoable.projects, t.projectOne, t.projectMany],
+    [undoable.workstreams, t.workstreamOne, t.workstreamMany]
   ]
     .filter(([n]) => Number(n) > 0)
     .map(([n, one, many]) => `${n} ${Number(n) === 1 ? one : many}`)
     .join(", ");
 
   return `<article class="card sev-ok">
-    <div class="card-top"><h2 class="card-title">Undo the archive from ${esc(when)}</h2></div>
-    <p class="card-why">Puts back ${esc(parts)} - only what that press archived, and only the ones still archived now. Anything you have already brought back by hand stays as it is, and nothing archived on its own before or after is touched.</p>
+    <div class="card-top"><h2 class="card-title">${t.undoTitle(esc(when))}</h2></div>
+    <p class="card-why">${t.undoWhy(esc(parts))}</p>
     <div class="card-foot">
-      <span class="src">Offered until you use it, or archive everything again.</span>
-      <button class="act primary" data-act="undoBulkArchive">Undo that archive</button>
+      <span class="src">${t.undoOffered}</span>
+      <button class="act primary" data-act="undoBulkArchive">${t.undoButton}</button>
     </div>
   </article>`;
 }
@@ -353,21 +334,21 @@ function undoCard(undoable) {
  */
 function modelSection(model) {
   return `<div class="group">
-    <div class="group-head"><span class="group-title">Drafting</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${t.draftingGroup}</span><span class="group-rule"></span></div>
     <article class="card${model.available ? "" : " sev-warn"}">
       <div class="card-top">
-        <h2 class="card-title">${model.available ? "Available" : "Off"}</h2>
-        <span class="pill plain">${model.available ? "signed in through Claude Code" : "not set up"}</span>
+        <h2 class="card-title">${model.available ? t.draftingAvailable : t.draftingOff}</h2>
+        <span class="pill plain">${model.available ? t.draftingSignedIn : t.draftingNotSetUp}</span>
       </div>
       ${
         model.available
-          ? `<p class="card-why">Three buttons use a model: a brief before a conversation, reading one of your notes for a commitment you wrote in passing, and naming what recurs across several notes about the same person. Each one is a button. Nothing runs on a timer and nothing runs when this window opens.</p>
-             <p class="card-why dim">It borrows the sign-in Claude Code already has on this machine, so there is no key to store. A note only ever leaves this machine when you press one of those buttons.</p>`
+          ? `<p class="card-why">${t.draftingWhat}</p>
+             <p class="card-why dim">${t.draftingSignIn}</p>`
           : `<p class="card-why">${esc(model.why ?? "")}</p>
-             <p class="card-why dim">Everything else works exactly as it does with it on. Drift, cadences, promises and the focus budget are ordinary arithmetic - a model never decides what needs your attention.</p>`
+             <p class="card-why dim">${t.draftingWithout}</p>`
       }
       <div class="card-foot">
-        <span class="src">A model writes nothing here. Everything it produces is a draft, shown and thrown away unless you keep it yourself.</span>
+        <span class="src">${t.draftingNever}</span>
       </div>
     </article>
   </div>`;
@@ -376,20 +357,16 @@ function modelSection(model) {
 /** @param {any} status */
 function aboutSection(status) {
   return `<div class="group">
-    <div class="group-head"><span class="group-title">About</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${t.aboutGroup}</span><span class="group-rule"></span></div>
     <article class="card">
       <div class="card-top">
-        <h2 class="card-title">Tend ${esc(status.version ?? "")}</h2>
-        <span class="pill plain">${esc(status.packaged ? "installed" : "development")}</span>
+        <h2 class="card-title">${t.aboutTitle(esc(status.version ?? ""))}</h2>
+        <span class="pill plain">${esc(status.packaged ? t.installed : t.development)}</span>
       </div>
-      <p class="card-why">${
-        status.packaged
-          ? "Checks for a newer version once at startup and installs it when you quit."
-          : "Running from source. Update checks are off, since there is no installed copy to replace."
-      }</p>
+      <p class="card-why">${status.packaged ? t.updatesOn : t.updatesOff}</p>
       <div class="card-foot">
-        <span class="src">${esc(status.updateStatus ?? "No update check has run yet.")}</span>
-        ${status.packaged ? `<button class="act" data-act="checkUpdate">Check now</button>` : ""}
+        <span class="src">${esc(status.updateStatus ?? t.noUpdateCheck)}</span>
+        ${status.packaged ? `<button class="act" data-act="checkUpdate">${t.checkNow}</button>` : ""}
       </div>
     </article>
   </div>`;
@@ -413,14 +390,14 @@ function tagFields(catalog, chosen = new Map()) {
     return [];
   }
   const options = [
-    { value: "", label: "No tag - Tend never sees this from here" },
-    ...catalog.tags.map((/** @type {any} */ t) => ({ value: String(t.id), label: String(t.name) }))
+    { value: "", label: t.tagNone },
+    ...catalog.tags.map((/** @type {any} */ tag) => ({ value: String(tag.id), label: String(tag.name) }))
   ];
   return NOTE_CONTACT_KINDS.map((kind, i) => ({
     name: `kind:${kind.value}`,
     label: kind.label,
     type: /** @type {const} */ ("select"),
-    hint: i === 0 ? `Tags read from ${catalog.dir}.` : undefined,
+    hint: i === 0 ? t.tagsReadFrom(catalog.dir) : undefined,
     value: chosen.get(kind.value) ?? "",
     options
   }));
@@ -464,11 +441,11 @@ export const actions = {
     const [catalog, bound] = await Promise.all([tend.invoke("nibTags"), tend.invoke("sources")]);
 
     if (!catalog?.available) {
-      toast(String(catalog?.why ?? "Nib's tags could not be read."), "bad");
+      toast(String(catalog?.why ?? t.tagsUnreadable), "bad");
       return;
     }
     if (catalog.tags.length === 0) {
-      toast(`No tags in the notebook at ${catalog.dir}. Make one in Nib first.`, "bad");
+      toast(t.noTagsIn(catalog.dir), "bad");
       return;
     }
 
@@ -478,20 +455,17 @@ export const actions = {
     );
 
     const values = await form({
-      title: `Tags in ${d.name}`,
-      intro:
-        "Tend asks; your notebook answers. For each kind of contact Tend tracks, pick the Nib " +
-        "tag that means it. Leave one blank and Tend simply never sees that kind from this " +
-        "folder - most people will use two or three.",
+      title: t.tagsTitle(d.name),
+      intro: t.tagsIntro,
       fields: tagFields(catalog, chosen),
-      confirm: "Save"
+      confirm: t.save
     });
     if (!values) {
       return;
     }
 
     const rules = rulesFrom(values);
-    if (await act("setSourceRules", { id: d.id, rules }, `${rules.length} tag rule${rules.length === 1 ? "" : "s"} saved.`)) {
+    if (await act("setSourceRules", { id: d.id, rules }, t.tagRulesSaved(rules.length))) {
       refresh();
     }
   },
@@ -507,46 +481,38 @@ export const actions = {
     }
 
     const values = await form({
-      title: "Bind a Nib folder",
-      intro:
-        "Notes in this folder become contact with this person. What each note counts AS comes " +
-        "from its tag in Nib - so a folder can hold every sort of note about somebody without " +
-        "one you merely heard resetting the clock on having spoken to them. An untagged note " +
-        "counts as nothing.",
+      title: t.bindTitle,
+      intro: t.bindIntro,
       fields: [
         {
           name: "folder",
-          label: "Folder in Nib",
+          label: t.bindFolderLabel,
           type: "select",
           options: folders.folders.map((/** @type {any} */ f) => ({
             value: `${f.categoryId}|${f.subId ?? ""}`,
-            label: `${f.label} (${f.notes} note${f.notes === 1 ? "" : "s"})`
+            label: t.bindFolderOption(f.label, f.notes)
           }))
         },
         {
           name: "people",
-          label: "Whose notes these are",
+          label: t.bindPeopleLabel,
           type: "multiselect",
           options: roster.map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
         },
         {
           name: "name",
-          label: "What to call it (optional)",
+          label: t.bindNameLabel,
           type: "text",
           value: ""
         },
         {
           name: "sharedNote",
           type: "note",
-          label:
-            "Naming more than one person makes this a meeting rather than a person's folder. " +
-            "Each note there becomes contact with every one of them, so all their clocks move. " +
-            "Flagged action points do NOT get copied onto everybody - there is no way to tell " +
-            "whose each is, so they wait on Now until you say."
+          label: t.bindSharedNote
         },
         ...tagFields(catalog)
       ],
-      confirm: "Bind"
+      confirm: t.bindConfirm
     });
     if (!values) {
       return;
@@ -559,7 +525,7 @@ export const actions = {
 
     const chosen = Array.isArray(values.people) ? values.people : [];
     if (chosen.length === 0) {
-      toast("Pick at least one person - a folder bound to nobody imports nothing.", "bad");
+      toast(t.bindNobody, "bad");
       return;
     }
 
@@ -572,7 +538,7 @@ export const actions = {
         subId: subId || undefined,
         label
       },
-      "Bound."
+      t.boundToast
     );
     if (!bound) {
       return;
@@ -590,8 +556,8 @@ export const actions = {
       // DIFFERENT notebook with no tags in it.
       toast(
         catalog?.available
-          ? `No tags in the notebook at ${catalog.dir}, so no note there counts as anything yet.`
-          : `Could not read Nib's tags: ${catalog?.why ?? "unknown reason"}`,
+          ? t.boundNoTags(catalog.dir)
+          : t.boundTagsUnreadable(catalog?.why ?? t.unknownReason),
         "bad"
       );
     }
@@ -600,12 +566,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unbind: async (d) => {
     const sure = await ask({
-      title: `Unbind ${d.name}?`,
-      body: "Notes there stop counting as contact. What has already been imported stays.",
-      confirm: "Unbind",
+      title: t.unbindTitle(d.name),
+      body: t.unbindBody,
+      confirm: t.unbindButton,
       tone: "danger"
     });
-    if (sure && (await act("unbindSource", { id: d.id }, "Unbound."))) {
+    if (sure && (await act("unbindSource", { id: d.id }, t.unboundToast))) {
       refresh();
     }
   },
@@ -616,12 +582,13 @@ export const actions = {
       return;
     }
     await ask({
-      title: "What importing would bring in",
-      body:
-        `${importSummary(result)} From ${result.bindings} binding(s).` +
-        (result.skipped?.length ? ` Skipped: ${result.skipped.join("; ")}.` : "") +
-        " Nothing has been written.",
-      confirm: "Close"
+      title: t.previewTitle,
+      body: t.previewBody(
+        importSummary(result),
+        result.bindings,
+        result.skipped?.length ? t.previewSkipped(result.skipped.join("; ")) : ""
+      ),
+      confirm: t.close
     });
   },
 
@@ -631,9 +598,9 @@ export const actions = {
       return;
     }
     await ask({
-      title: "Imported",
-      body: `${importSummary(result)} Safe to run again whenever - nothing is ever duplicated.`,
-      confirm: "Good"
+      title: t.importedTitle,
+      body: t.importedBody(importSummary(result)),
+      confirm: t.good
     });
     refresh();
   },
@@ -642,11 +609,9 @@ export const actions = {
   switchMode: async (d) => {
     const toPrivate = d.to === "private";
     const sure = await ask({
-      title: toPrivate ? "Switch to the private half?" : "Back to the work half?",
-      body: toPrivate
-        ? "The app restarts and opens a different store. Nothing from the work half is visible there, and nothing written there is ever read here."
-        : "The app restarts and opens the work store again. Nothing written in the private half comes with it.",
-      confirm: toPrivate ? "Switch" : "Switch back"
+      title: toPrivate ? t.switchPrivateTitle : t.switchWorkTitle,
+      body: toPrivate ? t.switchPrivateBody : t.switchWorkBody,
+      confirm: toPrivate ? t.switchConfirm : t.switchBackConfirm
     });
     if (!sure) {
       return;
@@ -666,15 +631,9 @@ export const actions = {
 
   archiveEverything: async () => {
     const sure = await ask({
-      title: "Archive everyone and everything active?",
-      body:
-        "Archives every person, project and workstream that is currently active, in one go. " +
-        "Nothing is deleted - every 1-1, promise, decision and growth thread stays exactly as " +
-        "it is, and each one can be brought back individually, whenever it is relevant again, " +
-        "from its archived list.\n\n" +
-        "Afterwards this page offers a single Undo that puts back exactly what this press " +
-        "archived, so you do not have to reverse it one row at a time.",
-      confirm: "Archive everything",
+      title: t.archiveAllAskTitle,
+      body: t.archiveAllAskBody,
+      confirm: t.archiveAllConfirm,
       tone: "danger"
     });
     if (!sure) {
@@ -684,18 +643,15 @@ export const actions = {
     if (!result) {
       return;
     }
-    toast(`${result.people} people, ${result.projects} projects, ${result.workstreams} workstreams archived.`);
+    toast(t.archivedToast(result.people, result.projects, result.workstreams));
     refresh();
   },
 
   undoBulkArchive: async () => {
     const sure = await ask({
-      title: "Undo that archive?",
-      body:
-        "Puts back everything that press archived and is still archived now. Rows you have " +
-        "already brought back stay as they are, and anything archived on its own - before or " +
-        "after that press - is left alone.",
-      confirm: "Put them back"
+      title: t.undoAskTitle,
+      body: t.undoAskBody,
+      confirm: t.undoConfirm
     });
     if (!sure) {
       return;
@@ -704,12 +660,12 @@ export const actions = {
     if (!result) {
       return;
     }
-    toast(`${result.people} people, ${result.projects} projects, ${result.workstreams} workstreams back.`);
+    toast(t.undoneToast(result.people, result.projects, result.workstreams));
     refresh();
   },
 
   checkUpdate: async () => {
-    await act("checkForUpdates", {}, "Checking.");
+    await act("checkForUpdates", {}, t.checkingToast);
     setTimeout(refresh, 2500);
   }
 };

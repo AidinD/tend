@@ -41,6 +41,299 @@
  */
 
 export const T = {
+  settings: {
+    title: "Settings",
+    sub: "Where things are kept, and how notes reach the rest of the app.",
+
+    /*
+     * How the data directory was decided. Spelled out for all three because
+     * "default" is the one that quietly means nobody configured this and the app
+     * picked - and the per-user default is the location a helper process can be
+     * silently redirected away from, leaving two halves of the same tool on two
+     * stores.
+     */
+    whereFromEnv:
+      "Set by the TEND_DATA_DIR environment variable, inherited when this app started.",
+    whereFromUserEnv:
+      "Set by TEND_DATA_DIR, read from your Windows user environment rather than inherited.",
+    whereFromDefault:
+      "The default per-user location, because nothing set TEND_DATA_DIR. Set it to keep the data " +
+      "somewhere synced, and somewhere a helper process can reach.",
+
+    /* Which half. Two stores rather than one with a filter, because a filter is
+       a rule and a rule can be got wrong once. */
+    halfGroup: "Which half",
+    halfPrivate: "private",
+    halfWork: "work",
+    privateTitle: "The private half",
+    workTitle: "The work half",
+    privateWhy:
+      "Its own store, read by nothing on the work side and never merged with it. Drift, cadences, " +
+      "duties, prep and a focus budget are not here - contact with somebody you live with is " +
+      "continuous, so a cadence over it would read as permanently fine and mean nothing.",
+    workWhy:
+      "Everything the app has always been. People you are responsible for, what you owe them, and " +
+      "what has fallen behind.",
+    privateNote:
+      "What an entry here records is the interaction and your own part in it - not the other " +
+      "person's state. That is the half you can change, and it is the only version you could show " +
+      "the person it is about.",
+    workNote:
+      "The private half keeps family and everything outside work in a separate store. Switching " +
+      "restarts the app, so it cannot happen while you are half-way through a sentence.",
+    backToWork: "Back to work",
+    switchToPrivate: "Switch to private",
+
+    /*
+     * What one import pass did. Every count is printed, including the ones it
+     * used to keep to itself: an importer that withdraws a row and says only how
+     * many it added is one whose numbers cannot be reconciled with the page, and
+     * the natural reading of an unexplained disappearance is that the tool lost
+     * something.
+     */
+    contactRecordOne: "contact record",
+    contactRecordMany: "contact records",
+    /** @param {string} counted */
+    importAdded: (counted) => `${counted} added`,
+    promiseOne: "promise",
+    promiseMany: "promises",
+    commitmentIsOne: "commitment is",
+    commitmentAreMany: "commitments are",
+    /** @param {string} counted */
+    importWaiting: (counted) =>
+      `${counted} waiting for you to say whose they are - they came out of notes several people ` +
+      `were in, so copying them onto everybody would turn one obligation into several. They are on Now.`,
+    /** @param {string} counted */
+    importResolved: (counted) => `${counted} closed, ticked off in Nib.`,
+    waitingCommitmentOne: "waiting commitment",
+    waitingCommitmentMany: "waiting commitments",
+    /** @param {string} counted */
+    importDropped: (counted) => `${counted} dropped, settled in Nib before anybody filed them.`,
+    /** @param {string} counted */
+    importRetracted: (counted) =>
+      `${counted} withdrawn, because the note no longer carries the tag it was counted under.`,
+    commitmentOne: "commitment",
+    commitmentMany: "commitments",
+    /** @param {string} counted */
+    importWithdrawn: (counted) =>
+      `${counted} withdrawn, because the note no longer flags them. Marked as retracted rather ` +
+      `than done, and still on the person's page if you need to look.`,
+
+    /* Nib. The important half: bind a folder to a person, then say which tag
+       supplies each kind of contact. */
+    nibGroup: "Notes from Nib",
+    nibUnreadableTitle: "Nib is not readable",
+    nibUnknownReason: "Unknown reason.",
+    nibReadOnly: "Tend only ever reads Nib. It never writes to it.",
+    /** @param {number} n */
+    nibBound: (n) => `${n} bound`,
+    /** @param {string} dir */
+    nibReading: (dir) => `Reading ${dir}`,
+    nibUnknownFolder: "an unknown folder",
+    nibHowTitle: "How this works",
+    nibHowWhy:
+      "Point a Nib folder at a person, then say which of your Nib tags supplies each kind of " +
+      "contact Tend tracks. Writing a tagged note is then the evidence that the contact happened, " +
+      "with nothing to confirm afterwards - and an untagged note counts as nothing, so a folder " +
+      "can hold every sort of note about somebody.",
+    nibHowNote:
+      "Flagged action points inside those notes become promises here, and ticking one off in Nib " +
+      "closes it here too. Tend only reads Nib.",
+    nibWatching: "Notes import themselves, within a second of being tagged.",
+    nibTimerOnly:
+      "Notes import on a timer only - this window is not watching the notebook.",
+    /** @param {number} n */
+    nibFolderCount: (n) => `${n} folder(s) found in Nib`,
+    bindButton: "Bind a folder",
+    previewButton: "Preview import",
+    importButton: "Import now",
+    nibNoPeople: "Add people first - a binding points a folder at somebody.",
+    nibNothingBound: "Nothing bound yet.",
+    /** @param {string} person @param {string} as */
+    bindingMeta: (person, as) => `→ ${person}${as}`,
+    unknownPerson: "unknown",
+    /** @param {string} kind */
+    bindingCountsAs: (kind) => ` as ${kind}`,
+    bindingNoTags: " - no tags mapped, so nothing counts yet",
+    tagsButton: "Tags",
+    unbindButton: "Unbind",
+
+    /* The data directory. */
+    dataGroup: "Your data",
+    dataTitle: "Where it is kept",
+    dataAppendOnly:
+      "Written as an append-only log, one file per writer, so this app and anything else reaching " +
+      "the same folder can write at once without losing each other's changes. Nothing is ever " +
+      "overwritten, which is also why nothing is ever truly lost.",
+    dataNote: "This folder holds notes about named colleagues. It stays on your machine.",
+    openFolder: "Open the folder",
+
+    /*
+     * The bulk leaving-a-job action, and the single-press way back. The two
+     * directions used to be badly matched - one button to archive a roster,
+     * thirty decisions to restore it - while the card offered "reversible" as
+     * reassurance.
+     */
+    leavingGroup: "Leaving a job",
+    archiveAllTitle: "Archive everyone and everything active",
+    archiveAllWhy:
+      "For the moment a job ends. Archives every person, project and workstream that is currently " +
+      "active - all at once, instead of one at a time.",
+    archiveAllNote:
+      "Nothing is deleted. Every 1-1, promise, decision and growth thread stays exactly as it is. " +
+      "Each one can be brought back on its own, whenever it is relevant again, from its archived list.",
+    archiveAllSafe: "Safe to run again - anything already archived is left untouched.",
+    archiveAllButton: "Archive everything active",
+    /** @param {string} when */
+    undoTitle: (when) => `Undo the archive from ${when}`,
+    undoEarlierRun: "an earlier run",
+    /** @param {string} parts */
+    undoWhy: (parts) =>
+      `Puts back ${parts} - only what that press archived, and only the ones still archived now. ` +
+      `Anything you have already brought back by hand stays as it is, and nothing archived on its ` +
+      `own before or after is touched.`,
+    undoOffered: "Offered until you use it, or archive everything again.",
+    undoButton: "Undo that archive",
+    personOne: "person",
+    personMany: "people",
+    projectOne: "project",
+    projectMany: "projects",
+    workstreamOne: "workstream",
+    workstreamMany: "workstreams",
+
+    /* Drafting. Says what it will never do as prominently as what it does. */
+    draftingGroup: "Drafting",
+    draftingAvailable: "Available",
+    draftingOff: "Off",
+    draftingSignedIn: "signed in through Claude Code",
+    draftingNotSetUp: "not set up",
+    draftingWhat:
+      "Three buttons use a model: a brief before a conversation, reading one of your notes for a " +
+      "commitment you wrote in passing, and naming what recurs across several notes about the " +
+      "same person. Each one is a button. Nothing runs on a timer and nothing runs when this " +
+      "window opens.",
+    draftingSignIn:
+      "It borrows the sign-in Claude Code already has on this machine, so there is no key to " +
+      "store. A note only ever leaves this machine when you press one of those buttons.",
+    draftingWithout:
+      "Everything else works exactly as it does with it on. Drift, cadences, promises and the " +
+      "focus budget are ordinary arithmetic - a model never decides what needs your attention.",
+    draftingNever:
+      "A model writes nothing here. Everything it produces is a draft, shown and thrown away " +
+      "unless you keep it yourself.",
+
+    /* About. */
+    aboutGroup: "About",
+    /** @param {string} version */
+    aboutTitle: (version) => `Tend ${version}`,
+    installed: "installed",
+    development: "development",
+    updatesOn: "Checks for a newer version once at startup and installs it when you quit.",
+    updatesOff:
+      "Running from source. Update checks are off, since there is no installed copy to replace.",
+    noUpdateCheck: "No update check has run yet.",
+    checkNow: "Check now",
+
+    /*
+     * One row per kind of contact Tend tracks, answered with a Nib tag. This way
+     * round on purpose: listing Nib's tags and asking what each MEANT put the
+     * other app's vocabulary in charge of the question.
+     */
+    tagNone: "No tag - Tend never sees this from here",
+    /** @param {string} dir */
+    tagsReadFrom: (dir) => `Tags read from ${dir}.`,
+    /** @param {string} folder */
+    tagsTitle: (folder) => `Tags in ${folder}`,
+    tagsIntro:
+      "Tend asks; your notebook answers. For each kind of contact Tend tracks, pick the Nib tag " +
+      "that means it. Leave one blank and Tend simply never sees that kind from this folder - " +
+      "most people will use two or three.",
+    save: "Save",
+    /** @param {number} n */
+    tagRulesSaved: (n) => `${n} tag rule${n === 1 ? "" : "s"} saved.`,
+    tagsUnreadable: "Nib's tags could not be read.",
+    /** @param {string} dir */
+    noTagsIn: (dir) => `No tags in the notebook at ${dir}. Make one in Nib first.`,
+
+    /* Binding a folder. */
+    bindTitle: "Bind a Nib folder",
+    bindIntro:
+      "Notes in this folder become contact with this person. What each note counts AS comes from " +
+      "its tag in Nib - so a folder can hold every sort of note about somebody without one you " +
+      "merely heard resetting the clock on having spoken to them. An untagged note counts as nothing.",
+    bindFolderLabel: "Folder in Nib",
+    /** @param {string} label @param {number} notes */
+    bindFolderOption: (label, notes) => `${label} (${notes} note${notes === 1 ? "" : "s"})`,
+    bindPeopleLabel: "Whose notes these are",
+    bindNameLabel: "What to call it (optional)",
+    bindSharedNote:
+      "Naming more than one person makes this a meeting rather than a person's folder. Each note " +
+      "there becomes contact with every one of them, so all their clocks move. Flagged action " +
+      "points do NOT get copied onto everybody - there is no way to tell whose each is, so they " +
+      "wait on Now until you say.",
+    bindConfirm: "Bind",
+    bindNobody: "Pick at least one person - a folder bound to nobody imports nothing.",
+    boundToast: "Bound.",
+    /** @param {string} dir */
+    boundNoTags: (dir) => `No tags in the notebook at ${dir}, so no note there counts as anything yet.`,
+    /** @param {string} why */
+    boundTagsUnreadable: (why) => `Could not read Nib's tags: ${why}`,
+    unknownReason: "unknown reason",
+
+    /** @param {string} name */
+    unbindTitle: (name) => `Unbind ${name}?`,
+    unbindBody: "Notes there stop counting as contact. What has already been imported stays.",
+    unboundToast: "Unbound.",
+
+    previewTitle: "What importing would bring in",
+    /** @param {string} summary @param {number} bindings @param {string} skipped */
+    previewBody: (summary, bindings, skipped) =>
+      `${summary} From ${bindings} binding(s).${skipped} Nothing has been written.`,
+    /** @param {string} which */
+    previewSkipped: (which) => ` Skipped: ${which}.`,
+    close: "Close",
+    importedTitle: "Imported",
+    /** @param {string} summary */
+    importedBody: (summary) => `${summary} Safe to run again whenever - nothing is ever duplicated.`,
+    good: "Good",
+
+    switchPrivateTitle: "Switch to the private half?",
+    switchWorkTitle: "Back to the work half?",
+    switchPrivateBody:
+      "The app restarts and opens a different store. Nothing from the work half is visible there, " +
+      "and nothing written there is ever read here.",
+    switchWorkBody:
+      "The app restarts and opens the work store again. Nothing written in the private half comes " +
+      "with it.",
+    switchConfirm: "Switch",
+    switchBackConfirm: "Switch back",
+
+    archiveAllAskTitle: "Archive everyone and everything active?",
+    archiveAllAskBody:
+      "Archives every person, project and workstream that is currently active, in one go. " +
+      "Nothing is deleted - every 1-1, promise, decision and growth thread stays exactly as " +
+      "it is, and each one can be brought back individually, whenever it is relevant again, " +
+      "from its archived list.\n\n" +
+      "Afterwards this page offers a single Undo that puts back exactly what this press " +
+      "archived, so you do not have to reverse it one row at a time.",
+    archiveAllConfirm: "Archive everything",
+    /** @param {number} people @param {number} projects @param {number} workstreams */
+    archivedToast: (people, projects, workstreams) =>
+      `${people} people, ${projects} projects, ${workstreams} workstreams archived.`,
+
+    undoAskTitle: "Undo that archive?",
+    undoAskBody:
+      "Puts back everything that press archived and is still archived now. Rows you have already " +
+      "brought back stay as they are, and anything archived on its own - before or after that " +
+      "press - is left alone.",
+    undoConfirm: "Put them back",
+    /** @param {number} people @param {number} projects @param {number} workstreams */
+    undoneToast: (people, projects, workstreams) =>
+      `${people} people, ${projects} projects, ${workstreams} workstreams back.`,
+
+    checkingToast: "Checking."
+  },
+
   work: {
     title: "Work",
     sub:
