@@ -41,6 +41,148 @@
  */
 
 export const T = {
+  now: {
+    readFailedTitle: "Could not read the data",
+
+    /* The quiet day, which is the design rather than a gap. */
+    quietTitle: "Nothing needs you",
+    quietSub:
+      "Every cadence is inside its interval, no promise is ageing, and no question is due. This " +
+      "view is meant to be empty most days.",
+    quietEmpty: "When something drifts, it appears here and nowhere else.",
+
+    title: "Now",
+    sub: "Only what deviates. Everything in step stays out of the way.",
+
+    /* The focus strip. */
+    focusEyebrow: "Current focus",
+    /** @param {number} held */
+    focusHeld: (held) => `${held} nudge(s) held back. Nothing critical is ever in there.`,
+    focusSettings: "Focus settings",
+
+    /* The groups. */
+    needsYouGroup: "Needs you",
+    revisitsGroup: "Decisions to look at again",
+    questionsGroup: "Questions",
+    nudgeGroup: "Nudge",
+    /** @param {number} n */
+    softerHeld: (n) => `${n} softer nudge(s) held back while the focus runs.`,
+
+    /* A decision asking to be looked at again. */
+    /** @param {string} by */
+    decisionDue: (by) => `decision due ${by}`,
+    dueNow: "now",
+    decisionSrc: "You set this date when you decided it.",
+    stillHolds: "It still holds",
+    openLog: "Open the log",
+
+    /*
+     * Patterns in his own month, at the bottom rather than the top. They are not
+     * deviations from a duty and nothing is late because of them, so they must
+     * not compete with what is.
+     */
+    mineHead: "My month",
+    mineSub: "About me, not about them. Nothing here is late.",
+
+    /* Nobody active, but not nobody. A state that can be reversed rather than a
+       setup step that was never done. */
+    archivedSub:
+      "Nobody is active right now - everybody is archived, and every 1-1, promise and decision " +
+      "about them is exactly where it was. Bring anyone back from the archived group on People, " +
+      "or start over by adding somebody new.",
+    archivedEmpty:
+      "Nothing has been deleted. When somebody is active again, what is behind on them appears here.",
+
+    /* First run. */
+    firstTitle: "Nothing to watch yet",
+    firstSub:
+      "Tend needs two things before it can tell you anything: the people you are responsible " +
+      "for, and what the job asks of you.",
+    firstPeopleTitle: "1. Add the people",
+    firstPeopleWhy:
+      "Everyone you lead or manage, and the other leads you work beside. Set the date each " +
+      "relationship started, not today - otherwise someone you have not spoken to in months " +
+      "looks perfectly in step.",
+    firstPeopleNote: "Nothing leaves this machine",
+    firstPeopleButton: "Add someone",
+    firstRoleTitle: "2. Start the role map",
+    firstRoleWhy:
+      "Three duties you already practise, five proposed from the management reading, and three " +
+      "monthly questions. The proposals do nothing until you accept them, and you can change any " +
+      "of it afterwards.",
+    firstRoleNote: "You can edit or delete every one of them",
+    firstRoleButton: "Set up the role map",
+    firstRoleLook: "Look first",
+
+    /* One card. */
+    softened: "Actually critical. The focus is only softening how it reads.",
+    logProject: "Log a look",
+    logWorkstream: "Log a review",
+    logStake: "Log an update",
+    logPerson: "Log contact",
+    open: "Open",
+    done: "Done",
+    drop: "Drop",
+    setLevelButton: "Set the level",
+    fileButton: "Say whose these are",
+    guarded: " · guarded",
+
+    /* A monthly question. The answer is usually no, and saying so is the point. */
+    neverAsked: "never asked",
+    questionSrc: "Monthly check. The answer is usually no",
+    answerNo: "No",
+    answerYes: "Yes, and here is what I saw",
+
+    /* Filing commitments out of one shared note. */
+    fileTitle: "Whose are these?",
+    /** @param {number} n @param {string} note */
+    fileIntro: (n, note) =>
+      `${n} thing${n === 1 ? "" : "s"} were flagged in "${note}". ` +
+      "Several people were in it, so Tend cannot tell whose each one is - and filing one against " +
+      "everybody would turn one obligation into several. Anything left as not-yet stays in the queue.",
+    fileNotYet: "Not yet - leave it in the queue",
+    /** @param {string} name */
+    filePromiseTo: (name) => `A promise to ${name}`,
+    fileNobody: "Nobody's promise - discard it",
+    fileConfirm: "File them",
+    /** @param {number} n */
+    filedCount: (n) => `${n} filed`,
+    /** @param {number} n */
+    discardedCount: (n) => `${n} discarded`,
+
+    /* Logging contact, where the subject decides the wording and the kinds. */
+    logTitlePerson: "Log contact",
+    logTitleOther: "Log what you looked at",
+    logIntroPerson:
+      "The kind decides which cadence this satisfies. Hearing about someone from their lead is " +
+      "not the same as having spoken to them, and Tend keeps those apart on purpose.",
+    logIntroOther:
+      "Only the kinds that can be about this sort of subject are offered. The rest would record " +
+      "something that satisfies no cadence.",
+    logKindLabel: "What kind",
+    logNoteLabel: "One line, optional",
+    logNotePlaceholder: "What it was about",
+    logConfirm: "Log it",
+    loggedToast: "Logged.",
+
+    closedToast: "Closed.",
+    dropTitle: "Drop this promise?",
+    dropBody:
+      "It stops being tracked. Use this when you decided not to do it, rather than when you did it.",
+    dropConfirm: "Drop it",
+    droppedToast: "Dropped.",
+    seededToast: "Role map set up.",
+
+    answeredNoToast: "Noted. Back in a month.",
+    yesTitle: "What did you see?",
+    yesIntro:
+      "A bare yes is no use in three months. One or two concrete sentences is enough, and this " +
+      "question comes back in a week rather than a month.",
+    yesLabel: "What you saw",
+    yesConfirm: "Record it",
+    recordedToast: "Recorded."
+  },
+
   knowledge: {
     title: "What do I know about this?",
     /*

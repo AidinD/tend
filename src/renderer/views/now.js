@@ -12,6 +12,9 @@
 import { act, ask, esc, form, kindsFor, tend, toast } from "../ui.js";
 import { go, refresh } from "../app.js";
 import { actions as waitingActions, waitingGroup } from "./waiting.js";
+import { T } from "../text.js";
+
+const t = T.now;
 
 export async function render() {
   const [attention, questions, roster, ledger, mine, waits, archived] = await Promise.all([
@@ -27,7 +30,7 @@ export async function render() {
 
   if (attention.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">Could not read the data</h2></div>
+      <h2 class="card-title">${t.readFailedTitle}</h2></div>
       <p class="card-why">${esc(attention.error)}</p></div>`;
   }
 
@@ -46,12 +49,12 @@ export async function render() {
 
   const focus = attention.focus
     ? `<div class="focus-bar${attention.focus.overrun ? " overrun" : ""}">
-        <div class="focus-eyebrow">Current focus</div>
+        <div class="focus-eyebrow">${t.focusEyebrow}</div>
         <h2 class="focus-name">${esc(attention.focus.summary)}</h2>
         <p class="focus-cost">${esc(attention.focus.cost)}</p>
         <div class="card-foot">
-          <span class="src">${attention.heldBackByFocus} nudge(s) held back. Nothing critical is ever in there.</span>
-          <button class="act" data-act="openFocus">Focus settings</button>
+          <span class="src">${t.focusHeld(attention.heldBackByFocus)}</span>
+          <button class="act" data-act="openFocus">${t.focusSettings}</button>
         </div>
       </div>`
     : "";
@@ -74,13 +77,13 @@ export async function render() {
         <div class="card sev-critical">
           <div class="card-top">
             <h2 class="card-title">${esc(d.what)}</h2>
-            <span class="badge">decision due ${esc(d.revisitOverdueBy ?? "now")}</span>
+            <span class="badge">${t.decisionDue(esc(d.revisitOverdueBy ?? t.dueNow))}</span>
           </div>
           ${d.because ? `<p class="card-why">${esc(d.because)}</p>` : ""}
           <div class="card-foot">
-            <span class="src">You set this date when you decided it.</span>
-            <button class="act" data-act="holds" data-id="${esc(d.id)}">It still holds</button>
-            <button class="act" data-act="openDecisions">Open the log</button>
+            <span class="src">${t.decisionSrc}</span>
+            <button class="act" data-act="holds" data-id="${esc(d.id)}">${t.stillHolds}</button>
+            <button class="act" data-act="openDecisions">${t.openLog}</button>
           </div>
         </div>`
     )
@@ -123,11 +126,11 @@ export async function render() {
   ) {
     return `
       <div class="view-head">
-        <h1 class="view-title">Nothing needs you</h1>
-        <p class="view-sub">Every cadence is inside its interval, no promise is ageing, and no question is due. This view is meant to be empty most days.</p>
+        <h1 class="view-title">${t.quietTitle}</h1>
+        <p class="view-sub">${t.quietSub}</p>
       </div>
       ${focus}
-      <div class="empty">When something drifts, it appears here and nowhere else.</div>
+      <div class="empty">${t.quietEmpty}</div>
       ${
         // Still printed on a quiet day, at the bottom, under the sentence that
         // says nothing needs you. Dropping it here instead would make the flag
@@ -139,20 +142,20 @@ export async function render() {
 
   return `
     <div class="view-head">
-      <h1 class="view-title">Now</h1>
-      <p class="view-sub">Only what deviates. Everything in step stays out of the way.</p>
+      <h1 class="view-title">${t.title}</h1>
+      <p class="view-sub">${t.sub}</p>
     </div>
     ${focus}
-    ${group("Needs you", attention.needsYou.map(card).join(""), attention.needsYou.length)}
-    ${group("Decisions to look at again", revisitCards, revisits.length)}
-    ${group("Questions", due.map(question).join(""), due.length)}
+    ${group(t.needsYouGroup, attention.needsYou.map(card).join(""), attention.needsYou.length)}
+    ${group(t.revisitsGroup, revisitCards, revisits.length)}
+    ${group(t.questionsGroup, due.map(question).join(""), due.length)}
     ${group(
-      "Nudge",
+      t.nudgeGroup,
       attention.nudges.map(card).join("") +
         (attention.heldBackByFocus > 0 && !attention.focus
           ? ""
           : attention.heldBackByFocus > 0
-            ? `<div class="muted-row">${attention.heldBackByFocus} softer nudge(s) held back while the focus runs.</div>`
+            ? `<div class="muted-row">${t.softerHeld(attention.heldBackByFocus)}</div>`
             : ""),
       attention.nudges.length
     )}
@@ -171,8 +174,8 @@ export async function render() {
  */
 function mineBlock(rows) {
   return `<div class="mine">
-    <h2 class="mine-head">My month</h2>
-    <p class="mine-sub">About me, not about them. Nothing here is late.</p>
+    <h2 class="mine-head">${t.mineHead}</h2>
+    <p class="mine-sub">${t.mineSub}</p>
     ${rows}
   </div>`;
 }
@@ -198,36 +201,36 @@ function everybodyArchived(mine) {
     .join("");
   return `
     <div class="view-head">
-      <h1 class="view-title">Nothing needs you</h1>
-      <p class="view-sub">Nobody is active right now - everybody is archived, and every 1-1, promise and decision about them is exactly where it was. Bring anyone back from the archived group on People, or start over by adding somebody new.</p>
+      <h1 class="view-title">${t.quietTitle}</h1>
+      <p class="view-sub">${t.archivedSub}</p>
     </div>
     ${rows === "" ? "" : mineBlock(rows)}
-    <div class="empty">Nothing has been deleted. When somebody is active again, what is behind on them appears here.</div>
+    <div class="empty">${t.archivedEmpty}</div>
   `;
 }
 
 function firstRun() {
   return `
     <div class="view-head">
-      <h1 class="view-title">Nothing to watch yet</h1>
-      <p class="view-sub">Tend needs two things before it can tell you anything: the people you are responsible for, and what the job asks of you.</p>
+      <h1 class="view-title">${t.firstTitle}</h1>
+      <p class="view-sub">${t.firstSub}</p>
     </div>
     <div class="stack">
       <article class="card sev-warn">
-        <div class="card-top"><h2 class="card-title">1. Add the people</h2></div>
-        <p class="card-why">Everyone you lead or manage, and the other leads you work beside. Set the date each relationship started, not today - otherwise someone you have not spoken to in months looks perfectly in step.</p>
+        <div class="card-top"><h2 class="card-title">${t.firstPeopleTitle}</h2></div>
+        <p class="card-why">${t.firstPeopleWhy}</p>
         <div class="card-foot">
-          <span class="src">Nothing leaves this machine</span>
-          <button class="act primary" data-act="addPerson">Add someone</button>
+          <span class="src">${t.firstPeopleNote}</span>
+          <button class="act primary" data-act="addPerson">${t.firstPeopleButton}</button>
         </div>
       </article>
       <article class="card sev-book">
-        <div class="card-top"><h2 class="card-title">2. Start the role map</h2></div>
-        <p class="card-why">Three duties you already practise, five proposed from the management reading, and three monthly questions. The proposals do nothing until you accept them, and you can change any of it afterwards.</p>
+        <div class="card-top"><h2 class="card-title">${t.firstRoleTitle}</h2></div>
+        <p class="card-why">${t.firstRoleWhy}</p>
         <div class="card-foot">
-          <span class="src">You can edit or delete every one of them</span>
-          <button class="act primary" data-act="seed">Set up the role map</button>
-          <button class="act" data-act="openRole">Look first</button>
+          <span class="src">${t.firstRoleNote}</span>
+          <button class="act primary" data-act="seed">${t.firstRoleButton}</button>
+          <button class="act" data-act="openRole">${t.firstRoleLook}</button>
         </div>
       </article>
     </div>
@@ -253,7 +256,7 @@ function group(title, body, count) {
 function card(item) {
   const softened =
     item.actualUrgency === "critical" && item.urgency !== "critical"
-      ? `<p class="card-why dim">Actually critical. The focus is only softening how it reads.</p>`
+      ? `<p class="card-why dim">${t.softened}</p>`
       : "";
 
   const actions = [];
@@ -263,9 +266,9 @@ function card(item) {
     // conversation with it, and the old card offered every kind for either -
     // which records something that satisfies nothing and still says "Logged".
     /** @type {Record<string, string>} */
-    const LABELS = { project: "Log a look", workstream: "Log a review", stake: "Log an update" };
+    const LABELS = { project: t.logProject, workstream: t.logWorkstream, stake: t.logStake };
     const kind = String(item.subjectKind ?? "person");
-    const label = LABELS[kind] ?? "Log contact";
+    const label = LABELS[kind] ?? t.logPerson;
     const isPerson = kind === "person";
     actions.push(
       `<button class="act" data-act="logContact" data-person="${esc(item.person)}" data-subject-kind="${esc(item.subjectKind ?? "person")}">${label}</button>`
@@ -273,23 +276,23 @@ function card(item) {
     // Only people have a page. Sending a project id to the roster showed an
     // empty person rather than saying it had nowhere to go.
     if (isPerson) {
-      actions.push(`<button class="act" data-act="openPerson" data-person="${esc(item.person)}">Open</button>`);
+      actions.push(`<button class="act" data-act="openPerson" data-person="${esc(item.person)}">${t.open}</button>`);
     }
   }
   if (item.key.startsWith("promise:")) {
     actions.push(
-      `<button class="act primary" data-act="resolvePromise" data-id="${esc(item.key.slice(8))}">Done</button>`,
-      `<button class="act" data-act="dropPromise" data-id="${esc(item.key.slice(8))}">Drop</button>`
+      `<button class="act primary" data-act="resolvePromise" data-id="${esc(item.key.slice(8))}">${t.done}</button>`,
+      `<button class="act" data-act="dropPromise" data-id="${esc(item.key.slice(8))}">${t.drop}</button>`
     );
   }
   if (item.key.startsWith("unspecified:")) {
     actions.push(
-      `<button class="act primary" data-act="setLevel" data-id="${esc(item.key.slice(12))}">Set the level</button>`
+      `<button class="act primary" data-act="setLevel" data-id="${esc(item.key.slice(12))}">${t.setLevelButton}</button>`
     );
   }
   if (item.key.startsWith("unfiled:")) {
     actions.push(
-      `<button class="act primary" data-act="fileCommitments" data-key="${esc(item.key.slice(8))}">Say whose these are</button>`
+      `<button class="act primary" data-act="fileCommitments" data-key="${esc(item.key.slice(8))}">${t.fileButton}</button>`
     );
   }
 
@@ -301,7 +304,7 @@ function card(item) {
     <p class="card-why">${esc(item.why)}</p>
     ${softened}
     <div class="card-foot">
-      <span class="src">${esc(item.from)}${item.guarded ? " · guarded" : ""}</span>
+      <span class="src">${esc(item.from)}${item.guarded ? t.guarded : ""}</span>
       ${actions.join("")}
     </div>
   </article>`;
@@ -312,13 +315,13 @@ function question(q) {
   return `<article class="card sev-book">
     <div class="card-top">
       <h2 class="card-title">${esc(q.question)}</h2>
-      <span class="pill book">${esc(q.lastAsked === "never" ? "never asked" : q.lastAsked)}</span>
+      <span class="pill book">${esc(q.lastAsked === "never" ? t.neverAsked : q.lastAsked)}</span>
     </div>
     <p class="card-why">${esc(q.why)}</p>
     <div class="card-foot">
-      <span class="src">Monthly check. The answer is usually no</span>
-      <button class="act primary" data-act="answerNo" data-id="${esc(q.id)}">No</button>
-      <button class="act" data-act="answerYes" data-id="${esc(q.id)}">Yes, and here is what I saw</button>
+      <span class="src">${t.questionSrc}</span>
+      <button class="act primary" data-act="answerNo" data-id="${esc(q.id)}">${t.answerNo}</button>
+      <button class="act" data-act="answerYes" data-id="${esc(q.id)}">${t.answerYes}</button>
     </div>
   </article>`;
 }
@@ -376,23 +379,20 @@ export const actions = {
     }
 
     const values = await form({
-      title: `Whose are these?`,
-      intro:
-        `${group.items.length} thing${group.items.length === 1 ? "" : "s"} were flagged in "${group.note}". ` +
-        "Several people were in it, so Tend cannot tell whose each one is - and filing one against " +
-        "everybody would turn one obligation into several. Anything left as not-yet stays in the queue.",
+      title: t.fileTitle,
+      intro: t.fileIntro(group.items.length, group.note),
       fields: group.items.map((/** @type {any} */ item, /** @type {number} */ i) => ({
         name: `c${i}`,
         label: item.text,
         type: "select",
         value: "",
         options: [
-          { value: "", label: "Not yet - leave it in the queue" },
-          ...item.candidates.map((/** @type {any} */ c) => ({ value: c.id, label: `A promise to ${c.name}` })),
-          { value: "none", label: "Nobody's promise - discard it" }
+          { value: "", label: t.fileNotYet },
+          ...item.candidates.map((/** @type {any} */ c) => ({ value: c.id, label: t.filePromiseTo(c.name) })),
+          { value: "none", label: t.fileNobody }
         ]
       })),
-      confirm: "File them"
+      confirm: t.fileConfirm
     });
     if (!values) {
       return;
@@ -419,10 +419,10 @@ export const actions = {
     if (filed > 0 || discarded > 0) {
       const parts = [];
       if (filed > 0) {
-        parts.push(`${filed} filed`);
+        parts.push(t.filedCount(filed));
       }
       if (discarded > 0) {
-        parts.push(`${discarded} discarded`);
+        parts.push(t.discardedCount(discarded));
       }
       toast(`${parts.join(", ")}.`);
     }
@@ -430,7 +430,7 @@ export const actions = {
   },
 
   seed: async () => {
-    const result = await act("seed", {}, "Role map set up.");
+    const result = await act("seed", {}, t.seededToast);
     if (result) {
       go("role");
     }
@@ -441,28 +441,25 @@ export const actions = {
     const subjectKind = /** @type {any} */ (d.subjectKind ?? "person");
     const options = kindsFor(subjectKind);
     const values = await form({
-      title: subjectKind === "person" ? "Log contact" : "Log what you looked at",
-      intro:
-        subjectKind === "person"
-          ? "The kind decides which cadence this satisfies. Hearing about someone from their lead is not the same as having spoken to them, and Tend keeps those apart on purpose."
-          : "Only the kinds that can be about this sort of subject are offered. The rest would record something that satisfies no cadence.",
+      title: subjectKind === "person" ? t.logTitlePerson : t.logTitleOther,
+      intro: subjectKind === "person" ? t.logIntroPerson : t.logIntroOther,
       fields: [
-        { name: "kind", label: "What kind", type: "select", options, value: options[0]?.value },
-        { name: "note", label: "One line, optional", placeholder: "What it was about" }
+        { name: "kind", label: t.logKindLabel, type: "select", options, value: options[0]?.value },
+        { name: "note", label: t.logNoteLabel, placeholder: t.logNotePlaceholder }
       ],
-      confirm: "Log it"
+      confirm: t.logConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.person, ...values }, "Logged.")) {
+    if (await act("logTouch", { subject: d.person, ...values }, t.loggedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   resolvePromise: async (d) => {
-    if (await act("resolvePromise", { id: d.id, as: "resolved" }, "Closed.")) {
+    if (await act("resolvePromise", { id: d.id, as: "resolved" }, t.closedToast)) {
       refresh();
     }
   },
@@ -470,11 +467,11 @@ export const actions = {
   /** @param {Record<string, string>} d */
   dropPromise: async (d) => {
     const sure = await ask({
-      title: "Drop this promise?",
-      body: "It stops being tracked. Use this when you decided not to do it, rather than when you did it.",
-      confirm: "Drop it"
+      title: t.dropTitle,
+      body: t.dropBody,
+      confirm: t.dropConfirm
     });
-    if (sure && (await act("resolvePromise", { id: d.id, as: "dropped" }, "Dropped."))) {
+    if (sure && (await act("resolvePromise", { id: d.id, as: "dropped" }, t.droppedToast))) {
       refresh();
     }
   },
@@ -489,7 +486,7 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   answerNo: async (d) => {
-    if (await act("answerSignal", { signal: d.id, answer: "no" }, "Noted. Back in a month.")) {
+    if (await act("answerSignal", { signal: d.id, answer: "no" }, t.answeredNoToast)) {
       refresh();
     }
   },
@@ -497,15 +494,15 @@ export const actions = {
   /** @param {Record<string, string>} d */
   answerYes: async (d) => {
     const values = await form({
-      title: "What did you see?",
-      intro: "A bare yes is no use in three months. One or two concrete sentences is enough, and this question comes back in a week rather than a month.",
-      fields: [{ name: "note", label: "What you saw", type: "textarea", required: true }],
-      confirm: "Record it"
+      title: t.yesTitle,
+      intro: t.yesIntro,
+      fields: [{ name: "note", label: t.yesLabel, type: "textarea", required: true }],
+      confirm: t.yesConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("answerSignal", { signal: d.id, answer: "yes", note: values.note }, "Recorded.")) {
+    if (await act("answerSignal", { signal: d.id, answer: "yes", note: values.note }, t.recordedToast)) {
       refresh();
     }
   }
