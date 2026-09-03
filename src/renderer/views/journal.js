@@ -40,7 +40,7 @@ import { discard, isRunning, modelActions, modelStatus, ownPartHtml, resultFor, 
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
-const t = T.journal;
+const words = T.journal;
 
 /** The key the current reading is held under. One at a time is enough. */
 const REVIEW_KEY = "review:journal";
@@ -65,7 +65,7 @@ export async function render() {
 
   if (result?.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">${t.readFailedTitle}</h2></div>
+      <h2 class="card-title">${words.readFailedTitle}</h2></div>
       <p class="card-why">${esc(result.error)}</p></div>`;
   }
 
@@ -76,8 +76,8 @@ export async function render() {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">${t.title}</h1>
-          <p class="view-sub">${isPrivate ? t.subPrivate : t.subWork}</p>
+          <h1 class="view-title">${words.title}</h1>
+          <p class="view-sub">${isPrivate ? words.subPrivate : words.subWork}</p>
         </div>
         <span class="foot-actions">
           <!--
@@ -88,8 +88,8 @@ export async function render() {
             holds. Folding either into the other is what produced the first two
             wrong versions of this.
           -->
-          ${isPrivate ? `<button class="act" data-act="logMoment">${t.logMomentButton}</button>` : ""}
-          <button class="act primary" data-act="writeEntry">${t.writeButton}</button>
+          ${isPrivate ? `<button class="act" data-act="logMoment">${words.logMomentButton}</button>` : ""}
+          <button class="act primary" data-act="writeEntry">${words.writeButton}</button>
         </span>
       </div>
     </div>`;
@@ -98,7 +98,7 @@ export async function render() {
     <p class="prep-dropped">
       ${esc(cover.summary)}${
         cover.spread > 0 && cover.thin
-          ? t.tooThinNote
+          ? words.tooThinNote
           : ""
       }
     </p>`;
@@ -106,7 +106,7 @@ export async function render() {
   if (entries.length === 0) {
     return `${head}
       ${isPrivate ? await momentsSection(model) : ""}
-      <div class="empty">${t.empty}</div>`;
+      <div class="empty">${words.empty}</div>`;
   }
 
   const fields = Array.isArray(result.fields) ? result.fields : [];
@@ -139,7 +139,7 @@ async function momentsSection(model) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">${t.momentsGroup}</span>
+      <span class="group-title">${words.momentsGroup}</span>
       <span class="group-rule"></span>
       <span class="group-meta">${logged.length}</span>
     </div>
@@ -159,7 +159,7 @@ async function momentsSection(model) {
     </div>
     ${
       logged.length > 12
-        ? `<p class="card-why dim">${t.momentsMore(logged.length - 12)}</p>`
+        ? `<p class="card-why dim">${words.momentsMore(logged.length - 12)}</p>`
         : ""
     }
     ${patternsBlock(logged, model)}
@@ -203,18 +203,18 @@ function patternsBlock(logged, model) {
   const tooThin = logged.length < 4 || days < 3;
 
   const why = tooThin
-    ? t.patternsTooThin(logged.length, days)
+    ? words.patternsTooThin(logged.length, days)
     : model.available
-      ? t.patternsReady
-      : String(model.why ?? t.patternsNoModel);
+      ? words.patternsReady
+      : String(model.why ?? words.patternsNoModel);
 
   return `<article class="card">
-    <div class="card-top"><h2 class="card-title">${t.patternsTitle}</h2></div>
+    <div class="card-top"><h2 class="card-title">${words.patternsTitle}</h2></div>
     <p class="card-why">${esc(why)}</p>
     <div class="card-foot">
-      <span class="src">${t.patternsNote}</span>
+      <span class="src">${words.patternsNote}</span>
       <button class="act" data-act="readMoments" ${tooThin || !model.available || running ? "disabled" : ""}>
-        ${running ? t.patternsReading : t.patternsRead}
+        ${running ? words.patternsReading : words.patternsRead}
       </button>
     </div>
   </article>`;
@@ -233,9 +233,9 @@ function patternsBlock(logged, model) {
 function patternsHtml(result) {
   if (result?.error) {
     return `<article class="card sev-critical">
-      <div class="card-top"><h2 class="card-title">${t.patternsFailedTitle}</h2></div>
+      <div class="card-top"><h2 class="card-title">${words.patternsFailedTitle}</h2></div>
       <p class="card-why">${esc(String(result.error))}</p>
-      <div class="card-foot"><button class="act" data-act="dropMoments">${t.close}</button></div>
+      <div class="card-foot"><button class="act" data-act="dropMoments">${words.close}</button></div>
     </article>`;
   }
 
@@ -246,13 +246,13 @@ function patternsHtml(result) {
     recurs.length === 0 && questions.length === 0
       ? `<p class="draft-opening">${esc(
           String(result?.nothingToSay ?? "").trim() ||
-            t.patternsNothing
+            words.patternsNothing
         )}</p>`
       : `${
           recurs
             .map(
               (/** @type {any} */ r) => `<div class="line">
-                <span class="line-when">${t.patternsDays(esc(String(r.days)))}</span>
+                <span class="line-when">${words.patternsDays(esc(String(r.days)))}</span>
                 <span class="line-text"><strong>${esc(String(r.what))}</strong>${
                   r.evidence ? ` - "${esc(String(r.evidence))}"` : ""
                 }</span>
@@ -268,20 +268,20 @@ function patternsHtml(result) {
         ${
           questions.length === 0
             ? ""
-            : `<div class="block"><div class="block-title">${t.toPutToYourself}</div>${questions
+            : `<div class="block"><div class="block-title">${words.toPutToYourself}</div>${questions
                 .map((/** @type {string} */ q) => `<div class="line"><span class="line-text">${esc(q)}</span></div>`)
                 .join("")}</div>`
         }`;
 
   return `<article class="card draft">
     <div class="card-top">
-      <h2 class="card-title">${t.patternsTitle}</h2>
+      <h2 class="card-title">${words.patternsTitle}</h2>
       <span class="tag">${esc(stamp(result))}</span>
     </div>
     ${body}
     <div class="card-foot">
       <span class="src">${esc(String(result?.coverage?.summary ?? ""))}</span>
-      <button class="act" data-act="dropMoments">${t.doneWithIt}</button>
+      <button class="act" data-act="dropMoments">${words.doneWithIt}</button>
     </div>
   </article>`;
 }
@@ -300,7 +300,7 @@ function readingSection(cover, model, backlog) {
   const current = resultFor(REVIEW_KEY);
   if (current !== null) {
     return `<div class="group">
-      <div class="group-head"><span class="group-title">${t.readingGroup}</span><span class="group-rule"></span></div>
+      <div class="group-head"><span class="group-title">${words.readingGroup}</span><span class="group-rule"></span></div>
       ${reviewHtml(REVIEW_KEY, current)}
     </div>`;
   }
@@ -312,17 +312,17 @@ function readingSection(cover, model, backlog) {
   const tooThin = Number(cover.entries ?? 0) < 4 || Number(cover.spread ?? 0) < 3;
 
   const why = tooThin
-    ? t.readTooThin
+    ? words.readTooThin
     : model.available
-      ? t.readReady
-      : String(model.why ?? t.readNoModel);
+      ? words.readReady
+      : String(model.why ?? words.readNoModel);
 
   return `<div class="group">
-    <div class="group-head"><span class="group-title">${t.readingGroup}</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${words.readingGroup}</span><span class="group-rule"></span></div>
     <article class="card">
-      <div class="card-top"><h2 class="card-title">${t.readTitle}</h2></div>
+      <div class="card-top"><h2 class="card-title">${words.readTitle}</h2></div>
       <p class="card-why">${esc(why)}</p>
-      <p class="card-why dim">${t.readWhatItLooksFor}</p>
+      <p class="card-why dim">${words.readWhatItLooksFor}</p>
       <!--
         What has gone unread, when anything has.
         A line on the page you are already standing on rather than a badge in the
@@ -342,7 +342,7 @@ function readingSection(cover, model, backlog) {
       <div class="card-foot">
         <span class="src">${esc(String(cover.summary ?? ""))}</span>
         <button class="act primary" data-act="readJournal" ${tooThin || !model.available || running ? "disabled" : ""}>
-          ${running ? t.reading : t.readThem}
+          ${running ? words.reading : words.readThem}
         </button>
       </div>
     </article>
@@ -366,7 +366,7 @@ function keptSection(kept) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">${t.keptGroup}</span>
+      <span class="group-title">${words.keptGroup}</span>
       <span class="group-rule"></span>
       <span class="group-meta">${kept.length}</span>
     </div>
@@ -405,26 +405,26 @@ function keptCard(r) {
         has since moved, which is how a reading built on six evenings ends up
         looking like one built on twenty-six.
       -->
-      <span class="badge">${t.keptCoverage(esc(String(r.entries)), esc(String(r.spread)))}</span>
+      <span class="badge">${words.keptCoverage(esc(String(r.entries)), esc(String(r.spread)))}</span>
     </div>
-    ${block(t.keptAvoided, avoidance)}
-    ${block(t.keptWentInto, wentInto)}
+    ${block(words.keptAvoided, avoidance)}
+    ${block(words.keptWentInto, wentInto)}
     ${r.saidVsDid ? `<div class="prep-block">
-      <h3 class="prep-head">${t.keptSaidVsDid}</h3>
+      <h3 class="prep-head">${words.keptSaidVsDid}</h3>
       <p class="prep-note">${esc(r.saidVsDid)}</p>
     </div>` : ""}
     ${questions.length ? `<div class="prep-block">
-      <h3 class="prep-head">${t.keptQuestions}</h3>
+      <h3 class="prep-head">${words.keptQuestions}</h3>
       <ul class="draft-list">${questions.map((/** @type {string} */ q) => `<li>${esc(q)}</li>`).join("")}</ul>
     </div>` : ""}
     <div class="card-foot">
-      <span class="src">${t.keptFoot(
+      <span class="src">${words.keptFoot(
         esc(String(r.days)),
-        r.source ? t.keptReadBy(esc(String(r.source).replace(/^model:/, ""))) : ""
+        r.source ? words.keptReadBy(esc(String(r.source).replace(/^model:/, ""))) : ""
       )}</span>
       <span class="foot-actions">
         <button class="act danger" data-act="dropReview" data-id="${esc(r.id)}"
-          data-day="${esc(new Date(r.at).toLocaleDateString("sv-SE"))}">${t.remove}</button>
+          data-day="${esc(new Date(r.at).toLocaleDateString("sv-SE"))}">${words.remove}</button>
       </span>
     </div>
   </article>`;
@@ -470,15 +470,15 @@ function entry(e, fields, isPrivate = false, model = { available: false, why: nu
     ${lines}
     ${isPrivate ? ownPartBlock(e, model) : ""}
     <div class="card-foot">
-      <span class="src">${t.entryFoot}</span>
+      <span class="src">${words.entryFoot}</span>
       <span class="foot-actions">
         ${
           isPrivate && model.available
-            ? `<button class="act" data-act="readBack" data-at="${esc(String(e.at))}">${t.readBackButton}</button>`
+            ? `<button class="act" data-act="readBack" data-at="${esc(String(e.at))}">${words.readBackButton}</button>`
             : ""
         }
-        <button class="act" data-act="writeEntry" data-at="${esc(String(e.at))}">${t.edit}</button>
-        <button class="act danger" data-act="dropEntry" data-id="${esc(e.id)}" data-day="${esc(new Date(e.at).toLocaleDateString("sv-SE"))}">${t.remove}</button>
+        <button class="act" data-act="writeEntry" data-at="${esc(String(e.at))}">${words.edit}</button>
+        <button class="act danger" data-act="dropEntry" data-id="${esc(e.id)}" data-day="${esc(new Date(e.at).toLocaleDateString("sv-SE"))}">${words.remove}</button>
       </span>
     </div>
   </article>`;
@@ -497,13 +497,13 @@ function entry(e, fields, isPrivate = false, model = { available: false, why: nu
 function ownPartBlock(e, model) {
   const key = ownPartKey(e.at);
   if (isRunning(key)) {
-    return `<p class="src">${t.readingBack}</p>`;
+    return `<p class="src">${words.readingBack}</p>`;
   }
   const result = resultFor(key);
   if (result === null) {
     return model.available
       ? ""
-      : `<p class="src">${esc(String(model.why ?? t.ownPartNoModel))}</p>`;
+      : `<p class="src">${esc(String(model.why ?? words.ownPartNoModel))}</p>`;
   }
   return ownPartHtml(key, result);
 }
@@ -542,30 +542,30 @@ export const actions = {
     const roster = /** @type {any[]} */ (await tend.invoke("people"));
     const people = Array.isArray(roster) ? roster : [];
     if (people.length === 0) {
-      toast(t.momentNoRoster, "bad");
+      toast(words.momentNoRoster, "bad");
       return;
     }
 
     const values = await form({
-      title: t.momentTitle,
-      intro: t.momentIntro,
+      title: words.momentTitle,
+      intro: words.momentIntro,
       fields: [
         {
           name: "what",
-          label: t.momentWhatLabel,
+          label: words.momentWhatLabel,
           type: /** @type {const} */ ("textarea"),
-          hint: t.momentWhatHint
+          hint: words.momentWhatHint
         },
         {
           name: "part",
-          label: t.momentPartLabel,
+          label: words.momentPartLabel,
           type: /** @type {const} */ ("textarea"),
           required: true,
-          hint: t.momentPartHint
+          hint: words.momentPartHint
         },
         {
           name: "who",
-          label: t.momentWhoLabel,
+          label: words.momentWhoLabel,
           type: /** @type {const} */ ("multiselect"),
           required: true,
           options: people.map((/** @type {any} */ person) => ({
@@ -573,16 +573,16 @@ export const actions = {
             label: String(person.name)
           })),
           value: d.person ? [String(d.person)] : [],
-          hint: t.momentWhoHint
+          hint: words.momentWhoHint
         },
         {
           name: "at",
-          label: t.momentWhenLabel,
+          label: words.momentWhenLabel,
           type: /** @type {const} */ ("date"),
           value: asDateInput(Date.now())
         }
       ],
-      confirm: t.momentConfirm
+      confirm: words.momentConfirm
     });
     if (!values) {
       return;
@@ -591,7 +591,7 @@ export const actions = {
     const chosen = Array.isArray(values.who) ? values.who : [];
 
     if (chosen.length === 0) {
-      toast(t.momentNobody, "bad");
+      toast(words.momentNobody, "bad");
       return;
     }
 
@@ -599,7 +599,7 @@ export const actions = {
       await act(
         "logMoment",
         { what: values.what, part: values.part, at: values.at, people: chosen },
-        t.keptToast
+        words.keptToast
       )
     ) {
       refresh();
@@ -636,7 +636,7 @@ export const actions = {
     if (review === null) {
       return;
     }
-    if (await act("keepReview", { review }, t.keptToast)) {
+    if (await act("keepReview", { review }, words.keptToast)) {
       // Cleared so the page does not show the same reading twice, once as a
       // draft and once as a kept card - which reads as two readings.
       modelActions().discardDraft({ key: d.key });
@@ -645,7 +645,7 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   dropReview: async (d) => {
-    if (await act("removeRow", { collection: "reviews", id: d.id }, t.removedToast)) {
+    if (await act("removeRow", { collection: "reviews", id: d.id }, words.removedToast)) {
       refresh();
     }
   },
@@ -670,8 +670,8 @@ export const actions = {
     const fields = Array.isArray(result?.fields) ? result.fields : [];
 
     const values = await form({
-      title: existing ? t.writeEditTitle(new Date(at).toLocaleDateString("sv-SE")) : t.writeTitle,
-      intro: t.writeIntro,
+      title: existing ? words.writeEditTitle(new Date(at).toLocaleDateString("sv-SE")) : words.writeTitle,
+      intro: words.writeIntro,
       fields: [
         ...fields.map((/** @type {any} */ f) => ({
           name: f.name,
@@ -680,21 +680,21 @@ export const actions = {
           value: existing?.[f.name] ?? "",
           hint: f.hint
         })),
-        { name: "at", label: t.writeWhichDay, type: /** @type {const} */ ("date"), value: asDateInput(at) }
+        { name: "at", label: words.writeWhichDay, type: /** @type {const} */ ("date"), value: asDateInput(at) }
       ],
-      confirm: t.writeConfirm
+      confirm: words.writeConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("logEntry", values, t.keptToast)) {
+    if (await act("logEntry", values, words.keptToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   dropEntry: async (d) => {
-    if (await act("removeRow", { collection: "entries", id: d.id }, t.removedToast)) {
+    if (await act("removeRow", { collection: "entries", id: d.id }, words.removedToast)) {
       refresh();
     }
   }

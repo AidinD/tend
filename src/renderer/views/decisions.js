@@ -12,14 +12,14 @@ import { act, ask, esc, form, tend } from "../ui.js";
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
-const t = T.decisions;
+const words = T.decisions;
 
 export async function render() {
   const [all, roster] = await Promise.all([tend.invoke("decisions"), tend.invoke("people")]);
 
   if (all?.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">${t.readFailedTitle}</h2></div>
+      <h2 class="card-title">${words.readFailedTitle}</h2></div>
       <p class="card-why">${esc(all.error)}</p></div>`;
   }
 
@@ -30,22 +30,22 @@ export async function render() {
 
   const head = `
     <div class="view-head">
-      <h1 class="view-title">${t.title}</h1>
-      <p class="view-sub">${t.sub}</p>
+      <h1 class="view-title">${words.title}</h1>
+      <p class="view-sub">${words.sub}</p>
       <div class="card-foot">
-        <span class="src">${t.codeNote}</span>
-        <button class="act" data-act="add">${t.addButton}</button>
+        <span class="src">${words.codeNote}</span>
+        <button class="act" data-act="add">${words.addButton}</button>
       </div>
     </div>`;
 
   if (list.length === 0) {
-    return `${head}<div class="empty">${t.empty}</div>`;
+    return `${head}<div class="empty">${words.empty}</div>`;
   }
 
   return `${head}
-    ${block(t.proposedBand, proposed, proposal, t.proposedNote)}
-    ${block(t.revisitBand, due, revisit, t.revisitNote)}
-    ${block(t.loggedBand, logged, entry)}`;
+    ${block(words.proposedBand, proposed, proposal, words.proposedNote)}
+    ${block(words.revisitBand, due, revisit, words.revisitNote)}
+    ${block(words.loggedBand, logged, entry)}`;
 }
 
 /**
@@ -72,14 +72,14 @@ function proposal(d) {
     <div class="card sev-nudge">
       <div class="card-top">
         <h2 class="card-title">${esc(d.what)}</h2>
-        <span class="badge">${t.proposedBadge}</span>
+        <span class="badge">${words.proposedBadge}</span>
       </div>
       ${body(d)}
       <div class="card-foot">
-        <span class="src">${d.source ? t.readIn(esc(d.source)) : t.noSource}${d.proposedBy ? t.proposedBy(esc(d.proposedBy)) : ""}</span>
-        <button class="act" data-act="record" data-id="${esc(d.id)}">${t.recordIt}</button>
-        <button class="act" data-act="edit" data-id="${esc(d.id)}">${t.editFirst}</button>
-        <button class="act" data-act="drop" data-id="${esc(d.id)}">${t.notADecision}</button>
+        <span class="src">${d.source ? words.readIn(esc(d.source)) : words.noSource}${d.proposedBy ? words.proposedBy(esc(d.proposedBy)) : ""}</span>
+        <button class="act" data-act="record" data-id="${esc(d.id)}">${words.recordIt}</button>
+        <button class="act" data-act="edit" data-id="${esc(d.id)}">${words.editFirst}</button>
+        <button class="act" data-act="drop" data-id="${esc(d.id)}">${words.notADecision}</button>
       </div>
     </div>`;
 }
@@ -90,14 +90,14 @@ function revisit(d) {
     <div class="card sev-critical">
       <div class="card-top">
         <h2 class="card-title">${esc(d.what)}</h2>
-        <span class="badge">${t.dueBadge(esc(d.revisitOverdueBy ?? t.dueNow))}</span>
+        <span class="badge">${words.dueBadge(esc(d.revisitOverdueBy ?? words.dueNow))}</span>
       </div>
       ${body(d)}
       <div class="card-foot">
-        <span class="src">${t.revisitSrc}</span>
-        <button class="act" data-act="holds" data-id="${esc(d.id)}">${t.stillHolds}</button>
-        <button class="act" data-act="edit" data-id="${esc(d.id)}">${t.changeIt}</button>
-        <button class="act" data-act="reverse" data-id="${esc(d.id)}">${t.reverseIt}</button>
+        <span class="src">${words.revisitSrc}</span>
+        <button class="act" data-act="holds" data-id="${esc(d.id)}">${words.stillHolds}</button>
+        <button class="act" data-act="edit" data-id="${esc(d.id)}">${words.changeIt}</button>
+        <button class="act" data-act="reverse" data-id="${esc(d.id)}">${words.reverseIt}</button>
       </div>
     </div>`;
 }
@@ -114,9 +114,9 @@ function entry(d) {
       <div class="card-foot">
         <span class="src">
           ${esc(new Date(d.decidedAt).toLocaleDateString("sv-SE"))}
-          ${d.revisitAt ? t.backOn(esc(new Date(d.revisitAt).toLocaleDateString("sv-SE"))) : t.noRevisit}
+          ${d.revisitAt ? words.backOn(esc(new Date(d.revisitAt).toLocaleDateString("sv-SE"))) : words.noRevisit}
         </span>
-        <button class="act" data-act="edit" data-id="${esc(d.id)}">${t.edit}</button>
+        <button class="act" data-act="edit" data-id="${esc(d.id)}">${words.edit}</button>
       </div>
     </div>`;
 }
@@ -145,9 +145,9 @@ function body(d) {
        * measuring the markup rather than the behaviour.
        */ ""
     }
-    ${d.rejected ? `<p class="card-why dim"><span class="inline-label">${t.rejectedLabel}</span> ${esc(d.rejected)}</p>` : ""}
-    ${d.consulted.length > 0 ? `<p class="card-why dim"><span class="inline-label">${t.consultedLabel}</span> ${esc(d.consulted.join(", "))}</p>` : ""}
-    ${d.missing.length > 0 ? `<p class="card-why warn-text">${t.missing(esc(d.missing.join(" Missing ")))}</p>` : ""}`;
+    ${d.rejected ? `<p class="card-why dim"><span class="inline-label">${words.rejectedLabel}</span> ${esc(d.rejected)}</p>` : ""}
+    ${d.consulted.length > 0 ? `<p class="card-why dim"><span class="inline-label">${words.consultedLabel}</span> ${esc(d.consulted.join(", "))}</p>` : ""}
+    ${d.missing.length > 0 ? `<p class="card-why warn-text">${words.missing(esc(d.missing.join(" Missing ")))}</p>` : ""}`;
 }
 
 /**
@@ -155,25 +155,25 @@ function body(d) {
  * @returns {import("../ui.js").Field[]}
  */
 const fields = (roster) => [
-  { name: "what", label: t.fWhat, type: "text", required: true },
+  { name: "what", label: words.fWhat, type: "text", required: true },
   // The ledger has always modelled a proposal and the window never offered one,
   // so the only way to record something not yet agreed was to call it decided.
   {
     name: "status",
-    label: t.fStatus,
+    label: words.fStatus,
     type: "select",
     options: [
-      { value: "recorded", label: t.fStatusRecorded },
-      { value: "proposed", label: t.fStatusProposed }
+      { value: "recorded", label: words.fStatusRecorded },
+      { value: "proposed", label: words.fStatusProposed }
     ],
     value: "recorded",
-    hint: t.fStatusHint
+    hint: words.fStatusHint
   },
-  { name: "because", label: t.fBecause, type: "textarea" },
-  { name: "rejected", label: t.fRejected, type: "textarea" },
+  { name: "because", label: words.fBecause, type: "textarea" },
+  { name: "rejected", label: words.fRejected, type: "textarea" },
   {
     name: "consulted",
-    label: t.fConsulted,
+    label: words.fConsulted,
     /*
      * Picked from the roster, not typed.
      *
@@ -199,15 +199,15 @@ const fields = (roster) => [
     // be worse than leaving it empty: everyone on the roster is counted by the
     // attention signals, so a dozen colleagues you have no duties toward turns
     // "I have not spoken to 11 of 13 people this month" into noise.
-    hint: (roster ?? []).length > 0 ? t.fConsultedHint : t.fConsultedHintEmpty
+    hint: (roster ?? []).length > 0 ? words.fConsultedHint : words.fConsultedHintEmpty
   },
   {
     name: "revisitDays",
-    label: t.fRevisit,
+    label: words.fRevisit,
     type: "number",
     value: "90",
     showIf: { field: "status", equals: "recorded" },
-    hint: t.fRevisitHint
+    hint: words.fRevisitHint
   }
 ];
 
@@ -219,10 +219,10 @@ export const actions = {
     // be rejected by the service, which is the worst possible combination for
     // closing on failure.
     const values = await form({
-      title: t.addTitle,
-      intro: t.addIntro,
+      title: words.addTitle,
+      intro: words.addIntro,
       fields: fields(roster),
-      confirm: t.addConfirm,
+      confirm: words.addConfirm,
       attempt: async (v) => {
         const result = await tend.invoke("logDecision", {
           what: v.what,
@@ -255,9 +255,9 @@ export const actions = {
   /** @param {Record<string, string>} d */
   reverse: async (d) => {
     const sure = await ask({
-      title: t.reverseTitle,
-      body: t.reverseBody,
-      confirm: t.reverseConfirm
+      title: words.reverseTitle,
+      body: words.reverseBody,
+      confirm: words.reverseConfirm
     });
     if (!sure) {
       return;
@@ -269,9 +269,9 @@ export const actions = {
   /** @param {Record<string, string>} d */
   drop: async (d) => {
     const sure = await ask({
-      title: t.dropTitle,
-      body: t.dropBody,
-      confirm: t.dropConfirm
+      title: words.dropTitle,
+      body: words.dropBody,
+      confirm: words.dropConfirm
     });
     if (!sure) {
       return;
@@ -288,7 +288,7 @@ export const actions = {
       return;
     }
     const values = await form({
-      title: t.editTitle,
+      title: words.editTitle,
       fields: fields(roster).map((f) => ({
         ...f,
         value:
@@ -301,7 +301,7 @@ export const actions = {
               ? "90"
               : String(current[f.name] ?? "")
       })),
-      confirm: t.editConfirm
+      confirm: words.editConfirm
     });
     if (!values) {
       return;

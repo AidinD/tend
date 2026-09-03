@@ -1981,5 +1981,37 @@ export const T = {
       "that has been drifting quietly will surface.",
     endConfirm: "End it",
     endedToast: "Ended."
+  },
+
+  /*
+   * The shell rather than a view: dialog buttons, the validation line, the
+   * failed-read card. These say the same thing on every screen and are the
+   * only words here nobody would find by opening one view, which is exactly
+   * why they need naming - "Save" and "Yes" are defaults, so a form that
+   * never mentions a confirm button still says one of them.
+   */
+  ui: {
+    /* A read that failed, which is not a record that is empty. */
+    /** @param {string} what */
+    readFailedTitle: (what) => `Could not read ${what}`,
+    readFailedWhy:
+      "Nothing has been lost - this is a failed read, not an empty record. The store may be " +
+      "mid-sync.",
+    retry: "Try again",
+
+    /* Every dialog's two buttons, and the two defaults. */
+    cancel: "Cancel",
+    save: "Save",
+    yes: "Yes",
+
+    /*
+     * The one thing a form says on its own behalf. It names the field, so it
+     * has to be built from the label rather than written out.
+     */
+    /** @param {string} label */
+    needed: (label) => `${label} is needed.`,
+
+    /* A collapsed multiselect with nothing ticked. */
+    noneChosen: "Nobody chosen yet"
   }
 };

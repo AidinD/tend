@@ -23,7 +23,7 @@ import {
   run
 } from "../model.js";
 
-const t = T.prep;
+const words = T.prep;
 
 export async function render() {
   const result = await tend.invoke("prep");
@@ -31,7 +31,7 @@ export async function render() {
 
   if (result.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">${t.readFailedTitle}</h2></div>
+      <h2 class="card-title">${words.readFailedTitle}</h2></div>
       <p class="card-why">${esc(result.error)}</p></div>`;
   }
 
@@ -39,21 +39,21 @@ export async function render() {
 
   const head = `
     <div class="view-head">
-      <h1 class="view-title">${t.title}</h1>
-      <p class="view-sub">${t.sub}</p>
+      <h1 class="view-title">${words.title}</h1>
+      <p class="view-sub">${words.sub}</p>
     </div>`;
 
   if (cards.length === 0) {
     return `${head}
       ${practices(result.practising)}
-      <div class="empty">${t.empty}</div>
+      <div class="empty">${words.empty}</div>
       ${sources(result)}`;
   }
 
   return `${head}
     ${practices(result.practising)}
     ${cards.map((/** @type {any} */ c) => card(c, model)).join("")}
-    ${result.dropped > 0 ? `<p class="prep-dropped">${t.dropped(result.dropped)}</p>` : ""}
+    ${result.dropped > 0 ? `<p class="prep-dropped">${words.dropped(result.dropped)}</p>` : ""}
     ${sources(result)}`;
 }
 
@@ -76,7 +76,7 @@ function practices(practising) {
   }
   if (practising.available === false) {
     return `<div class="card prep-practice">
-      <div class="card-top"><h2 class="card-title">${t.practiceNoneTitle}</h2></div>
+      <div class="card-top"><h2 class="card-title">${words.practiceNoneTitle}</h2></div>
       <p class="card-why">${esc(practising.why)}</p>
     </div>`;
   }
@@ -100,22 +100,22 @@ function practices(practising) {
     .map(
       (/** @type {any} */ a) => `<li>
         ${esc(a.text)}
-        <span class="src">${t.practiceWrote(esc(a.noteTitle))}</span>
+        <span class="src">${words.practiceWrote(esc(a.noteTitle))}</span>
       </li>`
     )
     .join("");
 
   return `<article class="card prep-practice">
     <div class="card-top">
-      <h2 class="card-title">${t.practiceTitle}</h2>
+      <h2 class="card-title">${words.practiceTitle}</h2>
       <span class="badge">${active.length}</span>
     </div>
-    <p class="card-why">${t.practiceWhy}</p>
+    <p class="card-why">${words.practiceWhy}</p>
     ${lines ? `<div class="prep-block"><ul class="prep-list">${lines}</ul></div>` : ""}
     ${
       todo
         ? `<div class="prep-block">
-             <h3 class="prep-head">${t.practiceTodoTitle}</h3>
+             <h3 class="prep-head">${words.practiceTodoTitle}</h3>
              <ul class="prep-list">${todo}</ul>
            </div>`
         : ""
@@ -136,15 +136,15 @@ function practices(practising) {
 function sources(result) {
   const missing = [];
   if (!result.jotFound) {
-    missing.push(t.sourceJot);
+    missing.push(words.sourceJot);
   }
   if (!result.nibFound) {
-    missing.push(t.sourceNib);
+    missing.push(words.sourceNib);
   }
   if (missing.length === 0) {
     return "";
   }
-  return `<p class="prep-missing">${t.sourcesMissing(esc(missing.join(" or ")))}<button class="act" data-act="openSettings">${t.sourcesSettings}</button>.</p>`;
+  return `<p class="prep-missing">${words.sourcesMissing(esc(missing.join(" or ")))}<button class="act" data-act="openSettings">${words.sourcesSettings}</button>.</p>`;
 }
 
 /**
@@ -168,29 +168,29 @@ function card(c, model) {
         }
       </div>
       <p class="card-why">
-        ${t.cardWhy(esc(c.why), esc(c.lastSpoke))}
+        ${words.cardWhy(esc(c.why), esc(c.lastSpoke))}
         ${c.relationMeans ? `<span class="src">${esc(c.relationMeans)}</span>` : ""}
       </p>
 
-      ${section(t.promisedTitle, c.youPromised, (/** @type {any} */ p) => `${esc(p.text)} <span class="src">${t.promisedOpen(esc(p.openFor))}</span>`)}
+      ${section(words.promisedTitle, c.youPromised, (/** @type {any} */ p) => `${esc(p.text)} <span class="src">${words.promisedOpen(esc(p.openFor))}</span>`)}
 
       ${growingBlock(c)}
 
       ${raising(c)}
 
-      ${section(t.theyOwnTitle, c.theyOwn, (/** @type {any} */ w) => `${esc(w.name)} <span class="src">${t.theyOwnMeta(esc(w.mandate), esc(w.lastReviewed))}</span>`)}
+      ${section(words.theyOwnTitle, c.theyOwn, (/** @type {any} */ w) => `${esc(w.name)} <span class="src">${words.theyOwnMeta(esc(w.mandate), esc(w.lastReviewed))}</span>`)}
 
       ${
         c.openWork === null
-          ? `<div class="prep-block"><h3 class="prep-head">${t.openWorkTitle}</h3><p class="src">${t.jotUnreadable}</p></div>`
-          : section(t.openWorkTitle, c.openWork, (/** @type {any} */ w) =>
-              `${esc(w.text)} <span class="src">${t.openWorkMeta(esc(w.category), esc(w.status), w.found === "named")}</span>`
+          ? `<div class="prep-block"><h3 class="prep-head">${words.openWorkTitle}</h3><p class="src">${words.jotUnreadable}</p></div>`
+          : section(words.openWorkTitle, c.openWork, (/** @type {any} */ w) =>
+              `${esc(w.text)} <span class="src">${words.openWorkMeta(esc(w.category), esc(w.status), w.found === "named")}</span>`
             )
       }
 
       ${
         c.lastWrote
-          ? `<div class="prep-block"><h3 class="prep-head">${t.lastWroteTitle}</h3>
+          ? `<div class="prep-block"><h3 class="prep-head">${words.lastWroteTitle}</h3>
                <p class="prep-note">${esc(c.lastWrote.title)}
                <span class="src">${esc(new Date(c.lastWrote.edited).toLocaleDateString("sv-SE"))}</span></p></div>`
           : ""
@@ -199,10 +199,10 @@ function card(c, model) {
       ${draft(c, model)}
 
       <div class="card-foot">
-        <span class="src">${t.footNote}</span>
+        <span class="src">${words.footNote}</span>
         <span class="foot-actions">
           ${modelButtons(c, model)}
-          <button class="act" data-act="openPerson" data-person="${esc(c.person)}">${t.openPerson(esc(c.person))}</button>
+          <button class="act" data-act="openPerson" data-person="${esc(c.person)}">${words.openPerson(esc(c.person))}</button>
         </span>
       </div>
     </div>`;
@@ -229,7 +229,7 @@ function raising(c) {
   }
   return `
     <div class="prep-block">
-      <h3 class="prep-head">${t.raisingTitle}</h3>
+      <h3 class="prep-head">${words.raisingTitle}</h3>
       <ul class="prep-list prep-topics">
         ${topics
           .map(
@@ -237,10 +237,10 @@ function raising(c) {
           <li class="prep-topic">
             <div class="topic-line">
               <span class="topic-text">${esc(topic.text)}</span>
-              <button class="act" data-act="markRaised" data-topic="${esc(topic.id)}" data-person="${esc(c.person)}">${t.raisedButton}</button>
+              <button class="act" data-act="markRaised" data-topic="${esc(topic.id)}" data-person="${esc(c.person)}">${words.raisedButton}</button>
             </div>
             <span class="src">${esc(topic.why)}</span>
-            <span class="src">${t.lastRaised(esc(topic.lastRaised))}</span>
+            <span class="src">${words.lastRaised(esc(topic.lastRaised))}</span>
           </li>`
           )
           .join("")}
@@ -281,15 +281,15 @@ function section(title, items, line) {
  */
 function modelButtons(c, model) {
   if (!model.available) {
-    return `<span class="src" title="${esc(model.why ?? "")}">${t.draftingOff}</span>`;
+    return `<span class="src" title="${esc(model.why ?? "")}">${words.draftingOff}</span>`;
   }
 
   const briefKey = `brief:${c.person}`;
   const noteKey = c.lastWrote ? `note:${c.lastWrote.id}` : null;
 
   const brief = isRunning(briefKey)
-    ? `<button class="act" disabled>${t.drafting}</button>`
-    : `<button class="act" data-act="draftBrief" data-person="${esc(c.person)}">${t.draftButton}</button>`;
+    ? `<button class="act" disabled>${words.drafting}</button>`
+    : `<button class="act" data-act="draftBrief" data-person="${esc(c.person)}">${words.draftButton}</button>`;
 
   // Only where there is a note to read. Nothing here invents a reason to spend
   // a model call.
@@ -297,8 +297,8 @@ function modelButtons(c, model) {
     noteKey === null
       ? ""
       : isRunning(noteKey)
-        ? `<button class="act" disabled>${t.reading}</button>`
-        : `<button class="act" data-act="readNote" data-note="${esc(c.lastWrote.id)}" data-person="${esc(c.person)}">${t.readNoteButton}</button>`;
+        ? `<button class="act" disabled>${words.reading}</button>`
+        : `<button class="act" data-act="readNote" data-note="${esc(c.lastWrote.id)}" data-person="${esc(c.person)}">${words.readNoteButton}</button>`;
 
   return `${note}${brief}`;
 }

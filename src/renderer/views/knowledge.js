@@ -39,7 +39,7 @@ import { esc, tend, toast } from "../ui.js";
 import { isRunning, modelStatus, resultFor, run } from "../model.js";
 import { T } from "../text.js";
 
-const t = T.knowledge;
+const words = T.knowledge;
 
 /** Kept here rather than in the module state, because it is a query, not data. */
 let situation = "";
@@ -58,17 +58,17 @@ export async function render() {
 
   const head = `
     <div class="view-head">
-      <h1 class="view-title">${t.title}</h1>
-      <p class="view-sub">${t.sub(isPrivate)}</p>
+      <h1 class="view-title">${words.title}</h1>
+      <p class="view-sub">${words.sub(isPrivate)}</p>
     </div>
 
     <div class="card">
       <div class="ask-row">
         <input class="ask-field" id="situation" type="text" value="${esc(situation)}"
-          placeholder="${isPrivate ? t.placeholderPrivate : t.placeholderWork}">
-        <button class="act primary" data-act="search">${t.searchButton}</button>
+          placeholder="${isPrivate ? words.placeholderPrivate : words.placeholderWork}">
+        <button class="act primary" data-act="search">${words.searchButton}</button>
       </div>
-      <p class="card-why dim">${t.searchNote(isPrivate)}</p>
+      <p class="card-why dim">${words.searchNote(isPrivate)}</p>
     </div>`;
 
   if (found === null) {
@@ -77,7 +77,7 @@ export async function render() {
 
   if (found.error) {
     return `${head}<div class="card sev-warn"><div class="card-top">
-      <h2 class="card-title">${t.searchFailedTitle}</h2></div>
+      <h2 class="card-title">${words.searchFailedTitle}</h2></div>
       <p class="card-why">${esc(found.error)}</p></div>`;
   }
 
@@ -85,7 +85,7 @@ export async function render() {
 
   if (matches.length === 0) {
     return `${head}
-      <div class="empty">${t.nothingShares(esc(String(found.searched)))}</div>
+      <div class="empty">${words.nothingShares(esc(String(found.searched)))}</div>
       ${askGeneral(model, true)}
       ${general === null ? "" : generalHtml(general)}`;
   }
@@ -94,19 +94,19 @@ export async function render() {
 
     <div class="group">
       <div class="group-head">
-        <span class="group-title">${t.sharesGroup}</span>
+        <span class="group-title">${words.sharesGroup}</span>
         <span class="group-rule"></span>
-        <span class="group-meta">${t.sharesMeta(matches.length, esc(String(found.searched)))}</span>
+        <span class="group-meta">${words.sharesMeta(matches.length, esc(String(found.searched)))}</span>
       </div>
       ${matches.map(hit).join("")}
       <div class="card-foot ask-foot">
-        <span class="src">${t.wordMatchNote}</span>
+        <span class="src">${words.wordMatchNote}</span>
         ${
           model.available
             ? isRunning(KEY)
-              ? `<button class="act" disabled>${t.reading}</button>`
-              : `<button class="act primary" data-act="consider">${t.readProperly}</button>`
-            : `<span class="src">${t.readingOff}</span>`
+              ? `<button class="act" disabled>${words.reading}</button>`
+              : `<button class="act primary" data-act="consider">${words.readProperly}</button>`
+            : `<span class="src">${words.readingOff}</span>`
         }
       </div>
     </div>
@@ -140,11 +140,11 @@ function askGeneral(model, onlyThingLeft) {
 
   return `<div class="card">
     <div class="card-foot ask-foot">
-      <span class="src">${t.generalOffer}</span>
+      <span class="src">${words.generalOffer}</span>
       ${
         isRunning(KEY_REF)
-          ? `<button class="act" disabled>${t.generalLooking}</button>`
-          : `<button class="act ${onlyThingLeft ? "primary" : ""}" data-act="general">${t.generalAsk}</button>`
+          ? `<button class="act" disabled>${words.generalLooking}</button>`
+          : `<button class="act ${onlyThingLeft ? "primary" : ""}" data-act="general">${words.generalAsk}</button>`
       }
     </div>
   </div>`;
@@ -168,10 +168,10 @@ function generalHtml(result) {
 
   return `<div class="draft general">
     <div class="draft-head">
-      <span class="draft-title">${t.generalTitle}</span>
+      <span class="draft-title">${words.generalTitle}</span>
       <span class="foot-actions">
-        <button class="act tiny" data-act="copyGeneral">${t.copy}</button>
-        <button class="act tiny" data-act="discardDraft" data-key="${KEY_REF}">${t.discard}</button>
+        <button class="act tiny" data-act="copyGeneral">${words.copy}</button>
+        <button class="act tiny" data-act="discardDraft" data-key="${KEY_REF}">${words.discard}</button>
       </span>
     </div>
 
@@ -179,13 +179,13 @@ function generalHtml(result) {
 
     ${
       result?.needsThePeople
-        ? `<p class="draft-watch">${t.onlyTheyCanAnswer(esc(result.needsThePeople))}</p>`
+        ? `<p class="draft-watch">${words.onlyTheyCanAnswer(esc(result.needsThePeople))}</p>`
         : ""
     }
 
     ${
       starts.length
-        ? `<h4 class="draft-head-small">${t.wherePeopleStart}</h4>
+        ? `<h4 class="draft-head-small">${words.wherePeopleStart}</h4>
            <ul class="draft-list">${starts
              .map(
                (/** @type {any} */ s) =>
@@ -197,13 +197,13 @@ function generalHtml(result) {
 
     ${
       result?.wouldAnswer
-        ? `<p class="draft-note">${t.wouldAnswer(esc(result.wouldAnswer))}</p>`
+        ? `<p class="draft-note">${words.wouldAnswer(esc(result.wouldAnswer))}</p>`
         : ""
     }
 
     <div class="draft-foot">
-      <span class="src">${wide ? t.generalWide : t.generalNarrow}${t.generalFoot(
-        esc(result?.model ?? t.someModel),
+      <span class="src">${wide ? words.generalWide : words.generalNarrow}${words.generalFoot(
+        esc(result?.model ?? words.someModel),
         typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : ""
       )}</span>
     </div>
@@ -245,15 +245,15 @@ function generalText(result) {
     `${result?.subject ?? ""}`,
     "",
     result?.says ?? "",
-    result?.needsThePeople ? t.textOnlyThey(result.needsThePeople) : "",
+    result?.needsThePeople ? words.textOnlyThey(result.needsThePeople) : "",
     starts.length
-      ? `${t.textStarts}\n${starts
+      ? `${words.textStarts}\n${starts
           .map((/** @type {any} */ s) => `- ${s.point}${s.because ? ` (${s.because})` : ""}`)
           .join("\n")}`
       : "",
-    result?.wouldAnswer ? t.textWouldAnswer(result.wouldAnswer) : "",
+    result?.wouldAnswer ? words.textWouldAnswer(result.wouldAnswer) : "",
     `\n---`,
-    t.textProvenance(result?.model ?? t.someModel, result?.spread === "wide")
+    words.textProvenance(result?.model ?? words.someModel, result?.spread === "wide")
   ]
     .filter((part) => part !== "")
     .join("\n");
@@ -262,7 +262,7 @@ function generalText(result) {
 /** @param {any} h */
 function hit(h) {
   return `<div class="row static">
-    <span class="row-name">${esc(h.title || t.untitled)}</span>
+    <span class="row-name">${esc(h.title || words.untitled)}</span>
     <span class="row-right"><span class="row-meta">${esc(h.trail)}</span></span>
   </div>`;
 }
@@ -281,13 +281,13 @@ function answerHtml(answer) {
 
   return `<div class="draft">
     <div class="draft-head">
-      <span class="draft-title">${t.readTitle(esc(String(answer.read ?? 0)))}</span>
-      <button class="act tiny" data-act="discardDraft" data-key="${KEY}">${t.discard}</button>
+      <span class="draft-title">${words.readTitle(esc(String(answer.read ?? 0)))}</span>
+      <button class="act tiny" data-act="discardDraft" data-key="${KEY}">${words.discard}</button>
     </div>
 
     ${
       applies.length === 0
-        ? `<p class="draft-opening">${t.noneBear}</p>`
+        ? `<p class="draft-opening">${words.noneBear}</p>`
         : `<ul class="draft-list">${applies
             .map(
               (/** @type {any} */ a) => `<li>
@@ -299,11 +299,11 @@ function answerHtml(answer) {
             .join("")}</ul>`
     }
 
-    ${answer.missing ? `<p class="draft-watch">${t.notAnswered(esc(answer.missing))}</p>` : ""}
+    ${answer.missing ? `<p class="draft-watch">${words.notAnswered(esc(answer.missing))}</p>` : ""}
 
     <div class="draft-foot">
-      <span class="src">${t.answerFoot(
-        answer.model ? t.answerBy(esc(answer.model)) : "",
+      <span class="src">${words.answerFoot(
+        answer.model ? words.answerBy(esc(answer.model)) : "",
         typeof answer.costUsd === "number" ? ` · ${(answer.costUsd * 100).toFixed(1)}¢` : ""
       )}</span>
     </div>
@@ -341,9 +341,9 @@ export const actions = {
     }
     try {
       await navigator.clipboard.writeText(generalText(result));
-      toast(t.copiedToast);
+      toast(words.copiedToast);
     } catch {
-      toast(t.copyFailedToast, "bad");
+      toast(words.copyFailedToast, "bad");
     }
   },
 

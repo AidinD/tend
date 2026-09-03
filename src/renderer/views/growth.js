@@ -27,7 +27,7 @@ import {
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
-const t = T.growth;
+const words = T.growth;
 
 /**
  * The endings offered in the window.
@@ -38,9 +38,9 @@ const t = T.growth;
  * the delegation levels do.
  */
 const ENDINGS = [
-  { value: "reached", label: t.endingReached },
-  { value: "dropped", label: t.endingDropped },
-  { value: "expectation", label: t.endingExpectation }
+  { value: "reached", label: words.endingReached },
+  { value: "dropped", label: words.endingDropped },
+  { value: "expectation", label: words.endingExpectation }
 ];
 
 /**
@@ -57,13 +57,13 @@ export async function threadsBlock(personId) {
 
   const threads = Array.isArray(result.threads) ? result.threads : [];
 
-  const head = `<div class="block-title">${t.blockTitle}</div>`;
-  const open = `<button class="act" data-act="openThread" data-person="${esc(personId)}">${t.openButton}</button>`;
+  const head = `<div class="block-title">${words.blockTitle}</div>`;
+  const open = `<button class="act" data-act="openThread" data-person="${esc(personId)}">${words.openButton}</button>`;
 
   if (threads.length === 0) {
     return `<div class="block">
       ${head}
-      <div class="empty">${t.empty}</div>
+      <div class="empty">${words.empty}</div>
       <div class="button-row">${open}</div>
     </div>`;
   }
@@ -73,7 +73,7 @@ export async function threadsBlock(personId) {
   // deciding how many people he is allowed to develop at once.
   const tooMany =
     result.live > result.comfortable
-      ? `<p class="card-why dim">${t.tooMany(result.live)}</p>`
+      ? `<p class="card-why dim">${words.tooMany(result.live)}</p>`
       : "";
 
   return `<div class="block">
@@ -88,7 +88,7 @@ export async function threadsBlock(personId) {
 function thread(row) {
   const live = isLiveStatus(row.status);
 
-  const counts = t.counts(row.talks, row.observations, esc(row.lastTalkedWords));
+  const counts = words.counts(row.talks, row.observations, esc(row.lastTalkedWords));
 
   const asks = row.asks
     ? `<p class="card-why warn-text">${esc(row.asks)}</p>`
@@ -101,22 +101,22 @@ function thread(row) {
   const guess = String(row.fields.hypothesis ?? "").trim() === String(row.aim ?? "").trim() ? "" : row.fields.hypothesis;
 
   const detail = [
-    [t.theirWords, row.fields.theirWords],
-    [t.through, row.fields.assignment],
-    [t.iWillSee, row.marker],
-    [t.imPuttingIn, row.fields.offering],
-    [t.myGuess, guess],
-    [t.ifNothingChanges, row.fields.ifNothingChanges],
-    [t.told, (row.told ?? []).join(", ")],
-    [t.endedBecause, row.fields.endedWhy]
+    [words.theirWords, row.fields.theirWords],
+    [words.through, row.fields.assignment],
+    [words.iWillSee, row.marker],
+    [words.imPuttingIn, row.fields.offering],
+    [words.myGuess, guess],
+    [words.ifNothingChanges, row.fields.ifNothingChanges],
+    [words.told, (row.told ?? []).join(", ")],
+    [words.endedBecause, row.fields.endedWhy]
   ]
     .filter(([, value]) => String(value ?? "").trim() !== "")
-    .map(([label, value]) => `<li>${t.detailLine(esc(label), esc(value))}</li>`)
+    .map(([label, value]) => `<li>${words.detailLine(esc(label), esc(value))}</li>`)
     .join("");
 
   const still = [
-    row.missing.prepare.length > 0 ? t.stillToPrepare(row.missing.prepare.join(" ")) : "",
-    row.missing.ask.length > 0 ? t.stillToAsk(row.missing.ask.join(" ")) : ""
+    row.missing.prepare.length > 0 ? words.stillToPrepare(row.missing.prepare.join(" ")) : "",
+    row.missing.ask.length > 0 ? words.stillToAsk(row.missing.ask.join(" ")) : ""
   ]
     .filter((line) => line !== "")
     .map((line) => `<p class="card-why dim">${esc(line)}</p>`)
@@ -136,25 +136,25 @@ function thread(row) {
   // erased was the reason the previous two steps had just asked for.
   const mistake =
     live && Number(row.talks ?? 0) === 0
-      ? `<button class="act tiny danger" data-act="threadRemove" data-id="${esc(row.id)}" data-aim="${esc(row.aim)}">${t.openedByMistake}</button>`
+      ? `<button class="act tiny danger" data-act="threadRemove" data-id="${esc(row.id)}" data-aim="${esc(row.aim)}">${words.openedByMistake}</button>`
       : "";
 
   const buttons = live
     ? `
-      <button class="act${asked ? "" : " primary"}" data-act="threadAsked" data-id="${esc(row.id)}">${t.afterConversation}</button>
-      ${asked ? `<button class="act" data-act="threadTalked" data-id="${esc(row.id)}">${t.itCameUp}</button>` : ""}
-      ${row.marker ? `<button class="act" data-act="threadObserved" data-id="${esc(row.id)}">${t.iSawIt}</button>` : ""}
-      <button class="act" data-act="threadPrepare" data-id="${esc(row.id)}">${t.prepare}</button>
-      <button class="act" data-act="threadEnd" data-id="${esc(row.id)}">${t.endIt}</button>
+      <button class="act${asked ? "" : " primary"}" data-act="threadAsked" data-id="${esc(row.id)}">${words.afterConversation}</button>
+      ${asked ? `<button class="act" data-act="threadTalked" data-id="${esc(row.id)}">${words.itCameUp}</button>` : ""}
+      ${row.marker ? `<button class="act" data-act="threadObserved" data-id="${esc(row.id)}">${words.iSawIt}</button>` : ""}
+      <button class="act" data-act="threadPrepare" data-id="${esc(row.id)}">${words.prepare}</button>
+      <button class="act" data-act="threadEnd" data-id="${esc(row.id)}">${words.endIt}</button>
       ${mistake}`
     : row.fields.endingSaid
       ? ""
-      : `<button class="act" data-act="threadSaid" data-id="${esc(row.id)}">${t.iHaveToldThem}</button>`;
+      : `<button class="act" data-act="threadSaid" data-id="${esc(row.id)}">${words.iHaveToldThem}</button>`;
 
   return `<div class="thread">
     <div class="thread-top">
       <span class="thread-aim">${esc(row.aim)}</span>
-      ${live ? `<button class="act tiny" data-act="threadReword" data-id="${esc(row.id)}">${t.reword}</button>` : ""}
+      ${live ? `<button class="act tiny" data-act="threadReword" data-id="${esc(row.id)}">${words.reword}</button>` : ""}
       <span class="line-right">
         <span class="pill plain">${esc(row.driverLabel)}</span>
         <span class="pill plain">${esc(row.stanceLabel)}</span>
@@ -186,7 +186,7 @@ export function growingBlock(c) {
   }
   return `
     <div class="prep-block">
-      <h3 class="prep-head">${t.blockTitle}</h3>
+      <h3 class="prep-head">${words.blockTitle}</h3>
       <ul class="prep-list prep-topics">
         ${threads
           .map(
@@ -196,12 +196,12 @@ export function growingBlock(c) {
               <span class="topic-text">${esc(row.aim)}</span>
               ${
                 String(row.stance ?? "unasked") === "unasked"
-                  ? `<button class="act" data-act="threadAsked" data-id="${esc(row.id)}">${t.afterConversation}</button>`
-                  : `<button class="act" data-act="threadTalked" data-id="${esc(row.id)}">${t.itCameUp}</button>`
+                  ? `<button class="act" data-act="threadAsked" data-id="${esc(row.id)}">${words.afterConversation}</button>`
+                  : `<button class="act" data-act="threadTalked" data-id="${esc(row.id)}">${words.itCameUp}</button>`
               }
             </div>
-            ${row.marker ? `<span class="src">${t.youWillSee(esc(row.marker))}</span>` : ""}
-            <span class="src">${t.cardCounts(row.talks, row.observations, esc(row.lastTalked))}</span>
+            ${row.marker ? `<span class="src">${words.youWillSee(esc(row.marker))}</span>` : ""}
+            <span class="src">${words.cardCounts(row.talks, row.observations, esc(row.lastTalked))}</span>
             ${row.asks ? `<span class="src">${esc(row.asks)}</span>` : ""}
             ${
               /*
@@ -217,8 +217,8 @@ export function growingBlock(c) {
                */
                row.stalled
                  ? String(row.offering ?? "").trim() === ""
-                   ? `<span class="src warn-text">${t.stalledNoOffering}</span>`
-                   : `<span class="src">${t.stalledOffering(esc(row.offering))}</span>`
+                   ? `<span class="src warn-text">${words.stalledNoOffering}</span>`
+                   : `<span class="src">${words.stalledOffering(esc(row.offering))}</span>`
                  : ""
             }
           </li>`
@@ -255,11 +255,11 @@ function prepareFields(values = {}, opening = false) {
   if (opening) {
     fields.push({
       name: "aim",
-      label: t.fAim,
+      label: words.fAim,
       required: true,
       type: "textarea",
-      placeholder: t.fAimPlaceholder,
-      hint: t.fAimHint
+      placeholder: words.fAimPlaceholder,
+      hint: words.fAimHint
     });
     return fields;
   }
@@ -267,11 +267,11 @@ function prepareFields(values = {}, opening = false) {
   fields.push(
     {
       name: "driver",
-      label: t.fDriver,
+      label: words.fDriver,
       type: "select",
       options: DRIVER_OPTIONS,
       value: values.driver || "unknown",
-      hint: t.fDriverHint
+      hint: words.fDriverHint
     },
     // Both of these belong to one answer above, so neither is on the screen
     // under any other. Switching back to "they want it" clears them, which is
@@ -279,38 +279,38 @@ function prepareFields(values = {}, opening = false) {
     // record of anything.
     {
       name: "need",
-      label: t.fNeed,
+      label: words.fNeed,
       type: "textarea",
       value: values.need,
-      placeholder: t.fNeedPlaceholder,
+      placeholder: words.fNeedPlaceholder,
       showIf: { field: "driver", equals: "needs" },
-      hint: t.fNeedHint
+      hint: words.fNeedHint
     },
     {
       name: "ifNothingChanges",
-      label: t.fIfNothing,
+      label: words.fIfNothing,
       type: "textarea",
       value: values.ifNothingChanges,
       showIf: { field: "driver", equals: "needs" },
-      hint: t.fIfNothingHint
+      hint: words.fIfNothingHint
     },
     // Past tense in the label, and about them. Phrased as a question it collected
     // a plan instead: "talk to their lead and find out" is a thing he will do,
     // and it landed here because an empty box invites being filled.
     {
       name: "alreadySeen",
-      label: t.fAlreadySeen,
+      label: words.fAlreadySeen,
       type: "textarea",
       value: values.alreadySeen,
-      hint: t.fAlreadySeenHint
+      hint: words.fAlreadySeenHint
     },
     {
       name: "offering",
-      label: t.fOffering,
+      label: words.fOffering,
       type: "textarea",
       value: values.offering,
-      placeholder: t.fOfferingPlaceholder,
-      hint: t.fOfferingHint
+      placeholder: words.fOfferingPlaceholder,
+      hint: words.fOfferingHint
     }
   );
 
@@ -326,33 +326,33 @@ function askedFields(values) {
   return /** @type {import("../ui.js").Field[]} */ ([
     {
       name: "theirWords",
-      label: t.fTheirWords,
+      label: words.fTheirWords,
       type: "textarea",
       value: values.theirWords,
-      hint: t.fTheirWordsHint
+      hint: words.fTheirWordsHint
     },
     {
       name: "stance",
-      label: t.fStance,
+      label: words.fStance,
       type: "select",
       options: STANCE_OPTIONS,
       value: values.stance || "unasked"
     },
     {
       name: "assignment",
-      label: t.fAssignment,
+      label: words.fAssignment,
       type: "textarea",
       value: values.assignment,
-      placeholder: t.fAssignmentPlaceholder,
-      hint: t.fAssignmentHint
+      placeholder: words.fAssignmentPlaceholder,
+      hint: words.fAssignmentHint
     },
     {
       name: "marker",
-      label: t.fMarker,
+      label: words.fMarker,
       type: "textarea",
       value: values.marker,
-      placeholder: t.fMarkerPlaceholder,
-      hint: t.fMarkerHint
+      placeholder: words.fMarkerPlaceholder,
+      hint: words.fMarkerHint
     },
     // Recording what somebody said IS proof you spoke to them, so this dialog
     // carries the date of the conversation and logs it. Without that, filling in
@@ -362,25 +362,25 @@ function askedFields(values) {
     // form the obvious way.
     {
       name: "at",
-      label: t.fWhenTalked,
+      label: words.fWhenTalked,
       type: "date",
       value: asDateInput(Date.now()),
-      hint: t.fWhenTalkedHint
+      hint: words.fWhenTalkedHint
     },
     {
       name: "cadenceDays",
-      label: t.fCadence,
+      label: words.fCadence,
       type: "number",
       min: 1,
       value: values.cadenceDays || DEFAULT_CADENCE_DAYS,
-      hint: t.fCadenceHint
+      hint: words.fCadenceHint
     },
     {
       name: "horizon",
-      label: t.fHorizon,
+      label: words.fHorizon,
       type: "date",
       value: values.horizon ? asDateInput(values.horizon) : "",
-      hint: t.fHorizonHint
+      hint: words.fHorizonHint
     }
   ]);
 }
@@ -433,10 +433,10 @@ export const actions = {
   /** @param {Record<string, string>} d */
   openThread: async (d) => {
     const values = await form({
-      title: t.openTitle,
-      intro: t.openIntro,
+      title: words.openTitle,
+      intro: words.openIntro,
       fields: prepareFields({}, true),
-      confirm: t.openConfirm
+      confirm: words.openConfirm
     });
     if (!values) {
       return;
@@ -445,7 +445,7 @@ export const actions = {
     // he thought before asking. Stored twice on purpose: the aim can be reworded
     // to whatever they agree on, and the guess must survive that so the two can
     // be read side by side afterwards.
-    if (await act("openThread", { person: d.person, ...values, hypothesis: values.aim }, t.openedToast)) {
+    if (await act("openThread", { person: d.person, ...values, hypothesis: values.aim }, words.openedToast)) {
       refresh();
     }
   },
@@ -472,31 +472,31 @@ export const actions = {
       return;
     }
     const values = await form({
-      title: t.rewordTitle,
-      intro: t.rewordIntro,
+      title: words.rewordTitle,
+      intro: words.rewordIntro,
       fields: [
         {
           name: "aim",
-          label: t.rewordAimLabel,
+          label: words.rewordAimLabel,
           required: true,
           type: "textarea",
           value: current.fields.aim,
-          hint: t.rewordAimHint
+          hint: words.rewordAimHint
         },
         {
           name: "hypothesis",
-          label: t.rewordGuessLabel,
+          label: words.rewordGuessLabel,
           type: "note",
           value: current.fields.hypothesis,
-          hint: t.rewordGuessHint
+          hint: words.rewordGuessHint
         }
       ],
-      confirm: t.save
+      confirm: words.save
     });
     if (!values) {
       return;
     }
-    if (await act("updateThread", { id: d.id, fields: { aim: values.aim } }, t.rewordedToast)) {
+    if (await act("updateThread", { id: d.id, fields: { aim: values.aim } }, words.rewordedToast)) {
       refresh();
     }
   },
@@ -509,15 +509,15 @@ export const actions = {
     }
     const fields = prepareFields(current.fields);
     const values = await form({
-      title: t.prepareTitle,
-      intro: t.prepareIntro,
+      title: words.prepareTitle,
+      intro: words.prepareIntro,
       fields,
-      confirm: t.save
+      confirm: words.save
     });
     if (!values) {
       return;
     }
-    if (await act("updateThread", { id: d.id, fields: patchFrom(fields, values) }, t.savedToast)) {
+    if (await act("updateThread", { id: d.id, fields: patchFrom(fields, values) }, words.savedToast)) {
       refresh();
     }
   },
@@ -539,10 +539,10 @@ export const actions = {
     }
     const fields = askedFields(current.fields);
     const values = await form({
-      title: t.askedTitle,
-      intro: t.askedIntro,
+      title: words.askedTitle,
+      intro: words.askedIntro,
       fields,
-      confirm: t.save
+      confirm: words.save
     });
     if (!values) {
       return;
@@ -552,7 +552,7 @@ export const actions = {
     const patch = patchFrom(fields, values);
     delete patch.at;
 
-    if (!(await act("updateThread", { id: d.id, fields: patch }, t.savedToast))) {
+    if (!(await act("updateThread", { id: d.id, fields: patch }, words.savedToast))) {
       return;
     }
 
@@ -566,24 +566,24 @@ export const actions = {
     }
 
     const required = await ask({
-      title: t.declinedTitle,
-      body: t.declinedBody,
-      confirm: t.declinedConfirm
+      title: words.declinedTitle,
+      body: words.declinedBody,
+      confirm: words.declinedConfirm
     });
 
     const ending = await form({
-      title: required ? t.expectationTitle : t.letGoTitle,
-      intro: required ? t.expectationIntro : t.letGoIntro,
+      title: required ? words.expectationTitle : words.letGoTitle,
+      intro: required ? words.expectationIntro : words.letGoIntro,
       fields: [
-        { name: "why", label: required ? t.expectationWhy : t.letGoWhy, type: "textarea", required: true },
+        { name: "why", label: required ? words.expectationWhy : words.letGoWhy, type: "textarea", required: true },
         {
           name: "said",
-          label: t.saidLabel,
+          label: words.saidLabel,
           type: "checkbox",
-          hint: t.saidHint
+          hint: words.saidHint
         }
       ],
-      confirm: t.save
+      confirm: words.save
     });
     if (!ending) {
       refresh();
@@ -593,7 +593,7 @@ export const actions = {
       await act(
         "endThread",
         { id: d.id, status: required ? "expectation" : "dropped", why: ending.why, said: ending.said },
-        t.recordedToast
+        words.recordedToast
       )
     ) {
       refresh();
@@ -603,18 +603,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   threadTalked: async (d) => {
     const values = await form({
-      title: t.talkedTitle,
-      intro: t.talkedIntro,
+      title: words.talkedTitle,
+      intro: words.talkedIntro,
       fields: [
-        { name: "note", label: t.talkedNoteLabel, placeholder: t.talkedNotePlaceholder },
-        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: words.talkedNoteLabel, placeholder: words.talkedNotePlaceholder },
+        { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: t.logIt
+      confirm: words.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logGrowthNote", { growth: d.id, ...values, observed: false }, t.loggedToast)) {
+    if (await act("logGrowthNote", { growth: d.id, ...values, observed: false }, words.loggedToast)) {
       refresh();
     }
   },
@@ -642,36 +642,36 @@ export const actions = {
       .map((/** @type {any} */ p) => ({ value: String(p.id), label: String(p.name) }));
 
     const values = await form({
-      title: t.observedTitle,
-      intro: t.observedIntro,
+      title: words.observedTitle,
+      intro: words.observedIntro,
       fields: [
-        { name: "note", label: t.observedNoteLabel, type: "textarea", placeholder: t.observedNotePlaceholder },
-        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) },
+        { name: "note", label: words.observedNoteLabel, type: "textarea", placeholder: words.observedNotePlaceholder },
+        { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()) },
         {
           name: "tell",
-          label: t.tellLabel,
+          label: words.tellLabel,
           type: "select",
-          options: [{ value: "", label: t.tellNobody }, ...others],
-          hint: t.tellHint
+          options: [{ value: "", label: words.tellNobody }, ...others],
+          hint: words.tellHint
         }
       ],
-      confirm: t.recordIt
+      confirm: words.recordIt
     });
     if (!values) {
       return;
     }
-    if (!(await act("logGrowthNote", { growth: d.id, ...values, observed: true }, t.recordedToast))) {
+    if (!(await act("logGrowthNote", { growth: d.id, ...values, observed: true }, words.recordedToast))) {
       return;
     }
 
     const tell = String(values.tell ?? "");
     if (tell !== "") {
       const said = String(values.note ?? "").trim() || String(current?.marker ?? "");
-      const name = others.find((o) => o.value === tell)?.label ?? t.them;
+      const name = others.find((o) => o.value === tell)?.label ?? words.them;
       // A promise rather than a note to self, deliberately: promises here escalate
       // past a week and no focus can dampen them, which is exactly the weight this
       // deserves. If it turns out not to be worth saying, closing it costs a click.
-      await act("logPromise", { person: tell, text: t.tellPromise(name, said) }, t.tellPromiseToast(name));
+      await act("logPromise", { person: tell, text: words.tellPromise(name, said) }, words.tellPromiseToast(name));
     }
     refresh();
   },
@@ -679,37 +679,37 @@ export const actions = {
   /** @param {Record<string, string>} d */
   threadEnd: async (d) => {
     const values = await form({
-      title: t.endTitle,
-      intro: t.endIntro,
+      title: words.endTitle,
+      intro: words.endIntro,
       fields: [
-        { name: "status", label: t.endHowLabel, type: "select", options: ENDINGS, value: "reached" },
+        { name: "status", label: words.endHowLabel, type: "select", options: ENDINGS, value: "reached" },
         {
           name: "why",
-          label: t.endWhyLabel,
+          label: words.endWhyLabel,
           type: "textarea",
           required: true,
-          hint: t.endWhyHint
+          hint: words.endWhyHint
         },
         {
           name: "said",
-          label: t.saidLabel,
+          label: words.saidLabel,
           type: "checkbox",
-          hint: t.endSaidHint
+          hint: words.endSaidHint
         }
       ],
-      confirm: t.endIt
+      confirm: words.endIt
     });
     if (!values) {
       return;
     }
-    if (await act("endThread", { id: d.id, ...values }, t.recordedToast)) {
+    if (await act("endThread", { id: d.id, ...values }, words.recordedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   threadSaid: async (d) => {
-    if (await act("updateThread", { id: d.id, fields: { endingSaid: true } }, t.notedToast)) {
+    if (await act("updateThread", { id: d.id, fields: { endingSaid: true } }, words.notedToast)) {
       refresh();
     }
   },
@@ -731,12 +731,12 @@ export const actions = {
    */
   threadRemove: async (d) => {
     const sure = await ask({
-      title: t.removeTitle,
-      body: t.removeBody(d.aim),
-      confirm: t.removeConfirm,
+      title: words.removeTitle,
+      body: words.removeBody(d.aim),
+      confirm: words.removeConfirm,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "growth", id: d.id }, t.removedToast))) {
+    if (sure && (await act("removeRow", { collection: "growth", id: d.id }, words.removedToast))) {
       refresh();
     }
   }

@@ -11,7 +11,7 @@ import { act, ask, asDateInput, esc, form, tend } from "../ui.js";
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
-const t = T.focus;
+const words = T.focus;
 
 export async function render() {
   const [current, map] = await Promise.all([tend.invoke("focus"), tend.invoke("roleMap")]);
@@ -19,16 +19,16 @@ export async function render() {
   if (!current.active) {
     return `
       <div class="view-head">
-        <h1 class="view-title">${t.noneTitle}</h1>
-        <p class="view-sub">${t.noneSub}</p>
+        <h1 class="view-title">${words.noneTitle}</h1>
+        <p class="view-sub">${words.noneSub}</p>
       </div>
       <article class="card">
-        <div class="card-top"><h2 class="card-title">${t.contractTitle}</h2></div>
-        <p class="card-why">${t.contractDoes}</p>
-        <p class="card-why">${t.contractNever}</p>
+        <div class="card-top"><h2 class="card-title">${words.contractTitle}</h2></div>
+        <p class="card-why">${words.contractDoes}</p>
+        <p class="card-why">${words.contractNever}</p>
         <div class="card-foot">
-          <span class="src">${t.endEarly}</span>
-          <button class="act primary" data-act="start">${t.startButton}</button>
+          <span class="src">${words.endEarly}</span>
+          <button class="act primary" data-act="start">${words.startButton}</button>
         </div>
       </article>
       ${guardedList(map)}
@@ -36,7 +36,7 @@ export async function render() {
   }
 
   const budget = current.budgetOfWeek
-    ? `<div class="metric"><div class="metric-label">${t.budgetLabel}</div><div class="metric-value">${Math.round(current.budgetOfWeek * 100)}%</div><div class="metric-note">${t.budgetNote}</div></div>`
+    ? `<div class="metric"><div class="metric-label">${words.budgetLabel}</div><div class="metric-value">${Math.round(current.budgetOfWeek * 100)}%</div><div class="metric-note">${words.budgetNote}</div></div>`
     : "";
 
   return `
@@ -47,8 +47,8 @@ export async function render() {
           <p class="view-sub">${esc(current.summary)}</p>
         </div>
         <div class="button-row">
-          <button class="act" data-act="start">${t.replace}</button>
-          <button class="act danger" data-act="end">${t.endButton}</button>
+          <button class="act" data-act="start">${words.replace}</button>
+          <button class="act danger" data-act="end">${words.endButton}</button>
         </div>
       </div>
     </div>
@@ -56,8 +56,8 @@ export async function render() {
     ${
       current.overrun
         ? `<article class="card sev-warn">
-            <div class="card-top"><h2 class="card-title">${t.overrunTitle}</h2></div>
-            <p class="card-why">${t.overrunWhy}</p>
+            <div class="card-top"><h2 class="card-title">${words.overrunTitle}</h2></div>
+            <p class="card-why">${words.overrunWhy}</p>
           </article>`
         : ""
     }
@@ -65,19 +65,19 @@ export async function render() {
     <div class="metrics">
       ${budget}
       <div class="metric">
-        <div class="metric-label">${t.heldBackLabel}</div>
+        <div class="metric-label">${words.heldBackLabel}</div>
         <div class="metric-value ${current.heldBackRightNow > 0 ? "warn" : "ok"}">${current.heldBackRightNow}</div>
-        <div class="metric-note">${t.heldBackNote}</div>
+        <div class="metric-note">${words.heldBackNote}</div>
       </div>
       <div class="metric">
-        <div class="metric-label">${t.thresholdsLabel}</div>
-        <div class="metric-value">${current.overrun ? t.thresholdsNormal : `×${current.stretchInForce}`}</div>
-        <div class="metric-note">${t.thresholdsNote}</div>
+        <div class="metric-label">${words.thresholdsLabel}</div>
+        <div class="metric-value">${current.overrun ? words.thresholdsNormal : `×${current.stretchInForce}`}</div>
+        <div class="metric-note">${words.thresholdsNote}</div>
       </div>
     </div>
 
     <article class="card">
-      <div class="card-top"><h2 class="card-title">${t.costTitle}</h2></div>
+      <div class="card-top"><h2 class="card-title">${words.costTitle}</h2></div>
       <p class="card-why">${esc(current.cost)}</p>
     </article>
 
@@ -90,18 +90,18 @@ function guardedList(map) {
   const guarded = (map?.active ?? []).filter((/** @type {any} */ d) => d.guarded);
   if (guarded.length === 0) {
     return `<div class="group">
-      <div class="group-head"><span class="group-title">${t.guardedTitle}</span><span class="group-rule"></span></div>
-      <div class="empty">${t.guardedNone}</div>
+      <div class="group-head"><span class="group-title">${words.guardedTitle}</span><span class="group-rule"></span></div>
+      <div class="empty">${words.guardedNone}</div>
     </div>`;
   }
   return `<div class="group">
-    <div class="group-head"><span class="group-title">${t.guardedSomeTitle}</span><span class="group-rule"></span><span class="group-meta">${guarded.length}</span></div>
+    <div class="group-head"><span class="group-title">${words.guardedSomeTitle}</span><span class="group-rule"></span><span class="group-meta">${guarded.length}</span></div>
     <div class="rows">
       ${guarded
         .map(
           (/** @type {any} */ d) => `<div class="row static">
             <span class="row-name">${esc(d.name)}</span>
-            <span class="row-right"><span class="row-meta">${t.guardedEvery(esc(d.every))}</span><span class="pill ok">${t.guardedPill}</span></span>
+            <span class="row-right"><span class="row-meta">${words.guardedEvery(esc(d.every))}</span><span class="pill ok">${words.guardedPill}</span></span>
           </div>`
         )
         .join("")}
@@ -113,29 +113,29 @@ export const actions = {
   start: async () => {
     const inThreeWeeks = Date.now() + 21 * 86_400_000;
     const values = await form({
-      title: t.startTitle,
-      intro: t.startIntro,
+      title: words.startTitle,
+      intro: words.startIntro,
       fields: [
-        { name: "name", label: t.startNameLabel, required: true, placeholder: t.startNamePlaceholder },
+        { name: "name", label: words.startNameLabel, required: true, placeholder: words.startNamePlaceholder },
         {
           name: "endsAt",
-          label: t.startEndsLabel,
+          label: words.startEndsLabel,
           type: "date",
           value: asDateInput(inThreeWeeks),
-          hint: t.startEndsHint
+          hint: words.startEndsHint
         },
         {
           name: "budgetPercent",
-          label: t.startBudgetLabel,
+          label: words.startBudgetLabel,
           type: "number",
           min: 5,
           max: 100,
           step: 5,
           value: 50,
-          hint: t.startBudgetHint
+          hint: words.startBudgetHint
         }
       ],
-      confirm: t.startConfirm
+      confirm: words.startConfirm
     });
     if (!values) {
       return;
@@ -147,7 +147,7 @@ export const actions = {
         endsAt: values.endsAt,
         budget: values.budgetPercent ? Number(values.budgetPercent) / 100 : undefined
       },
-      t.startedToast
+      words.startedToast
     );
     if (ok) {
       refresh();
@@ -156,11 +156,11 @@ export const actions = {
 
   end: async () => {
     const sure = await ask({
-      title: t.endTitle,
-      body: t.endBody,
-      confirm: t.endConfirm
+      title: words.endTitle,
+      body: words.endBody,
+      confirm: words.endConfirm
     });
-    if (sure && (await act("endFocus", {}, t.endedToast))) {
+    if (sure && (await act("endFocus", {}, words.endedToast))) {
       refresh();
     }
   }

@@ -9,6 +9,9 @@
  */
 
 import { middayOn } from "../domain/time.js";
+import { T } from "./text.js";
+
+const words = T.ui;
 
 /**
  * The preload bridge.
@@ -81,11 +84,11 @@ export function readFailed(result) {
  */
 export function readFailedHtml(what, result) {
   return `<article class="card sev-warn">
-    <div class="card-top"><h2 class="card-title">Could not read ${esc(what)}</h2></div>
-    <p class="card-why">Nothing has been lost - this is a failed read, not an empty record. The store may be mid-sync.</p>
+    <div class="card-top"><h2 class="card-title">${esc(words.readFailedTitle(what))}</h2></div>
+    <p class="card-why">${words.readFailedWhy}</p>
     <p class="card-why mono-text">${esc(result.error)}</p>
     <div class="card-foot">
-      <button class="act" data-act="reload">Try again</button>
+      <button class="act" data-act="reload">${words.retry}</button>
     </div>
   </article>`;
 }
@@ -164,7 +167,7 @@ export function toast(message, tone = "ok") {
  *   from one layer down had no reason to behave differently.
  * @returns {Promise<Record<string, any> | null>}
  */
-export function form({ title, intro, fields, confirm = "Save", tone = "normal", attempt }) {
+export function form({ title, intro, fields, confirm = words.save, tone = "normal", attempt }) {
   return new Promise((resolve) => {
     const scrim = document.createElement("div");
     scrim.className = "scrim";
@@ -185,7 +188,7 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal", 
         <p class="dialog-error" hidden></p>
       </form>
       <div class="dialog-foot">
-        <button type="button" class="act" data-cancel>Cancel</button>
+        <button type="button" class="act" data-cancel>${words.cancel}</button>
         <button type="button" class="act ${tone === "danger" ? "danger" : "primary"}" data-confirm>${esc(confirm)}</button>
       </div>
     `;
@@ -241,14 +244,14 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal", 
             .filter((box) => /** @type {HTMLInputElement} */ (box).checked)
             .map((box) => /** @type {HTMLInputElement} */ (box).value);
           if (field.required && values[field.name].length === 0) {
-            showError(`${field.label} is needed.`);
+            showError(words.needed(field.label));
             return;
           }
           continue;
         }
         const raw = el.value.trim();
         if (field.required && !raw) {
-          showError(`${field.label} is needed.`);
+          showError(words.needed(field.label));
           el.focus();
           return;
         }
@@ -357,7 +360,7 @@ export function form({ title, intro, fields, confirm = "Save", tone = "normal", 
         const chosen = [...wrapper.querySelectorAll('input[type="checkbox"]')]
           .filter((box) => /** @type {HTMLInputElement} */ (box).checked)
           .map((box) => box.parentElement?.textContent?.trim() ?? "");
-        label.textContent = chosen.length === 0 ? "Nobody chosen yet" : chosen.join(", ");
+        label.textContent = chosen.length === 0 ? words.noneChosen : chosen.join(", ");
       };
       wrapper.addEventListener("change", update);
       update();
@@ -423,7 +426,7 @@ function fieldHtml(f) {
     const chosen = new Set((Array.isArray(f.value) ? f.value : []).map((v) => String(v)));
     const summary =
       chosen.size === 0
-        ? "Nobody chosen yet"
+        ? words.noneChosen
         : options
             .filter((o) => chosen.has(o.value))
             .map((o) => o.label)
@@ -491,7 +494,7 @@ function fieldHtml(f) {
  * @param {"normal" | "danger"} [spec.tone]
  * @returns {Promise<boolean>}
  */
-export async function ask({ title, body, confirm = "Yes", tone = "normal" }) {
+export async function ask({ title, body, confirm = words.yes, tone = "normal" }) {
   const answer = await form({
     title,
     intro: body,

@@ -38,7 +38,7 @@ import { actions as journalActions } from "./journal.js";
 import { actions as waitingActions, waitingBlock } from "./waiting.js";
 import { T } from "../text.js";
 
-const t = T.people;
+const words = T.people;
 
 /**
  * This half's vocabulary, asked once per draw.
@@ -77,14 +77,14 @@ export async function render(params) {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">${t.title}</h1>
+          <h1 class="view-title">${words.title}</h1>
           <p class="view-sub">${
             isPrivate
-              ? t.subPrivate
-              : t.subWork
+              ? words.subPrivate
+              : words.subWork
           }</p>
         </div>
-        <button class="act primary" data-act="addPerson">${t.addButton}</button>
+        <button class="act primary" data-act="addPerson">${words.addButton}</button>
       </div>
     </div>`;
 
@@ -109,10 +109,10 @@ export async function render(params) {
     return `${header}<div class="empty">
       ${
         anyArchived
-          ? t.emptyArchived
+          ? words.emptyArchived
           : isPrivate
-            ? t.emptyPrivate
-            : t.emptyWork
+            ? words.emptyPrivate
+            : words.emptyWork
       }
     </div>${archivedGroup}`;
   }
@@ -149,7 +149,7 @@ export async function render(params) {
                   ""
                 : p.worstDrift
                   ? `<span class="row-meta">${esc(p.worstDrift.duty)}</span>${pill(p.worstDrift.urgency)}<span class="pill plain">${esc(p.worstDrift.behindBy)}</span>`
-                  : `<span class="row-meta">${p.availability === "away" ? t.awayNothing : p.availability === "left" ? t.leftNothing : t.noDuty}</span>`
+                  : `<span class="row-meta">${p.availability === "away" ? words.awayNothing : p.availability === "left" ? words.leftNothing : words.noDuty}</span>`
             }
           </span>
         </button>`
@@ -191,16 +191,16 @@ function archivedGroupHtml(archived) {
       (/** @type {any} */ p) => `<div class="row static">
         <span class="row-name">${esc(p.name)}</span>
         <span class="row-right">
-          <span class="pill plain">${t.archivedOn(esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10)))}</span>
-          <button class="act tiny" data-act="open" data-person="${esc(p.id)}">${t.view}</button>
-          <button class="act tiny" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.unarchive}</button>
+          <span class="pill plain">${words.archivedOn(esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10)))}</span>
+          <button class="act tiny" data-act="open" data-person="${esc(p.id)}">${words.view}</button>
+          <button class="act tiny" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${words.unarchive}</button>
         </span>
       </div>`
     )
     .join("");
   return `<details class="group archived-group">
     <summary class="group-head archived-summary">
-      <span class="group-title">${t.archivedGroup}</span><span class="group-rule"></span><span class="group-meta">${rows.length}</span>
+      <span class="group-title">${words.archivedGroup}</span><span class="group-rule"></span><span class="group-meta">${rows.length}</span>
     </summary>
     <div class="rows">${items}</div>
   </details>`;
@@ -211,8 +211,8 @@ async function personPage(id) {
   const p = await tend.invoke("person", { person: id });
   if (p.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">${t.notFoundTitle}</h2></div><p class="card-why">${esc(p.error)}</p>
-      <div class="card-foot"><button class="act" data-act="back">${t.allPeople}</button></div></div>`;
+      <h2 class="card-title">${words.notFoundTitle}</h2></div><p class="card-why">${esc(p.error)}</p>
+      <div class="card-foot"><button class="act" data-act="back">${words.allPeople}</button></div></div>`;
   }
 
   const list = (/** @type {string} */ title, /** @type {string} */ body, /** @type {string} */ emptyText) =>
@@ -294,7 +294,7 @@ async function personPage(id) {
             row.from === "nib" ? `<span class="pill plain">from a note</span>` : ""
           }
           <button class="act tiny danger" data-act="unlogContact" data-id="${esc(row.id)}"
-            data-what="${esc(row.kind)}${row.note ? ` - ${esc(row.note)}` : ""}">${t.notRight}</button>
+            data-what="${esc(row.kind)}${row.note ? ` - ${esc(row.note)}` : ""}">${words.notRight}</button>
         </span>
       </div>`;
 
@@ -344,7 +344,7 @@ async function personPage(id) {
         <summary class="line">
           <span class="line-when">${esc(first.when)} - ${esc(latest.when)}</span>
           <span class="line-text"><strong>${esc(one.kind)}</strong>${one.note ? ` - ${esc(one.note)}` : ""}</span>
-          <span class="line-right"><span class="pill plain">${t.identical(run.rows.length)}</span></span>
+          <span class="line-right"><span class="pill plain">${words.identical(run.rows.length)}</span></span>
         </summary>
         <div class="line-fold-rows">${run.rows.map(contactLine).join("")}</div>
       </details>`;
@@ -361,14 +361,14 @@ async function personPage(id) {
     new Date(at).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
   const contactSummaryLine =
     cs.total === 0
-      ? t.noContactYet
+      ? words.noContactYet
       : [
-          t.countOf(cs.total, cs.total === 1 ? t.conversationOne : t.conversationMany),
-          cs.firstAt === null || cs.total < 2 ? null : t.since(month(cs.firstAt)),
+          words.countOf(cs.total, cs.total === 1 ? words.conversationOne : words.conversationMany),
+          cs.firstAt === null || cs.total < 2 ? null : words.since(month(cs.firstAt)),
           cs.everyDays === null
             ? null
-            : t.roughlyEvery(cs.everyDays, cs.everyDays === 1 ? t.dayOne : t.dayMany),
-          cs.lastWords === null || cs.lastWords === undefined ? null : t.lastAt(cs.lastWords)
+            : words.roughlyEvery(cs.everyDays, cs.everyDays === 1 ? words.dayOne : words.dayMany),
+          cs.lastWords === null || cs.lastWords === undefined ? null : words.lastAt(cs.lastWords)
         ]
           .filter((part) => part !== null)
           .join(" · ");
@@ -380,10 +380,10 @@ async function personPage(id) {
     .map(
       (/** @type {any} */ sk) => `<div class="line">
         <span class="line-when">${esc(sk.when)}</span>
-        <span class="line-text">${t.didNotHappen(esc(sk.kind), sk.why ? t.skipWhy(esc(sk.why)) : "")}</span>
+        <span class="line-text">${words.didNotHappen(esc(sk.kind), sk.why ? words.skipWhy(esc(sk.why)) : "")}</span>
         <span class="line-right">
           <button class="act tiny danger" data-act="unlogSkip" data-id="${esc(sk.id)}"
-            data-what="${t.skipWhat(esc(sk.kind))}">${t.notRight}</button>
+            data-what="${words.skipWhat(esc(sk.kind))}">${words.notRight}</button>
         </span>
       </div>`
     )
@@ -434,12 +434,12 @@ async function personPage(id) {
           m.what ? `<span class="src">${esc(m.what)}</span>` : ""
         }${
           (m.alsoThere ?? []).length > 0
-            ? `<span class="src">${t.alsoThere(esc(m.alsoThere.join(", ")))}</span>`
+            ? `<span class="src">${words.alsoThere(esc(m.alsoThere.join(", ")))}</span>`
             : ""
         }</span>
         <span class="line-right">
           <button class="act tiny danger" data-act="unlogMoment" data-id="${esc(m.id)}"
-            data-what="${esc(m.part)}">${t.notRight}</button>
+            data-what="${esc(m.part)}">${words.notRight}</button>
         </span>
       </div>`
     )
@@ -478,14 +478,14 @@ async function personPage(id) {
           ${l.note ? `<span class="src"> ${esc(l.note)}</span>` : ""}
         </span>
         <span class="line-right">
-          <button class="act tiny danger" data-act="unlink" data-id="${esc(l.id)}" data-name="${esc(l.title)}">${t.remove}</button>
+          <button class="act tiny danger" data-act="unlink" data-id="${esc(l.id)}" data-name="${esc(l.title)}">${words.remove}</button>
         </span>
       </div>`
     )
     .join("");
 
   return `
-    <div class="view-head"><button class="act" data-act="back">${t.back}</button></div>
+    <div class="view-head"><button class="act" data-act="back">${words.back}</button></div>
     <div class="panel">
       <div class="panel-head">
         <div>
@@ -494,13 +494,13 @@ async function personPage(id) {
         </div>
         <div class="panel-actions">
           <span class="tag">${esc(p.relation)}</span>
-          <button class="act" data-act="edit" data-person="${esc(p.id)}">${t.edit}</button>
+          <button class="act" data-act="edit" data-person="${esc(p.id)}">${words.edit}</button>
         </div>
       </div>
 
       <div class="button-row">
-        ${blocks.cadences ? `<button class="act primary" data-act="logContact" data-person="${esc(p.id)}">${t.logContactButton}</button>` : ""}
-        ${blocks.skips ? `<button class="act" data-act="logSkip" data-person="${esc(p.id)}">${t.logSkipButton}</button>` : ""}
+        ${blocks.cadences ? `<button class="act primary" data-act="logContact" data-person="${esc(p.id)}">${words.logContactButton}</button>` : ""}
+        ${blocks.skips ? `<button class="act" data-act="logSkip" data-person="${esc(p.id)}">${words.logSkipButton}</button>` : ""}
         <!--
           The one action that is in both halves, and the primary one where it is
           the only one. A promise is owed the same way to somebody you live with,
@@ -508,25 +508,25 @@ async function personPage(id) {
         -->
         ${
           blocks.moments
-            ? `<button class="act primary" data-act="logMoment" data-person="${esc(p.id)}">${t.logMomentButton}</button>`
+            ? `<button class="act primary" data-act="logMoment" data-person="${esc(p.id)}">${words.logMomentButton}</button>`
             : ""
         }
         <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
-        <button class="act" data-act="link" data-person="${esc(p.id)}">${t.linkButton}</button>
-        ${blocks.observations ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">${t.observationButton}</button>` : ""}
+        <button class="act" data-act="link" data-person="${esc(p.id)}">${words.linkButton}</button>
+        ${blocks.observations ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">${words.observationButton}</button>` : ""}
         ${
           blocks.observations && model.available
             ? isRunning(themesKey)
-              ? `<button class="act" disabled>${t.readingNotes}</button>`
-              : `<button class="act" data-act="findThemes" data-person="${esc(p.id)}">${t.themesButton}</button>`
+              ? `<button class="act" disabled>${words.readingNotes}</button>`
+              : `<button class="act" data-act="findThemes" data-person="${esc(p.id)}">${words.themesButton}</button>`
             : ""
         }
       </div>
 
       ${resultFor(themesKey) === null ? "" : themesHtml(themesKey, resultFor(themesKey))}
 
-      ${blocks.cadences ? list(t.cadencesBlock, cadences, t.cadencesNone) : ""}
-      ${list(t.promisesBlock, promises, t.promisesNone)}
+      ${blocks.cadences ? list(words.cadencesBlock, cadences, words.cadencesNone) : ""}
+      ${list(words.promisesBlock, promises, words.promisesNone)}
       ${waitingOn}
       ${growing}
       ${blocks.skips && p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
@@ -541,22 +541,22 @@ async function personPage(id) {
          * wanted when something looks wrong.
          */
         blocks.observations
-          ? list(t.observationsBlock, observations, t.observationsNone)
+          ? list(words.observationsBlock, observations, words.observationsNone)
           : ""
       }
       ${
         blocks.cadences
-          ? folded(t.historyBlock, contactSummaryLine, contact, t.noContactYet)
+          ? folded(words.historyBlock, contactSummaryLine, contact, words.noContactYet)
           : ""
       }
-      ${blocks.skips && skipped ? list(t.skippedBlock, skipped, "") : ""}
-      ${list(t.linkedBlock, linked, t.linkedNone)}
+      ${blocks.skips && skipped ? list(words.skippedBlock, skipped, "") : ""}
+      ${list(words.linkedBlock, linked, words.linkedNone)}
       ${
         blocks.moments
           ? list(
-              t.momentsBlock,
+              words.momentsBlock,
               momentLines,
-              t.momentsNone
+              words.momentsNone
             )
           : ""
       }
@@ -569,14 +569,14 @@ async function personPage(id) {
       <div class="block">
         ${
           p.archivedAt
-            ? `<p class="card-why dim">${t.archivedNote(esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10)))}</p>
-               <button class="act" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.unarchiveNamed(esc(p.name))}</button>`
-            : `<button class="act" data-act="archive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.archiveNamed(esc(p.name))}</button>`
+            ? `<p class="card-why dim">${words.archivedNote(esc(new Date(Number(p.archivedAt)).toISOString().slice(0, 10)))}</p>
+               <button class="act" data-act="unarchive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${words.unarchiveNamed(esc(p.name))}</button>`
+            : `<button class="act" data-act="archive" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${words.archiveNamed(esc(p.name))}</button>`
         }
       </div>
 
       <div class="block danger-zone">
-        <button class="act danger" data-act="remove" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${t.removeNamed(esc(p.name))}</button>
+        <button class="act danger" data-act="remove" data-person="${esc(p.id)}" data-name="${esc(p.name)}">${words.removeNamed(esc(p.name))}</button>
       </div>
     </div>
   `;
@@ -592,19 +592,19 @@ export async function addPersonDialog() {
   const isPrivate = vocab.half === "private";
 
   const values = await form({
-    title: t.addTitle,
+    title: words.addTitle,
     intro: isPrivate
       ? // No mention of duties, because there are none. The relationship here is a
         // label: it groups the list and it sits on their page, and nothing is
         // derived from it. Saying so is the difference between a field somebody
         // answers carefully and a field somebody answers wrong on purpose.
-        t.addIntroPrivate
-      : t.addIntroWork,
+        words.addIntroPrivate
+      : words.addIntroWork,
     fields: [
-      { name: "name", label: t.nameLabel, required: true, placeholder: isPrivate ? t.namePlaceholderPrivate : t.namePlaceholderWork },
+      { name: "name", label: words.nameLabel, required: true, placeholder: isPrivate ? words.namePlaceholderPrivate : words.namePlaceholderWork },
       {
         name: "relation",
-        label: isPrivate ? t.relationPrivate : t.relationWork,
+        label: isPrivate ? words.relationPrivate : words.relationWork,
         type: "select",
         // Asked, not compiled in. This is the field that offered six management
         // relationships for somebody's family.
@@ -620,19 +620,19 @@ export async function addPersonDialog() {
         : [
             {
               name: "since",
-              label: t.sinceLabel,
+              label: words.sinceLabel,
               type: /** @type {const} */ ("date"),
               value: asDateInput(Date.now()),
-              hint: t.addSinceHint
+              hint: words.addSinceHint
             }
           ])
     ],
-    confirm: t.add
+    confirm: words.add
   });
   if (!values) {
     return false;
   }
-  return Boolean(await act("addPerson", values, t.addedNamed(values.name)));
+  return Boolean(await act("addPerson", values, words.addedNamed(values.name)));
 }
 
 export const actions = {
@@ -659,12 +659,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogMoment: async (d) => {
     const sure = await ask({
-      title: t.unlogMomentTitle,
-      body: t.unlogMomentBody(d.what),
-      confirm: t.remove,
+      title: words.unlogMomentTitle,
+      body: words.unlogMomentBody(d.what),
+      confirm: words.remove,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "moments", id: d.id }, t.removedToast))) {
+    if (sure && (await act("removeRow", { collection: "moments", id: d.id }, words.removedToast))) {
       refresh();
     }
   },
@@ -672,30 +672,30 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logSkip: async (d) => {
     const values = await form({
-      title: t.skipTitle,
-      intro: t.skipIntro,
+      title: words.skipTitle,
+      intro: words.skipIntro,
       fields: [
         {
           name: "kind",
-          label: t.skipKindLabel,
+          label: words.skipKindLabel,
           type: "select",
           options: kindsFor("person").filter((k) => k.value !== "second-hand" && k.value !== "survey"),
           value: "one-to-one"
         },
         {
           name: "why",
-          label: t.skipWhyLabel,
-          placeholder: t.skipWhyPlaceholder,
-          hint: t.skipWhyHint
+          label: words.skipWhyLabel,
+          placeholder: words.skipWhyPlaceholder,
+          hint: words.skipWhyHint
         },
-        { name: "at", label: t.skipWhenLabel, type: "date", value: asDateInput(Date.now()) }
+        { name: "at", label: words.skipWhenLabel, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: t.recordIt
+      confirm: words.recordIt
     });
     if (!values) {
       return;
     }
-    if (await act("logSkip", { person: d.person, ...values }, t.recordedToast)) {
+    if (await act("logSkip", { person: d.person, ...values }, words.recordedToast)) {
       refresh();
     }
   },
@@ -703,12 +703,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogSkip: async (d) => {
     const sure = await ask({
-      title: t.takeBackTitle,
-      body: t.unlogSkipBody(d.what),
-      confirm: t.takeItBack,
+      title: words.takeBackTitle,
+      body: words.unlogSkipBody(d.what),
+      confirm: words.takeItBack,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "skips", id: d.id }, t.takenBackToast))) {
+    if (sure && (await act("removeRow", { collection: "skips", id: d.id }, words.takenBackToast))) {
       refresh();
     }
   },
@@ -716,12 +716,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogContact: async (d) => {
     const sure = await ask({
-      title: t.takeBackTitle,
-      body: t.unlogContactBody(d.what),
-      confirm: t.takeItBack,
+      title: words.takeBackTitle,
+      body: words.unlogContactBody(d.what),
+      confirm: words.takeItBack,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, t.takenBackToast))) {
+    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, words.takenBackToast))) {
       refresh();
     }
   },
@@ -762,13 +762,13 @@ export const actions = {
       return;
     }
     const values = await form({
-      title: t.editTitle(p.name),
-      intro: t.editIntro,
+      title: words.editTitle(p.name),
+      intro: words.editIntro,
       fields: [
-        { name: "name", label: t.nameLabel, value: p.name, required: true },
+        { name: "name", label: words.nameLabel, value: p.name, required: true },
         {
           name: "relation",
-          label: editVocab.half === "private" ? t.relationPrivate : t.relationWork,
+          label: editVocab.half === "private" ? words.relationPrivate : words.relationWork,
           type: "select",
           // The half's own vocabulary. Offering the work list here would let a
           // private person be edited into a management relationship, and the
@@ -778,27 +778,27 @@ export const actions = {
         },
         {
           name: "since",
-          label: t.sinceLabel,
+          label: words.sinceLabel,
           type: "date",
           value: p.since ? asDateInput(p.since) : "",
-          hint: t.editSinceHint
+          hint: words.editSinceHint
         },
         {
           name: "awayUntil",
-          label: t.awayLabel,
+          label: words.awayLabel,
           type: "date",
           value: p.awayUntil ? asDateInput(p.awayUntil) : "",
-          hint: t.awayHint
+          hint: words.awayHint
         },
         {
           name: "leftAt",
-          label: t.leftLabel,
+          label: words.leftLabel,
           type: "date",
           value: p.leftAt ? asDateInput(p.leftAt) : "",
-          hint: t.leftHint
+          hint: words.leftHint
         }
       ],
-      confirm: t.save
+      confirm: words.save
     });
     if (!values) {
       return;
@@ -811,7 +811,7 @@ export const actions = {
       awayUntil: values.awayUntil ?? null,
       leftAt: values.leftAt ?? null
     };
-    if (await act("updatePerson", { person: d.person, fields }, t.updatedToast)) {
+    if (await act("updatePerson", { person: d.person, fields }, words.updatedToast)) {
       refresh();
     }
   },
@@ -819,22 +819,22 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logContact: async (d) => {
     const values = await form({
-      title: t.logTitle,
-      intro: t.logIntro,
+      title: words.logTitle,
+      intro: words.logIntro,
       fields: [
         // A person can only be the subject of the person kinds. The project and
         // workstream ones were on this list too, and picking one recorded
         // something that satisfied nothing while the toast still said Logged.
-        { name: "kind", label: t.logKindLabel, type: "select", options: kindsFor("person"), value: "one-to-one" },
-        { name: "note", label: t.logNoteLabel, placeholder: t.logNotePlaceholder },
-        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()), hint: t.logWhenHint }
+        { name: "kind", label: words.logKindLabel, type: "select", options: kindsFor("person"), value: "one-to-one" },
+        { name: "note", label: words.logNoteLabel, placeholder: words.logNotePlaceholder },
+        { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()), hint: words.logWhenHint }
       ],
-      confirm: t.logIt
+      confirm: words.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.person, ...values }, t.loggedToast)) {
+    if (await act("logTouch", { subject: d.person, ...values }, words.loggedToast)) {
       refresh();
     }
   },
@@ -842,19 +842,19 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logPromise: async (d) => {
     const values = await form({
-      title: t.promiseTitle,
-      intro: t.promiseIntro,
+      title: words.promiseTitle,
+      intro: words.promiseIntro,
       fields: [
-        { name: "text", label: t.promiseTextLabel, required: true, type: "textarea", placeholder: t.promiseTextPlaceholder },
-        { name: "due", label: t.promiseDueLabel, type: "date" },
-        { name: "madeAt", label: t.promiseMadeLabel, type: "date", value: asDateInput(Date.now()), hint: t.promiseMadeHint }
+        { name: "text", label: words.promiseTextLabel, required: true, type: "textarea", placeholder: words.promiseTextPlaceholder },
+        { name: "due", label: words.promiseDueLabel, type: "date" },
+        { name: "madeAt", label: words.promiseMadeLabel, type: "date", value: asDateInput(Date.now()), hint: words.promiseMadeHint }
       ],
-      confirm: t.logIt
+      confirm: words.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logPromise", { person: d.person, ...values }, t.loggedToast)) {
+    if (await act("logPromise", { person: d.person, ...values }, words.loggedToast)) {
       refresh();
     }
   },
@@ -867,19 +867,19 @@ export const actions = {
    */
   link: async (d) => {
     const values = await form({
-      title: t.linkTitle,
-      intro: t.linkIntro,
+      title: words.linkTitle,
+      intro: words.linkIntro,
       fields: [
-        { name: "url", label: t.linkUrlLabel, placeholder: t.linkUrlPlaceholder, required: true },
-        { name: "title", label: t.linkTitleLabel, placeholder: t.linkTitlePlaceholder },
-        { name: "note", label: t.linkNoteLabel, type: "textarea" }
+        { name: "url", label: words.linkUrlLabel, placeholder: words.linkUrlPlaceholder, required: true },
+        { name: "title", label: words.linkTitleLabel, placeholder: words.linkTitlePlaceholder },
+        { name: "note", label: words.linkNoteLabel, type: "textarea" }
       ],
-      confirm: t.linkConfirm
+      confirm: words.linkConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("linkTo", { person: d.person, ...values }, t.linkedToast)) {
+    if (await act("linkTo", { person: d.person, ...values }, words.linkedToast)) {
       refresh();
     }
   },
@@ -887,12 +887,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlink: async (d) => {
     const sure = await ask({
-      title: t.unlinkTitle(d.name),
-      body: t.unlinkBody,
-      confirm: t.remove,
+      title: words.unlinkTitle(d.name),
+      body: words.unlinkBody,
+      confirm: words.remove,
       tone: "danger"
     });
-    if (sure && (await act("unlink", { id: d.id }, t.removedToast))) {
+    if (sure && (await act("unlink", { id: d.id }, words.removedToast))) {
       refresh();
     }
   },
@@ -900,25 +900,25 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logEvidence: async (d) => {
     const values = await form({
-      title: t.observationTitle,
-      intro: t.observationIntro,
+      title: words.observationTitle,
+      intro: words.observationIntro,
       fields: [
-        { name: "text", label: t.observationTextLabel, type: "textarea", required: true },
-        { name: "area", label: t.observationAreaLabel, placeholder: t.observationAreaPlaceholder }
+        { name: "text", label: words.observationTextLabel, type: "textarea", required: true },
+        { name: "area", label: words.observationAreaLabel, placeholder: words.observationAreaPlaceholder }
       ],
-      confirm: t.recordIt
+      confirm: words.recordIt
     });
     if (!values) {
       return;
     }
-    if (await act("logEvidence", { person: d.person, ...values }, t.recordedToast)) {
+    if (await act("logEvidence", { person: d.person, ...values }, words.recordedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   resolvePromise: async (d) => {
-    if (await act("resolvePromise", { id: d.id, as: "resolved" }, t.closedToast)) {
+    if (await act("resolvePromise", { id: d.id, as: "resolved" }, words.closedToast)) {
       refresh();
     }
   },
@@ -931,22 +931,22 @@ export const actions = {
    */
   archive: async (d) => {
     const sure = await ask({
-      title: t.archiveTitle(d.name),
-      body: t.archiveBody,
-      confirm: t.archive,
+      title: words.archiveTitle(d.name),
+      body: words.archiveBody,
+      confirm: words.archive,
       tone: "danger"
     });
     if (!sure) {
       return;
     }
-    if (await act("archivePerson", { id: d.person }, t.archivedToast(d.name))) {
+    if (await act("archivePerson", { id: d.person }, words.archivedToast(d.name))) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   unarchive: async (d) => {
-    if (await act("unarchivePerson", { id: d.person }, t.unarchivedToast(d.name))) {
+    if (await act("unarchivePerson", { id: d.person }, words.unarchivedToast(d.name))) {
       refresh();
     }
   },
@@ -954,15 +954,15 @@ export const actions = {
   /** @param {Record<string, string>} d */
   remove: async (d) => {
     const sure = await ask({
-      title: t.removeTitle(d.name),
-      body: t.removeBody,
-      confirm: t.remove,
+      title: words.removeTitle(d.name),
+      body: words.removeBody,
+      confirm: words.remove,
       tone: "danger"
     });
     if (!sure) {
       return;
     }
-    if (await act("removeRow", { collection: "people", id: d.person }, t.removedNamed(d.name))) {
+    if (await act("removeRow", { collection: "people", id: d.person }, words.removedNamed(d.name))) {
       go("people");
     }
   }

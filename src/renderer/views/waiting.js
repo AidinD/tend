@@ -16,7 +16,7 @@ import { act, ask, asDateInput, esc, form, pill, tend, WAIT_ENDING_OPTIONS } fro
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
-const t = T.waiting;
+const words = T.waiting;
 
 /**
  * The group for the daily page, or nothing at all.
@@ -30,11 +30,11 @@ export function waitingGroup(due) {
   }
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">${t.groupTitle}</span>
+      <span class="group-title">${words.groupTitle}</span>
       <span class="group-rule"></span>
       <span class="group-meta">${due.length}</span>
     </div>
-    <p class="group-note">${t.groupNote}</p>
+    <p class="group-note">${words.groupNote}</p>
     ${due.map(row).join("")}
   </div>`;
 }
@@ -49,13 +49,13 @@ export async function waitingBlock(personId) {
   const open = await tend.invoke("waits", { person: personId });
   const rows = Array.isArray(open) ? open : [];
 
-  const head = `<div class="block-title">${t.blockTitle}</div>`;
-  const add = `<button class="act" data-act="addWait" data-person="${esc(personId)}">${t.addButton}</button>`;
+  const head = `<div class="block-title">${words.blockTitle}</div>`;
+  const add = `<button class="act" data-act="addWait" data-person="${esc(personId)}">${words.addButton}</button>`;
 
   if (rows.length === 0) {
     return `<div class="block">
       ${head}
-      <div class="empty">${t.none}</div>
+      <div class="empty">${words.none}</div>
       <div class="button-row">${add}</div>
     </div>`;
   }
@@ -69,7 +69,7 @@ export async function waitingBlock(personId) {
 
 /** @param {any} w */
 function row(w) {
-  const counts = t.counts(esc(w.waitingFor), w.chases, esc(w.sinceNudge));
+  const counts = words.counts(esc(w.waitingFor), w.chases, esc(w.sinceNudge));
 
   return `<div class="thread">
     <div class="thread-top">
@@ -77,11 +77,11 @@ function row(w) {
       <span class="line-right">${pill(w.severity)}</span>
     </div>
     <p class="card-why dim">${counts}</p>
-    ${w.why ? `<p class="card-why dim">${t.blocking(esc(w.why))}</p>` : ""}
+    ${w.why ? `<p class="card-why dim">${words.blocking(esc(w.why))}</p>` : ""}
     ${w.asks ? `<p class="card-why warn-text">${esc(w.asks)}</p>` : ""}
     <div class="button-row">
-      <button class="act" data-act="chase" data-id="${esc(w.id)}">${t.chaseButton}</button>
-      <button class="act" data-act="stopWaiting" data-id="${esc(w.id)}" data-what="${esc(w.what)}">${t.stopButton}</button>
+      <button class="act" data-act="chase" data-id="${esc(w.id)}">${words.chaseButton}</button>
+      <button class="act" data-act="stopWaiting" data-id="${esc(w.id)}" data-what="${esc(w.what)}">${words.stopButton}</button>
     </div>
   </div>`;
 }
@@ -90,43 +90,43 @@ export const actions = {
   /** @param {Record<string, string>} d */
   addWait: async (d) => {
     const values = await form({
-      title: t.addTitle,
-      intro: t.addIntro,
+      title: words.addTitle,
+      intro: words.addIntro,
       fields: [
         {
           name: "what",
-          label: t.addWhatLabel,
+          label: words.addWhatLabel,
           required: true,
           type: "textarea",
-          placeholder: t.addWhatPlaceholder
+          placeholder: words.addWhatPlaceholder
         },
         {
           name: "why",
-          label: t.addWhyLabel,
-          hint: t.addWhyHint
+          label: words.addWhyLabel,
+          hint: words.addWhyHint
         },
         {
           name: "askedAt",
-          label: t.addAskedLabel,
+          label: words.addAskedLabel,
           type: "date",
           value: asDateInput(Date.now()),
-          hint: t.addAskedHint
+          hint: words.addAskedHint
         },
         {
           name: "cadenceDays",
-          label: t.addCadenceLabel,
+          label: words.addCadenceLabel,
           type: "number",
           min: 1,
           value: 7,
-          hint: t.addCadenceHint
+          hint: words.addCadenceHint
         }
       ],
-      confirm: t.addConfirm
+      confirm: words.addConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("waitFor", { person: d.person, ...values }, t.addToast)) {
+    if (await act("waitFor", { person: d.person, ...values }, words.addToast)) {
       refresh();
     }
   },
@@ -134,18 +134,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   chase: async (d) => {
     const values = await form({
-      title: t.chaseTitle,
-      intro: t.chaseIntro,
+      title: words.chaseTitle,
+      intro: words.chaseIntro,
       fields: [
-        { name: "note", label: t.chaseNoteLabel, placeholder: t.chaseNotePlaceholder },
-        { name: "at", label: t.chaseWhenLabel, type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: words.chaseNoteLabel, placeholder: words.chaseNotePlaceholder },
+        { name: "at", label: words.chaseWhenLabel, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: t.chaseConfirm
+      confirm: words.chaseConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("chase", { waiting: d.id, ...values }, t.chaseToast)) {
+    if (await act("chase", { waiting: d.id, ...values }, words.chaseToast)) {
       refresh();
     }
   },
@@ -153,23 +153,23 @@ export const actions = {
   /** @param {Record<string, string>} d */
   stopWaiting: async (d) => {
     const values = await form({
-      title: t.stopTitle,
-      intro: t.stopIntro,
+      title: words.stopTitle,
+      intro: words.stopIntro,
       fields: [
-        { name: "as", label: t.stopAsLabel, type: "select", options: WAIT_ENDING_OPTIONS, value: "answered" },
+        { name: "as", label: words.stopAsLabel, type: "select", options: WAIT_ENDING_OPTIONS, value: "answered" },
         {
           name: "why",
-          label: t.stopWhyLabel,
+          label: words.stopWhyLabel,
           type: "textarea",
-          hint: t.stopWhyHint
+          hint: words.stopWhyHint
         }
       ],
-      confirm: t.stopConfirm
+      confirm: words.stopConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("stopWaiting", { id: d.id, ...values }, t.stopToast)) {
+    if (await act("stopWaiting", { id: d.id, ...values }, words.stopToast)) {
       refresh();
     }
   },
@@ -177,12 +177,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogWait: async (d) => {
     const sure = await ask({
-      title: t.unlogTitle,
-      body: t.unlogBody(d.what),
-      confirm: t.unlogConfirm,
+      title: words.unlogTitle,
+      body: words.unlogBody(d.what),
+      confirm: words.unlogConfirm,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "waiting", id: d.id }, t.unlogToast))) {
+    if (sure && (await act("removeRow", { collection: "waiting", id: d.id }, words.unlogToast))) {
       refresh();
     }
   }

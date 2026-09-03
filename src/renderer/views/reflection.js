@@ -17,7 +17,7 @@ import { act, esc, form, readFailed, readFailedHtml, tend } from "../ui.js";
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
-const t = T.reflection;
+const words = T.reflection;
 
 export async function render() {
   const [rows, mine, aimRows] = await Promise.all([
@@ -36,11 +36,11 @@ export async function render() {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">${t.title}</h1>
-          <p class="view-sub">${t.sub}</p>
+          <h1 class="view-title">${words.title}</h1>
+          <p class="view-sub">${words.sub}</p>
         </div>
         <span class="foot-actions">
-          <button class="act primary" data-act="addReflection">${t.addButton}</button>
+          <button class="act primary" data-act="addReflection">${words.addButton}</button>
         </span>
       </div>
       ${
@@ -64,7 +64,7 @@ export async function render() {
 
   if (reflections.length === 0) {
     return `${head}${goals}
-      <div class="empty">${t.empty}</div>`;
+      <div class="empty">${words.empty}</div>`;
   }
 
   return `${head}${goals}${reflections.map(reflectionCard).join("")}`;
@@ -88,20 +88,20 @@ function aimsBlock(rows) {
   const live = all.filter((/** @type {any} */ a) => a.status === "open");
 
   const head = `<div class="group-head">
-    <span class="group-title">${t.aimsTitle}</span>
+    <span class="group-title">${words.aimsTitle}</span>
     <span class="group-rule"></span>
     <span class="foot-actions">
       ${
         live.length >= 2
-          ? `<span class="src">${t.aimsAtLimit}</span>`
-          : `<button class="act" data-act="setAim">${t.aimsSetButton}</button>`
+          ? `<span class="src">${words.aimsAtLimit}</span>`
+          : `<button class="act" data-act="setAim">${words.aimsSetButton}</button>`
       }
     </span>
   </div>`;
 
   if (all.length === 0) {
     return `<div class="group">${head}
-      <div class="empty">${t.aimsEmpty}</div>
+      <div class="empty">${words.aimsEmpty}</div>
     </div>`;
   }
 
@@ -114,14 +114,14 @@ function aimCard(a) {
     a.missing.length === 0
       ? ""
       : `<div class="prep-block">
-           <h3 class="prep-head">${t.aimStillToAnswer}</h3>
+           <h3 class="prep-head">${words.aimStillToAnswer}</h3>
            <ul class="prep-list">${a.missing.map((/** @type {string} */ m) => `<li>${esc(m)}</li>`).join("")}</ul>
          </div>`;
 
   const counts =
     a.logged === 0
-      ? `<span class="src">${t.aimNothingLogged}</span>`
-      : `<span class="src">${t.aimCounts(a.seen, a.missed, esc(String(a.lastLogged)))}</span>`;
+      ? `<span class="src">${words.aimNothingLogged}</span>`
+      : `<span class="src">${words.aimCounts(a.seen, a.missed, esc(String(a.lastLogged)))}</span>`;
 
   const live = a.status === "open";
 
@@ -133,23 +133,23 @@ function aimCard(a) {
     ${a.why ? `<p class="card-why">${esc(String(a.why))}</p>` : ""}
     ${
       a.measure
-        ? `<div class="prep-block"><h3 class="prep-head">${t.aimHowIKnow}</h3><p class="prep-note">${esc(String(a.measure))}</p></div>`
+        ? `<div class="prep-block"><h3 class="prep-head">${words.aimHowIKnow}</h3><p class="prep-note">${esc(String(a.measure))}</p></div>`
         : ""
     }
     ${
       a.through
-        ? `<div class="prep-block"><h3 class="prep-head">${t.aimWhereItHappens}</h3><p class="prep-note">${esc(String(a.through))}</p></div>`
+        ? `<div class="prep-block"><h3 class="prep-head">${words.aimWhereItHappens}</h3><p class="prep-note">${esc(String(a.through))}</p></div>`
         : ""
     }
-    ${a.asksWho ? `<div class="prep-block"><h3 class="prep-head">${t.aimAsking}</h3><p class="prep-note">${esc(String(a.asksWho))}</p></div>` : ""}
+    ${a.asksWho ? `<div class="prep-block"><h3 class="prep-head">${words.aimAsking}</h3><p class="prep-note">${esc(String(a.asksWho))}</p></div>` : ""}
     ${gaps}
     <div class="card-foot">
       ${counts}
       ${
         live
           ? `<span class="foot-actions">
-               <button class="act" data-act="logAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">${t.aimLogButton}</button>
-               <button class="act" data-act="endAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">${t.aimCloseButton}</button>
+               <button class="act" data-act="logAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">${words.aimLogButton}</button>
+               <button class="act" data-act="endAim" data-id="${esc(String(a.id))}" data-aim="${esc(String(a.aim))}">${words.aimCloseButton}</button>
              </span>`
           : `<span class="src">${esc(String(a.endedWhy || a.statusLabel))}</span>`
       }
@@ -175,9 +175,9 @@ function reflectionCard(r) {
     </div>
     ${blocks}
     <div class="card-foot">
-      <span class="src">${t.writtenBy}</span>
+      <span class="src">${words.writtenBy}</span>
       <span class="foot-actions">
-        <button class="act danger" data-act="removeReflection" data-id="${esc(String(r.id))}">${t.remove}</button>
+        <button class="act danger" data-act="removeReflection" data-id="${esc(String(r.id))}">${words.remove}</button>
       </span>
     </div>
   </article>`;
@@ -193,37 +193,37 @@ export const actions = {
    */
   setAim: async () => {
     const values = await form({
-      title: t.setTitle,
-      intro: t.setIntro,
+      title: words.setTitle,
+      intro: words.setIntro,
       fields: [
-        { name: "aim", label: t.setAimLabel, type: "textarea", required: true },
+        { name: "aim", label: words.setAimLabel, type: "textarea", required: true },
         {
           name: "source",
-          label: t.setSourceLabel,
+          label: words.setSourceLabel,
           type: "select",
           value: "logged",
           options: [
-            { value: "logged", label: t.setSourceLogged },
-            { value: "record", label: t.setSourceRecord },
-            { value: "asked", label: t.setSourceAsked }
+            { value: "logged", label: words.setSourceLogged },
+            { value: "record", label: words.setSourceRecord },
+            { value: "asked", label: words.setSourceAsked }
           ]
         },
-        { name: "measure", label: t.setMeasureLabel },
-        { name: "asksWho", label: t.setAsksWhoLabel },
+        { name: "measure", label: words.setMeasureLabel },
+        { name: "asksWho", label: words.setAsksWhoLabel },
         {
           name: "through",
-          label: t.setThroughLabel,
-          placeholder: t.setThroughPlaceholder,
-          hint: t.setThroughHint
+          label: words.setThroughLabel,
+          placeholder: words.setThroughPlaceholder,
+          hint: words.setThroughHint
         },
-        { name: "why", label: t.setWhyLabel, type: "textarea" }
+        { name: "why", label: words.setWhyLabel, type: "textarea" }
       ],
-      confirm: t.setConfirm
+      confirm: words.setConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("setAim", values, t.setToast)) {
+    if (await act("setAim", values, words.setToast)) {
       refresh();
     }
   },
@@ -238,22 +238,22 @@ export const actions = {
    */
   logAim: async (d) => {
     const values = await form({
-      title: t.logTitle(d.aim),
-      intro: t.logIntro,
+      title: words.logTitle(d.aim),
+      intro: words.logIntro,
       fields: [
-        { name: "note", label: t.logNoteLabel, type: "textarea", required: true },
+        { name: "note", label: words.logNoteLabel, type: "textarea", required: true },
         {
           name: "happened",
-          label: t.logWhichLabel,
+          label: words.logWhichLabel,
           type: "select",
           value: "yes",
           options: [
-            { value: "yes", label: t.logYes },
-            { value: "no", label: t.logNo }
+            { value: "yes", label: words.logYes },
+            { value: "no", label: words.logNo }
           ]
         }
       ],
-      confirm: t.logConfirm
+      confirm: words.logConfirm
     });
     if (!values) {
       return;
@@ -262,7 +262,7 @@ export const actions = {
       await act(
         "logAim",
         { aim: d.id, note: values.note, happened: values.happened === "yes" },
-        t.logToast
+        words.logToast
       )
     ) {
       refresh();
@@ -272,27 +272,27 @@ export const actions = {
   /** @param {Record<string, string>} d */
   endAim: async (d) => {
     const values = await form({
-      title: t.closeTitle(d.aim),
-      intro: t.closeIntro,
+      title: words.closeTitle(d.aim),
+      intro: words.closeIntro,
       fields: [
         {
           name: "status",
-          label: t.closeHowLabel,
+          label: words.closeHowLabel,
           type: "select",
           value: "reached",
           options: [
-            { value: "reached", label: t.closeReached },
-            { value: "dropped", label: t.closeDropped }
+            { value: "reached", label: words.closeReached },
+            { value: "dropped", label: words.closeDropped }
           ]
         },
-        { name: "why", label: t.closeWhyLabel, type: "textarea" }
+        { name: "why", label: words.closeWhyLabel, type: "textarea" }
       ],
-      confirm: t.closeConfirm
+      confirm: words.closeConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("endAim", { id: d.id, ...values }, t.closeToast)) {
+    if (await act("endAim", { id: d.id, ...values }, words.closeToast)) {
       refresh();
     }
   },
@@ -309,27 +309,27 @@ export const actions = {
    */
   addReflection: async () => {
     const values = await form({
-      title: t.writeTitle,
-      intro: t.writeIntro,
+      title: words.writeTitle,
+      intro: words.writeIntro,
       fields: REFLECTION_FIELDS.map((f) => ({
         name: f.name,
         label: f.label,
         type: /** @type {const} */ ("textarea"),
         hint: f.hint
       })),
-      confirm: t.writeConfirm
+      confirm: words.writeConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("logReflection", values, t.writeToast)) {
+    if (await act("logReflection", values, words.writeToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   removeReflection: async (d) => {
-    if (await act("removeRow", { collection: "reflections", id: d.id }, t.removedToast)) {
+    if (await act("removeRow", { collection: "reflections", id: d.id }, words.removedToast)) {
       refresh();
     }
   }

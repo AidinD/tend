@@ -13,7 +13,7 @@ import { refresh } from "../app.js";
 import { modelStatus } from "../model.js";
 import { T } from "../text.js";
 
-const t = T.settings;
+const words = T.settings;
 
 /**
  * How the data directory was decided, in words.
@@ -26,9 +26,9 @@ const t = T.settings;
  */
 /** @type {Record<string, string>} */
 const WHERE_FROM = {
-  env: t.whereFromEnv,
-  "user-env": t.whereFromUserEnv,
-  default: t.whereFromDefault
+  env: words.whereFromEnv,
+  "user-env": words.whereFromUserEnv,
+  default: words.whereFromDefault
 };
 
 export async function render() {
@@ -43,8 +43,8 @@ export async function render() {
 
   return `
     <div class="view-head">
-      <h1 class="view-title">${t.title}</h1>
-      <p class="view-sub">${t.sub}</p>
+      <h1 class="view-title">${words.title}</h1>
+      <p class="view-sub">${words.sub}</p>
     </div>
 
     ${modeSection(status)}
@@ -84,24 +84,24 @@ function modeSection(status) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">${t.halfGroup}</span>
+      <span class="group-title">${words.halfGroup}</span>
       <span class="group-rule"></span>
-      <span class="group-meta">${isPrivate ? t.halfPrivate : t.halfWork}</span>
+      <span class="group-meta">${isPrivate ? words.halfPrivate : words.halfWork}</span>
     </div>
     <article class="card">
       <div class="card-top">
-        <h2 class="card-title">${isPrivate ? t.privateTitle : t.workTitle}</h2>
+        <h2 class="card-title">${isPrivate ? words.privateTitle : words.workTitle}</h2>
       </div>
       <p class="card-why">
-        ${isPrivate ? t.privateWhy : t.workWhy}
+        ${isPrivate ? words.privateWhy : words.workWhy}
       </p>
       <p class="card-why dim">
-        ${isPrivate ? t.privateNote : t.workNote}
+        ${isPrivate ? words.privateNote : words.workNote}
       </p>
       <div class="card-foot">
         <span class="src mono-text">${esc(String(status?.dataDir ?? ""))}</span>
         <button class="act" data-act="switchMode" data-to="${isPrivate ? "work" : "private"}">
-          ${isPrivate ? t.backToWork : t.switchToPrivate}
+          ${isPrivate ? words.backToWork : words.switchToPrivate}
         </button>
       </div>
     </article>
@@ -124,26 +124,26 @@ function importSummary(r) {
   /** @param {number} n @param {string} one @param {string} many */
   const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-  const parts = [t.importAdded(count(Number(r.contacts ?? 0), t.contactRecordOne, t.contactRecordMany))];
+  const parts = [words.importAdded(count(Number(r.contacts ?? 0), words.contactRecordOne, words.contactRecordMany))];
   if (r.promises) {
-    parts.push(count(Number(r.promises), t.promiseOne, t.promiseMany));
+    parts.push(count(Number(r.promises), words.promiseOne, words.promiseMany));
   }
   const lines = [`${parts.join(" and ")}.`];
 
   if (r.waiting) {
-    lines.push(t.importWaiting(count(Number(r.waiting), t.commitmentIsOne, t.commitmentAreMany)));
+    lines.push(words.importWaiting(count(Number(r.waiting), words.commitmentIsOne, words.commitmentAreMany)));
   }
   if (r.resolved) {
-    lines.push(t.importResolved(count(Number(r.resolved), t.promiseOne, t.promiseMany)));
+    lines.push(words.importResolved(count(Number(r.resolved), words.promiseOne, words.promiseMany)));
   }
   if (r.dropped) {
-    lines.push(t.importDropped(count(Number(r.dropped), t.waitingCommitmentOne, t.waitingCommitmentMany)));
+    lines.push(words.importDropped(count(Number(r.dropped), words.waitingCommitmentOne, words.waitingCommitmentMany)));
   }
   if (r.retracted) {
-    lines.push(t.importRetracted(count(Number(r.retracted), t.contactRecordOne, t.contactRecordMany)));
+    lines.push(words.importRetracted(count(Number(r.retracted), words.contactRecordOne, words.contactRecordMany)));
   }
   if (r.withdrawn) {
-    lines.push(t.importWithdrawn(count(Number(r.withdrawn), t.commitmentOne, t.commitmentMany)));
+    lines.push(words.importWithdrawn(count(Number(r.withdrawn), words.commitmentOne, words.commitmentMany)));
   }
   return lines.join(" ");
 }
@@ -159,12 +159,12 @@ function nibSection(folders, bindings, roster, status) {
           b.name && b.name !== b.nibFolder ? `<span class="src"> ${esc(b.nibFolder)}</span>` : ""
         }</span>
         <span class="row-right">
-          <span class="row-meta">${t.bindingMeta(
-            esc(b.person ?? t.unknownPerson),
-            b.countsAs ? t.bindingCountsAs(esc(b.countsAs)) : t.bindingNoTags
+          <span class="row-meta">${words.bindingMeta(
+            esc(b.person ?? words.unknownPerson),
+            b.countsAs ? words.bindingCountsAs(esc(b.countsAs)) : words.bindingNoTags
           )}</span>
-          <button class="act tiny" data-act="rules" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">${t.tagsButton}</button>
-          <button class="act tiny danger" data-act="unbind" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">${t.unbindButton}</button>
+          <button class="act tiny" data-act="rules" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">${words.tagsButton}</button>
+          <button class="act tiny danger" data-act="unbind" data-id="${esc(b.id)}" data-name="${esc(b.nibFolder)}">${words.unbindButton}</button>
         </span>
       </div>`
     )
@@ -172,11 +172,11 @@ function nibSection(folders, bindings, roster, status) {
 
   if (!folders?.available) {
     return `<div class="group">
-      <div class="group-head"><span class="group-title">${t.nibGroup}</span><span class="group-rule"></span></div>
+      <div class="group-head"><span class="group-title">${words.nibGroup}</span><span class="group-rule"></span></div>
       <article class="card sev-warn">
-        <div class="card-top"><h2 class="card-title">${t.nibUnreadableTitle}</h2></div>
-        <p class="card-why">${esc(folders?.why ?? t.nibUnknownReason)}</p>
-        <p class="card-why dim">${t.nibReadOnly}</p>
+        <div class="card-top"><h2 class="card-title">${words.nibUnreadableTitle}</h2></div>
+        <p class="card-why">${esc(folders?.why ?? words.nibUnknownReason)}</p>
+        <p class="card-why dim">${words.nibReadOnly}</p>
       </article>
     </div>`;
   }
@@ -185,9 +185,9 @@ function nibSection(folders, bindings, roster, status) {
 
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">${t.nibGroup}</span>
+      <span class="group-title">${words.nibGroup}</span>
       <span class="group-rule"></span>
-      <span class="group-meta">${t.nibBound(bound.length)}</span>
+      <span class="group-meta">${words.nibBound(bound.length)}</span>
     </div>
 
     <!--
@@ -196,12 +196,12 @@ function nibSection(folders, bindings, roster, status) {
       old one still parses and still lists folders - so reading the wrong one
       looks exactly like reading the right one.
     -->
-    <p class="card-why dim mono-text">${t.nibReading(esc(folders.dir ?? t.nibUnknownFolder))}</p>
+    <p class="card-why dim mono-text">${words.nibReading(esc(folders.dir ?? words.nibUnknownFolder))}</p>
 
     <article class="card">
-      <div class="card-top"><h2 class="card-title">${t.nibHowTitle}</h2></div>
-      <p class="card-why">${t.nibHowWhy}</p>
-      <p class="card-why dim">${t.nibHowNote}</p>
+      <div class="card-top"><h2 class="card-title">${words.nibHowTitle}</h2></div>
+      <p class="card-why">${words.nibHowWhy}</p>
+      <p class="card-why dim">${words.nibHowNote}</p>
       <!--
         The state of the automatic import, because a background job nobody can
         see is a background job nobody believes. Without this line the honest
@@ -209,19 +209,19 @@ function nibSection(folders, bindings, roster, status) {
         habit the automatic import exists to remove.
       -->
       <p class="card-why ${status?.nibWatching ? "dim" : ""}">
-        ${status?.nibWatching ? t.nibWatching : t.nibTimerOnly}
+        ${status?.nibWatching ? words.nibWatching : words.nibTimerOnly}
         ${esc(String(status?.nibSync ?? ""))}
       </p>
       <div class="card-foot">
-        <span class="src">${t.nibFolderCount(folders.folders.length)}</span>
-        <button class="act primary" data-act="bind" ${noPeople ? "disabled" : ""}>${t.bindButton}</button>
-        <button class="act" data-act="indexDry" ${bound.length === 0 ? "disabled" : ""}>${t.previewButton}</button>
-        <button class="act" data-act="index" ${bound.length === 0 ? "disabled" : ""}>${t.importButton}</button>
+        <span class="src">${words.nibFolderCount(folders.folders.length)}</span>
+        <button class="act primary" data-act="bind" ${noPeople ? "disabled" : ""}>${words.bindButton}</button>
+        <button class="act" data-act="indexDry" ${bound.length === 0 ? "disabled" : ""}>${words.previewButton}</button>
+        <button class="act" data-act="index" ${bound.length === 0 ? "disabled" : ""}>${words.importButton}</button>
       </div>
     </article>
 
-    ${noPeople ? `<div class="muted-row">${t.nibNoPeople}</div>` : ""}
-    ${rows ? `<div class="rows">${rows}</div>` : `<div class="empty">${t.nibNothingBound}</div>`}
+    ${noPeople ? `<div class="muted-row">${words.nibNoPeople}</div>` : ""}
+    ${rows ? `<div class="rows">${rows}</div>` : `<div class="empty">${words.nibNothingBound}</div>`}
   </div>`;
 }
 
@@ -232,17 +232,17 @@ function dataSection(status) {
     : "";
 
   return `<div class="group">
-    <div class="group-head"><span class="group-title">${t.dataGroup}</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${words.dataGroup}</span><span class="group-rule"></span></div>
     <article class="card">
-      <div class="card-top"><h2 class="card-title">${t.dataTitle}</h2></div>
+      <div class="card-top"><h2 class="card-title">${words.dataTitle}</h2></div>
 
       <p class="card-why mono-text">${esc(status.dataDir)}</p>
       <p class="card-why dim">${esc(WHERE_FROM[String(status.dataDirFrom)] ?? WHERE_FROM.default)}</p>
-      <p class="card-why dim">${t.dataAppendOnly}</p>
+      <p class="card-why dim">${words.dataAppendOnly}</p>
       ${warning}
       <div class="card-foot">
-        <span class="src">${t.dataNote}</span>
-        <button class="act" data-act="openData">${t.openFolder}</button>
+        <span class="src">${words.dataNote}</span>
+        <button class="act" data-act="openData">${words.openFolder}</button>
       </div>
     </article>
   </div>`;
@@ -262,14 +262,14 @@ function dataSection(status) {
 /** @param {any} undoable */
 function archiveSection(undoable) {
   return `<div class="group">
-    <div class="group-head"><span class="group-title">${t.leavingGroup}</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${words.leavingGroup}</span><span class="group-rule"></span></div>
     <article class="card">
-      <div class="card-top"><h2 class="card-title">${t.archiveAllTitle}</h2></div>
-      <p class="card-why">${t.archiveAllWhy}</p>
-      <p class="card-why dim">${t.archiveAllNote}</p>
+      <div class="card-top"><h2 class="card-title">${words.archiveAllTitle}</h2></div>
+      <p class="card-why">${words.archiveAllWhy}</p>
+      <p class="card-why dim">${words.archiveAllNote}</p>
       <div class="card-foot">
-        <span class="src">${t.archiveAllSafe}</span>
-        <button class="act danger" data-act="archiveEverything">${t.archiveAllButton}</button>
+        <span class="src">${words.archiveAllSafe}</span>
+        <button class="act danger" data-act="archiveEverything">${words.archiveAllButton}</button>
       </div>
     </article>
     ${undoCard(undoable)}
@@ -302,22 +302,22 @@ function undoCard(undoable) {
   }
   const when = Number.isFinite(Number(undoable.at))
     ? new Date(Number(undoable.at)).toLocaleDateString("sv-SE")
-    : t.undoEarlierRun;
+    : words.undoEarlierRun;
   const parts = [
-    [undoable.people, t.personOne, t.personMany],
-    [undoable.projects, t.projectOne, t.projectMany],
-    [undoable.workstreams, t.workstreamOne, t.workstreamMany]
+    [undoable.people, words.personOne, words.personMany],
+    [undoable.projects, words.projectOne, words.projectMany],
+    [undoable.workstreams, words.workstreamOne, words.workstreamMany]
   ]
     .filter(([n]) => Number(n) > 0)
     .map(([n, one, many]) => `${n} ${Number(n) === 1 ? one : many}`)
     .join(", ");
 
   return `<article class="card sev-ok">
-    <div class="card-top"><h2 class="card-title">${t.undoTitle(esc(when))}</h2></div>
-    <p class="card-why">${t.undoWhy(esc(parts))}</p>
+    <div class="card-top"><h2 class="card-title">${words.undoTitle(esc(when))}</h2></div>
+    <p class="card-why">${words.undoWhy(esc(parts))}</p>
     <div class="card-foot">
-      <span class="src">${t.undoOffered}</span>
-      <button class="act primary" data-act="undoBulkArchive">${t.undoButton}</button>
+      <span class="src">${words.undoOffered}</span>
+      <button class="act primary" data-act="undoBulkArchive">${words.undoButton}</button>
     </div>
   </article>`;
 }
@@ -334,21 +334,21 @@ function undoCard(undoable) {
  */
 function modelSection(model) {
   return `<div class="group">
-    <div class="group-head"><span class="group-title">${t.draftingGroup}</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${words.draftingGroup}</span><span class="group-rule"></span></div>
     <article class="card${model.available ? "" : " sev-warn"}">
       <div class="card-top">
-        <h2 class="card-title">${model.available ? t.draftingAvailable : t.draftingOff}</h2>
-        <span class="pill plain">${model.available ? t.draftingSignedIn : t.draftingNotSetUp}</span>
+        <h2 class="card-title">${model.available ? words.draftingAvailable : words.draftingOff}</h2>
+        <span class="pill plain">${model.available ? words.draftingSignedIn : words.draftingNotSetUp}</span>
       </div>
       ${
         model.available
-          ? `<p class="card-why">${t.draftingWhat}</p>
-             <p class="card-why dim">${t.draftingSignIn}</p>`
+          ? `<p class="card-why">${words.draftingWhat}</p>
+             <p class="card-why dim">${words.draftingSignIn}</p>`
           : `<p class="card-why">${esc(model.why ?? "")}</p>
-             <p class="card-why dim">${t.draftingWithout}</p>`
+             <p class="card-why dim">${words.draftingWithout}</p>`
       }
       <div class="card-foot">
-        <span class="src">${t.draftingNever}</span>
+        <span class="src">${words.draftingNever}</span>
       </div>
     </article>
   </div>`;
@@ -357,16 +357,16 @@ function modelSection(model) {
 /** @param {any} status */
 function aboutSection(status) {
   return `<div class="group">
-    <div class="group-head"><span class="group-title">${t.aboutGroup}</span><span class="group-rule"></span></div>
+    <div class="group-head"><span class="group-title">${words.aboutGroup}</span><span class="group-rule"></span></div>
     <article class="card">
       <div class="card-top">
-        <h2 class="card-title">${t.aboutTitle(esc(status.version ?? ""))}</h2>
-        <span class="pill plain">${esc(status.packaged ? t.installed : t.development)}</span>
+        <h2 class="card-title">${words.aboutTitle(esc(status.version ?? ""))}</h2>
+        <span class="pill plain">${esc(status.packaged ? words.installed : words.development)}</span>
       </div>
-      <p class="card-why">${status.packaged ? t.updatesOn : t.updatesOff}</p>
+      <p class="card-why">${status.packaged ? words.updatesOn : words.updatesOff}</p>
       <div class="card-foot">
-        <span class="src">${esc(status.updateStatus ?? t.noUpdateCheck)}</span>
-        ${status.packaged ? `<button class="act" data-act="checkUpdate">${t.checkNow}</button>` : ""}
+        <span class="src">${esc(status.updateStatus ?? words.noUpdateCheck)}</span>
+        ${status.packaged ? `<button class="act" data-act="checkUpdate">${words.checkNow}</button>` : ""}
       </div>
     </article>
   </div>`;
@@ -390,14 +390,14 @@ function tagFields(catalog, chosen = new Map()) {
     return [];
   }
   const options = [
-    { value: "", label: t.tagNone },
+    { value: "", label: words.tagNone },
     ...catalog.tags.map((/** @type {any} */ tag) => ({ value: String(tag.id), label: String(tag.name) }))
   ];
   return NOTE_CONTACT_KINDS.map((kind, i) => ({
     name: `kind:${kind.value}`,
     label: kind.label,
     type: /** @type {const} */ ("select"),
-    hint: i === 0 ? t.tagsReadFrom(catalog.dir) : undefined,
+    hint: i === 0 ? words.tagsReadFrom(catalog.dir) : undefined,
     value: chosen.get(kind.value) ?? "",
     options
   }));
@@ -441,11 +441,11 @@ export const actions = {
     const [catalog, bound] = await Promise.all([tend.invoke("nibTags"), tend.invoke("sources")]);
 
     if (!catalog?.available) {
-      toast(String(catalog?.why ?? t.tagsUnreadable), "bad");
+      toast(String(catalog?.why ?? words.tagsUnreadable), "bad");
       return;
     }
     if (catalog.tags.length === 0) {
-      toast(t.noTagsIn(catalog.dir), "bad");
+      toast(words.noTagsIn(catalog.dir), "bad");
       return;
     }
 
@@ -455,17 +455,17 @@ export const actions = {
     );
 
     const values = await form({
-      title: t.tagsTitle(d.name),
-      intro: t.tagsIntro,
+      title: words.tagsTitle(d.name),
+      intro: words.tagsIntro,
       fields: tagFields(catalog, chosen),
-      confirm: t.save
+      confirm: words.save
     });
     if (!values) {
       return;
     }
 
     const rules = rulesFrom(values);
-    if (await act("setSourceRules", { id: d.id, rules }, t.tagRulesSaved(rules.length))) {
+    if (await act("setSourceRules", { id: d.id, rules }, words.tagRulesSaved(rules.length))) {
       refresh();
     }
   },
@@ -481,38 +481,38 @@ export const actions = {
     }
 
     const values = await form({
-      title: t.bindTitle,
-      intro: t.bindIntro,
+      title: words.bindTitle,
+      intro: words.bindIntro,
       fields: [
         {
           name: "folder",
-          label: t.bindFolderLabel,
+          label: words.bindFolderLabel,
           type: "select",
           options: folders.folders.map((/** @type {any} */ f) => ({
             value: `${f.categoryId}|${f.subId ?? ""}`,
-            label: t.bindFolderOption(f.label, f.notes)
+            label: words.bindFolderOption(f.label, f.notes)
           }))
         },
         {
           name: "people",
-          label: t.bindPeopleLabel,
+          label: words.bindPeopleLabel,
           type: "multiselect",
           options: roster.map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
         },
         {
           name: "name",
-          label: t.bindNameLabel,
+          label: words.bindNameLabel,
           type: "text",
           value: ""
         },
         {
           name: "sharedNote",
           type: "note",
-          label: t.bindSharedNote
+          label: words.bindSharedNote
         },
         ...tagFields(catalog)
       ],
-      confirm: t.bindConfirm
+      confirm: words.bindConfirm
     });
     if (!values) {
       return;
@@ -525,7 +525,7 @@ export const actions = {
 
     const chosen = Array.isArray(values.people) ? values.people : [];
     if (chosen.length === 0) {
-      toast(t.bindNobody, "bad");
+      toast(words.bindNobody, "bad");
       return;
     }
 
@@ -538,7 +538,7 @@ export const actions = {
         subId: subId || undefined,
         label
       },
-      t.boundToast
+      words.boundToast
     );
     if (!bound) {
       return;
@@ -556,8 +556,8 @@ export const actions = {
       // DIFFERENT notebook with no tags in it.
       toast(
         catalog?.available
-          ? t.boundNoTags(catalog.dir)
-          : t.boundTagsUnreadable(catalog?.why ?? t.unknownReason),
+          ? words.boundNoTags(catalog.dir)
+          : words.boundTagsUnreadable(catalog?.why ?? words.unknownReason),
         "bad"
       );
     }
@@ -566,12 +566,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unbind: async (d) => {
     const sure = await ask({
-      title: t.unbindTitle(d.name),
-      body: t.unbindBody,
-      confirm: t.unbindButton,
+      title: words.unbindTitle(d.name),
+      body: words.unbindBody,
+      confirm: words.unbindButton,
       tone: "danger"
     });
-    if (sure && (await act("unbindSource", { id: d.id }, t.unboundToast))) {
+    if (sure && (await act("unbindSource", { id: d.id }, words.unboundToast))) {
       refresh();
     }
   },
@@ -582,13 +582,13 @@ export const actions = {
       return;
     }
     await ask({
-      title: t.previewTitle,
-      body: t.previewBody(
+      title: words.previewTitle,
+      body: words.previewBody(
         importSummary(result),
         result.bindings,
-        result.skipped?.length ? t.previewSkipped(result.skipped.join("; ")) : ""
+        result.skipped?.length ? words.previewSkipped(result.skipped.join("; ")) : ""
       ),
-      confirm: t.close
+      confirm: words.close
     });
   },
 
@@ -598,9 +598,9 @@ export const actions = {
       return;
     }
     await ask({
-      title: t.importedTitle,
-      body: t.importedBody(importSummary(result)),
-      confirm: t.good
+      title: words.importedTitle,
+      body: words.importedBody(importSummary(result)),
+      confirm: words.good
     });
     refresh();
   },
@@ -609,9 +609,9 @@ export const actions = {
   switchMode: async (d) => {
     const toPrivate = d.to === "private";
     const sure = await ask({
-      title: toPrivate ? t.switchPrivateTitle : t.switchWorkTitle,
-      body: toPrivate ? t.switchPrivateBody : t.switchWorkBody,
-      confirm: toPrivate ? t.switchConfirm : t.switchBackConfirm
+      title: toPrivate ? words.switchPrivateTitle : words.switchWorkTitle,
+      body: toPrivate ? words.switchPrivateBody : words.switchWorkBody,
+      confirm: toPrivate ? words.switchConfirm : words.switchBackConfirm
     });
     if (!sure) {
       return;
@@ -631,9 +631,9 @@ export const actions = {
 
   archiveEverything: async () => {
     const sure = await ask({
-      title: t.archiveAllAskTitle,
-      body: t.archiveAllAskBody,
-      confirm: t.archiveAllConfirm,
+      title: words.archiveAllAskTitle,
+      body: words.archiveAllAskBody,
+      confirm: words.archiveAllConfirm,
       tone: "danger"
     });
     if (!sure) {
@@ -643,15 +643,15 @@ export const actions = {
     if (!result) {
       return;
     }
-    toast(t.archivedToast(result.people, result.projects, result.workstreams));
+    toast(words.archivedToast(result.people, result.projects, result.workstreams));
     refresh();
   },
 
   undoBulkArchive: async () => {
     const sure = await ask({
-      title: t.undoAskTitle,
-      body: t.undoAskBody,
-      confirm: t.undoConfirm
+      title: words.undoAskTitle,
+      body: words.undoAskBody,
+      confirm: words.undoConfirm
     });
     if (!sure) {
       return;
@@ -660,12 +660,12 @@ export const actions = {
     if (!result) {
       return;
     }
-    toast(t.undoneToast(result.people, result.projects, result.workstreams));
+    toast(words.undoneToast(result.people, result.projects, result.workstreams));
     refresh();
   },
 
   checkUpdate: async () => {
-    await act("checkForUpdates", {}, t.checkingToast);
+    await act("checkForUpdates", {}, words.checkingToast);
     setTimeout(refresh, 2500);
   }
 };

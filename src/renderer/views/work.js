@@ -23,7 +23,7 @@ import {
 import { go, refresh } from "../app.js";
 import { T } from "../text.js";
 
-const t = T.work;
+const words = T.work;
 
 /** @param {Record<string, any>} [params] */
 export async function render(params = {}) {
@@ -47,13 +47,13 @@ async function workLists() {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">${t.title}</h1>
-          <p class="view-sub">${t.sub}</p>
+          <h1 class="view-title">${words.title}</h1>
+          <p class="view-sub">${words.sub}</p>
         </div>
         <div class="button-row">
-          <button class="act" data-act="addProject">${t.addProject}</button>
-          <button class="act" data-act="addStake">${t.addStake}</button>
-          <button class="act primary" data-act="addStream">${t.addStream}</button>
+          <button class="act" data-act="addProject">${words.addProject}</button>
+          <button class="act" data-act="addStake">${words.addStake}</button>
+          <button class="act primary" data-act="addStream">${words.addStream}</button>
         </div>
       </div>
     </div>`;
@@ -62,8 +62,8 @@ async function workLists() {
   // the nullish default never applies and `.map` is undefined - the view threw
   // rather than saying anything. Checked before either list is touched.
   for (const [what, result] of [
-    [t.readFailedProjects, projects],
-    [t.readFailedStreams, streams]
+    [words.readFailedProjects, projects],
+    [words.readFailedStreams, streams]
   ]) {
     if (readFailed(result)) {
       return `${header}${readFailedHtml(String(what), result)}`;
@@ -81,7 +81,7 @@ async function workLists() {
       (/** @type {any} */ p) => `<div class="row static${p.behindBy ? ` sev-${esc(p.urgency)}` : ""}">
         <span class="row-name">${esc(p.name)}</span>
         <span class="row-right">
-          <span class="row-meta">${t.lastLookedAt(esc(p.lastLookedAt))}</span>
+          <span class="row-meta">${words.lastLookedAt(esc(p.lastLookedAt))}</span>
           ${p.behindBy ? pill(p.urgency) : ""}
           <!--
             A View button rather than a clickable row. The roster makes a whole
@@ -90,10 +90,10 @@ async function workLists() {
             of which removes the project. A click target wrapped around Remove is
             a mis-press waiting to happen.
           -->
-          <button class="act tiny" data-act="openProject" data-id="${esc(p.id)}">${t.view}</button>
-          <button class="act tiny" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.logLook}</button>
-          <button class="act tiny" data-act="archiveProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.archive}</button>
-          <button class="act tiny danger" data-act="removeProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.remove}</button>
+          <button class="act tiny" data-act="openProject" data-id="${esc(p.id)}">${words.view}</button>
+          <button class="act tiny" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${words.logLook}</button>
+          <button class="act tiny" data-act="archiveProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${words.archive}</button>
+          <button class="act tiny danger" data-act="removeProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${words.remove}</button>
         </span>
       </div>`
     )
@@ -104,13 +104,13 @@ async function workLists() {
       (/** @type {any} */ k) => `<div class="row static">
         <span class="row-name">
           ${esc(k.label)}
-          ${k.note ? `<span class="src">${t.lastTime(esc(k.note))}</span>` : ""}
+          ${k.note ? `<span class="src">${words.lastTime(esc(k.note))}</span>` : ""}
         </span>
         <span class="row-right">
-          <span class="row-meta">${t.stakeMeta(esc(k.every), esc(k.lastUpdated))}</span>
-          <button class="act tiny" data-act="logUpdate" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${t.logUpdate}</button>
-          <button class="act tiny" data-act="editStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${t.edit}</button>
-          <button class="act tiny danger" data-act="removeStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${t.remove}</button>
+          <span class="row-meta">${words.stakeMeta(esc(k.every), esc(k.lastUpdated))}</span>
+          <button class="act tiny" data-act="logUpdate" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${words.logUpdate}</button>
+          <button class="act tiny" data-act="editStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${words.edit}</button>
+          <button class="act tiny danger" data-act="removeStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${words.remove}</button>
         </span>
       </div>`
     )
@@ -121,15 +121,15 @@ async function workLists() {
       (/** @type {any} */ w) => `<article class="card ${w.unspecified ? "sev-warn" : "sev-ok"}">
         <div class="card-top">
           <h2 class="card-title">${esc(w.name)}</h2>
-          <span class="pill ${w.unspecified ? "warn" : "plain"}">${esc(w.unspecified ? t.noLevelSet : w.reviewEvery)}</span>
+          <span class="pill ${w.unspecified ? "warn" : "plain"}">${esc(w.unspecified ? words.noLevelSet : w.reviewEvery)}</span>
         </div>
         <p class="card-why">${esc(w.levelMeans)}</p>
         <div class="card-foot">
-          <span class="src">${t.streamMeta(esc(w.owner ?? t.nobodyNamed), w.project ? t.streamProject(esc(w.project)) : "", esc(w.lastReviewed))}</span>
-          <button class="act primary" data-act="setLevel" data-id="${esc(w.id)}">${w.unspecified ? t.setLevelButton : t.changeLevelButton}</button>
-          <button class="act" data-act="review" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${t.logReview}</button>
-          <button class="act" data-act="archiveStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${t.archive}</button>
-          <button class="act danger" data-act="removeStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${t.remove}</button>
+          <span class="src">${words.streamMeta(esc(w.owner ?? words.nobodyNamed), w.project ? words.streamProject(esc(w.project)) : "", esc(w.lastReviewed))}</span>
+          <button class="act primary" data-act="setLevel" data-id="${esc(w.id)}">${w.unspecified ? words.setLevelButton : words.changeLevelButton}</button>
+          <button class="act" data-act="review" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${words.logReview}</button>
+          <button class="act" data-act="archiveStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${words.archive}</button>
+          <button class="act danger" data-act="removeStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${words.remove}</button>
         </div>
       </article>`
     )
@@ -137,27 +137,27 @@ async function workLists() {
 
   const noPeople =
     Array.isArray(roster) && roster.length === 0
-      ? `<div class="muted-row">${t.noPeopleYet}</div>`
+      ? `<div class="muted-row">${words.noPeopleYet}</div>`
       : "";
 
   return `
     ${header}
     <div class="group">
-      <div class="group-head"><span class="group-title">${t.projectsGroup}</span><span class="group-rule"></span><span class="group-meta">${(projects ?? []).length}</span></div>
-      ${projectRows ? `<div class="rows">${projectRows}</div>` : `<div class="empty">${emptyOrArchived(archivedProjects, t.projectsAllArchived, t.projectsNone)}</div>`}
+      <div class="group-head"><span class="group-title">${words.projectsGroup}</span><span class="group-rule"></span><span class="group-meta">${(projects ?? []).length}</span></div>
+      ${projectRows ? `<div class="rows">${projectRows}</div>` : `<div class="empty">${emptyOrArchived(archivedProjects, words.projectsAllArchived, words.projectsNone)}</div>`}
     </div>
     <div class="group" data-group="stakeholders">
-      <div class="group-head"><span class="group-title">${t.stakesGroup}</span><span class="group-rule"></span><span class="group-meta">${(stakes ?? []).length}</span></div>
-      ${stakeRows ? `<div class="rows">${stakeRows}</div>` : `<div class="empty">${t.stakesNone}</div>`}
-      <p class="group-note">${t.stakesNote}</p>
+      <div class="group-head"><span class="group-title">${words.stakesGroup}</span><span class="group-rule"></span><span class="group-meta">${(stakes ?? []).length}</span></div>
+      ${stakeRows ? `<div class="rows">${stakeRows}</div>` : `<div class="empty">${words.stakesNone}</div>`}
+      <p class="group-note">${words.stakesNote}</p>
     </div>
     <div class="group">
-      <div class="group-head"><span class="group-title">${t.streamsGroup}</span><span class="group-rule"></span><span class="group-meta">${(streams ?? []).length}</span></div>
+      <div class="group-head"><span class="group-title">${words.streamsGroup}</span><span class="group-rule"></span><span class="group-meta">${(streams ?? []).length}</span></div>
       ${noPeople}
-      ${streamCards ? `<div class="stack">${streamCards}</div>` : `<div class="empty">${emptyOrArchived(archivedStreams, t.streamsAllArchived, t.streamsNone)}</div>`}
+      ${streamCards ? `<div class="stack">${streamCards}</div>` : `<div class="empty">${emptyOrArchived(archivedStreams, words.streamsAllArchived, words.streamsNone)}</div>`}
     </div>
-    ${archivedGroupHtml(t.archivedProjectsGroup, archivedProjects, "unarchiveProject")}
-    ${archivedGroupHtml(t.archivedStreamsGroup, archivedStreams, "unarchiveStream")}
+    ${archivedGroupHtml(words.archivedProjectsGroup, archivedProjects, "unarchiveProject")}
+    ${archivedGroupHtml(words.archivedStreamsGroup, archivedStreams, "unarchiveStream")}
   `;
 }
 
@@ -208,8 +208,8 @@ function archivedGroupHtml(title, archived, unarchiveAct) {
       (/** @type {any} */ r) => `<div class="row static">
         <span class="row-name">${esc(r.name)}</span>
         <span class="row-right">
-          <span class="pill plain">${t.archivedOn(esc(new Date(Number(r.archivedAt)).toISOString().slice(0, 10)))}</span>
-          <button class="act tiny" data-act="${esc(unarchiveAct)}" data-id="${esc(r.id)}" data-name="${esc(r.name)}">${t.unarchive}</button>
+          <span class="pill plain">${words.archivedOn(esc(new Date(Number(r.archivedAt)).toISOString().slice(0, 10)))}</span>
+          <button class="act tiny" data-act="${esc(unarchiveAct)}" data-id="${esc(r.id)}" data-name="${esc(r.name)}">${words.unarchive}</button>
         </span>
       </div>`
     )
@@ -233,17 +233,17 @@ export async function setLevelDialog(id) {
   const current = (streams ?? []).find((/** @type {any} */ w) => w.id === id);
 
   const values = await form({
-    title: current ? t.levelTitle(current.name) : t.levelTitleBare,
-    intro: t.levelIntro,
+    title: current ? words.levelTitle(current.name) : words.levelTitleBare,
+    intro: words.levelIntro,
     fields: [
-      { name: "level", label: t.levelLabel, type: "select", options: LEVEL_OPTIONS, value: current?.level ?? "close" }
+      { name: "level", label: words.levelLabel, type: "select", options: LEVEL_OPTIONS, value: current?.level ?? "close" }
     ],
-    confirm: t.levelConfirm
+    confirm: words.levelConfirm
   });
   if (!values) {
     return false;
   }
-  return Boolean(await act("setDelegationLevel", { id, level: values.level }, t.levelSetToast));
+  return Boolean(await act("setDelegationLevel", { id, level: values.level }, words.levelSetToast));
 }
 
 /**
@@ -269,8 +269,8 @@ async function projectPage(id) {
   const p = await tend.invoke("project", { project: id });
 
   if (readFailed(p)) {
-    return `<div class="view-head"><button class="act" data-act="backToWork">${t.backToWork}</button></div>
-      ${readFailedHtml(t.readFailedProject, p)}`;
+    return `<div class="view-head"><button class="act" data-act="backToWork">${words.backToWork}</button></div>
+      ${readFailedHtml(words.readFailedProject, p)}`;
   }
 
   const list = (/** @type {string} */ title, /** @type {string} */ body, /** @type {string} */ empty) =>
@@ -282,7 +282,7 @@ async function projectPage(id) {
     .map(
       (/** @type {any} */ c) => `<div class="line">
         <span class="line-when">${esc(c.behindBy)}</span>
-        <span class="line-text">${t.cadenceLine(esc(c.duty), esc(c.target), esc(c.lastHappened))}</span>
+        <span class="line-text">${words.cadenceLine(esc(c.duty), esc(c.target), esc(c.lastHappened))}</span>
         <span class="line-right">${pill(c.urgency)}</span>
       </div>`
     )
@@ -300,9 +300,9 @@ async function projectPage(id) {
         <span class="line-when">${esc(row.when)}</span>
         <span class="line-text"><strong>${esc(row.kind)}</strong>${row.note ? ` - ${esc(row.note)}` : ""}</span>
         <span class="line-right">
-          ${row.from === "nib" ? `<span class="pill plain">${t.fromANote}</span>` : ""}
+          ${row.from === "nib" ? `<span class="pill plain">${words.fromANote}</span>` : ""}
           <button class="act tiny danger" data-act="unlogProjectContact" data-id="${esc(row.id)}"
-            data-what="${esc(row.kind)}${row.note ? ` - ${esc(row.note)}` : ""}">${t.notRight}</button>
+            data-what="${esc(row.kind)}${row.note ? ` - ${esc(row.note)}` : ""}">${words.notRight}</button>
         </span>
       </div>`
     )
@@ -313,7 +313,7 @@ async function projectPage(id) {
       (/** @type {any} */ w) => `<div class="line">
         <span class="line-when">${esc(w.level ?? "-")}</span>
         <span class="line-text"><strong>${esc(w.name)}</strong>${
-          w.owner ? t.streamOwner(esc(w.owner)) : t.streamNoOwner
+          w.owner ? words.streamOwner(esc(w.owner)) : words.streamNoOwner
         }</span>
         ${w.unspecified ? `<span class="line-right">${pill("watch")}</span>` : ""}
       </div>`
@@ -323,28 +323,28 @@ async function projectPage(id) {
   const interested = (p.stakeholders ?? [])
     .map(
       (/** @type {any} */ s) => `<div class="line">
-        <span class="line-text"><strong>${esc(s.person)}</strong>${s.label ? t.interestedLabel(esc(s.label)) : ""}</span>
+        <span class="line-text"><strong>${esc(s.person)}</strong>${s.label ? words.interestedLabel(esc(s.label)) : ""}</span>
       </div>`
     )
     .join("");
 
   return `
-    <div class="view-head"><button class="act" data-act="backToWork">${t.backToWork}</button></div>
+    <div class="view-head"><button class="act" data-act="backToWork">${words.backToWork}</button></div>
     <div class="panel">
       <div class="panel-head">
         <div>
           <h2 class="panel-name">${esc(p.name)}</h2>
-          <p class="panel-role">${p.archivedAt ? t.projectArchivedRole : t.projectRole}</p>
+          <p class="panel-role">${p.archivedAt ? words.projectArchivedRole : words.projectRole}</p>
         </div>
         <div class="panel-actions">
-          <button class="act primary" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.logLook}</button>
+          <button class="act primary" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${words.logLook}</button>
         </div>
       </div>
 
-      ${list(t.cadencesBlock, cadences, t.cadencesNone)}
-      ${list(t.checkInsBlock, history, t.checkInsNone)}
-      ${list(t.streamsInBlock, streams, t.streamsInNone)}
-      ${list(t.interestedBlock, interested, t.interestedNone)}
+      ${list(words.cadencesBlock, cadences, words.cadencesNone)}
+      ${list(words.checkInsBlock, history, words.checkInsNone)}
+      ${list(words.streamsInBlock, streams, words.streamsInNone)}
+      ${list(words.interestedBlock, interested, words.interestedNone)}
     </div>`;
 }
 
@@ -370,14 +370,14 @@ export const actions = {
    */
   unlogProjectContact: async (d) => {
     const sure = await ask({
-      title: t.unlogTitle,
-      body: t.unlogBody(d.what),
-      confirm: t.unlogConfirm,
+      title: words.unlogTitle,
+      body: words.unlogBody(d.what),
+      confirm: words.unlogConfirm,
       tone: "danger"
     });
     // `act` rather than a bare invoke, so a rejected write cannot look like a
     // successful one. Every write in the app goes through it.
-    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, t.unlogToast))) {
+    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, words.unlogToast))) {
       refresh();
     }
   },
@@ -393,58 +393,58 @@ export const actions = {
     const [roster, projects] = await Promise.all([tend.invoke("people"), tend.invoke("projects")]);
     if (!Array.isArray(roster) || roster.length === 0) {
       await ask({
-        title: t.noRosterTitle,
-        body: t.noRosterBody,
-        confirm: t.understood
+        title: words.noRosterTitle,
+        body: words.noRosterBody,
+        confirm: words.understood
       });
       return;
     }
     if (!Array.isArray(projects) || projects.length === 0) {
       await ask({
-        title: t.noProjectsTitle,
-        body: t.noProjectsBody,
-        confirm: t.understood
+        title: words.noProjectsTitle,
+        body: words.noProjectsBody,
+        confirm: words.understood
       });
       return;
     }
 
     const values = await form({
-      title: t.stakeTitle,
-      intro: t.stakeIntro,
+      title: words.stakeTitle,
+      intro: words.stakeIntro,
       fields: [
         {
           name: "person",
-          label: t.stakeWho,
+          label: words.stakeWho,
           type: "select",
           options: roster.map((/** @type {any} */ r) => ({ value: r.id, label: r.name }))
         },
         {
           name: "project",
-          label: t.stakeAbout,
+          label: words.stakeAbout,
           type: "select",
           options: projects.map((/** @type {any} */ r) => ({ value: r.id, label: r.name }))
         },
         {
           name: "cadenceDays",
-          label: t.stakeCadence,
+          label: words.stakeCadence,
           type: "number",
           value: String(DEFAULT_STAKE_DAYS),
-          hint: t.stakeCadenceHint
+          hint: words.stakeCadenceHint
         },
         {
           name: "what",
-          label: t.stakeWhat,
-          placeholder: t.stakeWhatPlaceholder
+          label: words.stakeWhat,
+          placeholder: words.stakeWhatPlaceholder
         },
         {
           name: "since",
-          label: t.stakeSince,
+          label: words.stakeSince,
           type: "date",
           value: asDateInput(Date.now()),
-          hint: t.stakeSinceHint
+          hint: words.stakeSinceHint
         }
       ],
-      confirm: t.add
+      confirm: words.add
     });
     if (!values) {
       return;
@@ -459,7 +459,7 @@ export const actions = {
           what: values.what,
           since: values.since
         },
-        t.addedToast
+        words.addedToast
       )
     ) {
       refresh();
@@ -471,17 +471,17 @@ export const actions = {
     const stakes = await tend.invoke("stakeholders");
     const current = (Array.isArray(stakes) ? stakes : []).find((/** @type {any} */ k) => k.id === d.id);
     const values = await form({
-      title: t.editStakeTitle(d.name.split(",")[0]),
+      title: words.editStakeTitle(d.name.split(",")[0]),
       fields: [
         {
           name: "cadenceDays",
-          label: t.stakeCadence,
+          label: words.stakeCadence,
           type: "number",
           value: String(parseInt(String(current?.every ?? DEFAULT_STAKE_DAYS), 10) || DEFAULT_STAKE_DAYS)
         },
-        { name: "what", label: t.editStakeWhat, value: current?.note ?? "" }
+        { name: "what", label: words.editStakeWhat, value: current?.note ?? "" }
       ],
-      confirm: t.save
+      confirm: words.save
     });
     if (!values) {
       return;
@@ -490,7 +490,7 @@ export const actions = {
       await act(
         "updateStake",
         { id: d.id, cadenceDays: Number(values.cadenceDays), what: values.what },
-        t.savedToast
+        words.savedToast
       )
     ) {
       refresh();
@@ -500,18 +500,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logUpdate: async (d) => {
     const values = await form({
-      title: t.logUpdateTitle(d.name.split("about ")[1] ?? t.logUpdateFallback),
-      intro: t.logUpdateIntro,
+      title: words.logUpdateTitle(d.name.split("about ")[1] ?? words.logUpdateFallback),
+      intro: words.logUpdateIntro,
       fields: [
-        { name: "note", label: t.logUpdateNote, type: "textarea" },
-        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: words.logUpdateNote, type: "textarea" },
+        { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: t.logIt
+      confirm: words.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.id, kind: "update", ...values }, t.loggedToast)) {
+    if (await act("logTouch", { subject: d.id, kind: "update", ...values }, words.loggedToast)) {
       refresh();
     }
   },
@@ -519,32 +519,32 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeStake: async (d) => {
     const sure = await ask({
-      title: t.removeStakeTitle(d.name),
-      body: t.removeStakeBody,
+      title: words.removeStakeTitle(d.name),
+      body: words.removeStakeBody,
       confirm: "Remove",
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "stakes", id: d.id }, t.removedToast))) {
+    if (sure && (await act("removeRow", { collection: "stakes", id: d.id }, words.removedToast))) {
       refresh();
     }
   },
 
   addProject: async () => {
     const values = await form({
-      title: t.addProjectTitle,
+      title: words.addProjectTitle,
       fields: [
-        { name: "name", label: t.projectName, required: true },
+        { name: "name", label: words.projectName, required: true },
         {
           name: "since",
-          label: t.projectSince,
+          label: words.projectSince,
           type: "date",
           value: asDateInput(Date.now()),
-          hint: t.projectSinceHint
+          hint: words.projectSinceHint
         }
       ],
       confirm: "Add"
     });
-    if (values && (await act("addProject", values, t.addedNamed(values.name)))) {
+    if (values && (await act("addProject", values, words.addedNamed(values.name)))) {
       refresh();
     }
   },
@@ -552,31 +552,31 @@ export const actions = {
   addStream: async () => {
     const [roster, projects] = await Promise.all([tend.invoke("people"), tend.invoke("projects")]);
     const values = await form({
-      title: t.addStreamTitle,
-      intro: t.addStreamIntro,
+      title: words.addStreamTitle,
+      intro: words.addStreamIntro,
       fields: [
-        { name: "name", label: t.streamName, required: true, placeholder: t.streamNamePlaceholder },
+        { name: "name", label: words.streamName, required: true, placeholder: words.streamNamePlaceholder },
         {
           name: "owner",
-          label: t.streamOwnerLabel,
+          label: words.streamOwnerLabel,
           type: "select",
-          options: [{ value: "", label: t.streamNobodyYet }].concat(
+          options: [{ value: "", label: words.streamNobodyYet }].concat(
             (roster ?? []).map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
           )
         },
         {
           name: "project",
-          label: t.streamProjectLabel,
+          label: words.streamProjectLabel,
           type: "select",
-          options: [{ value: "", label: t.streamNoProject }].concat(
+          options: [{ value: "", label: words.streamNoProject }].concat(
             (projects ?? []).map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
           )
         },
-        { name: "level", label: t.streamLevelLabel, type: "select", options: LEVEL_OPTIONS, value: "close" }
+        { name: "level", label: words.streamLevelLabel, type: "select", options: LEVEL_OPTIONS, value: "close" }
       ],
       confirm: "Add"
     });
-    if (values && (await act("addWorkstream", values, t.addedNamed(values.name)))) {
+    if (values && (await act("addWorkstream", values, words.addedNamed(values.name)))) {
       refresh();
     }
   },
@@ -591,18 +591,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   review: async (d) => {
     const values = await form({
-      title: t.reviewTitle(d.name),
-      intro: t.reviewIntro,
+      title: words.reviewTitle(d.name),
+      intro: words.reviewIntro,
       fields: [
-        { name: "note", label: t.foundNote, type: "textarea" },
-        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: words.foundNote, type: "textarea" },
+        { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: t.logIt
+      confirm: words.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.id, kind: "delegation-review", ...values }, t.loggedToast)) {
+    if (await act("logTouch", { subject: d.id, kind: "delegation-review", ...values }, words.loggedToast)) {
       refresh();
     }
   },
@@ -610,17 +610,17 @@ export const actions = {
   /** @param {Record<string, string>} d */
   checkIn: async (d) => {
     const values = await form({
-      title: t.checkInTitle(d.name),
+      title: words.checkInTitle(d.name),
       fields: [
-        { name: "note", label: t.foundNote, type: "textarea" },
-        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: words.foundNote, type: "textarea" },
+        { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: t.logIt
+      confirm: words.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.id, kind: "check-in", ...values }, t.loggedToast)) {
+    if (await act("logTouch", { subject: d.id, kind: "check-in", ...values }, words.loggedToast)) {
       refresh();
     }
   },
@@ -636,19 +636,19 @@ export const actions = {
    */
   archiveProject: async (d) => {
     const sure = await ask({
-      title: t.archiveProjectTitle(d.name),
-      body: t.archiveProjectBody,
-      confirm: t.archive,
+      title: words.archiveProjectTitle(d.name),
+      body: words.archiveProjectBody,
+      confirm: words.archive,
       tone: "danger"
     });
-    if (sure && (await act("archiveProject", { id: d.id }, t.archivedToast(d.name)))) {
+    if (sure && (await act("archiveProject", { id: d.id }, words.archivedToast(d.name)))) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   unarchiveProject: async (d) => {
-    if (await act("unarchiveProject", { id: d.id }, t.unarchivedToast(d.name))) {
+    if (await act("unarchiveProject", { id: d.id }, words.unarchivedToast(d.name))) {
       refresh();
     }
   },
@@ -656,12 +656,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeProject: async (d) => {
     const sure = await ask({
-      title: t.removeProjectTitle(d.name),
-      body: t.removeBody,
-      confirm: t.remove,
+      title: words.removeProjectTitle(d.name),
+      body: words.removeBody,
+      confirm: words.remove,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "projects", id: d.id }, t.removedToast))) {
+    if (sure && (await act("removeRow", { collection: "projects", id: d.id }, words.removedToast))) {
       refresh();
     }
   },
@@ -674,19 +674,19 @@ export const actions = {
    */
   archiveStream: async (d) => {
     const sure = await ask({
-      title: t.archiveStreamTitle(d.name),
-      body: t.archiveStreamBody,
-      confirm: t.archive,
+      title: words.archiveStreamTitle(d.name),
+      body: words.archiveStreamBody,
+      confirm: words.archive,
       tone: "danger"
     });
-    if (sure && (await act("archiveWorkstream", { id: d.id }, t.archivedToast(d.name)))) {
+    if (sure && (await act("archiveWorkstream", { id: d.id }, words.archivedToast(d.name)))) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   unarchiveStream: async (d) => {
-    if (await act("unarchiveWorkstream", { id: d.id }, t.unarchivedToast(d.name))) {
+    if (await act("unarchiveWorkstream", { id: d.id }, words.unarchivedToast(d.name))) {
       refresh();
     }
   },
@@ -694,12 +694,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeStream: async (d) => {
     const sure = await ask({
-      title: t.removeStreamTitle(d.name),
-      body: t.removeBody,
-      confirm: t.remove,
+      title: words.removeStreamTitle(d.name),
+      body: words.removeBody,
+      confirm: words.remove,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "workstreams", id: d.id }, t.removedToast))) {
+    if (sure && (await act("removeRow", { collection: "workstreams", id: d.id }, words.removedToast))) {
       refresh();
     }
   }

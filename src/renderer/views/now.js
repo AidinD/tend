@@ -14,7 +14,7 @@ import { go, refresh } from "../app.js";
 import { actions as waitingActions, waitingGroup } from "./waiting.js";
 import { T } from "../text.js";
 
-const t = T.now;
+const words = T.now;
 
 export async function render() {
   const [attention, questions, roster, ledger, mine, waits, archived] = await Promise.all([
@@ -30,7 +30,7 @@ export async function render() {
 
   if (attention.error) {
     return `<div class="card sev-critical"><div class="card-top">
-      <h2 class="card-title">${t.readFailedTitle}</h2></div>
+      <h2 class="card-title">${words.readFailedTitle}</h2></div>
       <p class="card-why">${esc(attention.error)}</p></div>`;
   }
 
@@ -49,12 +49,12 @@ export async function render() {
 
   const focus = attention.focus
     ? `<div class="focus-bar${attention.focus.overrun ? " overrun" : ""}">
-        <div class="focus-eyebrow">${t.focusEyebrow}</div>
+        <div class="focus-eyebrow">${words.focusEyebrow}</div>
         <h2 class="focus-name">${esc(attention.focus.summary)}</h2>
         <p class="focus-cost">${esc(attention.focus.cost)}</p>
         <div class="card-foot">
-          <span class="src">${t.focusHeld(attention.heldBackByFocus)}</span>
-          <button class="act" data-act="openFocus">${t.focusSettings}</button>
+          <span class="src">${words.focusHeld(attention.heldBackByFocus)}</span>
+          <button class="act" data-act="openFocus">${words.focusSettings}</button>
         </div>
       </div>`
     : "";
@@ -77,13 +77,13 @@ export async function render() {
         <div class="card sev-critical">
           <div class="card-top">
             <h2 class="card-title">${esc(d.what)}</h2>
-            <span class="badge">${t.decisionDue(esc(d.revisitOverdueBy ?? t.dueNow))}</span>
+            <span class="badge">${words.decisionDue(esc(d.revisitOverdueBy ?? words.dueNow))}</span>
           </div>
           ${d.because ? `<p class="card-why">${esc(d.because)}</p>` : ""}
           <div class="card-foot">
-            <span class="src">${t.decisionSrc}</span>
-            <button class="act" data-act="holds" data-id="${esc(d.id)}">${t.stillHolds}</button>
-            <button class="act" data-act="openDecisions">${t.openLog}</button>
+            <span class="src">${words.decisionSrc}</span>
+            <button class="act" data-act="holds" data-id="${esc(d.id)}">${words.stillHolds}</button>
+            <button class="act" data-act="openDecisions">${words.openLog}</button>
           </div>
         </div>`
     )
@@ -126,11 +126,11 @@ export async function render() {
   ) {
     return `
       <div class="view-head">
-        <h1 class="view-title">${t.quietTitle}</h1>
-        <p class="view-sub">${t.quietSub}</p>
+        <h1 class="view-title">${words.quietTitle}</h1>
+        <p class="view-sub">${words.quietSub}</p>
       </div>
       ${focus}
-      <div class="empty">${t.quietEmpty}</div>
+      <div class="empty">${words.quietEmpty}</div>
       ${
         // Still printed on a quiet day, at the bottom, under the sentence that
         // says nothing needs you. Dropping it here instead would make the flag
@@ -142,20 +142,20 @@ export async function render() {
 
   return `
     <div class="view-head">
-      <h1 class="view-title">${t.title}</h1>
-      <p class="view-sub">${t.sub}</p>
+      <h1 class="view-title">${words.title}</h1>
+      <p class="view-sub">${words.sub}</p>
     </div>
     ${focus}
-    ${group(t.needsYouGroup, attention.needsYou.map(card).join(""), attention.needsYou.length)}
-    ${group(t.revisitsGroup, revisitCards, revisits.length)}
-    ${group(t.questionsGroup, due.map(question).join(""), due.length)}
+    ${group(words.needsYouGroup, attention.needsYou.map(card).join(""), attention.needsYou.length)}
+    ${group(words.revisitsGroup, revisitCards, revisits.length)}
+    ${group(words.questionsGroup, due.map(question).join(""), due.length)}
     ${group(
-      t.nudgeGroup,
+      words.nudgeGroup,
       attention.nudges.map(card).join("") +
         (attention.heldBackByFocus > 0 && !attention.focus
           ? ""
           : attention.heldBackByFocus > 0
-            ? `<div class="muted-row">${t.softerHeld(attention.heldBackByFocus)}</div>`
+            ? `<div class="muted-row">${words.softerHeld(attention.heldBackByFocus)}</div>`
             : ""),
       attention.nudges.length
     )}
@@ -174,8 +174,8 @@ export async function render() {
  */
 function mineBlock(rows) {
   return `<div class="mine">
-    <h2 class="mine-head">${t.mineHead}</h2>
-    <p class="mine-sub">${t.mineSub}</p>
+    <h2 class="mine-head">${words.mineHead}</h2>
+    <p class="mine-sub">${words.mineSub}</p>
     ${rows}
   </div>`;
 }
@@ -201,36 +201,36 @@ function everybodyArchived(mine) {
     .join("");
   return `
     <div class="view-head">
-      <h1 class="view-title">${t.quietTitle}</h1>
-      <p class="view-sub">${t.archivedSub}</p>
+      <h1 class="view-title">${words.quietTitle}</h1>
+      <p class="view-sub">${words.archivedSub}</p>
     </div>
     ${rows === "" ? "" : mineBlock(rows)}
-    <div class="empty">${t.archivedEmpty}</div>
+    <div class="empty">${words.archivedEmpty}</div>
   `;
 }
 
 function firstRun() {
   return `
     <div class="view-head">
-      <h1 class="view-title">${t.firstTitle}</h1>
-      <p class="view-sub">${t.firstSub}</p>
+      <h1 class="view-title">${words.firstTitle}</h1>
+      <p class="view-sub">${words.firstSub}</p>
     </div>
     <div class="stack">
       <article class="card sev-warn">
-        <div class="card-top"><h2 class="card-title">${t.firstPeopleTitle}</h2></div>
-        <p class="card-why">${t.firstPeopleWhy}</p>
+        <div class="card-top"><h2 class="card-title">${words.firstPeopleTitle}</h2></div>
+        <p class="card-why">${words.firstPeopleWhy}</p>
         <div class="card-foot">
-          <span class="src">${t.firstPeopleNote}</span>
-          <button class="act primary" data-act="addPerson">${t.firstPeopleButton}</button>
+          <span class="src">${words.firstPeopleNote}</span>
+          <button class="act primary" data-act="addPerson">${words.firstPeopleButton}</button>
         </div>
       </article>
       <article class="card sev-book">
-        <div class="card-top"><h2 class="card-title">${t.firstRoleTitle}</h2></div>
-        <p class="card-why">${t.firstRoleWhy}</p>
+        <div class="card-top"><h2 class="card-title">${words.firstRoleTitle}</h2></div>
+        <p class="card-why">${words.firstRoleWhy}</p>
         <div class="card-foot">
-          <span class="src">${t.firstRoleNote}</span>
-          <button class="act primary" data-act="seed">${t.firstRoleButton}</button>
-          <button class="act" data-act="openRole">${t.firstRoleLook}</button>
+          <span class="src">${words.firstRoleNote}</span>
+          <button class="act primary" data-act="seed">${words.firstRoleButton}</button>
+          <button class="act" data-act="openRole">${words.firstRoleLook}</button>
         </div>
       </article>
     </div>
@@ -256,7 +256,7 @@ function group(title, body, count) {
 function card(item) {
   const softened =
     item.actualUrgency === "critical" && item.urgency !== "critical"
-      ? `<p class="card-why dim">${t.softened}</p>`
+      ? `<p class="card-why dim">${words.softened}</p>`
       : "";
 
   const actions = [];
@@ -266,9 +266,9 @@ function card(item) {
     // conversation with it, and the old card offered every kind for either -
     // which records something that satisfies nothing and still says "Logged".
     /** @type {Record<string, string>} */
-    const LABELS = { project: t.logProject, workstream: t.logWorkstream, stake: t.logStake };
+    const LABELS = { project: words.logProject, workstream: words.logWorkstream, stake: words.logStake };
     const kind = String(item.subjectKind ?? "person");
-    const label = LABELS[kind] ?? t.logPerson;
+    const label = LABELS[kind] ?? words.logPerson;
     const isPerson = kind === "person";
     actions.push(
       `<button class="act" data-act="logContact" data-person="${esc(item.person)}" data-subject-kind="${esc(item.subjectKind ?? "person")}">${label}</button>`
@@ -276,23 +276,23 @@ function card(item) {
     // Only people have a page. Sending a project id to the roster showed an
     // empty person rather than saying it had nowhere to go.
     if (isPerson) {
-      actions.push(`<button class="act" data-act="openPerson" data-person="${esc(item.person)}">${t.open}</button>`);
+      actions.push(`<button class="act" data-act="openPerson" data-person="${esc(item.person)}">${words.open}</button>`);
     }
   }
   if (item.key.startsWith("promise:")) {
     actions.push(
-      `<button class="act primary" data-act="resolvePromise" data-id="${esc(item.key.slice(8))}">${t.done}</button>`,
-      `<button class="act" data-act="dropPromise" data-id="${esc(item.key.slice(8))}">${t.drop}</button>`
+      `<button class="act primary" data-act="resolvePromise" data-id="${esc(item.key.slice(8))}">${words.done}</button>`,
+      `<button class="act" data-act="dropPromise" data-id="${esc(item.key.slice(8))}">${words.drop}</button>`
     );
   }
   if (item.key.startsWith("unspecified:")) {
     actions.push(
-      `<button class="act primary" data-act="setLevel" data-id="${esc(item.key.slice(12))}">${t.setLevelButton}</button>`
+      `<button class="act primary" data-act="setLevel" data-id="${esc(item.key.slice(12))}">${words.setLevelButton}</button>`
     );
   }
   if (item.key.startsWith("unfiled:")) {
     actions.push(
-      `<button class="act primary" data-act="fileCommitments" data-key="${esc(item.key.slice(8))}">${t.fileButton}</button>`
+      `<button class="act primary" data-act="fileCommitments" data-key="${esc(item.key.slice(8))}">${words.fileButton}</button>`
     );
   }
 
@@ -304,7 +304,7 @@ function card(item) {
     <p class="card-why">${esc(item.why)}</p>
     ${softened}
     <div class="card-foot">
-      <span class="src">${esc(item.from)}${item.guarded ? t.guarded : ""}</span>
+      <span class="src">${esc(item.from)}${item.guarded ? words.guarded : ""}</span>
       ${actions.join("")}
     </div>
   </article>`;
@@ -315,13 +315,13 @@ function question(q) {
   return `<article class="card sev-book">
     <div class="card-top">
       <h2 class="card-title">${esc(q.question)}</h2>
-      <span class="pill book">${esc(q.lastAsked === "never" ? t.neverAsked : q.lastAsked)}</span>
+      <span class="pill book">${esc(q.lastAsked === "never" ? words.neverAsked : q.lastAsked)}</span>
     </div>
     <p class="card-why">${esc(q.why)}</p>
     <div class="card-foot">
-      <span class="src">${t.questionSrc}</span>
-      <button class="act primary" data-act="answerNo" data-id="${esc(q.id)}">${t.answerNo}</button>
-      <button class="act" data-act="answerYes" data-id="${esc(q.id)}">${t.answerYes}</button>
+      <span class="src">${words.questionSrc}</span>
+      <button class="act primary" data-act="answerNo" data-id="${esc(q.id)}">${words.answerNo}</button>
+      <button class="act" data-act="answerYes" data-id="${esc(q.id)}">${words.answerYes}</button>
     </div>
   </article>`;
 }
@@ -379,20 +379,20 @@ export const actions = {
     }
 
     const values = await form({
-      title: t.fileTitle,
-      intro: t.fileIntro(group.items.length, group.note),
+      title: words.fileTitle,
+      intro: words.fileIntro(group.items.length, group.note),
       fields: group.items.map((/** @type {any} */ item, /** @type {number} */ i) => ({
         name: `c${i}`,
         label: item.text,
         type: "select",
         value: "",
         options: [
-          { value: "", label: t.fileNotYet },
-          ...item.candidates.map((/** @type {any} */ c) => ({ value: c.id, label: t.filePromiseTo(c.name) })),
-          { value: "none", label: t.fileNobody }
+          { value: "", label: words.fileNotYet },
+          ...item.candidates.map((/** @type {any} */ c) => ({ value: c.id, label: words.filePromiseTo(c.name) })),
+          { value: "none", label: words.fileNobody }
         ]
       })),
-      confirm: t.fileConfirm
+      confirm: words.fileConfirm
     });
     if (!values) {
       return;
@@ -419,10 +419,10 @@ export const actions = {
     if (filed > 0 || discarded > 0) {
       const parts = [];
       if (filed > 0) {
-        parts.push(t.filedCount(filed));
+        parts.push(words.filedCount(filed));
       }
       if (discarded > 0) {
-        parts.push(t.discardedCount(discarded));
+        parts.push(words.discardedCount(discarded));
       }
       toast(`${parts.join(", ")}.`);
     }
@@ -430,7 +430,7 @@ export const actions = {
   },
 
   seed: async () => {
-    const result = await act("seed", {}, t.seededToast);
+    const result = await act("seed", {}, words.seededToast);
     if (result) {
       go("role");
     }
@@ -441,25 +441,25 @@ export const actions = {
     const subjectKind = /** @type {any} */ (d.subjectKind ?? "person");
     const options = kindsFor(subjectKind);
     const values = await form({
-      title: subjectKind === "person" ? t.logTitlePerson : t.logTitleOther,
-      intro: subjectKind === "person" ? t.logIntroPerson : t.logIntroOther,
+      title: subjectKind === "person" ? words.logTitlePerson : words.logTitleOther,
+      intro: subjectKind === "person" ? words.logIntroPerson : words.logIntroOther,
       fields: [
-        { name: "kind", label: t.logKindLabel, type: "select", options, value: options[0]?.value },
-        { name: "note", label: t.logNoteLabel, placeholder: t.logNotePlaceholder }
+        { name: "kind", label: words.logKindLabel, type: "select", options, value: options[0]?.value },
+        { name: "note", label: words.logNoteLabel, placeholder: words.logNotePlaceholder }
       ],
-      confirm: t.logConfirm
+      confirm: words.logConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.person, ...values }, t.loggedToast)) {
+    if (await act("logTouch", { subject: d.person, ...values }, words.loggedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   resolvePromise: async (d) => {
-    if (await act("resolvePromise", { id: d.id, as: "resolved" }, t.closedToast)) {
+    if (await act("resolvePromise", { id: d.id, as: "resolved" }, words.closedToast)) {
       refresh();
     }
   },
@@ -467,11 +467,11 @@ export const actions = {
   /** @param {Record<string, string>} d */
   dropPromise: async (d) => {
     const sure = await ask({
-      title: t.dropTitle,
-      body: t.dropBody,
-      confirm: t.dropConfirm
+      title: words.dropTitle,
+      body: words.dropBody,
+      confirm: words.dropConfirm
     });
-    if (sure && (await act("resolvePromise", { id: d.id, as: "dropped" }, t.droppedToast))) {
+    if (sure && (await act("resolvePromise", { id: d.id, as: "dropped" }, words.droppedToast))) {
       refresh();
     }
   },
@@ -486,7 +486,7 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   answerNo: async (d) => {
-    if (await act("answerSignal", { signal: d.id, answer: "no" }, t.answeredNoToast)) {
+    if (await act("answerSignal", { signal: d.id, answer: "no" }, words.answeredNoToast)) {
       refresh();
     }
   },
@@ -494,15 +494,15 @@ export const actions = {
   /** @param {Record<string, string>} d */
   answerYes: async (d) => {
     const values = await form({
-      title: t.yesTitle,
-      intro: t.yesIntro,
-      fields: [{ name: "note", label: t.yesLabel, type: "textarea", required: true }],
-      confirm: t.yesConfirm
+      title: words.yesTitle,
+      intro: words.yesIntro,
+      fields: [{ name: "note", label: words.yesLabel, type: "textarea", required: true }],
+      confirm: words.yesConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("answerSignal", { signal: d.id, answer: "yes", note: values.note }, t.recordedToast)) {
+    if (await act("answerSignal", { signal: d.id, answer: "yes", note: values.note }, words.recordedToast)) {
       refresh();
     }
   }
