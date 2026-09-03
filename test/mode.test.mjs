@@ -231,11 +231,28 @@ describe("what each half consists of", () => {
   });
 
   it("gives the private half only the views that mean something there", () => {
+    /*
+     * Reflection moved into this list on 3 September, by his decision, and this
+     * assertion moved with it rather than being loosened to let a change pass.
+     *
+     * The reason it was excluded was never that a weekly look back is a work
+     * thing - it is first-person and on no clock, the same as the journal beside
+     * it. It was excluded because the private half was built by taking views
+     * away, and this one was taken away with the rest.
+     *
+     * What made it worth revisiting: the page now also carries his own aims, and
+     * the goals he sets outside work - as a parent, about training - had nowhere
+     * in the app at all. That is how a second file of goals came to exist next
+     * to it, which is the two-places problem the app is supposed to end.
+     *
+     * Everything still absent is absent for the reason halves.js gives: it is
+     * built on drift, and drift over people you live with says nothing.
+     */
     const priv = viewsIn("private").map((v) => v.id);
-    for (const gone of ["now", "prep", "focus", "work", "role", "decisions", "reflection"]) {
+    for (const gone of ["now", "prep", "focus", "work", "role", "decisions"]) {
       assert.equal(priv.includes(gone), false, `${gone} is still offered`);
     }
-    for (const kept of ["people", "journal", "knowledge", "settings"]) {
+    for (const kept of ["people", "journal", "reflection", "knowledge", "settings"]) {
       assert.equal(priv.includes(kept), true, `${kept} is missing`);
     }
   });

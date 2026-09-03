@@ -76,6 +76,10 @@ export function myAttentionSignals(store, now) {
     // was supposed to happen.
     aims: /** @type {any[]} */ (store.rows("aims")),
     aimNotes: /** @type {any[]} */ (store.rows("aimNotes")),
+    // Which signals mean anything here. The private half was being told it had
+    // not spoken to eight of eight people this month, about the people he lives
+    // with - see SIGNAL_HALVES in myattention.js.
+    half: store.half,
     now
   });
 }

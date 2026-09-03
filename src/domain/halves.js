@@ -195,7 +195,20 @@ export const VIEWS = /** @type {const} */ ([
   { id: "people", name: "People", hint: "the roster", halves: ["work", "private"] },
   { id: "work", name: "Work", hint: "projects and delegation", halves: ["work"] },
   { id: "journal", name: "The day", hint: "what the day went into", halves: ["work", "private"] },
-  { id: "reflection", name: "Reflection", hint: "how the week went", halves: ["work"] },
+  /*
+   * Both halves, because both of the things on this page mean something here.
+   *
+   * The weekly look back is first-person and on no clock, which is the same
+   * reason the journal transfers. And an aim about how he is as a parent, or
+   * about training, is exactly as measurable as one about how he runs a 1-1 -
+   * the goals he set for himself outside work had nowhere to live at all, which
+   * is how a second file of them came to exist beside the app.
+   *
+   * Each half keeps its own two open aims rather than sharing the pair. They are
+   * separate stores and separate attention, and "be more present at home" does
+   * not compete for the same slot as anything at work.
+   */
+  { id: "reflection", name: "Reflection", hint: "how the week went", halves: ["work", "private"] },
   { id: "role", name: "Role map", hint: "what the job is", halves: ["work"] },
   { id: "decisions", name: "Decisions", hint: "the ledger", halves: ["work"] },
   { id: "knowledge", name: "Knowledge", hint: "ask about a situation", halves: ["work", "private"] },

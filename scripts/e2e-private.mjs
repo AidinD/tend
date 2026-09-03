@@ -250,7 +250,7 @@ try {
     if (stillThere.length > 0) {
       throw new Error(`still offered: ${stillThere.join(", ")}`);
     }
-    for (const kept of ["people", "journal", "knowledge", "settings"]) {
+    for (const kept of ["people", "journal", "reflection", "knowledge", "settings"]) {
       if (!state.visible.includes(kept)) {
         throw new Error(`${kept} should still be there and is not`);
       }
@@ -443,6 +443,47 @@ try {
     }
     if (!mark.loaded) {
       throw new Error(`${mark.file} did not load`);
+    }
+  });
+
+  /* ------------------------------------------- his own goals, here -- */
+
+  /*
+   * Reflection is new to this half, and it is here for the aims on it: the goals
+   * he sets outside work - as a parent, about training - had nowhere in the app,
+   * which is how a second file of them came to exist beside it.
+   *
+   * A view added to a half and never opened by a check is a view where the first
+   * error is found by accident, so it gets opened here.
+   */
+  await evaluate("document.querySelector('.nav-btn[data-view=\"reflection\"]')?.click()");
+  await waitFor("document.querySelector('.view-title') !== null", "reflection in the private half");
+
+  const reflectionHere = JSON.parse(
+    String(
+      await evaluate(`(() => {
+        const titles = [...document.querySelectorAll('.group-title')].map(t => t.textContent.trim());
+        return JSON.stringify({
+          title: (document.querySelector('.view-title') || {}).textContent || '',
+          groups: titles,
+          canSetAim: document.querySelector('[data-act="setAim"]') !== null,
+          errors: (window.__errors ?? []).length
+        });
+      })()`)
+    )
+  );
+
+  await check("his own goals have a page in this half, and it draws", () => {
+    if (!/reflection/i.test(String(reflectionHere.title))) {
+      throw new Error(`the view drew "${reflectionHere.title}"`);
+    }
+    if (reflectionHere.errors > 0) {
+      throw new Error(`${reflectionHere.errors} renderer error(s) drawing it`);
+    }
+    // The aims block is the reason the view is in this half at all. A page that
+    // renders but cannot start one would be the work half with a tab added.
+    if (!reflectionHere.canSetAim) {
+      throw new Error(`no way to set an aim; groups drawn: ${JSON.stringify(reflectionHere.groups)}`);
     }
   });
 

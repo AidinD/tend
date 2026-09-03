@@ -83,6 +83,8 @@ const CONCENTRATION_OF = 0.2;
  * @param {Record<string, any>[]} [input.aims] Goals he set for himself.
  * @param {Record<string, any>[]} [input.aimNotes] One row per occasion an aim did
  *   or did not happen. Both halves matter: the gap between them is the reading.
+ * @param {string} [input.half] Which half is asking, so a signal that means
+ *   nothing there is not produced. See SIGNAL_HALVES below.
  * @returns {Signal[]}
  */
 export function myAttention({
@@ -94,7 +96,10 @@ export function myAttention({
   lastReadAt = null,
   reflections = [],
   aims = [],
-  aimNotes = []
+  aimNotes = [],
+  // The store IS the half, so this comes from it rather than being worked out
+  // here. Defaults to work because that is what every existing caller meant.
+  half = "work"
 }) {
   const since = now - WINDOW_DAYS * DAY_MS;
   // Somebody on leave or already gone is not somebody you are neglecting, and
@@ -364,7 +369,68 @@ export function myAttention({
     });
   }
 
-  return signals.sort((a, b) => b.weight - a.weight);
+  return signals
+    .filter((s) => halvesOf(s.key).includes(half))
+    .sort((a, b) => b.weight - a.weight);
+}
+
+/**
+ * Which half each signal means anything in.
+ *
+ * ## Why this exists
+ *
+ * The private half was being told "I have not spoken to 8 of 8 people this
+ * month" about the people he lives with. `domain/halves.js` forbids exactly
+ * that, in as many words: contact with somebody you live with is continuous, so
+ * a cadence over it reads as permanently fine and says nothing - and the same
+ * sentence about a person in the next room is worse than useless.
+ *
+ * The rule was written and the half's own front page broke it, because the half
+ * was built by taking views away and this page was one of the four that stayed.
+ *
+ * ## Why a declaration rather than a check per signal
+ *
+ * The same reason `VIEWS` is a declaration. A condition on each `push` is a
+ * list scattered through three hundred lines, and the next signal added will
+ * simply not have one - which fails open, into the half where failing open
+ * means writing about somebody's family.
+ *
+ * A signal whose key is absent here is refused rather than allowed, and a test
+ * asserts that every key this file can emit appears below. Adding a signal
+ * without deciding its half is then a failing suite rather than a surprise.
+ *
+ * ## The line it draws
+ *
+ * Anything counted over people and a clock is work-only: neglect, concentration
+ * and second-hand knowledge are all statements about a roster with a cadence
+ * over it, and the private half has neither by design.
+ *
+ * Anything first-person transfers. The journal and the weekly look back are the
+ * reason the private half exists, and an aim about how he is as a parent is
+ * exactly as measurable as one about how he runs a 1-1.
+ */
+export const SIGNAL_HALVES = /** @type {Record<string, readonly string[]>} */ ({
+  "i-have-not-spoken-to": ["work"],
+  "my-attention-is-concentrated": ["work"],
+  "i-have-only-heard-about": ["work"],
+  "i-have-written-and-not-read": ["work", "private"],
+  "i-have-not-reflected": ["work", "private"],
+  "aim-quiet": ["work", "private"],
+  "aim-unmeasured": ["work", "private"]
+});
+
+/**
+ * The halves a signal key belongs to.
+ *
+ * Keys that carry a row id - `aim-quiet:<id>` - are declared by their prefix,
+ * since the half is a property of the KIND of signal and not of the row.
+ *
+ * @param {string} key
+ * @returns {readonly string[]}
+ */
+export function halvesOf(key) {
+  const prefix = String(key).split(":")[0];
+  return SIGNAL_HALVES[prefix] ?? [];
 }
 
 /**

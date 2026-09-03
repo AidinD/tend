@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { WINDOW_DAYS, myAttention } from "../src/domain/myattention.js";
+import { SIGNAL_HALVES, WINDOW_DAYS, halvesOf, myAttention } from "../src/domain/myattention.js";
 import { REFLECTION_CADENCE_DAYS } from "../src/domain/reflection.js";
 import { DAY_MS } from "../src/domain/time.js";
 
@@ -298,5 +298,105 @@ describe("how the week went", () => {
       signals.slice(0, reflectionIndex).every((s) => Number(s.weight) > 20),
       `everything ahead of the habit reminder must outrank it: ${JSON.stringify(signals.map((s) => [s.key, s.weight]))}`
     );
+  });
+});
+
+/*
+ * Which half each signal belongs to.
+ *
+ * The private half was being told "I have not spoken to 8 of 8 people this
+ * month" about the people he lives with. `domain/halves.js` forbids exactly
+ * that in as many words, and the half's own front page broke the rule - because
+ * the half was built by taking views away, and the page that shows these
+ * signals was one of the four that stayed.
+ *
+ * Two things are guarded. The line itself, so the sentence cannot come back.
+ * And the DECLARATION, so a signal added later cannot skip the question: an
+ * undeclared key is refused rather than allowed, and the source check below
+ * fails the suite the moment this file can emit a key nobody placed.
+ */
+describe("which half a signal belongs in", () => {
+  const NOW = 1_700_000_000_000;
+
+  /** Two people, neither spoken to - the roster shape that fires the loudest signal. */
+  const twoNeglected = {
+    people: [
+      { id: "a", name: "A" },
+      { id: "b", name: "B" }
+    ],
+    touches: [],
+    now: NOW
+  };
+
+  it("says nothing about neglect in the private half", () => {
+    const keys = myAttention({ ...twoNeglected, half: "private" }).map((s) => s.key);
+    assert.deepEqual(
+      keys,
+      [],
+      `a cadence over people you live with reads as permanently fine and says nothing: ${JSON.stringify(keys)}`
+    );
+  });
+
+  it("still says it in the work half, so the filter is a filter and not a delete", () => {
+    const keys = myAttention({ ...twoNeglected, half: "work" }).map((s) => s.key);
+    assert.ok(keys.includes("i-have-not-spoken-to"), JSON.stringify(keys));
+  });
+
+  it("defaults to the work half, because that is what every existing caller meant", () => {
+    const keys = myAttention(twoNeglected).map((s) => s.key);
+    assert.ok(keys.includes("i-have-not-spoken-to"));
+  });
+
+  it("carries an aim's nudge into the private half", () => {
+    /*
+     * The point of the change. A goal about how he is at home is exactly as
+     * measurable as one about how he runs a 1-1, and it had nowhere to live -
+     * which is how a second file of goals came to exist beside the app.
+     */
+    const withAim = {
+      people: [],
+      touches: [],
+      now: NOW,
+      half: "private",
+      aims: [
+        {
+          id: "aim1",
+          aim: "Läsa för barnen varje kväll",
+          source: "logged",
+          measure: "Tagen = jag läste. Missad = jag lät det vara.",
+          through: "Vid läggning",
+          status: "open",
+          startedAt: NOW - 40 * DAY_MS,
+          cadenceDays: 14
+        }
+      ],
+      aimNotes: []
+    };
+    const keys = myAttention(withAim).map((s) => s.key);
+    assert.ok(
+      keys.some((k) => k.startsWith("aim-quiet:")),
+      `expected a quiet-aim nudge, got ${JSON.stringify(keys)}`
+    );
+  });
+
+  it("places every signal this file can emit", () => {
+    /*
+     * The guard that makes the declaration authoritative. Without it a new
+     * signal simply has no entry, `halvesOf` returns nothing, and it silently
+     * stops appearing anywhere - which is a worse failure than the one being
+     * fixed, because it is invisible in both halves.
+     */
+    const source = readFileSync(new URL("../src/domain/myattention.js", import.meta.url), "utf8");
+    const emitted = [...source.matchAll(/key:\s*(?:"([a-z-]+)"|`([a-z-]+):)/g)].map((m) => m[1] ?? m[2]);
+
+    assert.ok(emitted.length >= 5, `the parse found only ${emitted.length} keys, so it is wrong, not the file`);
+
+    const undeclared = [...new Set(emitted)].filter((k) => halvesOf(k).length === 0);
+    assert.deepEqual(undeclared, [], `these signals have no half: ${undeclared.join(", ")}`);
+
+    // And nothing declared that no longer exists, which would be a rule kept
+    // for a signal somebody deleted.
+    const stale = Object.keys(SIGNAL_HALVES).filter((k) => !emitted.includes(k));
+    assert.deepEqual(stale, [], `declared but never emitted: ${stale.join(", ")}`);
   });
 });
