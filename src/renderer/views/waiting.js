@@ -14,6 +14,9 @@
 
 import { act, ask, asDateInput, esc, form, pill, tend, WAIT_ENDING_OPTIONS } from "../ui.js";
 import { refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.waiting;
 
 /**
  * The group for the daily page, or nothing at all.
@@ -27,14 +30,11 @@ export function waitingGroup(due) {
   }
   return `<div class="group">
     <div class="group-head">
-      <span class="group-title">Waiting on someone</span>
+      <span class="group-title">${t.groupTitle}</span>
       <span class="group-rule"></span>
       <span class="group-meta">${due.length}</span>
     </div>
-    <p class="group-note">
-      Not late on you. Chase it, or decide without it - both are answers, and
-      leaving it open is the only one that is not.
-    </p>
+    <p class="group-note">${t.groupNote}</p>
     ${due.map(row).join("")}
   </div>`;
 }
@@ -49,13 +49,13 @@ export async function waitingBlock(personId) {
   const open = await tend.invoke("waits", { person: personId });
   const rows = Array.isArray(open) ? open : [];
 
-  const head = `<div class="block-title">Waiting on them</div>`;
-  const add = `<button class="act" data-act="addWait" data-person="${esc(personId)}">I am waiting on something</button>`;
+  const head = `<div class="block-title">${t.blockTitle}</div>`;
+  const add = `<button class="act" data-act="addWait" data-person="${esc(personId)}">${t.addButton}</button>`;
 
   if (rows.length === 0) {
     return `<div class="block">
       ${head}
-      <div class="empty">Nothing outstanding from them.</div>
+      <div class="empty">${t.none}</div>
       <div class="button-row">${add}</div>
     </div>`;
   }
@@ -69,10 +69,7 @@ export async function waitingBlock(personId) {
 
 /** @param {any} w */
 function row(w) {
-  // The chase count, always, even at zero. "Asked once, three weeks ago" and
-  // "asked once and chased three times" are entirely different facts about a
-  // working relationship, and only one of them is about being patient.
-  const counts = `waiting ${esc(w.waitingFor)} &middot; chased ${w.chases}× &middot; last nudge ${esc(w.sinceNudge)}`;
+  const counts = t.counts(esc(w.waitingFor), w.chases, esc(w.sinceNudge));
 
   return `<div class="thread">
     <div class="thread-top">
@@ -80,11 +77,11 @@ function row(w) {
       <span class="line-right">${pill(w.severity)}</span>
     </div>
     <p class="card-why dim">${counts}</p>
-    ${w.why ? `<p class="card-why dim">Blocking: ${esc(w.why)}</p>` : ""}
+    ${w.why ? `<p class="card-why dim">${t.blocking(esc(w.why))}</p>` : ""}
     ${w.asks ? `<p class="card-why warn-text">${esc(w.asks)}</p>` : ""}
     <div class="button-row">
-      <button class="act" data-act="chase" data-id="${esc(w.id)}">I chased it</button>
-      <button class="act" data-act="stopWaiting" data-id="${esc(w.id)}" data-what="${esc(w.what)}">Stop waiting</button>
+      <button class="act" data-act="chase" data-id="${esc(w.id)}">${t.chaseButton}</button>
+      <button class="act" data-act="stopWaiting" data-id="${esc(w.id)}" data-what="${esc(w.what)}">${t.stopButton}</button>
     </div>
   </div>`;
 }
@@ -93,45 +90,43 @@ export const actions = {
   /** @param {Record<string, string>} d */
   addWait: async (d) => {
     const values = await form({
-      title: "Something you are waiting for",
-      intro:
-        "So a question you sent does not quietly rot. Nothing here is ever treated as late on you - " +
-        "the point is that you remember to chase it, or decide without it.",
+      title: t.addTitle,
+      intro: t.addIntro,
       fields: [
         {
           name: "what",
-          label: "What you asked for",
+          label: t.addWhatLabel,
           required: true,
           type: "textarea",
-          placeholder: "Two questions about the feedback on the scheduling view"
+          placeholder: t.addWhatPlaceholder
         },
         {
           name: "why",
-          label: "What it is blocking, optional",
-          hint: "The half that decides whether to chase or route around it."
+          label: t.addWhyLabel,
+          hint: t.addWhyHint
         },
         {
           name: "askedAt",
-          label: "When you asked",
+          label: t.addAskedLabel,
           type: "date",
           value: asDateInput(Date.now()),
-          hint: "Backdate it. This usually gets written down the day you notice you are stuck, not the day you asked."
+          hint: t.addAskedHint
         },
         {
           name: "cadenceDays",
-          label: "How long to wait before it is worth a nudge",
+          label: t.addCadenceLabel,
           type: "number",
           min: 1,
           value: 7,
-          hint: "A week by default. Shorter nags about an ordinary human week."
+          hint: t.addCadenceHint
         }
       ],
-      confirm: "Log it"
+      confirm: t.addConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("waitFor", { person: d.person, ...values }, "Logged.")) {
+    if (await act("waitFor", { person: d.person, ...values }, t.addToast)) {
       refresh();
     }
   },
@@ -139,20 +134,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   chase: async (d) => {
     const values = await form({
-      title: "I chased it",
-      intro:
-        "This resets the clock and adds to the count. The count is the useful part: three reminders " +
-        "with nothing back is a fact about the relationship, and each one on its own felt reasonable.",
+      title: t.chaseTitle,
+      intro: t.chaseIntro,
       fields: [
-        { name: "note", label: "How, in a line, optional", placeholder: "Reminded him in the Discord thread" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: t.chaseNoteLabel, placeholder: t.chaseNotePlaceholder },
+        { name: "at", label: t.chaseWhenLabel, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: "Log it"
+      confirm: t.chaseConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("chase", { waiting: d.id, ...values }, "Logged.")) {
+    if (await act("chase", { waiting: d.id, ...values }, t.chaseToast)) {
       refresh();
     }
   },
@@ -160,25 +153,23 @@ export const actions = {
   /** @param {Record<string, string>} d */
   stopWaiting: async (d) => {
     const values = await form({
-      title: "Stop waiting",
-      intro: "Both endings are ordinary. Deciding without the answer is a legitimate outcome, not a failure.",
+      title: t.stopTitle,
+      intro: t.stopIntro,
       fields: [
-        { name: "as", label: "How it ended", type: "select", options: WAIT_ENDING_OPTIONS, value: "answered" },
+        { name: "as", label: t.stopAsLabel, type: "select", options: WAIT_ENDING_OPTIONS, value: "answered" },
         {
           name: "why",
-          label: "What came back, or what you did instead",
+          label: t.stopWhyLabel,
           type: "textarea",
-          hint:
-            "Worth keeping for the dropped ones especially. It is what you will want when the answer " +
-            "finally arrives and contradicts what you already shipped."
+          hint: t.stopWhyHint
         }
       ],
-      confirm: "Close it"
+      confirm: t.stopConfirm
     });
     if (!values) {
       return;
     }
-    if (await act("stopWaiting", { id: d.id, ...values }, "Closed.")) {
+    if (await act("stopWaiting", { id: d.id, ...values }, t.stopToast)) {
       refresh();
     }
   },
@@ -186,12 +177,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   unlogWait: async (d) => {
     const sure = await ask({
-      title: "Take this back?",
-      body: `"${d.what}" stops being tracked, along with every chase logged against it.`,
-      confirm: "Take it back",
+      title: t.unlogTitle,
+      body: t.unlogBody(d.what),
+      confirm: t.unlogConfirm,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "waiting", id: d.id }, "Taken back."))) {
+    if (sure && (await act("removeRow", { collection: "waiting", id: d.id }, t.unlogToast))) {
       refresh();
     }
   }

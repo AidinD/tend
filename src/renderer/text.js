@@ -41,6 +41,83 @@
  */
 
 export const T = {
+  waiting: {
+    /* On the daily page. The note is the whole ethic of the block: not an alarm. */
+    groupTitle: "Waiting on someone",
+    groupNote:
+      "Not late on you. Chase it, or decide without it - both are answers, and " +
+      "leaving it open is the only one that is not.",
+
+    /* On a person's page. */
+    blockTitle: "Waiting on them",
+    addButton: "I am waiting on something",
+    none: "Nothing outstanding from them.",
+
+    /*
+     * The counts, always, even at zero. "Asked once, three weeks ago" and
+     * "asked once and chased three times" are different facts about a working
+     * relationship, and only one of them is about being patient.
+     */
+    /**
+     * @param {string} waitingFor
+     * @param {number} chases
+     * @param {string} sinceNudge
+     */
+    counts: (waitingFor, chases, sinceNudge) =>
+      `waiting ${waitingFor} &middot; chased ${chases}× &middot; last nudge ${sinceNudge}`,
+    /** @param {string} why */
+    blocking: (why) => `Blocking: ${why}`,
+    chaseButton: "I chased it",
+    stopButton: "Stop waiting",
+
+    /* Logging one. */
+    addTitle: "Something you are waiting for",
+    addIntro:
+      "So a question you sent does not quietly rot. Nothing here is ever treated as late on you - " +
+      "the point is that you remember to chase it, or decide without it.",
+    addWhatLabel: "What you asked for",
+    addWhatPlaceholder: "Two questions about the feedback on the scheduling view",
+    addWhyLabel: "What it is blocking, optional",
+    addWhyHint: "The half that decides whether to chase or route around it.",
+    addAskedLabel: "When you asked",
+    addAskedHint:
+      "Backdate it. This usually gets written down the day you notice you are stuck, not the day you asked.",
+    addCadenceLabel: "How long to wait before it is worth a nudge",
+    addCadenceHint: "A week by default. Shorter nags about an ordinary human week.",
+    addConfirm: "Log it",
+    addToast: "Logged.",
+
+    /* Chasing. */
+    chaseTitle: "I chased it",
+    chaseIntro:
+      "This resets the clock and adds to the count. The count is the useful part: three reminders " +
+      "with nothing back is a fact about the relationship, and each one on its own felt reasonable.",
+    chaseNoteLabel: "How, in a line, optional",
+    chaseNotePlaceholder: "Reminded him in the Discord thread",
+    chaseWhenLabel: "When",
+    chaseConfirm: "Log it",
+    chaseToast: "Logged.",
+
+    /* Closing it, either way. */
+    stopTitle: "Stop waiting",
+    stopIntro:
+      "Both endings are ordinary. Deciding without the answer is a legitimate outcome, not a failure.",
+    stopAsLabel: "How it ended",
+    stopWhyLabel: "What came back, or what you did instead",
+    stopWhyHint:
+      "Worth keeping for the dropped ones especially. It is what you will want when the answer " +
+      "finally arrives and contradicts what you already shipped.",
+    stopConfirm: "Close it",
+    stopToast: "Closed.",
+
+    /* Taking it back entirely. */
+    unlogTitle: "Take this back?",
+    /** @param {string} what */
+    unlogBody: (what) => `"${what}" stops being tracked, along with every chase logged against it.`,
+    unlogConfirm: "Take it back",
+    unlogToast: "Taken back."
+  },
+
   focus: {
     /* Nothing running. */
     noneTitle: "No focus running",
