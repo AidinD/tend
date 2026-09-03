@@ -1492,6 +1492,15 @@ try {
     }
   });
 
+  check("a thread with nothing logged against it can be taken back as a mistake", () => {
+    // The only place removal belongs: nothing has happened yet, so nothing is
+    // lost. It disappears again as soon as a conversation is logged, and the
+    // settled-thread check further down is the other half of this pair.
+    if (!/Opened by mistake/.test(opened)) {
+      throw new Error("a fresh thread offers no way to undo opening it");
+    }
+  });
+
   // Read off the one line the thread POSES rather than off the whole panel: the
   // marker also appears in the "still to ask them" checklist, quite correctly, so
   // a panel-wide match cannot tell the two apart.
@@ -1669,6 +1678,24 @@ try {
     }
     if (!/han vill inte, och jobbet kräver det inte/.test(settled)) {
       throw new Error("the reason disappeared once it was settled");
+    }
+  });
+
+  const settledActs = await page.texts(".thread .button-row .act");
+  const settledThread = await page.text(".thread");
+  check("and the responsible path does not end by offering to delete the reason", () => {
+    // The whole point of the flow: reason written, person told. A Remove sitting
+    // here read as the last step of that path rather than as the erasure of it,
+    // and what it erased was the answer to "why do we not talk about this any
+    // more" - which is the thing `tend_growth` promises to hand back.
+    if (settledActs.length > 0) {
+      throw new Error(`a settled thread still offers: ${JSON.stringify(settledActs)}`);
+    }
+    // Read off the thread, not the panel: the person's page carries Remove
+    // buttons for contact, topics and moments quite legitimately, and a
+    // panel-wide match cannot tell those from this one.
+    if (/Remove|never real|by mistake/i.test(settledThread)) {
+      throw new Error("a settled thread still offers a way to erase itself");
     }
   });
 

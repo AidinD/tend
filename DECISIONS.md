@@ -184,6 +184,69 @@ before it, because the paragraph classes carry a top margin and no bottom one
 while a group head carries no top margin at all. Fixed by making the rule about
 what a group FOLLOWS rather than by listing the block types that need it, since
 that list was always going to miss the next one.
+## 2026-09-03 - An ended growth thread is the record, so nothing can delete it
+
+**Decided.** `removeRow` refuses a `growth` row that has ended with a reason on
+it. The window no longer offers a Remove there; removal moved to the only thread
+it is honest for - a live one with nothing logged against it - and is labelled
+"Opened by mistake".
+
+**What was wrong.** Ending a direction ran: End it, write why, "I have told
+them". Every one of those is the responsible path. Then the thread landed in a
+branch whose single button was Remove, so the flow finished by offering to
+delete the reason the previous two steps had just asked for - positioned as the
+last step of the path rather than as the erasure of it.
+
+And it really was an erasure. `store.remove` tombstones, so the events survive,
+but every read path filters `_deleted`. `tend_growth`'s own description promises
+that "ended threads come back too, with the reason they ended, because a
+direction let go six months ago is the answer to why it is no longer discussed."
+One click made that description false for that thread, with nothing failing
+anywhere.
+
+**The confirmation was the tell.** It read: "The events stay in the log -
+nothing here is really deleted - but the decision and its reason stop being
+readable." Both halves true, in the wrong order. The reassuring clause came
+first and the loss trailed after a dash, so the sentence a reader took away was
+the one saying nothing was lost.
+
+**The flow also required two lies to reach it.** A live thread offered no
+removal at all, so a direction opened against the wrong person could only be
+got rid of by ending it - which demands a reason - and then confirming you had
+told them. The tool's only delete button was reachable only by fabricating a
+reason and a conversation, and was withheld from the case that actually needed
+it.
+
+**What was considered instead.** Keeping Remove and making its confirmation name
+the loss. Rejected: the objection is to the affordance, not the wording. A
+destructive button that appears at the moment the user has just completed the
+careful path reads as the next step whatever the dialog says, and a confirmation
+is the wrong instrument for "this action should not exist here".
+
+**Enforced in the service, not the button.** `isKeptRecord` lives in
+`domain/growth.js` and `removeRow` reads it, because the window is one of two
+clients and a rule that lives in a button is a rule MCP does not have. It covers
+`expectation` as well as `dropped` and `reached` - a stated expectation is the
+wording somebody will be held to, and it was never removable from the window
+anyway, so protecting it costs nothing and closes the more consequential hole.
+
+**Both halves required, so the guard cannot strand a stray field.** An `open`
+row carrying an `endedWhy` is a half-typed edit rather than a decision -
+`endThread` refuses to write one, `updateThread` can - and treating that as a
+record would make a typo permanent. A test pins it.
+
+**The trade being accepted.** A thread misfiled onto the wrong person and *then*
+ended cannot be deleted any more; it is corrected by rewording, or it goes with
+the person. That is the right way round. A wrongly kept ended thread costs one
+extra row saying why a direction was let go; a wrongly deleted one costs the
+answer this feature exists to give, and there is no way to notice it is missing.
+Same reasoning as the refusal to add compaction.
+
+**Verified in the running app**, not only in unit tests: a fresh thread offers
+"Opened by mistake", and a settled one offers no buttons at all. The second
+check needed scoping to `.thread` rather than `.panel` - a person's page carries
+legitimate Remove buttons for contact, topics and moments, and a panel-wide
+match cannot tell those from this one.
 
 ## 2026-09-02 - A flag on a principle is not a promise
 

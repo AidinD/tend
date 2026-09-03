@@ -126,15 +126,28 @@ function thread(t) {
   // logs the conversation itself as well as what came back.
   const asked = t.stance !== "unasked";
 
+  // Removal belongs to the thread that should never have existed, so it is
+  // offered while nothing has happened yet and withdrawn the moment something
+  // has. It used to sit on the other branch entirely - on an ENDED thread whose
+  // ending had been said - which put a delete button at the end of the
+  // responsible path: write the reason, confirm you told them, remove. It read
+  // as the last step of that path rather than as the erasure of it, and what it
+  // erased was the reason the previous two steps had just asked for.
+  const mistake =
+    live && Number(t.talks ?? 0) === 0
+      ? `<button class="act tiny danger" data-act="threadRemove" data-id="${esc(t.id)}" data-aim="${esc(t.aim)}">Opened by mistake</button>`
+      : "";
+
   const buttons = live
     ? `
       <button class="act${asked ? "" : " primary"}" data-act="threadAsked" data-id="${esc(t.id)}">After the conversation</button>
       ${asked ? `<button class="act" data-act="threadTalked" data-id="${esc(t.id)}">It came up</button>` : ""}
       ${t.marker ? `<button class="act" data-act="threadObserved" data-id="${esc(t.id)}">I saw it</button>` : ""}
       <button class="act" data-act="threadPrepare" data-id="${esc(t.id)}">Prepare</button>
-      <button class="act" data-act="threadEnd" data-id="${esc(t.id)}">End it</button>`
+      <button class="act" data-act="threadEnd" data-id="${esc(t.id)}">End it</button>
+      ${mistake}`
     : t.fields.endingSaid
-      ? `<button class="act tiny danger" data-act="threadRemove" data-id="${esc(t.id)}" data-aim="${esc(t.aim)}">Remove</button>`
+      ? ""
       : `<button class="act" data-act="threadSaid" data-id="${esc(t.id)}">I have told them</button>`;
 
   return `<div class="thread">
@@ -151,7 +164,7 @@ function thread(t) {
     ${asks}
     ${detail ? `<ul class="prep-list">${detail}</ul>` : ""}
     ${still}
-    <div class="button-row">${buttons}</div>
+    ${buttons.trim() === "" ? "" : `<div class="button-row">${buttons}</div>`}
   </div>`;
 }
 
@@ -735,12 +748,31 @@ export const actions = {
     }
   },
 
-  /** @param {Record<string, string>} d */
+  /**
+   * The thread that should never have been opened - the wrong person, a
+   * duplicate, a sentence typed into the wrong page.
+   *
+   * The only removal offered here, and the wording says which fact it asserts
+   * rather than which mechanism it runs. "Remove" was the old label, on the old
+   * branch, and its confirmation opened with the reassuring half - "the events
+   * stay in the log, nothing here is really deleted" - and put the loss in a
+   * subordinate clause after it. Both halves were true and the order was
+   * backwards: the log keeps the bytes, and every read path in the app filters
+   * them, so the sentence a reader took away was the one that said nothing was
+   * lost.
+   *
+   * @param {Record<string, string>} d
+   */
   threadRemove: async (d) => {
     const sure = await ask({
-      title: "Remove this thread?",
-      body: `"${d.aim}" stops being shown, along with every conversation logged against it. The events stay in the log - nothing here is really deleted - but the decision and its reason stop being readable, which is usually the thing worth keeping.`,
-      confirm: "Remove",
+      title: "Was this direction never real?",
+      body:
+        `"${d.aim}" goes, and stops being readable anywhere - the person's page, a prep card, ` +
+        "anything an agent reads. Right for a thread opened against the wrong person or twice " +
+        "by accident.\n\nIf it was real and it is over, close it with \"End it\" instead. That " +
+        "keeps the direction and the reason it ended, which is what answers \"why do we not talk " +
+        "about this any more\" next spring.",
+      confirm: "It was never real",
       tone: "danger"
     });
     if (sure && (await act("removeRow", { collection: "growth", id: d.id }, "Removed."))) {
