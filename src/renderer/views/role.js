@@ -8,6 +8,9 @@
 
 import { act, ask, esc, form, RELATION_OPTIONS, SUBJECT_KINDS, tend } from "../ui.js";
 import { refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.role;
 
 export async function render() {
   const [map, questions, topics] = await Promise.all([
@@ -20,22 +23,22 @@ export async function render() {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">Role map</h1>
-          <p class="view-sub">What the job asks of you, and how you are doing against it. Change any of it - a duty you never act on is worse than no duty at all.</p>
+          <h1 class="view-title">${t.title}</h1>
+          <p class="view-sub">${t.sub}</p>
         </div>
-        <button class="act primary" data-act="addDuty">Add a duty</button>
+        <button class="act primary" data-act="addDuty">${t.addButton}</button>
       </div>
     </div>`;
 
   if (map.active.length === 0 && map.proposed.length === 0) {
     return `${header}
       <article class="card sev-book">
-        <div class="card-top"><h2 class="card-title">Nothing here yet</h2></div>
-        <p class="card-why">Start from a set drawn from management reading: three duties most managers already practise, five worth considering, three monthly questions, and a set of standing topics to raise with your own manager and your peer leads. The proposals do nothing until you accept them, and you can edit or delete every one.</p>
+        <div class="card-top"><h2 class="card-title">${t.seedTitle}</h2></div>
+        <p class="card-why">${t.seedWhy}</p>
         <div class="card-foot">
-          <span class="src">Or write your own from scratch</span>
-          <button class="act primary" data-act="seed">Set up the role map</button>
-          <button class="act" data-act="addDuty">Write my own</button>
+          <span class="src">${t.seedOr}</span>
+          <button class="act primary" data-act="seed">${t.seedButton}</button>
+          <button class="act" data-act="addDuty">${t.seedOwnButton}</button>
         </div>
       </article>`;
   }
@@ -45,14 +48,14 @@ export async function render() {
       (/** @type {any} */ d) => `<article class="card sev-proposed">
         <div class="card-top">
           <h2 class="card-title">${esc(d.name)}</h2>
-          <span class="pill book">proposed</span>
+          <span class="pill book">${t.proposedPill}</span>
         </div>
         ${d.means ? `<p class="card-why">${esc(d.means)}</p>` : ""}
         <div class="card-foot">
-          <span class="src">Suggested every ${esc(d.every)} · from ${esc(d.source)}</span>
-          <button class="act primary" data-act="accept" data-id="${esc(d.id)}">Add to my map</button>
-          <button class="act" data-act="editDuty" data-id="${esc(d.id)}">Adjust first</button>
-          <button class="act" data-act="decline" data-id="${esc(d.id)}">Not for me</button>
+          <span class="src">${t.proposedMeta(esc(d.every), esc(d.source))}</span>
+          <button class="act primary" data-act="accept" data-id="${esc(d.id)}">${t.acceptButton}</button>
+          <button class="act" data-act="editDuty" data-id="${esc(d.id)}">${t.adjustButton}</button>
+          <button class="act" data-act="decline" data-id="${esc(d.id)}">${t.declineButton}</button>
         </div>
       </article>`
     )
@@ -63,13 +66,13 @@ export async function render() {
       (/** @type {any} */ d) => `<article class="card sev-ok">
         <div class="card-top">
           <h2 class="card-title">${esc(d.name)}</h2>
-          <span class="pill plain">${esc(d.subjectsBehind ?? "")} behind</span>
+          <span class="pill plain">${t.behindPill(esc(d.subjectsBehind ?? ""))}</span>
         </div>
         ${d.means ? `<p class="card-why">${esc(d.means)}</p>` : ""}
         <div class="card-foot">
-          <span class="src">Every ${esc(d.every)} · ${esc(d.appliesTo)} · from ${esc(d.source)}${d.guarded ? " · guarded" : ""}${d.keepWhileLeaving === false ? " · paused for leavers" : ""}</span>
-          <button class="act" data-act="editDuty" data-id="${esc(d.id)}">Edit</button>
-          <button class="act danger" data-act="removeDuty" data-id="${esc(d.id)}" data-name="${esc(d.name)}">Remove</button>
+          <span class="src">${t.activeMeta(esc(d.every), esc(d.appliesTo), esc(d.source), Boolean(d.guarded), d.keepWhileLeaving === false)}</span>
+          <button class="act" data-act="editDuty" data-id="${esc(d.id)}">${t.editButton}</button>
+          <button class="act danger" data-act="removeDuty" data-id="${esc(d.id)}" data-name="${esc(d.name)}">${t.removeButton}</button>
         </div>
       </article>`
     )
@@ -80,30 +83,30 @@ export async function render() {
       (/** @type {any} */ q) => `<div class="row static">
         <span class="row-name">${esc(q.question)}</span>
         <span class="row-right">
-          <span class="row-meta">${esc(q.lastAsked === "never" ? "never asked" : `asked ${q.lastAsked}`)}${q.lastAnswer ? ` · ${esc(q.lastAnswer)}` : ""}</span>
+          <span class="row-meta">${esc(q.lastAsked === "never" ? t.neverAsked : t.asked(q.lastAsked))}${q.lastAnswer ? ` · ${esc(q.lastAnswer)}` : ""}</span>
         </span>
       </div>`
     )
     .join("");
 
-  const topicList = Array.isArray(topics) ? topics.filter((/** @type {any} */ t) => t.status !== "declined") : [];
+  const topicList = Array.isArray(topics) ? topics.filter((/** @type {any} */ x) => x.status !== "declined") : [];
   const topicRows = topicList
-    .map((/** @type {any} */ t) => {
-      const scope = t.person ? "one person" : relationWords(t.relations);
-      const isProposed = t.status === "proposed";
+    .map((/** @type {any} */ topic) => {
+      const scope = topic.person ? t.topicOnePerson : relationWords(topic.relations);
+      const isProposed = topic.status === "proposed";
       return `<div class="row static">
         <span class="row-name">
-          ${esc(t.text)}
-          <span class="src">${esc(t.why)}</span>
+          ${esc(topic.text)}
+          <span class="src">${esc(topic.why)}</span>
         </span>
         <span class="row-right">
-          <span class="row-meta">every ${t.cadenceDays} days &middot; ${esc(scope)}</span>
+          <span class="row-meta">${t.topicMeta(topic.cadenceDays, esc(scope))}</span>
           ${
             isProposed
-              ? `<span class="pill book">proposed</span>
-                 <button class="act primary" data-act="acceptTopic" data-id="${esc(t.id)}">Use it</button>
-                 <button class="act" data-act="declineTopic" data-id="${esc(t.id)}">Not for me</button>`
-              : `<button class="act danger" data-act="removeTopic" data-id="${esc(t.id)}" data-name="${esc(t.text)}">Remove</button>`
+              ? `<span class="pill book">${t.proposedPill}</span>
+                 <button class="act primary" data-act="acceptTopic" data-id="${esc(topic.id)}">${t.useItButton}</button>
+                 <button class="act" data-act="declineTopic" data-id="${esc(topic.id)}">${t.declineButton}</button>`
+              : `<button class="act danger" data-act="removeTopic" data-id="${esc(topic.id)}" data-name="${esc(topic.text)}">${t.removeButton}</button>`
           }
         </span>
       </div>`;
@@ -115,37 +118,30 @@ export async function render() {
     ${
       proposed
         ? `<div class="group">
-            <div class="group-head"><span class="group-title">Proposed, undecided</span><span class="group-rule"></span><span class="group-meta">${map.proposed.length}</span></div>
+            <div class="group-head"><span class="group-title">${t.proposedGroup}</span><span class="group-rule"></span><span class="group-meta">${map.proposed.length}</span></div>
             <div class="stack">${proposed}</div>
           </div>`
         : ""
     }
     <div class="group">
-      <div class="group-head"><span class="group-title">Yours, active</span><span class="group-rule"></span><span class="group-meta">${map.active.length}</span></div>
-      ${active ? `<div class="stack">${active}</div>` : `<div class="empty">Nothing active yet.</div>`}
+      <div class="group-head"><span class="group-title">${t.activeGroup}</span><span class="group-rule"></span><span class="group-meta">${map.active.length}</span></div>
+      ${active ? `<div class="stack">${active}</div>` : `<div class="empty">${t.activeEmpty}</div>`}
     </div>
     ${
       questionRows
         ? `<div class="group" data-group="questions">
-            <div class="group-head"><span class="group-title">Monthly questions</span><span class="group-rule"></span><span class="group-meta">${(questions ?? []).length}</span></div>
+            <div class="group-head"><span class="group-title">${t.questionsGroup}</span><span class="group-rule"></span><span class="group-meta">${(questions ?? []).length}</span></div>
             <div class="rows">${questionRows}</div>
-            <p class="group-note">The one thing Tend cannot work out on its own, so it asks. They appear in Now when they are due.</p>
+            <p class="group-note">${t.questionsNote}</p>
           </div>`
         : ""
     }
     ${
       topicRows
         ? `<div class="group" data-group="topics">
-            <div class="group-head"><span class="group-title">Topics to raise</span><span class="group-rule"></span><span class="group-meta">${topicList.length}</span></div>
+            <div class="group-head"><span class="group-title">${t.topicsGroup}</span><span class="group-rule"></span><span class="group-meta">${topicList.length}</span></div>
             <div class="rows">${topicRows}</div>
-            <p class="group-note">
-              Not duties. A duty asks whether you spoke to someone at all and turns
-              up in Now when you have not; a topic is what to actually say, and it
-              appears only on that person's card in Prep. These are the two
-              directions nothing else covers: upward, where the questions are about
-              what you want rather than what you owe, and sideways, where there is
-              no formal channel in either direction.
-            </p>
+            <p class="group-note">${t.topicsNote}</p>
           </div>`
         : ""
     }
@@ -160,7 +156,7 @@ export async function render() {
  */
 function relationWords(relations) {
   if (!Array.isArray(relations) || relations.length === 0) {
-    return "nobody yet";
+    return t.topicNobody;
   }
   const labels = relations.map((r) => {
     const found = RELATION_OPTIONS.find((o) => o.value === r);
@@ -175,13 +171,13 @@ function relationWords(relations) {
  */
 function dutyFields(duty) {
   return [
-    { name: "name", label: "What it is", required: true, value: duty?.name, placeholder: "1-1" },
+    { name: "name", label: t.fName, required: true, value: duty?.name, placeholder: t.fNamePlaceholder },
     {
       name: "means",
-      label: "What it means in practice",
+      label: t.fMeans,
       type: "textarea",
       value: duty?.means,
-      hint: "In your own words. This is what you will read in six months when you have forgotten why you added it."
+      hint: t.fMeansHint
     },
     {
       // Derived. This list was hand-written and missing "stake", so editing a
@@ -189,14 +185,14 @@ function dutyFields(duty) {
       // first one, and saved THAT - rewriting the duty to apply to every
       // colleague while consuming evidence that can never be about a person.
       name: "subjectKind",
-      label: "Applies to",
+      label: t.fAppliesTo,
       type: "select",
       value: duty?.appliesTo ?? "person",
       options: SUBJECT_KINDS
     },
     {
       name: "cadenceDays",
-      label: "How often, in days",
+      label: t.fCadence,
       type: "number",
       min: 1,
       // The number, not digits scraped back out of "30 days".
@@ -204,23 +200,17 @@ function dutyFields(duty) {
     },
     {
       name: "guarded",
-      label: "Never dampen this, even under a focus",
+      label: t.fGuarded,
       type: "checkbox",
       value: Boolean(duty?.guarded),
-      hint:
-        "For the things a busy month must not be allowed to bury. Note that a focus never " +
-        "removes anything critical from Now whether this is set or not - it holds back the " +
-        "softest tier, and guarding also protects the tier above it."
+      hint: t.fGuardedHint
     },
     {
       name: "keepWhileLeaving",
-      label: "Still applies to somebody working out their notice",
+      label: t.fLeavers,
       type: "checkbox",
       value: duty ? duty.keepWhileLeaving !== false : true,
-      hint:
-        "Leave it on for a 1-1: a notice period is when the handover gets arranged. Turn it " +
-        "off for anything meant to develop somebody, like a peer review round - running one " +
-        "for a person on their way out is work for everybody and changes nothing."
+      hint: t.fLeaversHint
     }
   ];
 }
@@ -236,14 +226,14 @@ async function askRelations(values) {
     return [];
   }
   const picked = await form({
-    title: "Who does it apply to?",
-    intro: "Leave them all off to mean everyone.",
+    title: t.relationsTitle,
+    intro: t.relationsIntro,
     fields: RELATION_OPTIONS.map((r) => ({
       name: r.value,
       label: r.label,
       type: /** @type {const} */ ("checkbox")
     })),
-    confirm: "Done"
+    confirm: t.relationsConfirm
   });
   if (!picked) {
     return null;
@@ -253,31 +243,31 @@ async function askRelations(values) {
 
 export const actions = {
   seed: async () => {
-    if (await act("seed", {}, "Role map set up.")) {
+    if (await act("seed", {}, t.seededToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   accept: async (d) => {
-    if (await act("decideDuty", { id: d.id, status: "active" }, "Added to your map.")) {
+    if (await act("decideDuty", { id: d.id, status: "active" }, t.acceptedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   decline: async (d) => {
-    if (await act("decideDuty", { id: d.id, status: "declined" }, "Declined.")) {
+    if (await act("decideDuty", { id: d.id, status: "declined" }, t.declinedToast)) {
       refresh();
     }
   },
 
   addDuty: async () => {
     const values = await form({
-      title: "Add a duty",
-      intro: "Something the job asks of you that can be neglected. Keep the map short - a long list is one you stop reading.",
+      title: t.addTitle,
+      intro: t.addIntro,
       fields: dutyFields(undefined),
-      confirm: "Next"
+      confirm: t.addConfirm
     });
     if (!values) {
       return;
@@ -311,7 +301,7 @@ export const actions = {
         status: "active",
         overrides: { guarded: values.guarded, keepWhileLeaving: values.keepWhileLeaving }
       },
-      "Added."
+      t.addedToast
     );
     refresh();
   },
@@ -324,9 +314,9 @@ export const actions = {
       return;
     }
     const values = await form({
-      title: `Edit ${duty.name}`,
+      title: t.editTitle(duty.name),
       fields: dutyFields(duty),
-      confirm: "Save"
+      confirm: t.editConfirm
     });
     if (!values) {
       return;
@@ -344,7 +334,7 @@ export const actions = {
           keepWhileLeaving: values.keepWhileLeaving
         }
       },
-      "Saved."
+      t.savedToast
     );
     if (ok) {
       refresh();
@@ -353,14 +343,14 @@ export const actions = {
 
   /** @param {Record<string, string>} d */
   acceptTopic: async (d) => {
-    if (await act("decideTopic", { id: d.id, status: "active" }, "It will show up when you next prepare for them.")) {
+    if (await act("decideTopic", { id: d.id, status: "active" }, t.topicAcceptedToast)) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   declineTopic: async (d) => {
-    if (await act("decideTopic", { id: d.id, status: "declined" }, "Declined.")) {
+    if (await act("decideTopic", { id: d.id, status: "declined" }, t.declinedToast)) {
       refresh();
     }
   },
@@ -368,12 +358,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeTopic: async (d) => {
     const sure = await ask({
-      title: "Remove this topic?",
-      body: `"${d.name}" stops appearing on anyone's card. The times you already marked it raised stay on record.`,
-      confirm: "Remove",
+      title: t.removeTopicTitle,
+      body: t.removeTopicBody(d.name),
+      confirm: t.removeConfirm,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "topics", id: d.id }, "Removed."))) {
+    if (sure && (await act("removeRow", { collection: "topics", id: d.id }, t.removedToast))) {
       refresh();
     }
   },
@@ -381,12 +371,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeDuty: async (d) => {
     const sure = await ask({
-      title: `Remove "${d.name}"?`,
-      body: "It stops applying to anyone and stops appearing in Now. The contact you have already logged stays.",
-      confirm: "Remove",
+      title: t.removeDutyTitle(d.name),
+      body: t.removeDutyBody,
+      confirm: t.removeConfirm,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "duties", id: d.id }, "Removed."))) {
+    if (sure && (await act("removeRow", { collection: "duties", id: d.id }, t.removedToast))) {
       refresh();
     }
   }

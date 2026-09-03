@@ -41,6 +41,129 @@
  */
 
 export const T = {
+  role: {
+    title: "Role map",
+    sub:
+      "What the job asks of you, and how you are doing against it. Change any of it - a duty you " +
+      "never act on is worse than no duty at all.",
+    addButton: "Add a duty",
+
+    /* Nothing here yet. The seeded set is proposals, never decisions. */
+    seedTitle: "Nothing here yet",
+    seedWhy:
+      "Start from a set drawn from management reading: three duties most managers already " +
+      "practise, five worth considering, three monthly questions, and a set of standing topics to " +
+      "raise with your own manager and your peer leads. The proposals do nothing until you accept " +
+      "them, and you can edit or delete every one.",
+    seedOr: "Or write your own from scratch",
+    seedButton: "Set up the role map",
+    seedOwnButton: "Write my own",
+
+    /* A proposed duty. */
+    proposedPill: "proposed",
+    /** @param {string} every @param {string} source */
+    proposedMeta: (every, source) => `Suggested every ${every} · from ${source}`,
+    acceptButton: "Add to my map",
+    adjustButton: "Adjust first",
+    declineButton: "Not for me",
+
+    /* An accepted one. */
+    /** @param {string} behind */
+    behindPill: (behind) => `${behind} behind`,
+    /**
+     * @param {string} every
+     * @param {string} appliesTo
+     * @param {string} source
+     * @param {boolean} guarded
+     * @param {boolean} pausedForLeavers
+     */
+    activeMeta: (every, appliesTo, source, guarded, pausedForLeavers) =>
+      `Every ${every} · ${appliesTo} · from ${source}` +
+      (guarded ? " · guarded" : "") +
+      (pausedForLeavers ? " · paused for leavers" : ""),
+    editButton: "Edit",
+    removeButton: "Remove",
+
+    /* The groups. */
+    proposedGroup: "Proposed, undecided",
+    activeGroup: "Yours, active",
+    activeEmpty: "Nothing active yet.",
+    questionsGroup: "Monthly questions",
+    questionsNote:
+      "The one thing Tend cannot work out on its own, so it asks. They appear in Now when they " +
+      "are due.",
+    neverAsked: "never asked",
+    /** @param {string} when */
+    asked: (when) => `asked ${when}`,
+
+    topicsGroup: "Topics to raise",
+    topicsNote:
+      "Not duties. A duty asks whether you spoke to someone at all and turns up in Now when you " +
+      "have not; a topic is what to actually say, and it appears only on that person's card in " +
+      "Prep. These are the two directions nothing else covers: upward, where the questions are " +
+      "about what you want rather than what you owe, and sideways, where there is no formal " +
+      "channel in either direction.",
+    /** @param {number} days @param {string} scope */
+    topicMeta: (days, scope) => `every ${days} days &middot; ${scope}`,
+    topicOnePerson: "one person",
+    topicNobody: "nobody yet",
+    useItButton: "Use it",
+
+    /* The duty form. */
+    fName: "What it is",
+    fNamePlaceholder: "1-1",
+    fMeans: "What it means in practice",
+    fMeansHint:
+      "In your own words. This is what you will read in six months when you have forgotten why " +
+      "you added it.",
+    fAppliesTo: "Applies to",
+    fCadence: "How often, in days",
+    fGuarded: "Never dampen this, even under a focus",
+    fGuardedHint:
+      "For the things a busy month must not be allowed to bury. Note that a focus never " +
+      "removes anything critical from Now whether this is set or not - it holds back the " +
+      "softest tier, and guarding also protects the tier above it.",
+    fLeavers: "Still applies to somebody working out their notice",
+    fLeaversHint:
+      "Leave it on for a 1-1: a notice period is when the handover gets arranged. Turn it " +
+      "off for anything meant to develop somebody, like a peer review round - running one " +
+      "for a person on their way out is work for everybody and changes nothing.",
+
+    /* Relationships, asked separately because the answer only makes sense for a
+       person-shaped duty. */
+    relationsTitle: "Who does it apply to?",
+    relationsIntro: "Leave them all off to mean everyone.",
+    relationsConfirm: "Done",
+
+    addTitle: "Add a duty",
+    addIntro:
+      "Something the job asks of you that can be neglected. Keep the map short - a long list is " +
+      "one you stop reading.",
+    addConfirm: "Next",
+    addedToast: "Added.",
+    /** @param {string} name */
+    editTitle: (name) => `Edit ${name}`,
+    editConfirm: "Save",
+    savedToast: "Saved.",
+
+    seededToast: "Role map set up.",
+    acceptedToast: "Added to your map.",
+    declinedToast: "Declined.",
+    topicAcceptedToast: "It will show up when you next prepare for them.",
+
+    removeTopicTitle: "Remove this topic?",
+    /** @param {string} name */
+    removeTopicBody: (name) =>
+      `"${name}" stops appearing on anyone's card. The times you already marked it raised stay on record.`,
+    removeConfirm: "Remove",
+    removedToast: "Removed.",
+    /** @param {string} name */
+    removeDutyTitle: (name) => `Remove "${name}"?`,
+    removeDutyBody:
+      "It stops applying to anyone and stops appearing in Now. The contact you have already " +
+      "logged stays."
+  },
+
   prep: {
     readFailedTitle: "Could not read the data",
     title: "Before you talk to them",
