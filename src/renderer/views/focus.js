@@ -9,6 +9,9 @@
 
 import { act, ask, asDateInput, esc, form, tend } from "../ui.js";
 import { refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.focus;
 
 export async function render() {
   const [current, map] = await Promise.all([tend.invoke("focus"), tend.invoke("roleMap")]);
@@ -16,16 +19,16 @@ export async function render() {
   if (!current.active) {
     return `
       <div class="view-head">
-        <h1 class="view-title">No focus running</h1>
-        <p class="view-sub">A focus is for when one thing genuinely has to come first for a while. Tend will stretch the softer thresholds so they stop competing with it, and tell you afterwards what that cost.</p>
+        <h1 class="view-title">${t.noneTitle}</h1>
+        <p class="view-sub">${t.noneSub}</p>
       </div>
       <article class="card">
-        <div class="card-top"><h2 class="card-title">What a focus does, and does not</h2></div>
-        <p class="card-why"><strong>Does:</strong> stretches the thresholds on soft nudges, stops surfacing proposed duties, and counts everything it holds back so you always know how much is being kept from you.</p>
-        <p class="card-why"><strong>Never:</strong> hides anything critical, touches a guarded duty, or lets a promise age quietly. Everything it stretched reverts on the end date whether or not the work is done, so an unfinished focus becomes a decision to renew rather than a drift nobody noticed.</p>
+        <div class="card-top"><h2 class="card-title">${t.contractTitle}</h2></div>
+        <p class="card-why">${t.contractDoes}</p>
+        <p class="card-why">${t.contractNever}</p>
         <div class="card-foot">
-          <span class="src">You can end it early at any time</span>
-          <button class="act primary" data-act="start">Start a focus</button>
+          <span class="src">${t.endEarly}</span>
+          <button class="act primary" data-act="start">${t.startButton}</button>
         </div>
       </article>
       ${guardedList(map)}
@@ -33,7 +36,7 @@ export async function render() {
   }
 
   const budget = current.budgetOfWeek
-    ? `<div class="metric"><div class="metric-label">Budget</div><div class="metric-value">${Math.round(current.budgetOfWeek * 100)}%</div><div class="metric-note">of the week</div></div>`
+    ? `<div class="metric"><div class="metric-label">${t.budgetLabel}</div><div class="metric-value">${Math.round(current.budgetOfWeek * 100)}%</div><div class="metric-note">${t.budgetNote}</div></div>`
     : "";
 
   return `
@@ -44,8 +47,8 @@ export async function render() {
           <p class="view-sub">${esc(current.summary)}</p>
         </div>
         <div class="button-row">
-          <button class="act" data-act="start">Replace</button>
-          <button class="act danger" data-act="end">End it</button>
+          <button class="act" data-act="start">${t.replace}</button>
+          <button class="act danger" data-act="end">${t.endButton}</button>
         </div>
       </div>
     </div>
@@ -53,8 +56,8 @@ export async function render() {
     ${
       current.overrun
         ? `<article class="card sev-warn">
-            <div class="card-top"><h2 class="card-title">Past its end date</h2></div>
-            <p class="card-why">Every stretched threshold is already back to normal, so nothing is being dampened. Renew it with a new date, or close it out.</p>
+            <div class="card-top"><h2 class="card-title">${t.overrunTitle}</h2></div>
+            <p class="card-why">${t.overrunWhy}</p>
           </article>`
         : ""
     }
@@ -62,19 +65,19 @@ export async function render() {
     <div class="metrics">
       ${budget}
       <div class="metric">
-        <div class="metric-label">Held back now</div>
+        <div class="metric-label">${t.heldBackLabel}</div>
         <div class="metric-value ${current.heldBackRightNow > 0 ? "warn" : "ok"}">${current.heldBackRightNow}</div>
-        <div class="metric-note">soft nudges, nothing critical</div>
+        <div class="metric-note">${t.heldBackNote}</div>
       </div>
       <div class="metric">
-        <div class="metric-label">Thresholds</div>
-        <div class="metric-value">${current.overrun ? "normal" : `×${current.stretchInForce}`}</div>
-        <div class="metric-note">on unguarded duties only</div>
+        <div class="metric-label">${t.thresholdsLabel}</div>
+        <div class="metric-value">${current.overrun ? t.thresholdsNormal : `×${current.stretchInForce}`}</div>
+        <div class="metric-note">${t.thresholdsNote}</div>
       </div>
     </div>
 
     <article class="card">
-      <div class="card-top"><h2 class="card-title">What it has cost</h2></div>
+      <div class="card-top"><h2 class="card-title">${t.costTitle}</h2></div>
       <p class="card-why">${esc(current.cost)}</p>
     </article>
 
@@ -87,18 +90,18 @@ function guardedList(map) {
   const guarded = (map?.active ?? []).filter((/** @type {any} */ d) => d.guarded);
   if (guarded.length === 0) {
     return `<div class="group">
-      <div class="group-head"><span class="group-title">Guarded</span><span class="group-rule"></span></div>
-      <div class="empty">Nothing is guarded. Mark a duty as guarded in the role map and a focus can never dampen it.</div>
+      <div class="group-head"><span class="group-title">${t.guardedTitle}</span><span class="group-rule"></span></div>
+      <div class="empty">${t.guardedNone}</div>
     </div>`;
   }
   return `<div class="group">
-    <div class="group-head"><span class="group-title">Guarded, never dampened</span><span class="group-rule"></span><span class="group-meta">${guarded.length}</span></div>
+    <div class="group-head"><span class="group-title">${t.guardedSomeTitle}</span><span class="group-rule"></span><span class="group-meta">${guarded.length}</span></div>
     <div class="rows">
       ${guarded
         .map(
           (/** @type {any} */ d) => `<div class="row static">
             <span class="row-name">${esc(d.name)}</span>
-            <span class="row-right"><span class="row-meta">every ${esc(d.every)}</span><span class="pill ok">held</span></span>
+            <span class="row-right"><span class="row-meta">${t.guardedEvery(esc(d.every))}</span><span class="pill ok">${t.guardedPill}</span></span>
           </div>`
         )
         .join("")}
@@ -110,29 +113,29 @@ export const actions = {
   start: async () => {
     const inThreeWeeks = Date.now() + 21 * 86_400_000;
     const values = await form({
-      title: "Start a focus",
-      intro: "Tend captures how far behind things are right now, so it can tell you later what this cost.",
+      title: t.startTitle,
+      intro: t.startIntro,
       fields: [
-        { name: "name", label: "What has to come first", required: true, placeholder: "Ship the new onboarding" },
+        { name: "name", label: t.startNameLabel, required: true, placeholder: t.startNamePlaceholder },
         {
           name: "endsAt",
-          label: "Until when",
+          label: t.startEndsLabel,
           type: "date",
           value: asDateInput(inThreeWeeks),
-          hint: "Everything reverts on this date whether or not the work is done. That is the point: an unfinished focus becomes a decision, not a drift."
+          hint: t.startEndsHint
         },
         {
           name: "budgetPercent",
-          label: "Share of the week, percent",
+          label: t.startBudgetLabel,
           type: "number",
           min: 5,
           max: 100,
           step: 5,
           value: 50,
-          hint: "Only used to show you the shape of the week. It does not enforce anything."
+          hint: t.startBudgetHint
         }
       ],
-      confirm: "Start"
+      confirm: t.startConfirm
     });
     if (!values) {
       return;
@@ -144,7 +147,7 @@ export const actions = {
         endsAt: values.endsAt,
         budget: values.budgetPercent ? Number(values.budgetPercent) / 100 : undefined
       },
-      "Focus started."
+      t.startedToast
     );
     if (ok) {
       refresh();
@@ -153,11 +156,11 @@ export const actions = {
 
   end: async () => {
     const sure = await ask({
-      title: "End the focus?",
-      body: "Every stretched threshold goes back to normal immediately, so anything that has been drifting quietly will surface.",
-      confirm: "End it"
+      title: t.endTitle,
+      body: t.endBody,
+      confirm: t.endConfirm
     });
-    if (sure && (await act("endFocus", {}, "Ended."))) {
+    if (sure && (await act("endFocus", {}, t.endedToast))) {
       refresh();
     }
   }
