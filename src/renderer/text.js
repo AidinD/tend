@@ -2125,5 +2125,109 @@ export const T = {
     promiseDueLabel: "By when",
     promiseDueHint: "Optional. Drift is measured either way.",
     promiseLoggedPlain: "Promise logged."
+  },
+
+  /*
+   * Everything a model produced, and the words that say so. The provenance
+   * lines are the load-bearing ones: a draft that does not say it was drafted
+   * becomes a fact by sitting on the screen long enough, so "Nothing here was
+   * saved" is not a nicety and must not be shortened away in the wording pass.
+   */
+  model: {
+    unknownAvailability: "Could not tell whether Claude Code is available.",
+
+    /* The stamp under anything drafted. */
+    aModel: "a model",
+    /** @param {string} model @param {string} cost */
+    draftedBy: (model, cost) => `Drafted by ${model}${cost}. Nothing here was saved.`,
+    /** @param {string} cents */
+    cost: (cents) => ` · ${cents}¢`,
+
+    discard: "Discard",
+    discardAll: "Discard all",
+    close: "Close",
+
+    /* A brief, as read on the way to a room. */
+    briefTitle: "Draft brief",
+    raiseHead: "Raise",
+    askHead: "Ask",
+    /** @param {string} watch */
+    watchOut: (watch) => `Careful of: ${watch}`,
+
+    /* Promises read out of prose, each still a candidate. */
+    nothingFoundTitle: "Nothing found",
+    nothingFoundWhy:
+      "No commitment in that note that Nib's own action points had not already caught. " +
+      "That is the common answer and it is a good one.",
+    candidatesTitle: "Found in what you wrote",
+    truncated: "That note is long, so only its first part was read.",
+    statedOutright: "stated outright",
+    implied: "implied, so check it",
+    keep: "Keep",
+    promiseLoggedToast: "Promise logged.",
+
+    /* What keeps coming up about somebody. */
+    /** @param {string | number} notes */
+    themesTitle: (notes) => `Across ${notes} notes`,
+    themesNone: "Nothing recurs across those notes yet. A pattern needs to appear in at least two.",
+    /** @param {string | number} times */
+    themeTimes: (times) => `${times}×`,
+
+    /* A reading of the journal, before it is kept or thrown away. */
+    /** @param {string} days */
+    reviewTitle: (days) => `The last ${days} days`,
+    keepReading: "Keep this reading",
+    avoidedHead: "Kept being avoided",
+    avoidedNone:
+      "Nothing recurs in that box across these evenings. Worth noticing rather than " +
+      "celebrating - it is also what an unanswered box looks like.",
+    wentIntoHead: "Where the days went",
+    saidVsDidHead: "Against what you said you would do",
+    questionsHead: "Worth asking yourself",
+    /** @param {string} evenings */
+    eveningsCount: (evenings) => `${evenings} evenings`,
+    ledgerSummary: "What the app recorded over the same days",
+    /** @param {string} model @param {string} cost */
+    readByKeep: (model, cost) => `Read by ${model}${cost}. Nothing is saved unless you keep it.`,
+
+    /*
+     * The recorded counts, as lines. The wording is the window's business and
+     * the numbers are the contract, which is why these live here and not in
+     * the shape the service sends.
+     */
+    ledgerDays: "Days with an entry",
+    /** @param {string | number} journalled @param {string | number} days */
+    ledgerDaysValue: (journalled, days) => `${journalled} of ${days}`,
+    ledgerConversations: "Conversations recorded",
+    ledgerPromisesMade: "Promises made",
+    /** @param {string | number} made @param {string | number} kept */
+    ledgerPromisesMadeValue: (made, kept) => `${made}, of which ${kept} closed`,
+    ledgerPromisesOpen: "Promises open right now",
+    ledgerDecisions: "Decisions recorded",
+    ledgerGrowth: "Growth threads discussed",
+    /** @param {string | number} notes @param {string | number} observed */
+    ledgerGrowthValue: (notes, observed) => `${notes}, marker seen ${observed}×`,
+    ledgerSkips: "Meetings that did not happen",
+    ledgerChases: "Times you chased somebody",
+
+    /*
+     * One entry, read back against the rule that keeps it safe to write. The
+     * clean answer is shown rather than swallowed: a check that only ever
+     * speaks up when something is wrong reads as an accusation waiting to
+     * happen.
+     */
+    readBackTitle: "Read back",
+    readBackClean: "Nothing here describes them rather than your own part in it.",
+    onePhrase: "One phrase",
+    /** @param {number} n */
+    somePhrases: (n) => `${n} phrases`,
+    /** @param {string} count */
+    readBackSome: (count) =>
+      `${count} describing them rather than your own part. Nothing has been changed - the ` +
+      `alternative is only an alternative.`,
+    /** @param {string} instead */
+    couldBe: (instead) => `Could be: ${instead}`,
+    /** @param {string} model @param {string} cost */
+    readByUntouched: (model, cost) => `Read by ${model}${cost}. Your entry is untouched.`
   }
 };

@@ -18,6 +18,9 @@
 import { esc, tend, toast } from "./ui.js";
 import { refresh } from "./app.js";
 import { sourceLabel } from "../domain/provenance.js";
+import { T } from "./text.js";
+
+const words = T.model;
 
 /** @type {Map<string, any>} */
 const results = new Map();
@@ -50,7 +53,7 @@ export async function modelStatus() {
     status =
       answer && typeof answer.available === "boolean"
         ? { available: answer.available, why: answer.why ?? null, binary: String(answer.binary ?? "") }
-        : { available: false, why: "Could not tell whether Claude Code is available.", binary: "" };
+        : { available: false, why: words.unknownAvailability, binary: "" };
   }
   return status;
 }
@@ -112,8 +115,9 @@ export async function run(key, op, args) {
  * @param {any} result
  */
 export function stamp(result) {
-  const cost = typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : "";
-  return `<span class="src">Drafted by ${esc(result?.model ?? "a model")}${cost}. Nothing here was saved.</span>`;
+  const cost =
+    typeof result?.costUsd === "number" ? words.cost((result.costUsd * 100).toFixed(1)) : "";
+  return `<span class="src">${words.draftedBy(esc(result?.model ?? words.aModel), cost)}</span>`;
 }
 
 /**
@@ -129,13 +133,13 @@ export function briefHtml(key, result) {
 
   return `<div class="draft">
     <div class="draft-head">
-      <span class="draft-title">Draft brief</span>
-      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Discard</button>
+      <span class="draft-title">${words.briefTitle}</span>
+      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">${words.discard}</button>
     </div>
     ${brief.opening ? `<p class="draft-opening">${esc(brief.opening)}</p>` : ""}
     ${
       raise.length
-        ? `<h4 class="draft-head-small">Raise</h4><ul class="draft-list">${raise
+        ? `<h4 class="draft-head-small">${words.raiseHead}</h4><ul class="draft-list">${raise
             .map(
               (/** @type {any} */ r) =>
                 `<li>${esc(r.point)}<span class="src">${esc(r.because ?? "")}</span></li>`
@@ -145,12 +149,12 @@ export function briefHtml(key, result) {
     }
     ${
       questions.length
-        ? `<h4 class="draft-head-small">Ask</h4><ul class="draft-list">${questions
+        ? `<h4 class="draft-head-small">${words.askHead}</h4><ul class="draft-list">${questions
             .map((/** @type {any} */ q) => `<li>${esc(q)}</li>`)
             .join("")}</ul>`
         : ""
     }
-    ${brief.watch ? `<p class="draft-watch">Careful of: ${esc(brief.watch)}</p>` : ""}
+    ${brief.watch ? `<p class="draft-watch">${words.watchOut(esc(brief.watch))}</p>` : ""}
     <div class="draft-foot">${stamp(result)}</div>
   </div>`;
 }
@@ -173,30 +177,29 @@ export function candidatesHtml(key, result, person) {
   if (candidates.length === 0) {
     return `<div class="draft">
       <div class="draft-head">
-        <span class="draft-title">Nothing found</span>
-        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Close</button>
+        <span class="draft-title">${words.nothingFoundTitle}</span>
+        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">${words.close}</button>
       </div>
-      <p class="src">
-        No commitment in that note that Nib's own action points had not already caught.
-        That is the common answer and it is a good one.
-      </p>
+      <p class="src">${words.nothingFoundWhy}</p>
       <div class="draft-foot">${stamp(result)}</div>
     </div>`;
   }
 
   return `<div class="draft">
     <div class="draft-head">
-      <span class="draft-title">Found in what you wrote</span>
-      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Discard all</button>
+      <span class="draft-title">${words.candidatesTitle}</span>
+      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">${words.discardAll}</button>
     </div>
-    ${result.truncated ? `<p class="src">That note is long, so only its first part was read.</p>` : ""}
+    ${result.truncated ? `<p class="src">${words.truncated}</p>` : ""}
     <ul class="draft-list">
       ${candidates
         .map(
           (/** @type {any} */ c, /** @type {number} */ i) => `<li class="draft-candidate">
-            <span>${esc(c.text)}<span class="src">${c.confidence === "clear" ? "stated outright" : "implied, so check it"}</span></span>
+            <span>${esc(c.text)}<span class="src">${
+              c.confidence === "clear" ? words.statedOutright : words.implied
+            }</span></span>
             <button class="act tiny" data-act="keepCandidate"
-              data-key="${esc(key)}" data-index="${i}" data-person="${esc(person)}">Keep</button>
+              data-key="${esc(key)}" data-index="${i}" data-person="${esc(person)}">${words.keep}</button>
           </li>`
         )
         .join("")}
@@ -216,16 +219,16 @@ export function themesHtml(key, result) {
 
   return `<div class="draft">
     <div class="draft-head">
-      <span class="draft-title">Across ${esc(result?.notesRead ?? 0)} notes</span>
-      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Close</button>
+      <span class="draft-title">${words.themesTitle(esc(result?.notesRead ?? 0))}</span>
+      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">${words.close}</button>
     </div>
     ${
       themes.length === 0
-        ? `<p class="src">Nothing recurs across those notes yet. A pattern needs to appear in at least two.</p>`
+        ? `<p class="src">${words.themesNone}</p>`
         : `<ul class="draft-list">${themes
             .map(
-              (/** @type {any} */ t) =>
-                `<li>${esc(t.name)} <span class="pill plain">${esc(t.times)}×</span><span class="src">${esc(t.evidence)}</span></li>`
+              (/** @type {any} */ theme) =>
+                `<li>${esc(theme.name)} <span class="pill plain">${words.themeTimes(esc(theme.times))}</span><span class="src">${esc(theme.evidence)}</span></li>`
             )
             .join("")}</ul>`
     }
@@ -264,21 +267,23 @@ export function reviewHtml(key, result) {
     `<ul class="draft-list">${items
       .map(
         (/** @type {any} */ i) =>
-          `<li>${esc(i.what)} <span class="pill plain">${esc(String(i.evenings))} evenings</span>` +
+          `<li>${esc(i.what)} <span class="pill plain">${words.eveningsCount(
+            esc(String(i.evenings))
+          )}</span>` +
           `${i.evidence ? `<span class="src">${esc(i.evidence)}</span>` : ""}</li>`
       )
       .join("")}</ul>`;
 
   return `<div class="draft">
     <div class="draft-head">
-      <span class="draft-title">The last ${esc(String(result?.days ?? 30))} days</span>
+      <span class="draft-title">${words.reviewTitle(esc(String(result?.days ?? 30)))}</span>
       <span class="foot-actions">
         ${
           worthKeeping
-            ? `<button class="act tiny primary" data-act="keepReview" data-key="${esc(key)}">Keep this reading</button>`
+            ? `<button class="act tiny primary" data-act="keepReview" data-key="${esc(key)}">${words.keepReading}</button>`
             : ""
         }
-        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Discard</button>
+        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">${words.discard}</button>
       </span>
     </div>
 
@@ -292,26 +297,25 @@ export function reviewHtml(key, result) {
 
     ${
       avoidance.length
-        ? `<h4 class="draft-head-small">Kept being avoided</h4>${list(avoidance)}`
+        ? `<h4 class="draft-head-small">${words.avoidedHead}</h4>${list(avoidance)}`
         : nothing
           ? ""
-          : `<h4 class="draft-head-small">Kept being avoided</h4>
-             <p class="src">Nothing recurs in that box across these evenings. Worth noticing rather than
-             celebrating - it is also what an unanswered box looks like.</p>`
+          : `<h4 class="draft-head-small">${words.avoidedHead}</h4>
+             <p class="src">${words.avoidedNone}</p>`
     }
 
-    ${wentInto.length ? `<h4 class="draft-head-small">Where the days went</h4>${list(wentInto)}` : ""}
+    ${wentInto.length ? `<h4 class="draft-head-small">${words.wentIntoHead}</h4>${list(wentInto)}` : ""}
 
     ${
       String(result?.saidVsDid ?? "").trim()
-        ? `<h4 class="draft-head-small">Against what you said you would do</h4>
+        ? `<h4 class="draft-head-small">${words.saidVsDidHead}</h4>
            <p class="draft-note">${esc(result.saidVsDid)}</p>`
         : ""
     }
 
     ${
       questions.length
-        ? `<h4 class="draft-head-small">Worth asking yourself</h4>
+        ? `<h4 class="draft-head-small">${words.questionsHead}</h4>
            <ul class="draft-list">${questions.map((/** @type {string} */ q) => `<li>${esc(q)}</li>`).join("")}</ul>`
         : ""
     }
@@ -326,15 +330,16 @@ export function reviewHtml(key, result) {
       result?.ledger === null || result?.ledger === undefined
         ? ""
         : `<details class="draft-details">
-             <summary>What the app recorded over the same days</summary>
+             <summary>${words.ledgerSummary}</summary>
              <ul class="draft-list">${ledgerListHtml(result.ledger)}</ul>
            </details>`
     }
 
     <div class="draft-foot">
-      <span class="src">Read by ${esc(result?.model ?? "a model")}${
-        typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : ""
-      }. Nothing is saved unless you keep it.</span>
+      <span class="src">${words.readByKeep(
+        esc(result?.model ?? words.aModel),
+        typeof result?.costUsd === "number" ? words.cost((result.costUsd * 100).toFixed(1)) : ""
+      )}</span>
     </div>
   </div>`;
 }
@@ -351,17 +356,17 @@ export function reviewHtml(key, result) {
  */
 function ledgerListHtml(l) {
   const rows = [
-    [`Days with an entry`, `${l.journalled ?? 0} of ${l.days ?? 0}`],
-    [`Conversations recorded`, String(l.conversations ?? 0)],
-    [`Promises made`, `${l.promisesMade ?? 0}, of which ${l.promisesKept ?? 0} closed`],
-    [`Promises open right now`, String(l.promisesStillOpen ?? 0)],
-    [`Decisions recorded`, String(l.decisions ?? 0)],
+    [words.ledgerDays, words.ledgerDaysValue(l.journalled ?? 0, l.days ?? 0)],
+    [words.ledgerConversations, String(l.conversations ?? 0)],
     [
-      `Growth threads discussed`,
-      `${l.growthNotes ?? 0}, marker seen ${l.growthObserved ?? 0}×`
+      words.ledgerPromisesMade,
+      words.ledgerPromisesMadeValue(l.promisesMade ?? 0, l.promisesKept ?? 0)
     ],
-    [`Meetings that did not happen`, String(l.skips ?? 0)],
-    [`Times you chased somebody`, String(l.chases ?? 0)]
+    [words.ledgerPromisesOpen, String(l.promisesStillOpen ?? 0)],
+    [words.ledgerDecisions, String(l.decisions ?? 0)],
+    [words.ledgerGrowth, words.ledgerGrowthValue(l.growthNotes ?? 0, l.growthObserved ?? 0)],
+    [words.ledgerSkips, String(l.skips ?? 0)],
+    [words.ledgerChases, String(l.chases ?? 0)]
   ];
   return rows
     .map(([label, value]) => `<li>${esc(label)}<span class="src">${esc(value)}</span></li>`)
@@ -390,31 +395,29 @@ export function ownPartHtml(key, result) {
   if (lines.length === 0) {
     return `<div class="draft">
       <div class="draft-head">
-        <span class="draft-title">Read back</span>
-        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Close</button>
+        <span class="draft-title">${words.readBackTitle}</span>
+        <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">${words.close}</button>
       </div>
-      <p class="src">${esc(
-        String(result?.ok ?? "").trim() ||
-          "Nothing here describes them rather than your own part in it."
-      )}</p>
+      <p class="src">${esc(String(result?.ok ?? "").trim() || words.readBackClean)}</p>
       <div class="draft-foot">${ownPartStamp(result)}</div>
     </div>`;
   }
 
   return `<div class="draft">
     <div class="draft-head">
-      <span class="draft-title">Read back</span>
-      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">Close</button>
+      <span class="draft-title">${words.readBackTitle}</span>
+      <button class="act tiny" data-act="discardDraft" data-key="${esc(key)}">${words.close}</button>
     </div>
-    <p class="src">
-      ${lines.length === 1 ? "One phrase" : `${lines.length} phrases`} describing them rather than
-      your own part. Nothing has been changed - the alternative is only an alternative.
-    </p>
+    <p class="src">${words.readBackSome(
+      lines.length === 1 ? words.onePhrase : words.somePhrases(lines.length)
+    )}</p>
     <ul class="draft-list">
       ${lines
         .map(
           (/** @type {any} */ l) =>
-            `<li>${esc(l.quote)}${l.instead ? `<span class="src">Could be: ${esc(l.instead)}</span>` : ""}</li>`
+            `<li>${esc(l.quote)}${
+              l.instead ? `<span class="src">${words.couldBe(esc(l.instead))}</span>` : ""
+            }</li>`
         )
         .join("")}
     </ul>
@@ -430,8 +433,12 @@ export function ownPartHtml(key, result) {
  * @param {any} result
  */
 function ownPartStamp(result) {
-  const cost = typeof result?.costUsd === "number" ? ` · ${(result.costUsd * 100).toFixed(1)}¢` : "";
-  return `<span class="src">Read by ${esc(result?.model ?? "a model")}${cost}. Your entry is untouched.</span>`;
+  const cost =
+    typeof result?.costUsd === "number" ? words.cost((result.costUsd * 100).toFixed(1)) : "";
+  return `<span class="src">${words.readByUntouched(
+    esc(result?.model ?? words.aModel),
+    cost
+  )}</span>`;
 }
 
 /**
@@ -473,7 +480,7 @@ export function modelActions(onKept) {
       if (result.candidates.length === 0) {
         results.delete(d.key);
       }
-      toast("Promise logged.");
+      toast(words.promiseLoggedToast);
       onKept?.();
       refresh();
     }
