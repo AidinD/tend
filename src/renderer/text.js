@@ -41,6 +41,231 @@
  */
 
 export const T = {
+  work: {
+    title: "Work",
+    sub:
+      "Projects to keep an eye on, and the pieces inside them you have handed over to some degree.",
+    addProject: "Add project",
+    addStake: "Add stakeholder",
+    addStream: "Add workstream",
+    readFailedProjects: "the projects",
+    readFailedStreams: "the workstreams",
+
+    /* A project row. */
+    /** @param {string} when */
+    lastLookedAt: (when) => `last looked at ${when}`,
+    view: "View",
+    logLook: "Log a look",
+    archive: "Archive",
+    remove: "Remove",
+
+    /* A stakeholder row. The clock is per person AND project. */
+    /** @param {string} note */
+    lastTime: (note) => `last time: ${note}`,
+    /** @param {string} every @param {string} last */
+    stakeMeta: (every, last) => `every ${every} &middot; last ${last}`,
+    logUpdate: "Log an update",
+    edit: "Edit",
+
+    /* A workstream card. Leaving the level unset is itself flagged, because
+       unstated delegation is the failure rather than missing data. */
+    noLevelSet: "no level set",
+    nobodyNamed: "nobody named",
+    /** @param {string} owner @param {string} project @param {string} reviewed */
+    streamMeta: (owner, project, reviewed) => `${owner}${project} · reviewed ${reviewed}`,
+    /** @param {string} project */
+    streamProject: (project) => ` · ${project}`,
+    setLevelButton: "Set the level",
+    changeLevelButton: "Change level",
+    logReview: "Log a review",
+
+    noPeopleYet: "Add people first if you want to name an owner on a workstream.",
+
+    /* The three groups, and the two versions of each empty state - "nothing
+       yet" and "everything is archived" are different facts. */
+    projectsGroup: "Projects",
+    projectsAllArchived:
+      "No projects active. Every project here is archived - open the group below to bring one back.",
+    projectsNone:
+      "No projects yet. Add the ones you are accountable for without being in the daily work.",
+
+    stakesGroup: "Waiting to hear from you",
+    stakesNone:
+      "Nobody is down as waiting for a report. A stakeholder is someone who depends on what you " +
+      "deliver without being your report or your peer - the one direction where silence stays " +
+      "invisible until something slips.",
+    stakesNote:
+      "The clock is per person AND project. An update about one project does not answer for " +
+      "another, which is the whole reason this is not a field on a person: a quarter of silence " +
+      "about the thing somebody depends on should not sit behind a fortnight of talk about " +
+      "something else.",
+
+    streamsGroup: "Workstreams",
+    streamsAllArchived:
+      "No workstreams active. Every one here is archived - open the group below to bring one back.",
+    streamsNone:
+      "Nothing handed over yet. A workstream is a piece of work with an owner and a stated level " +
+      "of hand-over.",
+
+    archivedProjectsGroup: "Archived projects",
+    archivedStreamsGroup: "Archived workstreams",
+    /** @param {string} date */
+    archivedOn: (date) => `archived ${date}`,
+    unarchive: "Unarchive",
+
+    /* The delegation level, shared with Now which offers it off an unset one. */
+    /** @param {string} name */
+    levelTitle: (name) => `How far have you stepped back on ${name}?`,
+    levelTitleBare: "Set the delegation level",
+    levelIntro:
+      "How closely you follow up depends on how experienced this person is at this particular " +
+      "task, not on how good they are in general. The level sets how often Tend expects a review " +
+      "- and the absence of a review is what separates delegating from abdicating.",
+    levelLabel: "Level",
+    levelConfirm: "Set it",
+    levelSetToast: "Level set.",
+
+    /* One project's page. */
+    backToWork: "← Work",
+    readFailedProject: "that project",
+    projectArchivedRole: "Archived. Its history is here; it is out of every forward-looking view.",
+    projectRole: "What has been looked at, and what is inside it.",
+    cadencesBlock: "Cadences",
+    cadencesNone: "No cadence over this project, so nothing here can be late.",
+    /** @param {string} duty @param {string} target @param {string} last */
+    cadenceLine: (duty, target, last) => `<strong>${duty}</strong> - target ${target}, last ${last}`,
+    checkInsBlock: "Check-ins",
+    checkInsNone: "Nothing logged against it yet. A look recorded here is what stops the clock.",
+    fromANote: "from a note",
+    notRight: "Not right",
+    streamsInBlock: "Workstreams inside it",
+    streamsInNone: "None. A project with no workstreams has nothing handed over.",
+    /** @param {string} owner */
+    streamOwner: (owner) => ` - ${owner}`,
+    streamNoOwner: " - nobody owns it",
+    interestedBlock: "Waiting to hear about it",
+    interestedNone: "Nobody is on the hook for an update about this.",
+    /** @param {string} label */
+    interestedLabel: (label) => ` - ${label}`,
+
+    /* Taking back a check-in. Same guarantee as a mislogged contact. */
+    unlogTitle: "Take this back?",
+    /** @param {string} what */
+    unlogBody: (what) =>
+      `"${what}" stops counting, so the clock it moved goes back to where it was. The event stays ` +
+      `in the log - nothing here is ever really deleted - it just stops being evidence.`,
+    unlogConfirm: "Take it back",
+    unlogToast: "Taken back.",
+
+    /* Adding a stakeholder, in two steps rather than one long form. */
+    noRosterTitle: "Nobody on the roster yet",
+    noRosterBody:
+      "A stakeholder is a person first. Add them under People, then come back - the relationship " +
+      "type to give them is Stakeholder, which inherits none of the duties written for people you " +
+      "lead.",
+    noProjectsTitle: "No projects yet",
+    noProjectsBody:
+      "A stakeholder waits to hear about something specific, so the project has to exist first.",
+    understood: "Right",
+    stakeTitle: "Who is waiting to hear from you?",
+    stakeIntro:
+      "Somebody who depends on what you deliver without being your report or your peer. The " +
+      "obligation is per person AND project: telling them about one thing does not answer for " +
+      "another.",
+    stakeWho: "Who",
+    stakeAbout: "About what",
+    stakeCadence: "How often, in days",
+    stakeCadenceHint:
+      "A month is one reporting cycle. Shorter for someone close to the work, longer for a " +
+      "distant sponsor.",
+    stakeWhat: "What they actually want to know, optional",
+    stakeWhatPlaceholder: "Whether the migration lands before the quarter closes",
+    stakeSince: "Waiting since",
+    stakeSinceHint:
+      "Backdate it if they have been in the dark for a while - otherwise the first month of the " +
+      "record flatters you.",
+    add: "Add",
+    addedToast: "Added.",
+
+    /** @param {string} name */
+    editStakeTitle: (name) => `How often should ${name} hear from you?`,
+    editStakeWhat: "What they want to know, optional",
+    save: "Save",
+    savedToast: "Saved.",
+
+    /** @param {string} what */
+    logUpdateTitle: (what) => `What did you tell them about ${what}?`,
+    logUpdateFallback: "it",
+    logUpdateIntro: "One line is enough. The point of the record is the date, not the report.",
+    logUpdateNote: "What you said, optional",
+    when: "When",
+    logIt: "Log it",
+    loggedToast: "Logged.",
+
+    /** @param {string} name */
+    removeStakeTitle: (name) => `Remove ${name}?`,
+    removeStakeBody:
+      "They stop appearing as waiting for a report about this project. The updates you already " +
+      "logged stay on record, and being a stakeholder in anything else is untouched.",
+    removedToast: "Removed.",
+
+    addProjectTitle: "Add a project",
+    projectName: "Name",
+    projectSince: "Since when",
+    projectSinceHint:
+      "When you took it on. Backdate it and a project you have been ignoring shows as ignored " +
+      "rather than as freshly checked.",
+    /** @param {string} name */
+    addedNamed: (name) => `${name} added.`,
+
+    addStreamTitle: "Add a workstream",
+    addStreamIntro:
+      "A piece of work with an owner. Leaving the level unset is itself flagged, because unstated " +
+      "delegation is the failure rather than missing data.",
+    streamName: "What the work is",
+    streamNamePlaceholder: "Renderer rewrite",
+    streamOwnerLabel: "Who owns it",
+    streamNobodyYet: "Nobody yet",
+    streamProjectLabel: "Part of which project",
+    streamNoProject: "None",
+    streamLevelLabel: "How far you have stepped back",
+
+    /** @param {string} name */
+    reviewTitle: (name) => `Review of ${name}`,
+    reviewIntro: "This is the monitoring half. Logging it resets the clock the level sets.",
+    foundNote: "What you found, optional",
+
+    /** @param {string} name */
+    checkInTitle: (name) => `Check-in on ${name}`,
+
+    /*
+     * Archiving is reversible, unlike removing, so it gets its own gentler
+     * dialog rather than reusing the danger-zone one.
+     */
+    /** @param {string} name */
+    archiveProjectTitle: (name) => `Archive ${name}?`,
+    archiveProjectBody:
+      "It stops appearing in this list, in Now and in attention nudges. Every check-in, stake and " +
+      "review already logged against it stays exactly as it is and can be looked at again. Fully " +
+      "reversible from the archived list.",
+    /** @param {string} name */
+    archivedToast: (name) => `${name} archived.`,
+    /** @param {string} name */
+    unarchivedToast: (name) => `${name} unarchived.`,
+    /** @param {string} name */
+    removeProjectTitle: (name) => `Remove ${name}?`,
+    removeBody: "It stops being tracked. The history stays in the log.",
+
+    /** @param {string} name */
+    archiveStreamTitle: (name) => `Archive ${name}?`,
+    archiveStreamBody:
+      "It stops appearing in this list, in Now and in attention nudges. Every review already " +
+      "logged against it stays exactly as it is and can be looked at again. Fully reversible from " +
+      "the archived list.",
+    /** @param {string} name */
+    removeStreamTitle: (name) => `Remove ${name}?`
+  },
+
   journal: {
     readFailedTitle: "Could not read the journal",
     title: "The day",

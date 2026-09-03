@@ -21,6 +21,9 @@ import {
   tend
 } from "../ui.js";
 import { go, refresh } from "../app.js";
+import { T } from "../text.js";
+
+const t = T.work;
 
 /** @param {Record<string, any>} [params] */
 export async function render(params = {}) {
@@ -44,13 +47,13 @@ async function workLists() {
     <div class="view-head">
       <div class="head-row">
         <div>
-          <h1 class="view-title">Work</h1>
-          <p class="view-sub">Projects to keep an eye on, and the pieces inside them you have handed over to some degree.</p>
+          <h1 class="view-title">${t.title}</h1>
+          <p class="view-sub">${t.sub}</p>
         </div>
         <div class="button-row">
-          <button class="act" data-act="addProject">Add project</button>
-          <button class="act" data-act="addStake">Add stakeholder</button>
-          <button class="act primary" data-act="addStream">Add workstream</button>
+          <button class="act" data-act="addProject">${t.addProject}</button>
+          <button class="act" data-act="addStake">${t.addStake}</button>
+          <button class="act primary" data-act="addStream">${t.addStream}</button>
         </div>
       </div>
     </div>`;
@@ -59,8 +62,8 @@ async function workLists() {
   // the nullish default never applies and `.map` is undefined - the view threw
   // rather than saying anything. Checked before either list is touched.
   for (const [what, result] of [
-    ["the projects", projects],
-    ["the workstreams", streams]
+    [t.readFailedProjects, projects],
+    [t.readFailedStreams, streams]
   ]) {
     if (readFailed(result)) {
       return `${header}${readFailedHtml(String(what), result)}`;
@@ -78,7 +81,7 @@ async function workLists() {
       (/** @type {any} */ p) => `<div class="row static${p.behindBy ? ` sev-${esc(p.urgency)}` : ""}">
         <span class="row-name">${esc(p.name)}</span>
         <span class="row-right">
-          <span class="row-meta">last looked at ${esc(p.lastLookedAt)}</span>
+          <span class="row-meta">${t.lastLookedAt(esc(p.lastLookedAt))}</span>
           ${p.behindBy ? pill(p.urgency) : ""}
           <!--
             A View button rather than a clickable row. The roster makes a whole
@@ -87,10 +90,10 @@ async function workLists() {
             of which removes the project. A click target wrapped around Remove is
             a mis-press waiting to happen.
           -->
-          <button class="act tiny" data-act="openProject" data-id="${esc(p.id)}">View</button>
-          <button class="act tiny" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Log a look</button>
-          <button class="act tiny" data-act="archiveProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Archive</button>
-          <button class="act tiny danger" data-act="removeProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Remove</button>
+          <button class="act tiny" data-act="openProject" data-id="${esc(p.id)}">${t.view}</button>
+          <button class="act tiny" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.logLook}</button>
+          <button class="act tiny" data-act="archiveProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.archive}</button>
+          <button class="act tiny danger" data-act="removeProject" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.remove}</button>
         </span>
       </div>`
     )
@@ -101,13 +104,13 @@ async function workLists() {
       (/** @type {any} */ k) => `<div class="row static">
         <span class="row-name">
           ${esc(k.label)}
-          ${k.note ? `<span class="src">last time: ${esc(k.note)}</span>` : ""}
+          ${k.note ? `<span class="src">${t.lastTime(esc(k.note))}</span>` : ""}
         </span>
         <span class="row-right">
-          <span class="row-meta">every ${esc(k.every)} &middot; last ${esc(k.lastUpdated)}</span>
-          <button class="act tiny" data-act="logUpdate" data-id="${esc(k.id)}" data-name="${esc(k.label)}">Log an update</button>
-          <button class="act tiny" data-act="editStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">Edit</button>
-          <button class="act tiny danger" data-act="removeStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">Remove</button>
+          <span class="row-meta">${t.stakeMeta(esc(k.every), esc(k.lastUpdated))}</span>
+          <button class="act tiny" data-act="logUpdate" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${t.logUpdate}</button>
+          <button class="act tiny" data-act="editStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${t.edit}</button>
+          <button class="act tiny danger" data-act="removeStake" data-id="${esc(k.id)}" data-name="${esc(k.label)}">${t.remove}</button>
         </span>
       </div>`
     )
@@ -118,15 +121,15 @@ async function workLists() {
       (/** @type {any} */ w) => `<article class="card ${w.unspecified ? "sev-warn" : "sev-ok"}">
         <div class="card-top">
           <h2 class="card-title">${esc(w.name)}</h2>
-          <span class="pill ${w.unspecified ? "warn" : "plain"}">${esc(w.unspecified ? "no level set" : w.reviewEvery)}</span>
+          <span class="pill ${w.unspecified ? "warn" : "plain"}">${esc(w.unspecified ? t.noLevelSet : w.reviewEvery)}</span>
         </div>
         <p class="card-why">${esc(w.levelMeans)}</p>
         <div class="card-foot">
-          <span class="src">${esc(w.owner ?? "nobody named")}${w.project ? ` · ${esc(w.project)}` : ""} · reviewed ${esc(w.lastReviewed)}</span>
-          <button class="act primary" data-act="setLevel" data-id="${esc(w.id)}">${w.unspecified ? "Set the level" : "Change level"}</button>
-          <button class="act" data-act="review" data-id="${esc(w.id)}" data-name="${esc(w.name)}">Log a review</button>
-          <button class="act" data-act="archiveStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">Archive</button>
-          <button class="act danger" data-act="removeStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">Remove</button>
+          <span class="src">${t.streamMeta(esc(w.owner ?? t.nobodyNamed), w.project ? t.streamProject(esc(w.project)) : "", esc(w.lastReviewed))}</span>
+          <button class="act primary" data-act="setLevel" data-id="${esc(w.id)}">${w.unspecified ? t.setLevelButton : t.changeLevelButton}</button>
+          <button class="act" data-act="review" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${t.logReview}</button>
+          <button class="act" data-act="archiveStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${t.archive}</button>
+          <button class="act danger" data-act="removeStream" data-id="${esc(w.id)}" data-name="${esc(w.name)}">${t.remove}</button>
         </div>
       </article>`
     )
@@ -134,32 +137,27 @@ async function workLists() {
 
   const noPeople =
     Array.isArray(roster) && roster.length === 0
-      ? `<div class="muted-row">Add people first if you want to name an owner on a workstream.</div>`
+      ? `<div class="muted-row">${t.noPeopleYet}</div>`
       : "";
 
   return `
     ${header}
     <div class="group">
-      <div class="group-head"><span class="group-title">Projects</span><span class="group-rule"></span><span class="group-meta">${(projects ?? []).length}</span></div>
-      ${projectRows ? `<div class="rows">${projectRows}</div>` : `<div class="empty">${emptyOrArchived(archivedProjects, "No projects active. Every project here is archived - open the group below to bring one back.", "No projects yet. Add the ones you are accountable for without being in the daily work.")}</div>`}
+      <div class="group-head"><span class="group-title">${t.projectsGroup}</span><span class="group-rule"></span><span class="group-meta">${(projects ?? []).length}</span></div>
+      ${projectRows ? `<div class="rows">${projectRows}</div>` : `<div class="empty">${emptyOrArchived(archivedProjects, t.projectsAllArchived, t.projectsNone)}</div>`}
     </div>
     <div class="group" data-group="stakeholders">
-      <div class="group-head"><span class="group-title">Waiting to hear from you</span><span class="group-rule"></span><span class="group-meta">${(stakes ?? []).length}</span></div>
-      ${stakeRows ? `<div class="rows">${stakeRows}</div>` : `<div class="empty">Nobody is down as waiting for a report. A stakeholder is someone who depends on what you deliver without being your report or your peer - the one direction where silence stays invisible until something slips.</div>`}
-      <p class="group-note">
-        The clock is per person AND project. An update about one project does not
-        answer for another, which is the whole reason this is not a field on a
-        person: a quarter of silence about the thing somebody depends on should
-        not sit behind a fortnight of talk about something else.
-      </p>
+      <div class="group-head"><span class="group-title">${t.stakesGroup}</span><span class="group-rule"></span><span class="group-meta">${(stakes ?? []).length}</span></div>
+      ${stakeRows ? `<div class="rows">${stakeRows}</div>` : `<div class="empty">${t.stakesNone}</div>`}
+      <p class="group-note">${t.stakesNote}</p>
     </div>
     <div class="group">
-      <div class="group-head"><span class="group-title">Workstreams</span><span class="group-rule"></span><span class="group-meta">${(streams ?? []).length}</span></div>
+      <div class="group-head"><span class="group-title">${t.streamsGroup}</span><span class="group-rule"></span><span class="group-meta">${(streams ?? []).length}</span></div>
       ${noPeople}
-      ${streamCards ? `<div class="stack">${streamCards}</div>` : `<div class="empty">${emptyOrArchived(archivedStreams, "No workstreams active. Every one here is archived - open the group below to bring one back.", "Nothing handed over yet. A workstream is a piece of work with an owner and a stated level of hand-over.")}</div>`}
+      ${streamCards ? `<div class="stack">${streamCards}</div>` : `<div class="empty">${emptyOrArchived(archivedStreams, t.streamsAllArchived, t.streamsNone)}</div>`}
     </div>
-    ${archivedGroupHtml("Archived projects", archivedProjects, "unarchiveProject")}
-    ${archivedGroupHtml("Archived workstreams", archivedStreams, "unarchiveStream")}
+    ${archivedGroupHtml(t.archivedProjectsGroup, archivedProjects, "unarchiveProject")}
+    ${archivedGroupHtml(t.archivedStreamsGroup, archivedStreams, "unarchiveStream")}
   `;
 }
 
@@ -210,8 +208,8 @@ function archivedGroupHtml(title, archived, unarchiveAct) {
       (/** @type {any} */ r) => `<div class="row static">
         <span class="row-name">${esc(r.name)}</span>
         <span class="row-right">
-          <span class="pill plain">archived ${esc(new Date(Number(r.archivedAt)).toISOString().slice(0, 10))}</span>
-          <button class="act tiny" data-act="${esc(unarchiveAct)}" data-id="${esc(r.id)}" data-name="${esc(r.name)}">Unarchive</button>
+          <span class="pill plain">${t.archivedOn(esc(new Date(Number(r.archivedAt)).toISOString().slice(0, 10)))}</span>
+          <button class="act tiny" data-act="${esc(unarchiveAct)}" data-id="${esc(r.id)}" data-name="${esc(r.name)}">${t.unarchive}</button>
         </span>
       </div>`
     )
@@ -235,18 +233,17 @@ export async function setLevelDialog(id) {
   const current = (streams ?? []).find((/** @type {any} */ w) => w.id === id);
 
   const values = await form({
-    title: current ? `How far have you stepped back on ${current.name}?` : "Set the delegation level",
-    intro:
-      "How closely you follow up depends on how experienced this person is at this particular task, not on how good they are in general. The level sets how often Tend expects a review - and the absence of a review is what separates delegating from abdicating.",
+    title: current ? t.levelTitle(current.name) : t.levelTitleBare,
+    intro: t.levelIntro,
     fields: [
-      { name: "level", label: "Level", type: "select", options: LEVEL_OPTIONS, value: current?.level ?? "close" }
+      { name: "level", label: t.levelLabel, type: "select", options: LEVEL_OPTIONS, value: current?.level ?? "close" }
     ],
-    confirm: "Set it"
+    confirm: t.levelConfirm
   });
   if (!values) {
     return false;
   }
-  return Boolean(await act("setDelegationLevel", { id, level: values.level }, "Level set."));
+  return Boolean(await act("setDelegationLevel", { id, level: values.level }, t.levelSetToast));
 }
 
 /**
@@ -272,8 +269,8 @@ async function projectPage(id) {
   const p = await tend.invoke("project", { project: id });
 
   if (readFailed(p)) {
-    return `<div class="view-head"><button class="act" data-act="backToWork">← Work</button></div>
-      ${readFailedHtml("that project", p)}`;
+    return `<div class="view-head"><button class="act" data-act="backToWork">${t.backToWork}</button></div>
+      ${readFailedHtml(t.readFailedProject, p)}`;
   }
 
   const list = (/** @type {string} */ title, /** @type {string} */ body, /** @type {string} */ empty) =>
@@ -285,7 +282,7 @@ async function projectPage(id) {
     .map(
       (/** @type {any} */ c) => `<div class="line">
         <span class="line-when">${esc(c.behindBy)}</span>
-        <span class="line-text"><strong>${esc(c.duty)}</strong> - target ${esc(c.target)}, last ${esc(c.lastHappened)}</span>
+        <span class="line-text">${t.cadenceLine(esc(c.duty), esc(c.target), esc(c.lastHappened))}</span>
         <span class="line-right">${pill(c.urgency)}</span>
       </div>`
     )
@@ -299,13 +296,13 @@ async function projectPage(id) {
    */
   const history = (p.recentContact ?? [])
     .map(
-      (/** @type {any} */ t) => `<div class="line">
-        <span class="line-when">${esc(t.when)}</span>
-        <span class="line-text"><strong>${esc(t.kind)}</strong>${t.note ? ` - ${esc(t.note)}` : ""}</span>
+      (/** @type {any} */ row) => `<div class="line">
+        <span class="line-when">${esc(row.when)}</span>
+        <span class="line-text"><strong>${esc(row.kind)}</strong>${row.note ? ` - ${esc(row.note)}` : ""}</span>
         <span class="line-right">
-          ${t.from === "nib" ? `<span class="pill plain">from a note</span>` : ""}
-          <button class="act tiny danger" data-act="unlogProjectContact" data-id="${esc(t.id)}"
-            data-what="${esc(t.kind)}${t.note ? ` - ${esc(t.note)}` : ""}">Not right</button>
+          ${row.from === "nib" ? `<span class="pill plain">${t.fromANote}</span>` : ""}
+          <button class="act tiny danger" data-act="unlogProjectContact" data-id="${esc(row.id)}"
+            data-what="${esc(row.kind)}${row.note ? ` - ${esc(row.note)}` : ""}">${t.notRight}</button>
         </span>
       </div>`
     )
@@ -316,7 +313,7 @@ async function projectPage(id) {
       (/** @type {any} */ w) => `<div class="line">
         <span class="line-when">${esc(w.level ?? "-")}</span>
         <span class="line-text"><strong>${esc(w.name)}</strong>${
-          w.owner ? ` - ${esc(w.owner)}` : " - nobody owns it"
+          w.owner ? t.streamOwner(esc(w.owner)) : t.streamNoOwner
         }</span>
         ${w.unspecified ? `<span class="line-right">${pill("watch")}</span>` : ""}
       </div>`
@@ -326,36 +323,28 @@ async function projectPage(id) {
   const interested = (p.stakeholders ?? [])
     .map(
       (/** @type {any} */ s) => `<div class="line">
-        <span class="line-text"><strong>${esc(s.person)}</strong>${s.label ? ` - ${esc(s.label)}` : ""}</span>
+        <span class="line-text"><strong>${esc(s.person)}</strong>${s.label ? t.interestedLabel(esc(s.label)) : ""}</span>
       </div>`
     )
     .join("");
 
   return `
-    <div class="view-head"><button class="act" data-act="backToWork">← Work</button></div>
+    <div class="view-head"><button class="act" data-act="backToWork">${t.backToWork}</button></div>
     <div class="panel">
       <div class="panel-head">
         <div>
           <h2 class="panel-name">${esc(p.name)}</h2>
-          <p class="panel-role">${
-            p.archivedAt
-              ? "Archived. Its history is here; it is out of every forward-looking view."
-              : "What has been looked at, and what is inside it."
-          }</p>
+          <p class="panel-role">${p.archivedAt ? t.projectArchivedRole : t.projectRole}</p>
         </div>
         <div class="panel-actions">
-          <button class="act primary" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">Log a look</button>
+          <button class="act primary" data-act="checkIn" data-id="${esc(p.id)}" data-name="${esc(p.name)}">${t.logLook}</button>
         </div>
       </div>
 
-      ${list("Cadences", cadences, "No cadence over this project, so nothing here can be late.")}
-      ${list(
-        "Check-ins",
-        history,
-        "Nothing logged against it yet. A look recorded here is what stops the clock."
-      )}
-      ${list("Workstreams inside it", streams, "None. A project with no workstreams has nothing handed over.")}
-      ${list("Waiting to hear about it", interested, "Nobody is on the hook for an update about this.")}
+      ${list(t.cadencesBlock, cadences, t.cadencesNone)}
+      ${list(t.checkInsBlock, history, t.checkInsNone)}
+      ${list(t.streamsInBlock, streams, t.streamsInNone)}
+      ${list(t.interestedBlock, interested, t.interestedNone)}
     </div>`;
 }
 
@@ -381,14 +370,14 @@ export const actions = {
    */
   unlogProjectContact: async (d) => {
     const sure = await ask({
-      title: "Take this back?",
-      body: `"${d.what}" stops counting, so the clock it moved goes back to where it was. The event stays in the log - nothing here is ever really deleted - it just stops being evidence.`,
-      confirm: "Take it back",
+      title: t.unlogTitle,
+      body: t.unlogBody(d.what),
+      confirm: t.unlogConfirm,
       tone: "danger"
     });
     // `act` rather than a bare invoke, so a rejected write cannot look like a
     // successful one. Every write in the app goes through it.
-    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, "Taken back."))) {
+    if (sure && (await act("removeRow", { collection: "touches", id: d.id }, t.unlogToast))) {
       refresh();
     }
   },
@@ -404,59 +393,58 @@ export const actions = {
     const [roster, projects] = await Promise.all([tend.invoke("people"), tend.invoke("projects")]);
     if (!Array.isArray(roster) || roster.length === 0) {
       await ask({
-        title: "Nobody on the roster yet",
-        body: "A stakeholder is a person first. Add them under People, then come back - the relationship type to give them is Stakeholder, which inherits none of the duties written for people you lead.",
-        confirm: "Right"
+        title: t.noRosterTitle,
+        body: t.noRosterBody,
+        confirm: t.understood
       });
       return;
     }
     if (!Array.isArray(projects) || projects.length === 0) {
       await ask({
-        title: "No projects yet",
-        body: "A stakeholder waits to hear about something specific, so the project has to exist first.",
-        confirm: "Right"
+        title: t.noProjectsTitle,
+        body: t.noProjectsBody,
+        confirm: t.understood
       });
       return;
     }
 
     const values = await form({
-      title: "Who is waiting to hear from you?",
-      intro:
-        "Somebody who depends on what you deliver without being your report or your peer. The obligation is per person AND project: telling them about one thing does not answer for another.",
+      title: t.stakeTitle,
+      intro: t.stakeIntro,
       fields: [
         {
           name: "person",
-          label: "Who",
+          label: t.stakeWho,
           type: "select",
           options: roster.map((/** @type {any} */ r) => ({ value: r.id, label: r.name }))
         },
         {
           name: "project",
-          label: "About what",
+          label: t.stakeAbout,
           type: "select",
           options: projects.map((/** @type {any} */ r) => ({ value: r.id, label: r.name }))
         },
         {
           name: "cadenceDays",
-          label: "How often, in days",
+          label: t.stakeCadence,
           type: "number",
           value: String(DEFAULT_STAKE_DAYS),
-          hint: "A month is one reporting cycle. Shorter for someone close to the work, longer for a distant sponsor."
+          hint: t.stakeCadenceHint
         },
         {
           name: "what",
-          label: "What they actually want to know, optional",
-          placeholder: "Whether the migration lands before the quarter closes"
+          label: t.stakeWhat,
+          placeholder: t.stakeWhatPlaceholder
         },
         {
           name: "since",
-          label: "Waiting since",
+          label: t.stakeSince,
           type: "date",
           value: asDateInput(Date.now()),
-          hint: "Backdate it if they have been in the dark for a while - otherwise the first month of the record flatters you."
+          hint: t.stakeSinceHint
         }
       ],
-      confirm: "Add"
+      confirm: t.add
     });
     if (!values) {
       return;
@@ -471,7 +459,7 @@ export const actions = {
           what: values.what,
           since: values.since
         },
-        "Added."
+        t.addedToast
       )
     ) {
       refresh();
@@ -483,17 +471,17 @@ export const actions = {
     const stakes = await tend.invoke("stakeholders");
     const current = (Array.isArray(stakes) ? stakes : []).find((/** @type {any} */ k) => k.id === d.id);
     const values = await form({
-      title: `How often should ${d.name.split(",")[0]} hear from you?`,
+      title: t.editStakeTitle(d.name.split(",")[0]),
       fields: [
         {
           name: "cadenceDays",
-          label: "How often, in days",
+          label: t.stakeCadence,
           type: "number",
           value: String(parseInt(String(current?.every ?? DEFAULT_STAKE_DAYS), 10) || DEFAULT_STAKE_DAYS)
         },
-        { name: "what", label: "What they want to know, optional", value: current?.note ?? "" }
+        { name: "what", label: t.editStakeWhat, value: current?.note ?? "" }
       ],
-      confirm: "Save"
+      confirm: t.save
     });
     if (!values) {
       return;
@@ -502,7 +490,7 @@ export const actions = {
       await act(
         "updateStake",
         { id: d.id, cadenceDays: Number(values.cadenceDays), what: values.what },
-        "Saved."
+        t.savedToast
       )
     ) {
       refresh();
@@ -512,18 +500,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   logUpdate: async (d) => {
     const values = await form({
-      title: `What did you tell them about ${d.name.split("about ")[1] ?? "it"}?`,
-      intro: "One line is enough. The point of the record is the date, not the report.",
+      title: t.logUpdateTitle(d.name.split("about ")[1] ?? t.logUpdateFallback),
+      intro: t.logUpdateIntro,
       fields: [
-        { name: "note", label: "What you said, optional", type: "textarea" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: t.logUpdateNote, type: "textarea" },
+        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: "Log it"
+      confirm: t.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.id, kind: "update", ...values }, "Logged.")) {
+    if (await act("logTouch", { subject: d.id, kind: "update", ...values }, t.loggedToast)) {
       refresh();
     }
   },
@@ -531,32 +519,32 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeStake: async (d) => {
     const sure = await ask({
-      title: `Remove ${d.name}?`,
-      body: "They stop appearing as waiting for a report about this project. The updates you already logged stay on record, and being a stakeholder in anything else is untouched.",
+      title: t.removeStakeTitle(d.name),
+      body: t.removeStakeBody,
       confirm: "Remove",
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "stakes", id: d.id }, "Removed."))) {
+    if (sure && (await act("removeRow", { collection: "stakes", id: d.id }, t.removedToast))) {
       refresh();
     }
   },
 
   addProject: async () => {
     const values = await form({
-      title: "Add a project",
+      title: t.addProjectTitle,
       fields: [
-        { name: "name", label: "Name", required: true },
+        { name: "name", label: t.projectName, required: true },
         {
           name: "since",
-          label: "Since when",
+          label: t.projectSince,
           type: "date",
           value: asDateInput(Date.now()),
-          hint: "When you took it on. Backdate it and a project you have been ignoring shows as ignored rather than as freshly checked."
+          hint: t.projectSinceHint
         }
       ],
       confirm: "Add"
     });
-    if (values && (await act("addProject", values, `${values.name} added.`))) {
+    if (values && (await act("addProject", values, t.addedNamed(values.name)))) {
       refresh();
     }
   },
@@ -564,31 +552,31 @@ export const actions = {
   addStream: async () => {
     const [roster, projects] = await Promise.all([tend.invoke("people"), tend.invoke("projects")]);
     const values = await form({
-      title: "Add a workstream",
-      intro: "A piece of work with an owner. Leaving the level unset is itself flagged, because unstated delegation is the failure rather than missing data.",
+      title: t.addStreamTitle,
+      intro: t.addStreamIntro,
       fields: [
-        { name: "name", label: "What the work is", required: true, placeholder: "Renderer rewrite" },
+        { name: "name", label: t.streamName, required: true, placeholder: t.streamNamePlaceholder },
         {
           name: "owner",
-          label: "Who owns it",
+          label: t.streamOwnerLabel,
           type: "select",
-          options: [{ value: "", label: "Nobody yet" }].concat(
+          options: [{ value: "", label: t.streamNobodyYet }].concat(
             (roster ?? []).map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
           )
         },
         {
           name: "project",
-          label: "Part of which project",
+          label: t.streamProjectLabel,
           type: "select",
-          options: [{ value: "", label: "None" }].concat(
+          options: [{ value: "", label: t.streamNoProject }].concat(
             (projects ?? []).map((/** @type {any} */ p) => ({ value: p.id, label: p.name }))
           )
         },
-        { name: "level", label: "How far you have stepped back", type: "select", options: LEVEL_OPTIONS, value: "close" }
+        { name: "level", label: t.streamLevelLabel, type: "select", options: LEVEL_OPTIONS, value: "close" }
       ],
       confirm: "Add"
     });
-    if (values && (await act("addWorkstream", values, `${values.name} added.`))) {
+    if (values && (await act("addWorkstream", values, t.addedNamed(values.name)))) {
       refresh();
     }
   },
@@ -603,18 +591,18 @@ export const actions = {
   /** @param {Record<string, string>} d */
   review: async (d) => {
     const values = await form({
-      title: `Review of ${d.name}`,
-      intro: "This is the monitoring half. Logging it resets the clock the level sets.",
+      title: t.reviewTitle(d.name),
+      intro: t.reviewIntro,
       fields: [
-        { name: "note", label: "What you found, optional", type: "textarea" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: t.foundNote, type: "textarea" },
+        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: "Log it"
+      confirm: t.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.id, kind: "delegation-review", ...values }, "Logged.")) {
+    if (await act("logTouch", { subject: d.id, kind: "delegation-review", ...values }, t.loggedToast)) {
       refresh();
     }
   },
@@ -622,17 +610,17 @@ export const actions = {
   /** @param {Record<string, string>} d */
   checkIn: async (d) => {
     const values = await form({
-      title: `Check-in on ${d.name}`,
+      title: t.checkInTitle(d.name),
       fields: [
-        { name: "note", label: "What you found, optional", type: "textarea" },
-        { name: "at", label: "When", type: "date", value: asDateInput(Date.now()) }
+        { name: "note", label: t.foundNote, type: "textarea" },
+        { name: "at", label: t.when, type: "date", value: asDateInput(Date.now()) }
       ],
-      confirm: "Log it"
+      confirm: t.logIt
     });
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.id, kind: "check-in", ...values }, "Logged.")) {
+    if (await act("logTouch", { subject: d.id, kind: "check-in", ...values }, t.loggedToast)) {
       refresh();
     }
   },
@@ -648,19 +636,19 @@ export const actions = {
    */
   archiveProject: async (d) => {
     const sure = await ask({
-      title: `Archive ${d.name}?`,
-      body: "It stops appearing in this list, in Now and in attention nudges. Every check-in, stake and review already logged against it stays exactly as it is and can be looked at again. Fully reversible from the archived list.",
-      confirm: "Archive",
+      title: t.archiveProjectTitle(d.name),
+      body: t.archiveProjectBody,
+      confirm: t.archive,
       tone: "danger"
     });
-    if (sure && (await act("archiveProject", { id: d.id }, `${d.name} archived.`))) {
+    if (sure && (await act("archiveProject", { id: d.id }, t.archivedToast(d.name)))) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   unarchiveProject: async (d) => {
-    if (await act("unarchiveProject", { id: d.id }, `${d.name} unarchived.`)) {
+    if (await act("unarchiveProject", { id: d.id }, t.unarchivedToast(d.name))) {
       refresh();
     }
   },
@@ -668,12 +656,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeProject: async (d) => {
     const sure = await ask({
-      title: `Remove ${d.name}?`,
-      body: "It stops being tracked. The history stays in the log.",
-      confirm: "Remove",
+      title: t.removeProjectTitle(d.name),
+      body: t.removeBody,
+      confirm: t.remove,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "projects", id: d.id }, "Removed."))) {
+    if (sure && (await act("removeRow", { collection: "projects", id: d.id }, t.removedToast))) {
       refresh();
     }
   },
@@ -686,19 +674,19 @@ export const actions = {
    */
   archiveStream: async (d) => {
     const sure = await ask({
-      title: `Archive ${d.name}?`,
-      body: "It stops appearing in this list, in Now and in attention nudges. Every review already logged against it stays exactly as it is and can be looked at again. Fully reversible from the archived list.",
-      confirm: "Archive",
+      title: t.archiveStreamTitle(d.name),
+      body: t.archiveStreamBody,
+      confirm: t.archive,
       tone: "danger"
     });
-    if (sure && (await act("archiveWorkstream", { id: d.id }, `${d.name} archived.`))) {
+    if (sure && (await act("archiveWorkstream", { id: d.id }, t.archivedToast(d.name)))) {
       refresh();
     }
   },
 
   /** @param {Record<string, string>} d */
   unarchiveStream: async (d) => {
-    if (await act("unarchiveWorkstream", { id: d.id }, `${d.name} unarchived.`)) {
+    if (await act("unarchiveWorkstream", { id: d.id }, t.unarchivedToast(d.name))) {
       refresh();
     }
   },
@@ -706,12 +694,12 @@ export const actions = {
   /** @param {Record<string, string>} d */
   removeStream: async (d) => {
     const sure = await ask({
-      title: `Remove ${d.name}?`,
-      body: "It stops being tracked. The history stays in the log.",
-      confirm: "Remove",
+      title: t.removeStreamTitle(d.name),
+      body: t.removeBody,
+      confirm: t.remove,
       tone: "danger"
     });
-    if (sure && (await act("removeRow", { collection: "workstreams", id: d.id }, "Removed."))) {
+    if (sure && (await act("removeRow", { collection: "workstreams", id: d.id }, t.removedToast))) {
       refresh();
     }
   }
