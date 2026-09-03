@@ -12,10 +12,18 @@ seventeen commits, with no wording changed. The rewrite is the next pass.
 **What forced it.** The reported symptom was "jag vet inte vad många ord
 betyder". The words were literals inside HTML templates in seventeen files, so
 answering "what does the app actually say?" meant reading its markup - and a
-vocabulary nobody can see all of at once is one that drifts. It had: the growth
-dialogs ask "what will you see in three months that you do not see now?", which
-is the question asked well, and the summaries then print `marker` beside the
-answer. Same idea, two names, two screens.
+vocabulary nobody can see all of at once is one that drifts.
+
+Reading it through immediately proved that and corrected the guess this entry
+was first written with. The guess was that the growth card prints `marker`
+beside the answer to "what will you see in three months?". It does not - it
+prints "I will see". `marker` appears in four sentences of explanation and once
+in the journal ledger, and never labels anything the reader filled in. Which is
+the same fault arriving from the other direction: an internal name leaking into
+the prose that explains a field, rather than two labels for one field. Four more
+do the same - thread, drift, stake, verdict - and the fix is to stop saying them
+rather than to rename anything. The survey is in
+[docs/vocabulary.md](docs/vocabulary.md).
 
 **Why not reword on the way through.** It was suggested twice, both times on the
 reasonable ground that touching each file once is cheaper than touching it

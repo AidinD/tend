@@ -147,13 +147,15 @@ Tend event log <──┤
    moved, because a diff that both relocates and rewrites four hundred strings
    is a diff nobody can review.
 8. **The vocabulary pass.** The reported symptom was not knowing what several
-   of the words mean. Now that they can all be read together, the two faults
-   are visible: the same idea has two names on two screens - the growth
-   dialogs ask "what will you see in three months?" and the summaries then
-   print `marker` beside the answer - and a handful of terms are Tend's own
-   coinages with nothing anywhere saying what they mean. **Stop and put the
-   list in front of the user before rewording anything**, because half of these
-   are a naming choice and not a bug.
+   of the words mean, and reading the module through says why - see
+   [docs/vocabulary.md](docs/vocabulary.md) for the survey and the twelve terms
+   it found. The short version is that the questions the app asks are in plain
+   first-person English and the words that confuse are almost all in the
+   *explanations* around them: five internal names leak into prose without ever
+   labelling anything, three words carry two meanings each, and three name the
+   same family of thing on three screens. **The list goes in front of the user
+   before anything is reworded**, because most of it is a naming choice rather
+   than a bug.
 
 ## Not built, and why
 
