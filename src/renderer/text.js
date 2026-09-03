@@ -287,7 +287,8 @@ export const T = {
     archiveTitle: (name) => `Archive ${name}?`,
     archiveBody:
       "They stop appearing in Now, prep, attention nudges and duty cadences. Every 1-1, promise, " +
-      "decision and growth thread about them stays exactly as it is and can be looked at again. " +
+      "decision and growth direction about them stays exactly as it is and can be looked at " +
+      "again. " +
       "Fully reversible - unarchive them any time from their page.",
     archive: "Archive",
     /** @param {string} name */
@@ -385,8 +386,8 @@ export const T = {
     fAimPlaceholder: "Runs the design review without me in the room",
     fAimHint:
       "Yours, before you have asked. What they will be able to DO, not an area to improve in - " +
-      'their own answer comes later and is kept beside this. Everything else about this thread ' +
-      'can wait until you use "Prepare" on the card.',
+      'their own answer comes later and is kept beside this. Everything else about this ' +
+      'direction can wait until you use "Prepare" on the card.',
     fDriver: "Do they want this, or does the job need it?",
     fDriverHint:
       "Two different instruments. The development one used on a performance gap reads as a " +
@@ -427,7 +428,7 @@ export const T = {
     fCadenceHint: "In the one-to-one, never as its own meeting. A separate meeting kills it.",
     fHorizon: "When should the direction itself be questioned?",
     fHorizonHint:
-      "Not a deadline. When it passes the thread asks whether this is still the thing.",
+      "Not a deadline. When it passes Tend asks whether this is still the thing.",
 
     /* Opening one. */
     openTitle: "Open a direction",
@@ -441,11 +442,11 @@ export const T = {
     /* Rewording, which is its own concept because the thread is named after it. */
     rewordTitle: "Reword the direction",
     rewordIntro:
-      "The thread is named after this. Change it once you know what you actually agreed on.",
+      "The card is named after this. Change it once you know what you actually agreed on.",
     rewordAimLabel: "The direction as it stands",
     rewordAimHint:
-      "What they will be able to DO. If it describes what you do for them, the marker will " +
-      "measure the wrong person.",
+      "What they will be able to DO. If it describes what you do for them, you will be " +
+      "measuring the wrong person.",
     rewordGuessLabel: "What you thought before you asked",
     rewordGuessHint: "Kept as a record, so it can sit next to what they actually said.",
     save: "Save",
@@ -482,7 +483,7 @@ export const T = {
     expectationWhy: "The expectation, in your words",
     letGoWhy: "Why you let it go",
     saidLabel: "I have told them",
-    saidHint: "Leave it unchecked if you have not yet. The thread will keep asking until you have.",
+    saidHint: "Leave it unchecked if you have not yet. Tend will keep asking until you have.",
     recordedToast: "Recorded.",
 
     talkedTitle: "It came up",
@@ -503,8 +504,8 @@ export const T = {
      */
     observedTitle: "I saw it",
     observedIntro:
-      "The marker, actually observed rather than discussed. The only evidence in here that any " +
-      "of this is working.",
+      "What you said you would see, actually observed rather than discussed. The only " +
+      "evidence in here that any of this is working.",
     observedNoteLabel: "What you saw",
     observedNotePlaceholder: "Chaired the review on the 14th, I said nothing",
     tellLabel: "Who else needs to hear this?",
@@ -526,7 +527,8 @@ export const T = {
     endHowLabel: "How it ends",
     endWhyLabel: "Why",
     endWhyHint:
-      "Kept and readable afterwards. A thread that ends with no reason turns into a mood in the " +
+      "Kept and readable afterwards. A direction that ends with no reason turns into a mood in " +
+      "the " +
       "room six months later that neither of you can name.",
     endSaidHint:
       "Unchecked until you actually have. Letting a direction go silently is worse than either " +
@@ -544,7 +546,8 @@ export const T = {
     /** @param {string} aim */
     removeBody: (aim) =>
       `"${aim}" goes, and stops being readable anywhere - the person's page, a prep card, ` +
-      `anything an agent reads. Right for a thread opened against the wrong person or twice ` +
+      `anything an agent reads. Right for a direction opened against the wrong person or ` +
+      `twice ` +
       `by accident.\n\nIf it was real and it is over, close it with "End it" instead. That ` +
       `keeps the direction and the reason it ended, which is what answers "why do we not talk ` +
       `about this any more" next spring.`,
@@ -579,8 +582,9 @@ export const T = {
     privateTitle: "The private half",
     workTitle: "The work half",
     privateWhy:
-      "Its own store, read by nothing on the work side and never merged with it. Drift, cadences, " +
-      "duties, prep and a focus budget are not here - contact with somebody you live with is " +
+      "Its own store, read by nothing on the work side and never merged with it. What is " +
+      "behind, cadences, duties, prep and a focus budget are not here - contact with somebody " +
+      "you live with is " +
       "continuous, so a cadence over it would read as permanently fine and mean nothing.",
     workWhy:
       "Everything the app has always been. People you are responsible for, what you owe them, and " +
@@ -691,7 +695,8 @@ export const T = {
       "For the moment a job ends. Archives every person, project and workstream that is currently " +
       "active - all at once, instead of one at a time.",
     archiveAllNote:
-      "Nothing is deleted. Every 1-1, promise, decision and growth thread stays exactly as it is. " +
+      "Nothing is deleted. Every 1-1, promise, decision and growth direction stays exactly as " +
+      "it is. " +
       "Each one can be brought back on its own, whenever it is relevant again, from its archived list.",
     archiveAllSafe: "Safe to run again - anything already archived is left untouched.",
     archiveAllButton: "Archive everything active",
@@ -727,8 +732,9 @@ export const T = {
       "It borrows the sign-in Claude Code already has on this machine, so there is no key to " +
       "store. A note only ever leaves this machine when you press one of those buttons.",
     draftingWithout:
-      "Everything else works exactly as it does with it on. Drift, cadences, promises and the " +
-      "focus budget are ordinary arithmetic - a model never decides what needs your attention.",
+      "Everything else works exactly as it does with it on. What is behind, cadences, promises " +
+      "and the focus budget are ordinary arithmetic - a model never decides what needs your " +
+      "attention.",
     draftingNever:
       "A model writes nothing here. Everything it produces is a draft, shown and thrown away " +
       "unless you keep it yourself.",
@@ -822,7 +828,7 @@ export const T = {
     archiveAllAskTitle: "Archive everyone and everything active?",
     archiveAllAskBody:
       "Archives every person, project and workstream that is currently active, in one go. " +
-      "Nothing is deleted - every 1-1, promise, decision and growth thread stays exactly as " +
+      "Nothing is deleted - every 1-1, promise, decision and growth direction stays exactly as " +
       "it is, and each one can be brought back individually, whenever it is relevant again, " +
       "from its archived list.\n\n" +
       "Afterwards this page offers a single Undo that puts back exactly what this press " +
@@ -1049,8 +1055,9 @@ export const T = {
     /** @param {string} name */
     archiveProjectTitle: (name) => `Archive ${name}?`,
     archiveProjectBody:
-      "It stops appearing in this list, in Now and in attention nudges. Every check-in, stake and " +
-      "review already logged against it stays exactly as it is and can be looked at again. Fully " +
+      "It stops appearing in this list, in Now and in attention nudges. Every check-in, " +
+      "stakeholder and review already logged against it stays exactly as it is and can be " +
+      "looked at again. Fully " +
       "reversible from the archived list.",
     /** @param {string} name */
     archivedToast: (name) => `${name} archived.`,
@@ -1658,8 +1665,8 @@ export const T = {
     aimsAtLimit: "Two is the limit. Reach or let one go first.",
     aimsSetButton: "Set an aim",
     aimsEmpty:
-      "Nothing set. An aim says what you want to be able to do and where its verdict comes from - " +
-      "the record counting it, somebody else saying so, or you logging the occasions. Without one " +
+      "Nothing set. An aim says what you want to be able to do and how you will know - the " +
+      "record counting it, somebody else saying so, or you logging the occasions. Without one " +
       "of those it can only ever be kept to next time.",
 
     /* One aim's card. The three headings are the fields doing one job each. */
@@ -1684,9 +1691,9 @@ export const T = {
     /* Setting one. The source is asked before the test, deliberately. */
     setTitle: "Set an aim",
     setIntro:
-      "Something you want to be able to do, and where its verdict comes from. Without a " +
-      "source it can only ever be kept to next time, which is what a development point with " +
-      "no marker becomes.",
+      "Something you want to be able to do, and how you will know. Without that it can only " +
+      "ever be kept to next time, which is what a development point with nothing to see " +
+      "becomes.",
     setAimLabel: "What you want to be able to do",
     setSourceLabel: "How you will know",
     setSourceLogged: "You log the occasions, taken and missed",
@@ -2072,7 +2079,7 @@ export const T = {
 
     /* Ask: what Tend can answer from its own data. */
     whatNeedsYou: "What needs you",
-    whatNeedsYouHint: "from the drift log",
+    whatNeedsYouHint: "from what is behind",
     allInStep: "Nothing is behind. That is the whole answer.",
     /** @param {number} needs @param {number} nudges */
     behindCount: (needs, nudges) => `${needs} need you, ${nudges} worth a nudge.`,
@@ -2123,7 +2130,7 @@ export const T = {
     promiseWhoLabel: "To whom",
     promiseTextLabel: "What you said you would do",
     promiseDueLabel: "By when",
-    promiseDueHint: "Optional. Drift is measured either way.",
+    promiseDueHint: "Optional. How long it has been open is measured either way.",
     promiseLoggedPlain: "Promise logged."
   },
 
@@ -2204,9 +2211,9 @@ export const T = {
     ledgerPromisesMadeValue: (made, kept) => `${made}, of which ${kept} closed`,
     ledgerPromisesOpen: "Promises open right now",
     ledgerDecisions: "Decisions recorded",
-    ledgerGrowth: "Growth threads discussed",
+    ledgerGrowth: "Directions discussed",
     /** @param {string | number} notes @param {string | number} observed */
-    ledgerGrowthValue: (notes, observed) => `${notes}, marker seen ${observed}×`,
+    ledgerGrowthValue: (notes, observed) => `${notes}, seen happening ${observed}×`,
     ledgerSkips: "Meetings that did not happen",
     ledgerChases: "Times you chased somebody",
 

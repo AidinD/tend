@@ -163,3 +163,30 @@ These do:
 3. **`level`.** No collision inside the app. It collides with the IC ladder
    outside it, which is currently an open question at work. Leave it, or say
    "hand-over level" wherever it appears alone?
+
+## What A actually took, once it was applied
+
+Twenty sentences, not eleven. Three things the survey's counts hid, all of which
+only reading each hit could have found:
+
+**The proposal table missed the two places an internal name is a label rather
+than prose.** The journal's ledger printed **Growth threads discussed** and
+**marker seen 3×** - which is exactly the shape the survey had just declared did
+not exist. They are now **Directions discussed** and **seen happening 3×**.
+
+**Six of `thread`'s ten hits were the module's own comments**, which should say
+`thread`, because that is what the domain calls it and whoever edits the file
+needs the connection. The other four were sentences a reader sees. A count could
+not tell them apart.
+
+**"growth thread" survived two passes because it reads as ordinary English.** It
+appears in the three archive bodies, listing what is preserved when somebody or
+everybody is archived. But a reader archiving a colleague has never seen the
+word, and `direction` is the one they have - so all three now say "growth
+direction".
+
+Four uses of `drift` remain and are meant to: "when something drifts", "who has
+drifted", "a drift nobody noticed", "not a drift". All the English verb or the
+English noun, none of them the mechanism's name. `marker` remains only in a
+parameter name and two comments; `verdict` only in "asks questions rather than
+reaching verdicts", where saying it is the point.
