@@ -11,22 +11,39 @@ be neglected.** So the tool tracks how far behind each thing is, shows only what
 deviates, and derives its evidence from notes rather than asking for
 check-boxes.
 
-## Status - 2026-08-23
+## Status - 2026-09-03
 
 **Usable without a terminal.** Install it, open it, and everything can be done
 from the window: add people, log contact and promises, answer the monthly
 questions, run a focus, hand work over with a stated level, bind Nib folders and
 import from them. Nothing in the app tells you to run a command.
 
-Six views: Now, Focus, People, Work, Role map, Settings. The Knowledge view is
-the one from the original design that does not exist yet - it needs a body of
-notes to search, and there isn't one until Nib has been used for a while.
+Eleven views in the work half: Now, Prep, Focus, People, Work, The day,
+Reflection, Role map, Decisions, Knowledge, Settings. Knowledge exists now - it
+was the one view from the original design that had to wait for a body of notes to
+search.
+
+Five of those are shared with the private half - People, The day, Reflection,
+Knowledge and Settings - and `src/domain/halves.js` is the single declaration
+that decides it. Everything else derives from it: the rail, the palette, what a
+person may be, what the service accepts, and which attention signals mean
+anything. That file's header explains the rule for what belongs in a half better
+than this document can, and it is worth reading before touching navigation.
+
+**The private half was subtracted rather than designed**, so assume anything
+shared between the halves was never checked against the private one. That
+assumption has already paid twice.
+
+The user's own goals live in `aims` - a goal that names where its verdict comes
+from, refused at the write without one, two open at a time per half. It is the
+only thing in the app that is about the user rather than about somebody they
+lead, along with the attention signals and the journal.
 
 - Storage layer: `src/storage/` - append-only log, safe concurrent writers
 - Domain layer: `src/domain/` - drift, relationship types, promises, focus,
   and the Now view
 - Service layer: `src/service/api.js` - the operations, called by both clients
-- MCP server: `src/mcp/` - twelve tools, verified end to end over stdio.
+- MCP server: `src/mcp/` - forty-eight tools, verified end to end over stdio.
   See [docs/mcp.md](docs/mcp.md)
 - Role map seeding is a button in the app; `npm run seed` does the same thing
   from a terminal for a fresh data directory
@@ -34,9 +51,21 @@ notes to search, and there isn't one until Nib has been used for a while.
   design tokens, frameless with its own header like Jot and Nib
 - Monthly signal questions, delegation levels on workstreams, and Nib bindings:
   `src/domain/signals.js`, `src/domain/workstreams.js`, `src/service/nib.js`
-- 386 unit tests, 8 MCP end-to-end checks, and an 83-check walkthrough of the
-  whole product driven over the Chrome DevTools Protocol. Type check clean
-  (`npm test`, `npm run test:e2e`, `npm run test:app`, `npm run typecheck`)
+- 885 unit tests, 8 MCP end-to-end checks, a 176-check walkthrough of the whole
+  product driven over the Chrome DevTools Protocol, and 17 more for the private
+  half. Type check clean (`npm test`, `npm run test:e2e`, `npm run test:app`,
+  `npm run test:private`, `npm run typecheck`)
+- **A check that asserts nothing is worse than no check**, and this project has
+  now found six of them. The two shapes to know: a `check()` body that does its
+  reading inside and returns a promise is recorded as passing before the
+  assertion runs, and `querySelectorAll` finds elements inside a closed
+  `<details>`, so a check counting controls in a folded block passes against
+  controls nobody can reach. Read first, assert second. Mutate the source and
+  watch the check go red before believing it
+- The walkthrough photographs every view with `--shots`, one image per view plus
+  a person's page. Off by default: `Page.captureScreenshot` hangs for its full
+  timeout often enough that eleven calls turn an occasional minute into an
+  occasional five, on a suite whose whole worth is that it gets run
 - The walkthrough can only ever drive the Electron it started: it refuses to
   begin when the debugging port is already taken, naming the PID, and checks the
   attached app's data directory against this run's scratch folder. `--port=N`

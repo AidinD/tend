@@ -3,6 +3,188 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-03 - Aims belong to both halves, and a drift signal to one
+
+**Decided.** `reflection` is `halves: ["work", "private"]`. Each half keeps its
+own two open aims rather than sharing the pair.
+
+**Why it was work-only, and why that was never a reason.** A weekly look back is
+first-person and on no clock, which is the same property that made the journal
+transfer. It was excluded because the private half was built by taking views
+away, and this was one of the views taken. Nothing decided it.
+
+What made it worth revisiting is that the page now also carries the user's own
+aims, so goals set outside work had nowhere in the app at all - and a second file
+of them grew up beside it. That file is the two-places problem this app exists to
+end, arriving from the direction nobody was watching.
+
+**Two open aims per half, not two across both.** The limit exists because working
+on four aspects of your own conduct at once is working on none. Separate stores
+and separate attention are the counter-argument that wins here: a goal about home
+does not compete for a slot with one about running a one-to-one, and forcing them
+into the same pair would mean the app deciding which half of a life gets the
+attention.
+
+**What the check found.** The private half was producing "I have not spoken to 8
+of 8 people this month" - about the people the user lives with. `halves.js`
+forbids exactly that in as many words, and the half's own page broke the rule.
+
+The general fault: **the private half was subtracted rather than designed.**
+Anything shared between the halves was never checked against the private one, and
+four views are shared.
+
+**A declaration, not a condition per signal.** `SIGNAL_HALVES` sits next to the
+signals and an undeclared key is refused rather than allowed. The alternative
+considered was a guard on each `push`, which loses for the reason `VIEWS` is a
+declaration: it is a list scattered through three hundred lines, and the next
+signal added simply will not have one - failing open, into the half where failing
+open means the app writing about somebody's family. A test asserts every key the
+file can emit appears in the declaration, so adding a signal without deciding its
+half is a failing suite rather than a surprise.
+
+The line it draws: anything counted over people and a clock is work-only, because
+neglect, concentration and second-hand knowledge are all statements about a roster
+with a cadence over it, and this half has neither. Anything first-person
+transfers.
+
+**One test changed rather than loosened.** `mode.test.mjs` asserted reflection was
+absent here. That assertion encoded a decision the user has since reversed, so it
+moved with the decision and says so at length - otherwise it reads as a guard
+weakened to let a change through, which is the more common reason an assertion
+gets edited.
+
+## 2026-09-03 - A person's page opens on observations, not on history
+
+**Decided.** Observations move above the contact history. The history folds behind
+a line saying what it amounts to, and runs of three or more identical rows
+collapse into one that opens on a click.
+
+**What was wrong.** The page opened on the contact history, which on a real
+roster is sixteen rows with fifteen of them the identical string from a calendar
+import. So the first thing read was a record that an import had run, and the
+material a review conversation is built from sat under it.
+
+Contact history answers "are we in step", and the cadences block above has
+already answered that in one badge. The rows are wanted only when something looks
+wrong.
+
+**The summary is computed in the service, not in the view.** The page is handed a
+capped twenty rows. A total derived from those would report the cap as a fact the
+moment somebody has twenty-one conversations, so `contactSummary` runs over the
+whole set and the view is handed numbers rather than allowed to derive them. One
+unit test exists solely to fail if those two ever swap.
+
+Arithmetic only and no model near it, for the reason that applies to every
+derived phrase in this app: a brief that cannot be traced to the state that
+produced it is worse than no brief, and this line has replaced the rows as the
+thing being read.
+
+**It says something the rows did not.** A fortnightly duty whose real rhythm is
+every thirty-five days reads as "on time" on the badge, because a backfilled
+import satisfies a cadence exactly as well as a conversation does. Sixteen rows
+hid that; one line states it.
+
+**Folded, not dropped.** Each row keeps its own take-it-back button one click
+away. A contact logged against the wrong person moves a clock and then looks
+identical to a real one, so removing the ability to undo one - even one of
+fifteen identical imports - would trade a real capability for tidiness.
+
+Consecutive runs only. Two identical rows either side of a real conversation are
+not one run, and merging across it would put the conversation inside a fold that
+claims to be about the import.
+
+**Two faults found while building it.** An edit wrote a NUL byte where a space
+belonged, inside a template literal between two interpolations: the file behaved
+correctly, was classified as binary, and two later edits failed to match because
+they were searching for the space. Grouping keys are `JSON.stringify` of the
+fields now, which has no separator to lose - the same fix `nib.js` took for the
+same reason.
+
+And one of the new checks asserted nothing. `check` takes a synchronous function;
+this one did its reading inside and returned the promise, so the assertion ran
+after the check had been recorded as passing, and a mutation removing the feature
+entirely stayed green. Read first, assert second, every await outside the check.
+
+Related, and quieter: `querySelectorAll` finds elements inside a closed
+`<details>`, so the existing undo check was passing against a button nobody could
+reach once the history folded. Any check counting controls inside something
+collapsible has the same hole.
+
+## 2026-09-03 - Six type steps, a readable text ladder, severity you can see
+
+**Decided.** Fifteen font sizes collapse to six tokens. The three text levels are
+lifted so all of them are readable on every surface. Vertical space inside a card
+becomes four bonds as tokens. A severity card wears a tinted band across its head
+rather than a tint across its whole surface.
+
+**Measured rather than judged, and the numbers named three faults.**
+
+Twelve of the fourteen gaps between the font sizes were half a pixel or one - a
+four per cent difference, which the eye does not register. The effect is a single
+text size with noise around it, so nothing on any screen reads as more important
+than anything else. No commit did this; each new rule picked a number near the
+one beside it.
+
+The dimmest text level was the most-used colour in the file, more sites than the
+other two together, at 2.47:1 on the lightest surface. That is under WCAG's 3:1
+floor for large text, never mind 4.5:1 for body. Labels, counts and timestamps
+were being drawn in a colour meant for furniture.
+
+The spacing inside a card was 2, 6, 5 and 12 pixels - four levels inside ten - and
+**one was inverted**: a section label sat further from its own list than the
+list's items sat from each other. Proximity is what grouping is, so the most
+tightly bound element on the card had the most air and grouped nothing.
+
+**Assigned by role, not by nearest value.** All fifty-nine size declarations were
+reassigned by what the rule is for. This matters most for prose: notes at 13px
+went UP to body rather than down to metadata. Rounding to the nearest step would
+have shrunk the text a person actually reads in order to tidy the scale.
+
+**Why a band and not a tint.** The whole-surface tint was measured on a narrow
+card, where 13% alpha over the surface read as noticeable and stopped there. On a
+wide monitor the same rule paints two thousand pixels of colour for a signal that
+has not got any stronger: the amount of colour tracked the window width rather
+than the urgency. A band holds the amount constant at any width and puts it where
+the eye lands first regardless, which is the name.
+
+The band covers the title row and not the reason beneath it. The reason is capped
+at 76ch so it stays readable on a wide screen, and a width-capped paragraph
+cannot also be a full-width band without a wrapper element in every view that
+builds a card.
+
+A roster row keeps the tint, because a row IS its own head - there is nothing
+below the title to keep clear of. The treatments differ where the shapes differ
+and agree everywhere else.
+
+**A plain card has no bar.** It used to default to the same value as the card's
+border, so a critical card differed from an ordinary one by three pixels of
+colour - on a page of twenty cards a detail rather than a signal. The absence of
+a bar is the stronger statement, and only severities that want something have
+one. Deliberately not extended to ok or proposed: tinting everything is tinting
+nothing.
+
+**Guarded in `test/palette.test.mjs`, because neither fault is the kind a
+screenshot catches.** Both arrive one shade and one half-pixel at a time. Twelve
+assertions against the stylesheet's source: six steps, no raw pixel size outside
+them, every level readable on every surface, the levels distinguishable from each
+other, the four spacing bonds in order, a heading closer to its content than the
+content is to itself, no loose semantic hex, and severity in a band rather than
+across a surface. The font-size check refuses to run on fewer than forty
+declarations, so a parse that silently matches nothing fails instead of passing.
+
+**What is deliberately not tested.** Whether a section label wears a chip. The
+guards pin things that break something when they drift - a gap the eye cannot
+see, a colour that cannot be read. Whether a label has a box around it is taste,
+and a test that pins taste turns changing your mind into a failing suite.
+
+**The spacing check the harness already owned was pointed at two pages.** It now
+runs on all eleven views, which is what the view sweep was actually worth. It went
+red immediately: a section heading sat at a gap of exactly zero above the line
+before it, because the paragraph classes carry a top margin and no bottom one
+while a group head carries no top margin at all. Fixed by making the rule about
+what a group FOLLOWS rather than by listing the block types that need it, since
+that list was always going to miss the next one.
+
 ## 2026-09-02 - A flag on a principle is not a promise
 
 **Decided.** `indexNib` no longer derives a commitment from a flagged block on a
