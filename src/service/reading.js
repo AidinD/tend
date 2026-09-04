@@ -125,6 +125,13 @@ function summariseItem(i) {
     who: i.who ?? null,
     line: i.line ?? null,
     age: i.age ?? null,
+    /*
+     * Which items are one problem with several subjects. Null on anything that
+     * stands alone, and the view draws a group of one as a plain card - a head
+     * saying "1 person" above a single row is worse than no head.
+     */
+    groupKey: i.groupKey ?? null,
+    groupLine: i.groupLine ?? null,
     person: i.subject,
     // What the subject IS, not only its id. A card for a project cadence and a
     // card for a person cadence look identical without it, and the actions they

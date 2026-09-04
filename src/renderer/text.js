@@ -302,6 +302,12 @@ export const T = {
     guarded: " · skyddad",
     /* The mark alone, for a card whose second line already names the duty. */
     guardedAlone: "skyddad",
+    /*
+     * A group's head. The count is the people in it, so a reader can tell at a
+     * glance whether one card is one problem or six.
+     */
+    /** @param {number} n */
+    groupCount: (n) => `${n} ${n === 1 ? "person" : "personer"}`,
 
     /* A monthly question. The answer is usually no, and saying so is the point. */
     neverAsked: "aldrig frågad",

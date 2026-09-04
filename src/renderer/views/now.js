@@ -220,14 +220,14 @@ export async function render() {
        * tile says a fortnightly duty is running at nineteen weeks, and the card
        * says the same thing with the button that fixes it.
        */
-      group(words.needsYouGroup, attention.needsYou.map(card).join(""), attention.needsYou.length)
+      group(words.needsYouGroup, cards(attention.needsYou), attention.needsYou.length)
     }
     ${rosterBlock(roster)}
     ${group(words.revisitsGroup, revisitCards, revisits.length)}
     ${group(words.questionsGroup, due.map(question).join(""), due.length)}
     ${group(
       words.nudgeGroup,
-      attention.nudges.map(card).join("") +
+      cards(attention.nudges) +
         (attention.heldBackByFocus > 0 && !attention.focus
           ? ""
           : attention.heldBackByFocus > 0
@@ -768,13 +768,18 @@ function group(title, body, count) {
   </div>`;
 }
 
-/** @param {any} item */
-function card(item) {
-  const softened =
-    item.actualUrgency === "critical" && item.urgency !== "critical"
-      ? `<p class="card-why dim">${words.softened}</p>`
-      : "";
-
+/**
+ * The buttons for one item, whether it is a card of its own or a row in a group.
+ *
+ * Moved out of `card` unchanged when the grouped card arrived. Building this
+ * list twice is how the two would come to offer different things for the same
+ * row, and the failure is quiet: a card offering a kind of contact that cannot
+ * satisfy the cadence it is about records something and still says "Loggat".
+ *
+ * @param {any} item
+ * @returns {string[]}
+ */
+function actionsFor(item) {
   const actions = [];
   if (item.person) {
     // The subject decides both the wording and the kinds the form will offer.
@@ -811,6 +816,99 @@ function card(item) {
       `<button class="act primary" data-act="fileCommitments" data-key="${esc(item.key.slice(8))}">${words.fileButton}</button>`
     );
   }
+  return actions;
+}
+
+/**
+ * A list of items as cards, with the ones that are one problem drawn together.
+ *
+ * Six cards imply six actions. One duty that has never run, for six people, is
+ * one problem with six subjects, and on the page whose job is saying where to
+ * look that difference is the whole point.
+ *
+ * Order is preserved: a group takes the position of its first member, so the
+ * severity sort the service did is not undone here.
+ *
+ * @param {any[]} items
+ * @returns {string}
+ */
+function cards(items) {
+  /** @type {Map<string, any[]>} */
+  const groups = new Map();
+  /** @type {string[]} */
+  const order = [];
+
+  for (const item of items) {
+    /*
+     * A stable key even for the ungrouped, so one loop draws both kinds and
+     * the position of each is decided by where its first member sat.
+     */
+    const key = typeof item.groupKey === "string" && item.groupKey !== "" ? item.groupKey : item.key;
+    if (!groups.has(key)) {
+      groups.set(key, []);
+      order.push(key);
+    }
+    (groups.get(key) ?? []).push(item);
+  }
+
+  return order
+    .map((key) => {
+      const members = groups.get(key) ?? [];
+      /*
+       * One member is a plain card. A head reading "1 person" above a single
+       * row says nothing and costs a line on the page that exists to be short.
+       */
+      return members.length === 1 ? card(members[0]) : groupCard(members);
+    })
+    .join("");
+}
+
+/**
+ * One duty in one state, and everybody it applies to.
+ *
+ * The head says which duty and what state; each row says one person, their own
+ * age against the target, and the actions for that person. Deliberately not a
+ * merged sentence: the actions are per person, and an age per row is what keeps
+ * an outlier visible instead of averaged away.
+ *
+ * @param {any[]} members
+ * @returns {string}
+ */
+function groupCard(members) {
+  const first = members[0];
+  const rows = members
+    .map(
+      (item) => `<div class="card-person">
+        <span class="card-person-name">${esc(item.who)}</span>
+        <span class="card-person-age">${esc(item.age ?? "")}</span>
+        <span class="card-person-acts">${actionsFor(item).join("")}</span>
+      </div>`
+    )
+    .join("");
+
+  return `<article class="card sev-${esc(first.urgency)} card-grouped"
+      title="${esc(`${first.why} ${first.from}`)}">
+    <div class="card-top">
+      <h2 class="card-title">${esc(first.groupLine)}</h2>
+      <span class="pill ${esc(first.urgency)}">${words.groupCount(members.length)}</span>
+    </div>
+    <div class="card-people">${rows}</div>
+    ${
+      first.guarded
+        ? `<div class="card-foot"><span class="src">${words.guardedAlone}</span></div>`
+        : ""
+    }
+  </article>`;
+}
+
+/** @param {any} item */
+function card(item) {
+  const softened =
+    item.actualUrgency === "critical" && item.urgency !== "critical"
+      ? `<p class="card-why dim">${words.softened}</p>`
+      : "";
+
+  const actions = actionsFor(item);
 
   /*
    * Three slots when the item is about one named subject, and the sentence when

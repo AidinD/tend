@@ -4485,6 +4485,158 @@ try {
 
   /* ------------------------------------------------------------- exit -- */
 
+
+  /* --------------------------------------------------- grouped cards -- */
+
+  /*
+   * A second person under the same relationship, so a duty that has never run
+   * applies to two of them.
+   *
+   * The whole walkthrough had one person in the mandate group until here, which
+   * means every run drew every group as a group of one - the plain-card branch -
+   * and proved nothing at all about the grouped shape. Added last in this
+   * section so it cannot change what anything above it counted.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('[data-act=\"addPerson\"]') !== null", "the roster");
+  await page.click('[data-act="addPerson"]');
+  await page.fillDialog({ name: "Andrahand Provsson", relation: "manage-remotely", since: longAgo });
+  await page.waitFor(
+    "document.body.textContent.includes('Andrahand Provsson')",
+    "the second person"
+  );
+
+  await page.click('[data-view="now"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the front page again");
+  await sleep(400);
+
+  const grouped = JSON.parse(String(await page.evaluate(`(() => {
+        const cards = [...document.querySelectorAll('.stack.cards > .card')];
+        return JSON.stringify({
+          cards: cards.length,
+          grouped: cards.filter((c) => c.classList.contains('card-grouped')).length,
+          rows: document.querySelectorAll('.card-grouped .card-person').length,
+          plain: cards.filter((c) => !c.classList.contains('card-grouped')).length,
+          groups: cards
+            .filter((c) => c.classList.contains('card-grouped'))
+            .map((c) => ({
+              head: (c.querySelector('.card-title')?.textContent ?? '').trim(),
+              count: (c.querySelector('.pill')?.textContent ?? '').trim(),
+              names: [...c.querySelectorAll('.card-person-name')].map((n) => n.textContent.trim()),
+              ages: [...c.querySelectorAll('.card-person-age')].map((n) => n.textContent.trim()),
+              acts: [...c.querySelectorAll('.card-person-acts')].map((n) => n.children.length)
+            })),
+          needsYouCount: (() => {
+            const heads = [...document.querySelectorAll('.group')];
+            const block = heads.find((h) =>
+              (h.querySelector('.group-title')?.textContent ?? '').trim() === ${JSON.stringify(T.now.needsYouGroup)}
+            );
+            return block ? (block.querySelector('.group-meta')?.textContent ?? '').trim() : 'no block';
+          })(),
+          inNeedsYou: (() => {
+            const heads = [...document.querySelectorAll('.group')];
+            const block = heads.find((h) =>
+              (h.querySelector('.group-title')?.textContent ?? '').trim() === ${JSON.stringify(T.now.needsYouGroup)}
+            );
+            if (!block) { return -1; }
+            const cs = [...block.querySelectorAll('.stack.cards > .card')];
+            let n = 0;
+            for (const c of cs) {
+              n += c.classList.contains('card-grouped')
+                ? c.querySelectorAll('.card-person').length
+                : 1;
+            }
+            return n;
+          })()
+        });
+      })()`)));
+
+  check("one duty that has never run, for two people, is one card", () => {
+    if (grouped.grouped === 0) {
+      throw new Error(
+        `nothing grouped, so this proved nothing about the shape: ${JSON.stringify(grouped)}`
+      );
+    }
+    const two = grouped.groups.find((/** @type {any} */ g) => g.names.length >= 2);
+    if (!two) {
+      throw new Error(`no group holds two people: ${JSON.stringify(grouped.groups)}`);
+    }
+    if (!two.names.includes("Testperson Ström") || !two.names.includes("Andrahand Provsson")) {
+      throw new Error(`the group holds ${JSON.stringify(two.names)}`);
+    }
+  });
+
+  check("and its head says the duty and its state without naming anybody", () => {
+    const two = grouped.groups.find((/** @type {any} */ g) => g.names.length >= 2);
+    if (!two) {
+      throw new Error("no group to read a head off");
+    }
+    for (const name of two.names) {
+      if (two.head.includes(name)) {
+        throw new Error(`the head names somebody: "${two.head}"`);
+      }
+    }
+    if (two.head.trim() === "") {
+      throw new Error("the head says nothing");
+    }
+  });
+
+  check("every row carries its own age, so an outlier cannot hide in the group", () => {
+    const two = grouped.groups.find((/** @type {any} */ g) => g.names.length >= 2);
+    if (!two) {
+      throw new Error("no group to read ages off");
+    }
+    if (two.ages.length !== two.names.length) {
+      throw new Error(`${two.names.length} names but ${two.ages.length} ages`);
+    }
+    const blank = two.ages.filter((/** @type {string} */ a) => a.trim() === "");
+    if (blank.length > 0) {
+      throw new Error(`${blank.length} of ${two.ages.length} rows say no age`);
+    }
+  });
+
+  check("and its own actions, because a group action does not exist", () => {
+    const two = grouped.groups.find((/** @type {any} */ g) => g.names.length >= 2);
+    if (!two) {
+      throw new Error("no group to read actions off");
+    }
+    if (two.acts.length !== two.names.length) {
+      throw new Error(`${two.names.length} rows but ${two.acts.length} action cells`);
+    }
+    const empty = two.acts.filter((/** @type {number} */ c) => c === 0);
+    if (empty.length > 0) {
+      throw new Error(`${empty.length} rows offer nothing to do`);
+    }
+  });
+
+  check("the count still counts what needs him, not cards on the page", () => {
+    /*
+     * The semantic most likely to change silently during a layout pass: six
+     * cards becoming one block must not turn "8 things need you" into "3".
+     * Read off the page rather than recomputed, and compared with the number of
+     * actionable rows in that block, which is what the number means.
+     */
+    if (grouped.needsYouCount === "no block") {
+      throw new Error("no Kräver dig block on the page, so this proved nothing");
+    }
+    if (grouped.inNeedsYou < 1) {
+      throw new Error("the block holds no rows, so the comparison is vacuous");
+    }
+    if (Number(grouped.needsYouCount) !== grouped.inNeedsYou) {
+      throw new Error(
+        `the head says ${grouped.needsYouCount} and the block holds ${grouped.inNeedsYou} rows`
+      );
+    }
+  });
+
+  check("a group of one is drawn as a plain card, with no head counting it", () => {
+    for (const g of grouped.groups) {
+      if (g.names.length === 1) {
+        throw new Error(`a group of one got a head: "${g.head}"`);
+      }
+    }
+  });
+
   step("Finishing up");
 
   /*

@@ -3,6 +3,59 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-04 - One duty for six people is one card with six rows
+
+**Decided.** Items sharing a duty and a state are drawn as one card with a row
+per person. Not six cards, and not one merged card either.
+
+**The argument, and the counter-argument that shaped the answer.** Six cards
+imply six actions. It is one duty that has never run, for six people - one
+problem with six subjects - and the front page's job is to say where to look.
+The counter is that a group can hide an outlier and this page exists to surface
+deviation. So the shape has to keep every person's own state visible, which is
+what rules out a merged card and what the row-per-person form is for.
+
+**Three things the row form keeps that a merged one loses.** The per-person
+actions: `Logga kontakt` and `Öppna` are about one person, and a merged card
+would have to drop them or invent a group action the service does not have. The
+outlier: five at 44 weeks and one at 60 must not read as six at 44, and an age
+on every row is the only thing that prevents it. And it needs nothing from the
+role map, unlike `shortName`.
+
+**Keyed on the duty and its state, never on the age.** In the fixture six people
+share an age to the week, which looks like a fine key and is structural rather
+than a coincidence: "never happened" starts every clock at the same origin.
+Keying on age would split them the moment one of them was hired later, so
+`groupKey` is `${duty.id}|never` or `|late` and `groupLine` carries no
+number at all.
+
+**The count still counts what needs him.** "Kräver dig 8" is eight things, not
+eight cards, and six cards becoming one block must not make it read 3. That is
+the semantic most likely to change silently during a layout pass, so a check
+compares the number in the heading against the actionable rows in the block -
+group rows counted individually, plain cards as one - and it was mutation-tested
+by hard-coding the heading to 3.
+
+**A group of one is a plain card.** A head reading "1 person" above a single row
+says nothing and costs a line on the page that exists to be short.
+
+**Two things this pass found rather than built.** The grouped path had never
+been exercised: the walkthrough had one person in the mandate group from
+beginning to end, so every group was a group of one and every run took the
+plain-card branch. A second person under the same relationship goes in at the
+end of the Läget section, where it cannot change what anything above it counts.
+And `overflow-wrap: anywhere` on a name inside a third-width column broke every
+name one character per line - "Gunb / org / Almk / vist". A grouped card spans
+the full grid now, because its rows carry a name, an age and two buttons and
+that does not fit in a third of the page at any font size.
+
+**Reported rather than decided: whether a duty resolves once or per person.** A
+feedback round is one round for six people; six late 1-1s are six conversations.
+A group card could honestly offer one shared button in the first case and must
+not in the second, and the role map does not record which kind a duty is. The
+field is not added and the answer is not guessed. Same boundary as
+`shortName`: it is a role-map property and it is Aidin's to fill in.
+
 ## 2026-09-04 - A card is three slots, and the payload carries both shapes
 
 **Decided.** A card about one named subject is a name, then what it is about,

@@ -45,6 +45,11 @@ import { isArchived } from "./archive.js";
  *   `title` for those.
  * @property {string} [line] The duty or the promise, plus its state.
  * @property {string | null} [age] How long, in words.
+ * @property {string} [groupKey] Items sharing this are one problem with several
+ *   subjects, and a reader may draw them as one card with a row per subject.
+ *   Absent means the item stands alone. Keyed on the duty and its state, never
+ *   on the age - see where it is set for why that distinction is load-bearing.
+ * @property {string} [groupLine] What the group is, with no age in it.
  * @property {string | null} [subjectKind] What sort of thing the subject is.
  *   Carried because the actions a card can offer depend on it: the kinds of
  *   contact that could satisfy a project cadence are not the ones that could
@@ -278,6 +283,15 @@ export function buildAttention(state, now) {
         ? `${dutyLabel(duty)}, aldrig körd`
         : `${dutyLabel(duty)}, senast ${agoWords(drift.daysSince)}`,
       age: `${humanDays(drift.driftDays)} över målet`,
+      /*
+       * What makes two of these one problem: the same duty, in the same state.
+       * Not the age - "never happened" starts every clock at the same origin,
+       * so six people sharing an age to the week is structural rather than a
+       * coincidence, and keying on it would split them the moment one of them
+       * was hired later.
+       */
+      groupKey: `${duty.id}|${never ? "never" : "late"}`,
+      groupLine: never ? `${dutyLabel(duty)}, aldrig körd` : `${dutyLabel(duty)}, försenad`,
       subject: subject.id,
       subjectKind
     });

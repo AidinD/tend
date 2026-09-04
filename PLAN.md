@@ -262,6 +262,18 @@ Tend event log <──┤
    three. See DECISIONS.md, including the walkthrough check that had been
    passing vacuously since the translation.
 
+16. ~~**The grouped card**~~ done. One duty in one state, for several people, is
+   one card with a row per person - six cards implied six actions when the shape
+   was one problem with six subjects. Keyed on the duty and its state and never
+   on the age: six people sharing an age to the week is structural, because
+   "never happened" starts every clock at the same origin. Each row keeps its own
+   age and its own buttons, so an outlier cannot average away and no group action
+   had to be invented. The heading's count still counts things rather than cards,
+   asserted and mutation-tested. **Whether a duty resolves once for many or once
+   per person is reported, not guessed** - a feedback round is one round and six
+   late 1-1s are six conversations, and the role map does not record the
+   difference. See DECISIONS.md.
+
 ## Not built, and why
 
 **The private half's signals.** The questions Tend asks rather than derives, over

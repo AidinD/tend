@@ -646,6 +646,83 @@ button.row.sev-warn:hover {
   line-height: 1.45;
 }
 
+/*
+ * A grouped card: one duty in one state, and a row per person inside it.
+ *
+ * The rows are separated by a rule rather than spaced apart, because they are
+ * one list and not several cards - the whole point of the shape is that six
+ * names read as one problem. Each row is its own grid so the ages line up in a
+ * column: a ragged right edge is what would let an outlier hide, and lining
+ * them up is what makes 60 weeks obvious beside five 44s.
+ */
+.card-people {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-person {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 15px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.card-person:first-child {
+  border-top: 0;
+}
+
+.card-person-name {
+  color: var(--text);
+  font-size: var(--t-body);
+  min-width: 0;
+  /*
+   * No `overflow-wrap: anywhere`. That was here first and it broke every name
+   * one character per line - "Gunb / org / Almk / vist" - because the row was
+   * competing with an age and two buttons inside a third of the page. A name is
+   * the one string on this page that must never be broken mid-word, and the
+   * real fix was the width below rather than a wrapping rule.
+   */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-person-age {
+  color: var(--text-faint);
+  font-size: var(--t-micro);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.card-person-acts {
+  display: flex;
+  gap: 6px;
+}
+
+/*
+ * Full width, and not a third of it.
+ *
+ * A grouped card is a different object from a plain one: its rows carry a name,
+ * an age and two buttons, which does not fit in a third of the page at any
+ * font size - the first attempt squeezed it into the same three-across grid and
+ * every name shattered. It is also one problem rather than one of several, so
+ * the width is honest about what it is rather than a concession to its content.
+ */
+.card-grouped {
+  grid-column: 1 / -1;
+}
+
+/*
+ * A grouped card is taller than a plain one and must not be stretched to a
+ * neighbour's height, which is what `align-items: start` on the grid already
+ * gives it. Its own bottom padding comes back when it has no foot.
+ */
+.card-grouped:not(:has(.card-foot)) .card-people {
+  padding-bottom: 4px;
+}
+
 .card-age {
   margin: 3px 0 0;
   padding: 0 15px;
