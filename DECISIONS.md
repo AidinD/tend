@@ -3,6 +3,132 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-04 - A plan is not a direction, and the shape says so
+
+**Decided.** Two shapes, not one with a flag. `plans` is its own collection
+with its own domain module, and a direction cannot become a plan by an edit.
+
+**Why a flag loses.** They are opposites in every way that matters - a direction
+applies to somebody doing their job who could go further, is shared and can be
+declined, has a horizon rather than a deadline, and never involves HR; a plan
+applies to somebody below the bar, is his and cannot be declined, has a date
+with a consequence, and needs an HR answer before the first conversation.
+Forcing a real case into the direction shape lost four of those at once.
+
+The cost is not untidiness. **A direction that quietly becomes a performance
+plan is the worst version of this conversation:** the person believes they are
+being developed while a decision is being made about them. A flag on one row is
+one edit away from exactly that.
+
+**"Does the person know?" is asked second.** Before the goal, before the
+measure. On the real case that produced this shape the answer is *no* - the
+person says he has no technical challenge while the plan's premise is a basic
+toolchain gap - and that mismatch invalidates the plan's opening sentence.
+Everything after the question is worthless if the answer is no and nothing has
+been said.
+
+**`false` is an answer, not a blank.** Testing truthiness would have made "no,
+they do not know" read as unanswered, which is backwards: a plan whose subject
+does not know is not incomplete, it is a plan with one very clear next step.
+`premiseUntested` is a separate finding for the same reason - every field can
+be filled and it can still be true, so `readiness` could never have reported
+it.
+
+**Not ready is not invalid.** `readiness` says what is missing and `isReady`
+says whether it can begin; neither is called validation. Most plans live as a
+draft for a week or two while he works out what he thinks, and a form that
+refused that would be refusing the thinking. The status is computed from the
+fields rather than accepted from the caller, so a plan cannot be started by
+claiming it started.
+
+**The person's copy is a named subset.** Five lines - the gap, the delivery, the
+measure, the date, what happens if it is not met. The alternative considered was
+everything minus a private list, and it loses for one reason: derived by
+exclusion, a field added later is handed over by default, and the field most
+likely to be added later is another private one. A goal like "document that we
+tried" is a legitimate reason to run a plan and must never reach the copy.
+
+**No agent may write one, and there is no MCP tool.** An agent may add a promise
+because somebody said it out loud and a person is waiting for it. A plan is a
+decision about whether somebody keeps their job in its current shape. Same
+boundary as the role map and the decision log, for the same reason.
+
+## 2026-09-04 - Filing his own work, because he is not in his own roster
+
+**Decided.** `myActions` as its own collection, and "mine" as a third answer
+when filing a commitment out of a shared meeting note.
+
+**What it cost to not have.** Eleven tracked action points from one manager
+meeting on 1 September. Tend found them, could offer only the other two
+attendees, and they went nowhere - because a shared note's commitments can only
+be attributed to somebody in the roster and he is not in his own.
+
+**Why not a promise with no person.** A promise needs somebody waiting. Filing
+his own work as one would have to name the nearest attendee, which inflates
+their card, makes him look like he owes them something he does not, and puts
+work that is not about them into their 1-1 prep. The rule worth keeping is the
+general one: **a promise needs somebody waiting; a task he was handed is his own
+work.**
+
+**Why not add himself to the roster.** It was the obvious fix and it is much
+larger than it looks: every cadence, duty and attention signal would have to
+decide what being behind on yourself means, and the private half's rule that
+signals are about him rather than measurements of others would have to be
+rewritten. The filing option is three functions.
+
+## 2026-09-04 - The front page lays the roster out in four clusters
+
+**Decided.** `RELATION_GROUPS` beside `RELATIONS`, with a test asserting every
+relationship type is in exactly one cluster. The mandate cluster gets a grid of
+equal tiles; the other three get one line each.
+
+**Why a declaration rather than the layout deciding.** The instruction was a
+list of four groups, which would have been a fourth copy of a taxonomy this
+roster has already been bitten by - people.js records that the hand-written
+group list "was the fourth copy of the same thing and it hid people", because it
+had no row for one type and everybody holding it was in the store and off the
+page with no error.
+
+**Order is load-bearing and recorded as such.** The page gives the first cluster
+the grid, so reordering the declaration silently demotes the people the page
+exists to show. Asserted rather than commented.
+
+**`manage-remotely` is in the mandate cluster**, and it has its own assertion.
+RELATIONS calls it the blind spot - the mandate without the observation - so it
+belongs where the eye goes, and it is the one placement somebody would
+reasonably tidy into the outward strip on the grounds that you do not see those
+people.
+
+**One closed set of tile phrases per cluster, not one set for everybody.** The
+first version had a single set about cadence drift, which was the wrong axis:
+what you need to know about somebody you are accountable for is where their
+development stands, and what you need to know about your own manager is whether
+you owe them anything. The symptom was a tile and a card saying the same thing
+four pixels apart.
+
+The sets are closed on purpose. **A member that does not fit its set is a
+finding to report rather than a reason to widen it** - a set that grows to fit
+whatever turns up is a set whose phrases stop being derivable, and then a tile
+is somebody's impression rather than a fact. Two gaps are outstanding under that
+rule: `noChannel` and `outward` have no phrase for somebody who is away.
+
+## 2026-09-04 - Läget absorbs Focus, and the declaration says how
+
+**Decided.** `rail: false` on the focus view. It is reachable and not in the
+rail.
+
+**Why not delete the entry.** app.js redirects any route the current half does
+not declare, so removing `focus` from `VIEWS` would have made "Focus settings"
+and the palette's "Set a focus" bounce back to the home view - silently, since a
+redirect looks like a click that did nothing. The distinction the declaration
+needed was "not in the rail", not "not a view".
+
+**What it exposed.** With no rail button, "no focus running" had no way in: the
+strip only renders when a focus exists, so the feature was reachable from Ctrl+K
+and nowhere else. A feature reachable only from a command palette is one he will
+forget he has. The front page now offers it in one line, styled as the quietest
+thing on the screen because it is an offer rather than a deviation.
+
 ## 2026-09-03 - Extract every string before rewording any of it
 
 **Decided.** One module, `src/renderer/text.js`, holding every word the app

@@ -40,9 +40,10 @@
  *   everHappened: boolean } | null} [worstDrift]
  * @property {{ status: string, stance: string, observations: number } | null} [direction]
  *   The live growth thread, if there is one.
- * @property {{ started: boolean } | null} [plan] The second shape. Always null
- *   until that slice exists, which is why the two plan kinds are unreachable
- *   today and declared anyway - see `UNREACHABLE_KINDS`.
+ * @property {{ started: boolean } | null} [plan] The second shape. Null when
+ *   there is no plan, which is not the same as one that has not started - the
+ *   set has a phrase for each and none for "no plan", because a person with no
+ *   plan is described by their direction instead.
  * @property {number} [promisesOwed] Open promises to this person.
  * @property {boolean} [hasQuestion] Something in `worthRaising` for them.
  * @property {{ overdue: boolean } | null} [update] Stakeholder update state.
@@ -75,13 +76,20 @@ export const TILE_SETS = /** @type {const} */ ({
 /**
  * Kinds that are declared and cannot happen yet.
  *
- * Both are about the plan shape, which does not exist until its own slice. They
- * are in the set now because the set is the specification, and leaving them out
- * would mean the vocabulary quietly disagrees with the brief. The test asserts
- * exactly this list is unreachable, so the day plans exist and these stay
- * unreachable, something is wrong.
+ * Empty, and it was not. `planNotStarted` and `planRunning` sat here while the
+ * plan shape was still a slice away - declared because the set is the
+ * specification, and leaving them out would have meant the vocabulary quietly
+ * disagreed with the brief.
+ *
+ * The list is kept rather than deleted because it is the mechanism that emptied
+ * it: the test asserts exactly these are unreachable, so the day plans landed
+ * it failed and said the two states needed wiring. A declared phrase that stays
+ * unshowable after its feature ships is dead vocabulary, and dead vocabulary is
+ * what confuses a rewriting pass.
+ *
+ * @type {readonly string[]}
  */
-export const UNREACHABLE_KINDS = /** @type {const} */ (["planNotStarted", "planRunning"]);
+export const UNREACHABLE_KINDS = [];
 
 /**
  * How far past its interval a cadence has to run before "late" stops being the

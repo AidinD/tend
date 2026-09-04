@@ -179,6 +179,8 @@ test("every declared phrase is reachable, or declared unreachable", async (t) =>
       "directionShowing",
       { direction: { status: "open", stance: "agreed", observations: 1 } }
     ],
+    ["mandate", "planNotStarted", { plan: { started: false } }],
+    ["mandate", "planRunning", { plan: { started: true } }],
     ["noChannel", "neverSpoken", { worstDrift: drift({ everHappened: false }) }],
     ["noChannel", "feedbackOverdue", { worstDrift: drift({ sinceDays: 40, targetDays: 28 }) }],
     ["noChannel", "inStep", { worstDrift: drift({ sinceDays: 2, targetDays: 28 }) }],
@@ -213,17 +215,16 @@ test("every declared phrase is reachable, or declared unreachable", async (t) =>
     );
   });
 
-  await t.test("the unreachable ones are unreachable because plans do not exist", () => {
+  await t.test("and nothing is declared unreachable any more", () => {
     /*
-     * Asserted so the day the plan shape lands, this test fails and says so.
-     * A declared phrase that stays unshowable after its feature ships is dead
-     * vocabulary, and dead vocabulary is what confuses a rewriting pass.
+     * It was not always empty. The two plan states sat in that list while the
+     * plan shape was a slice away, and this test is what emptied it: the day
+     * plans landed it failed and said the states needed wiring.
+     *
+     * Kept rather than deleted, because the next phrase declared ahead of its
+     * feature will want the same mechanism.
      */
-    for (const kind of UNREACHABLE_KINDS) {
-      assert.ok(kind.startsWith("plan"), `${kind} is unreachable for an unrecorded reason`);
-    }
-    assert.equal(tileOf(row({ plan: { started: false } }), "mandate").kind, "planNotStarted");
-    assert.equal(tileOf(row({ plan: { started: true } }), "mandate").kind, "planRunning");
+    assert.deepEqual([...UNREACHABLE_KINDS], []);
   });
 
   await t.test("an unknown cluster names itself rather than guessing a phrase", () => {

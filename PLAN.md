@@ -51,9 +51,9 @@ lead, along with the attention signals and the journal.
   design tokens, frameless with its own header like Jot and Nib
 - Monthly signal questions, delegation levels on workstreams, and Nib bindings:
   `src/domain/signals.js`, `src/domain/workstreams.js`, `src/service/nib.js`
-- 902 unit tests, 8 MCP end-to-end checks, a 180-check walkthrough of the whole
-  product driven over the Chrome DevTools Protocol, and 17 more for the private
-  half. Type check clean (`npm test`, `npm run test:e2e`, `npm run test:app`,
+- 1021 unit tests, 8 MCP end-to-end checks, a 198-check walkthrough of the
+  whole product driven over the Chrome DevTools Protocol, and 17 more for the
+  private half. Type check clean (`npm test`, `npm run test:e2e`, `npm run test:app`,
   `npm run test:private`, `npm run typecheck`)
 - **A check that asserts nothing is worse than no check**, and this project has
   now found six of them. The two shapes to know: a `check()` body that does its
@@ -158,6 +158,40 @@ Tend event log <──┤
    is now **the private side** and **the work side**, because `side` was
    already the app's own word for it. `half` stays as the internal name and
    the comments must not be "fixed" to match.
+
+9. ~~**Läget, the front door**~~ done. Replaces `Now` and absorbs `Focus`, so
+   the rail lost an entry rather than gaining one. The roster as tiles: the
+   people he holds a mandate over get a grid, the other three clusters get one
+   line each. Every tile phrase comes from `src/domain/tiles.js` - one closed
+   set per cluster, decided by rule, never written by a model, and a test walks
+   every declared phrase from a real row so an unhandled state cannot render as
+   a blank tile about a named colleague.
+10. ~~**Inför**~~ done for its core. `worthRaising` is fed from the "Frågor jag
+   inte ställde" section of the last Nib note - the preparation for the next
+   conversation was already written at the end of the last one and nothing read
+   it. `src/domain/unasked.js` reads it by the shape of the document and never
+   by meaning, so a hand-written note degrades to empty rather than to nonsense.
+   It also generalises the page past the 1-1: unasked questions are now a
+   reason to be on it, which is the only reason a stakeholder or his own
+   manager ever gets a card.
+11. ~~**Mine**~~ done. A commitment out of a shared note can be filed as his own
+   work. `myActions` is its own collection, not a promise with a flag: a
+   promise needs somebody waiting, and filing his own work as one inflates the
+   nearest attendee's card and puts work that is not about them into their 1-1
+   prep. The absence of this cost eleven tracked action points from one meeting.
+12. ~~**Plan**~~ done. The second shape beside a direction, with the table of
+   differences in `src/domain/plan.js`. The second field is the important one -
+   *does the person know?* - and "no" is an answer rather than an unfilled
+   field. Unfilled fields read as "not ready to start" rather than as
+   validation errors. The copy the person is handed is a named five-line subset
+   rather than everything minus the private fields, so a goal like "document
+   that we tried" cannot reach it by default when a field is added later.
+13. **The translation.** Last, by his decision, twice. Everything above is in
+   English and the new screens were built that way on purpose: they had no
+   strings when the order changed, so translating earlier meant writing Swedish
+   twice. `durationOf` and `daysSince` already return parts rather than
+   finished phrases, which is the one thing that had to change first - "för 5
+   veckor sedan" wraps its number and a suffix cannot express it.
 
 ## Not built, and why
 
