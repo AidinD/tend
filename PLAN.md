@@ -248,6 +248,20 @@ Tend event log <──┤
    buttons under Frågor and once as a bare nudge card. The second is reported
    rather than fixed, because which block should own it is a product call.
 
+15. ~~**The card shape**~~ done. Six cards on the front page were identical
+   except for one word - a sentence for a title, the same body on all six, and
+   the duty name printed twice on the same card - so the columns alone left the
+   page reading as noise. A card about one named subject is now a name, what it
+   is about, and how long. `who`, `line` and `age` sit beside `title` and
+   `why` in the payload rather than replacing them, so `tend_attention` is
+   unchanged. **A duty has an optional `shortName` and nothing fills it:** four
+   of the nine seeded names are too long for one line, and inventing a short
+   form the role map does not have is not the renderer's call. The duty form has
+   a field for it; the long name shows until he uses it. One `dutyLabel` feeds
+   the cards, the tiles and the strips, so entering one short name shortens all
+   three. See DECISIONS.md, including the walkthrough check that had been
+   passing vacuously since the translation.
+
 ## Not built, and why
 
 **The private half's signals.** The questions Tend asks rather than derives, over

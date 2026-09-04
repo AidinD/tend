@@ -1121,9 +1121,22 @@ try {
   await page.fillDialog({ kind: "second-hand", note: "Their lead says it is going well" });
   await sleep(400);
 
-  const afterSecondHand = await page.texts(".card-title");
+  // Title and second line of the SAME card: it names the person and says what
+  // about them. Two substrings of one sentence was the old shape and it was
+  // looser - a card about anybody else mentioning a 1-1 satisfied it.
+  const afterSecondHand = JSON.parse(String(await page.evaluate(`(() => {
+        const cards = [...document.querySelectorAll('.card')];
+        return JSON.stringify(cards.map((c) => ({
+          title: (c.querySelector('.card-title')?.textContent ?? '').trim(),
+          line: (c.querySelector('.card-line')?.textContent ?? '').trim()
+        })));
+      })()`)));
   check("a second-hand report satisfies only its own cadence", () => {
-    if (!afterSecondHand.some((c) => /Testperson/.test(c) && /1-1/.test(c))) {
+    if (
+      !afterSecondHand.some(
+        (/** @type {any} */ c) => /Testperson/.test(c.title) && /1-1/.test(c.line)
+      )
+    ) {
       throw new Error(
         "hearing about someone silenced the whole person, which is the confusion this model exists to prevent: " +
           JSON.stringify(afterSecondHand)
@@ -1456,19 +1469,47 @@ try {
 
   await page.click('.nav-btn[data-view="now"]');
   await page.waitFor("document.querySelector('.card') !== null", "Now");
-  const withPromise = await page.texts(".card-title");
+  // Who is owed in the title, what was promised on the line.
+  const withPromise = JSON.parse(String(await page.evaluate(`(() => {
+        const cards = [...document.querySelectorAll('.card')];
+        return JSON.stringify(cards.map((c) => ({
+          title: (c.querySelector('.card-title')?.textContent ?? '').trim(),
+          line: (c.querySelector('.card-line')?.textContent ?? '').trim()
+        })));
+      })()`)));
   check("and a three-week-old promise escalates on its own", () => {
-    if (!withPromise.some((c) => /Du är skyldig/.test(c))) {
+    if (
+      !withPromise.some(
+        (/** @type {any} */ c) => /Testperson/.test(c.title) && /lönerevisionen/.test(c.line)
+      )
+    ) {
       throw new Error(`no promise on Now: ${JSON.stringify(withPromise)}`);
     }
   });
 
   await page.click('[data-act="resolvePromise"]');
   await sleep(500);
-  const afterResolve = await page.texts(".card-title");
+  /*
+   * This one was passing vacuously. It tested for "You owe", which the
+   * translation made unmatchable - so it could not fail whatever the page did,
+   * and it was green on every run since. It now looks for the promise's own
+   * text, which is the thing that has to disappear, and it asserts the page had
+   * cards at all first: "nothing matches" is also what a blank page looks like.
+   */
+  const afterResolve = JSON.parse(String(await page.evaluate(`(() => {
+        const cards = [...document.querySelectorAll('.card')];
+        return JSON.stringify(cards.map((c) => ({
+          title: (c.querySelector('.card-title')?.textContent ?? '').trim(),
+          line: (c.querySelector('.card-line')?.textContent ?? '').trim()
+        })));
+      })()`)));
   check("and can be closed from the same card", () => {
-    if (afterResolve.some((c) => /You owe/.test(c))) {
-      throw new Error("the promise is still open");
+    if (afterResolve.length === 0) {
+      throw new Error("no cards at all after resolving, so this proved nothing");
+    }
+    const still = afterResolve.filter((/** @type {any} */ c) => /lönerevisionen/.test(c.line));
+    if (still.length > 0) {
+      throw new Error(`the promise is still open: ${JSON.stringify(still)}`);
     }
   });
 

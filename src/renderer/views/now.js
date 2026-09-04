@@ -812,15 +812,47 @@ function card(item) {
     );
   }
 
-  return `<article class="card sev-${esc(item.urgency)}">
+  /*
+   * Three slots when the item is about one named subject, and the sentence when
+   * it is not.
+   *
+   * Six cards on this page were identical except for one word: the title was a
+   * whole sentence naming a duty and a person, the body was the same sentence
+   * on all six, and the foot repeated the duty name a second time on the same
+   * card. Read as a set, each card's information content was a name.
+   *
+   * So the name is the title, the duty and its state are one line, and how long
+   * is one more. What came off the face is in the tooltip rather than deleted:
+   * the target interval is worth reading once, and `title` and `why` are
+   * untouched in the payload because that is what `tend_attention` hands a
+   * model.
+   *
+   * A monthly question and a queue of unfiled commitments have no `who` - their
+   * title was never a sentence about one person - so they keep the old shape.
+   */
+  const named = typeof item.who === "string" && item.who !== "";
+  const hint = named ? `${item.why} ${item.from}` : "";
+
+  return `<article class="card sev-${esc(item.urgency)}"${named ? ` title="${esc(hint)}"` : ""}>
     <div class="card-top">
-      <h2 class="card-title">${esc(item.what)}</h2>
+      <h2 class="card-title">${esc(named ? item.who : item.what)}</h2>
       <span class="pill ${esc(item.urgency)}">${esc(item.behindBy)}</span>
     </div>
-    <p class="card-why">${esc(item.why)}</p>
+    ${
+      named
+        ? `<p class="card-line">${esc(item.line)}</p>
+           ${item.age ? `<p class="card-age">${esc(item.age)}</p>` : ""}`
+        : `<p class="card-why">${esc(item.why)}</p>`
+    }
     ${softened}
     <div class="card-foot">
-      <span class="src">${esc(item.from)}${item.guarded ? words.guarded : ""}</span>
+      <span class="src">${
+        named
+          ? item.guarded
+            ? words.guardedAlone
+            : ""
+          : `${esc(item.from)}${item.guarded ? words.guarded : ""}`
+      }</span>
       ${actions.join("")}
     </div>
   </article>`;

@@ -14,7 +14,7 @@
  * Split out of api.js.
  */
 
-import { buildAttention, expandCadences } from "../domain/attention.js";
+import { buildAttention, dutyLabel, expandCadences } from "../domain/attention.js";
 import { archivedIds, isArchived } from "../domain/archive.js";
 import { contactSummary } from "../domain/contact.js";
 import { personBlocksIn, relationsIn } from "../domain/halves.js";
@@ -116,6 +116,15 @@ function summariseItem(i) {
     behindBy: i.badge,
     guarded: i.guarded,
     from: i.source,
+    /*
+     * The parts, for a renderer that has one short line per slot. Null on the
+     * kinds whose title is not a name - a monthly question, a queue of unfiled
+     * commitments - and the view falls back to `what` for those, which is
+     * correct: their title was never a sentence about one person.
+     */
+    who: i.who ?? null,
+    line: i.line ?? null,
+    age: i.age ?? null,
     person: i.subject,
     // What the subject IS, not only its id. A card for a project cadence and a
     // card for a person cadence look identical without it, and the actions they
@@ -356,7 +365,13 @@ export function people(store, now, relation) {
          */
         worstDrift: worst
           ? {
-              duty: worst.duty.name,
+              /*
+               * The label, not the formal name. One fix, two surfaces: the
+               * card's second line and the tile's sentence both got filled by
+               * a 43-character duty name, and both read `shortName` when the
+               * role map has one.
+               */
+              duty: dutyLabel(worst.duty),
               behindBy: driftBadge(worst.drift.driftDays),
               urgency: worst.drift.trueSeverity,
               targetDays: worst.drift.interval,

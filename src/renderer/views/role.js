@@ -172,6 +172,22 @@ function relationWords(relations) {
 function dutyFields(duty) {
   return [
     { name: "name", label: words.fName, required: true, value: duty?.name, placeholder: words.fNamePlaceholder },
+    /*
+     * The name a card can fit. Optional, and empty on every seeded duty: the
+     * formal names came out of the research and several are too long for one
+     * line on Läget - "Feedbackrunda från producenter och kollegor" is 43
+     * characters, which wraps to three lines at three cards across. The
+     * renderer prefers this when it is set and shows the formal name when it is
+     * not, because a renderer that shortened a name itself would be showing one
+     * the role map does not have.
+     */
+    {
+      name: "shortName",
+      label: words.fShortName,
+      hint: words.fShortNameHint,
+      value: duty?.shortName,
+      placeholder: words.fShortNamePlaceholder
+    },
     {
       name: "means",
       label: words.fMeans,

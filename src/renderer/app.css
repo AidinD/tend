@@ -626,6 +626,34 @@ button.row.sev-warn:hover {
   letter-spacing: -0.1px;
 }
 
+/*
+ * The second and third slots. `.card-line` reads at the body tier because it
+ * is the sentence somebody actually reads once they have found the name;
+ * `.card-age` sits a tier below it, which is what stops three lines of equal
+ * weight reading as a paragraph.
+ */
+.card-line {
+  /*
+   * No top margin. A severity card's tinted head already carries
+   * `margin-bottom: var(--sp-block)`, which was tuned for a paragraph of
+   * prose - under three short lines the two together read as a hole. Zeroed
+   * here rather than by changing the token, which four other views share.
+   */
+  margin: 0;
+  padding: 0 15px;
+  color: var(--text-dim);
+  font-size: var(--t-meta);
+  line-height: 1.45;
+}
+
+.card-age {
+  margin: 3px 0 0;
+  padding: 0 15px;
+  color: var(--text-faint);
+  font-size: var(--t-micro);
+  font-variant-numeric: tabular-nums;
+}
+
 .card-why {
   margin: 5px 0 0;
   color: var(--text-dim);

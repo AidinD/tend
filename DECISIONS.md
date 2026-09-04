@@ -3,6 +3,61 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-04 - A card is three slots, and the payload carries both shapes
+
+**Decided.** A card about one named subject is a name, then what it is about,
+then how long. The payload carries those parts *beside* the sentence it already
+carried, never instead of it.
+
+**What was wrong, read as a set rather than one at a time.** Six cards on the
+front page were identical except for one word. The title was a whole sentence -
+"Feedbackrunda från producenter och kollegor har aldrig hänt för X" - which
+wrapped to three lines at three across. The body was the same sentence on all
+six: "Målet är var 90 dagar och det finns ingen registrering av det än." The
+foot printed the duty name a second time on the same card. **The information
+content of each card was a name**, and that is why the columns alone did not fix
+it: the page read as noise because six large cards were saying one thing.
+
+**Both shapes, in one payload.** `title` and `why` are untouched, because
+`tend_attention` hands them to a model and a self-contained sentence is the
+right shape there. `who`, `line` and `age` sit beside them for a renderer
+that has one short line per slot. No MCP consumer changes. Same move as
+`attention.focus` carrying `name` and `daysLeft` beside its prose, and the
+second instalment of the composition refactor arriving where a screen needed it
+rather than as a sweep.
+
+**A duty gets an optional short name, and nothing fills it.** The second slot
+wants "Feedbackrunda, aldrig körd"; the role map's formal name for that duty is
+"Feedbackrunda från producenter och kollegor", 43 characters. Truncating it in
+the renderer is the version that looks fixed and lies - the app would be showing
+a name the role map does not have. So `shortName` exists on a duty, the
+renderer prefers it, the duty form has a field for it, and every seeded duty
+leaves it empty. **That is a finding to report, not a value to invent**, and
+`tiles.js` already states the rule: a member that does not fit its set is a
+finding rather than a licence to widen the set. Four of the nine seeded duties
+have names too long for one line. Filling them in is Aidin's, and until he does
+the long name shows, which is correct.
+
+**One fix, two surfaces.** The tiles had the same disease - "Feedbackrunda från
+producenter och kollegor behöver dig nu" fills a tile - and so did the chips on
+the strips. Both read the same `dutyLabel`, so a short name entered once
+shortens all three. Solving it twice differently is how the two would drift.
+
+**The buttons stay, against the mock.** The mock's card has none. `now.js`'s own
+header states why that loses: every card carries the action that would resolve
+it, so nothing here is a report you then have to go and act on somewhere else.
+That outranks a picture, and it is the same reasoning that kept
+Fokusinställningar on the focus line.
+
+**A check was passing vacuously and this found it.** "and can be closed from the
+same card" tested the page for `/You owe/` after resolving a promise. The
+translation made that unmatchable, so the check could not fail whatever the page
+did, and it was green on every run since. It now looks for the promise's own
+text and refuses when there are no cards at all, because "nothing matches" is
+also what a blank page looks like. Mutation-tested red. Second one this session,
+both found by changing the thing the check was supposed to be watching - which
+is the only reliable way these surface.
+
 ## 2026-09-04 - Läget is a dashboard, and the stylesheet was the reason it was not
 
 **Decided.** Läget renders in columns. The mock is binding on density and on

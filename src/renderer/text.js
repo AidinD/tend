@@ -300,6 +300,8 @@ export const T = {
     setLevelButton: "Sätt nivån",
     fileButton: "Säg vems de är",
     guarded: " · skyddad",
+    /* The mark alone, for a card whose second line already names the duty. */
+    guardedAlone: "skyddad",
 
     /* A monthly question. The answer is usually no, and saying so is the point. */
     neverAsked: "aldrig frågad",
@@ -1799,6 +1801,10 @@ export const T = {
     /* The duty form. */
     fName: "Vad det är",
     fNamePlaceholder: "1-1",
+    fShortName: "Kort namn på ett kort",
+    fShortNameHint:
+      "Valfritt. Läget visar en plikt på en rad, och de formella namnen från läsningen är för långa för den - lämna det tomt och det formella namnet används i stället.",
+    fShortNamePlaceholder: "Feedbackrunda",
     fMeans: "Vad det betyder i praktiken",
     fMeansHint:
       "Med dina egna ord. Det här är vad du läser om ett halvår när du glömt varför du lade " +

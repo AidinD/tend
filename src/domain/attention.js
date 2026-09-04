@@ -38,6 +38,13 @@ import { isArchived } from "./archive.js";
  * @property {boolean} guarded
  * @property {string} source Where the item came from, shown to the user.
  * @property {string | null} subject Subject id, when there is one.
+ * @property {string} [who] The subject's name, when the item is about one
+ *   named subject. The three fields below are the same facts as `title` and
+ *   `why`, in the pieces a card three across can lay out: who, what, how long.
+ *   Absent on the kinds whose title is not a name, and a reader falls back to
+ *   `title` for those.
+ * @property {string} [line] The duty or the promise, plus its state.
+ * @property {string | null} [age] How long, in words.
  * @property {string | null} [subjectKind] What sort of thing the subject is.
  *   Carried because the actions a card can offer depend on it: the kinds of
  *   contact that could satisfy a project cadence are not the ones that could
@@ -198,6 +205,22 @@ function subjectName(subject) {
 }
 
 /**
+ * What to call a duty on a card, where the space is one short line.
+ *
+ * The role map's `shortName` when it has one, the formal name when it does
+ * not. Nothing seeds a short name: the formal names are what the research
+ * produced and several are too long for the slot, which is a gap in the data
+ * rather than something the renderer may paper over by cutting a name in half.
+ *
+ * @param {Record<string, any>} duty
+ * @returns {string}
+ */
+export function dutyLabel(duty) {
+  const short = String(duty.shortName ?? "").trim();
+  return short === "" ? String(duty.name ?? "") : short;
+}
+
+/**
  * Build the Now view.
  *
  * @param {import("../storage/reduce.js").TendState} state
@@ -245,6 +268,16 @@ export function buildAttention(state, now) {
       badge: driftBadge(drift.driftDays),
       guarded: Boolean(duty.guarded),
       source: `Rollkarta: ${duty.name}`,
+      /*
+       * The same facts as `title` and `why`, in three pieces, because a card
+       * three across cannot hold a sentence and six cards holding the same
+       * sentence hold no information at all. `title` stays exactly as it was.
+       */
+      who: name,
+      line: never
+        ? `${dutyLabel(duty)}, aldrig körd`
+        : `${dutyLabel(duty)}, senast ${agoWords(drift.daysSince)}`,
+      age: `${humanDays(drift.driftDays)} över målet`,
       subject: subject.id,
       subjectKind
     });
@@ -278,6 +311,9 @@ export function buildAttention(state, now) {
       badge: driftBadge(p.status.ageDays),
       guarded: p.status.guarded,
       source: "Löfte, loggat från en anteckning",
+      who,
+      line: String(p.text ?? "Ett löfte du gav"),
+      age: `${humanDays(p.status.ageDays)} öppet`,
       subject: p.person ?? null
     });
   }
@@ -317,6 +353,9 @@ export function buildAttention(state, now) {
       kind: "cadence",
       trueSeverity: "warn",
       title: `Ingen delegeringsnivå satt på ${subjectName(w)}`,
+      who: subjectName(w),
+      line: "Ingen delegeringsnivå satt",
+      age: null,
       why: owner
         ? `${subjectName(owner)} sitter på det här och du har inte sagt hur långt du klivit tillbaka. Det glappet är där ansvaret flyttat och informationen inte har.`
         : "Ingen är namngiven på det här och ingen nivå är satt, så inget om det är bestämt.",
