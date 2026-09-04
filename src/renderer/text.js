@@ -1714,6 +1714,22 @@ export const T = {
   },
 
   prep: {
+    /*
+     * The questions he did not ask last time, read out of the end of the last
+     * note. First on the card, above what he promised, because it is the only
+     * block here he cannot reconstruct from memory on the way to the room -
+     * a broken promise he remembers, an unasked question is exactly the thing
+     * that gets lost.
+     *
+     * The provenance line is not decoration. These are his own words from a
+     * note, not something Tend worked out, and the card has to say which - the
+     * same rule as labelling anything a model produced.
+     */
+    findOutTitle: "To find out",
+    /** @param {string} note */
+    findOutFrom: (note) => `Your own questions at the end of "${note}".`,
+    /** @param {number} n */
+    findOutMore: (n) => `and ${n} more in the note`,
     readFailedTitle: "Could not read the data",
     title: "Before you talk to them",
     sub:

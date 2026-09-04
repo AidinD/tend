@@ -621,7 +621,19 @@ function writeNibFixture() {
     JSON.stringify({
       id: "note-1",
       title: "1-1, senaste",
-      html: "<p>Vi pratade om renderingen. Jag sa att jag skulle kolla med Nina om konferensen.</p>"
+      /*
+       * A summary in the shape Nib writes them, with the section Inför reads
+       * at the end of it. The prose above it carries a question mark on
+       * purpose - "Hann vi prata om tidplanen?" is not an unasked question,
+       * and a block that picks it up would be the nonsense the reader is
+       * built to avoid.
+       */
+      html:
+        "<p>Vi pratade om renderingen. Jag sa att jag skulle kolla med Nina om konferensen.</p>" +
+        "<p>Hann vi prata om tidplanen? Kommer inte ihåg.</p>" +
+        "<h2>Frågor jag inte ställde</h2>" +
+        "<ul><li>Hur känner han inför att äga migreringen själv?</li>" +
+        "<li>Vad hindrar honom från att säga nej till fler uppdrag?</li></ul>"
     }),
     "utf8"
   );
@@ -2932,6 +2944,92 @@ try {
   });
 
   /* --------------------------------------------- a note several people were in -- */
+
+  /* ------------------------------------------- what the note prepared -- */
+
+  step("The questions he did not ask last time");
+
+  /*
+   * Here rather than in the prep step above, which runs before Nib is bound.
+   * Without a binding there is no note to read, so the block is correctly
+   * absent and every check against it would have been asserting nothing.
+   */
+  await page.click('.nav-btn[data-view="prep"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the prep view");
+
+  /*
+   * The block by its heading, not by position. `:has()` picked the first
+   * prep-block on the card, which is a different one - so the provenance check
+   * was reading the wrong element and reporting a missing line that was there.
+   */
+  const findOutText = await page.evaluate(
+    `(() => { const blocks = [...document.querySelectorAll('.prep-block')];
+        const b = blocks.find(x => /To find out/.test(x.querySelector('.prep-head')?.textContent || ''));
+        return b ? b.textContent.replace(/\\s+/g, " ").trim() : "NO BLOCK"; })()`
+  );
+  const findOutItems = await page.evaluate(
+    `(() => { const blocks = [...document.querySelectorAll('.prep-block')];
+        const b = blocks.find(x => /To find out/.test(x.querySelector('.prep-head')?.textContent || ''));
+        if (!b) { return "NO BLOCK"; }
+        return [...b.querySelectorAll('li')].map(li => li.textContent.trim()).join(" | "); })()`
+  );
+
+  check("the questions he did not ask last time are on the card", () => {
+    /*
+     * The best find in the overhaul, and until now nothing read it. Nib's
+     * summaries end with "Frågor jag inte ställde" and `worthRaising` was
+     * empty on every person - the preparation for the next conversation was
+     * already written at the end of the last one.
+     */
+    if (findOutItems === "NO BLOCK") {
+      throw new Error("no To find out block on the card, so this proved nothing");
+    }
+    if (!/äga migreringen/.test(String(findOutItems))) {
+      throw new Error(`the note's unasked questions are not on the card: ${findOutItems}`);
+    }
+    if (!/säga nej/.test(String(findOutItems))) {
+      throw new Error(`only one of the two questions came through: ${findOutItems}`);
+    }
+  });
+
+  check("and the question mark in the prose above them did not come with", () => {
+    /*
+     * The fixture note asks "Hann vi prata om tidplanen?" in its body, outside
+     * the section. A reader that scanned for question marks would put that
+     * under To find out before a real conversation, and a block that does that
+     * once is a block he stops reading.
+     */
+    if (/tidplanen/.test(String(findOutItems))) {
+      throw new Error(`prose from outside the section leaked in: ${findOutItems}`);
+    }
+  });
+
+  /*
+   * Read before the check, because `check` takes a synchronous function. An
+   * `await` inside one is a syntax error at best, and at worst - if the body
+   * returns a promise - the check is recorded as passing before the assertion
+   * runs. This project has found six checks that asserted nothing and that is
+   * one of the two shapes.
+   */
+  const blockShapes = await page.evaluate(
+    `(() => [...document.querySelectorAll('.prep-block')].map((b, i) =>
+        i + ":" + (b.querySelector('.prep-head')?.textContent || '?').trim()
+        + " li=" + b.querySelectorAll('li').length
+        + " src=" + b.querySelectorAll('.src').length).join(" | "))()`
+  );
+
+  check("the block says the words are his own, from a named note", () => {
+    /*
+     * Provenance, the same rule as labelling anything a model produced. These
+     * are his sentences out of a note rather than something Tend worked out,
+     * and a block that does not say so is one whose authority he has to guess
+     * at.
+     */
+    if (!/Your own questions at the end of/.test(String(findOutText))) {
+      throw new Error(`no provenance line. read: "${findOutText}". blocks: ${blockShapes}`);
+    }
+  });
+
 
   step("One note, several people in it");
 

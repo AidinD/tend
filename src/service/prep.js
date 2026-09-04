@@ -43,7 +43,8 @@ import { threadsFor } from "../domain/growth.js";
 import { topicsFor } from "../domain/topics.js";
 import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
-import { notesIn, principlesInNib, readNibIndex } from "./nib.js";
+import { noteBody, notesIn, principlesInNib, readNibIndex } from "./nib.js";
+import { unaskedQuestions } from "../domain/unasked.js";
 import { forCard } from "../domain/practices.js";
 
 /**
@@ -153,7 +154,29 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       now
     }).filter((t) => t.asks !== null || t.attention !== "ok");
 
-    if (drift <= 0 && theirPromises.length === 0 && worthRaising.length === 0 && growing.length === 0) {
+    /*
+     * The questions he did not ask last time.
+     *
+     * Read here rather than after the gate below, because they are one of the
+     * reasons to be on this page rather than a decoration on a card that
+     * already exists. That is what generalises Inför past the 1-1: a
+     * stakeholder and his own manager have no duty behind them and never
+     * drift, so before this they could only earn a card through role-map
+     * topics - and there are none, on anybody.
+     */
+    const written = lastNote(nib, bindings, id);
+    const toFindOut =
+      written === null || nibDir === undefined
+        ? readUnasked(written, undefined)
+        : readUnasked(written, nibDir);
+
+    if (
+      drift <= 0 &&
+      theirPromises.length === 0 &&
+      worthRaising.length === 0 &&
+      growing.length === 0 &&
+      toFindOut.length === 0
+    ) {
       continue;
     }
 
@@ -230,7 +253,15 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       // not find the board" are different facts and the card says which.
       openWork: board === null ? null : workFor({ board, name: String(person.name ?? ""), areas }),
 
-      lastWrote: lastNote(nib, bindings, id),
+      lastWrote: written,
+      /*
+       * Already written down at the end of the last conversation, and until
+       * now nothing read it. Capped at six: this is preparation to glance at
+       * on the way to a room, and a list of fourteen is one he will skip
+       * entirely.
+       */
+      toFindOut: toFindOut.slice(0, 6),
+      toFindOutMore: Math.max(0, toFindOut.length - 6),
 
       // What to actually say, as opposed to whether to speak at all. Never more
       // than three: a card suggesting eight things to raise in half an hour is
@@ -375,6 +406,43 @@ function safeNib(dir) {
     return index.available ? { categories: index.categories } : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The unasked questions in one note, or none.
+ *
+ * Only the newest note, because "the questions he did not ask last time" is
+ * about last time. Reading every note would produce a standing list of
+ * everything he has ever failed to ask, which is a different and much less
+ * useful thing - and it would grow forever.
+ *
+ * Empty on a read failure as well as on a note with no such section, which is
+ * the one place this departs from the null-versus-empty rule elsewhere in the
+ * app: both mean "nothing to show" and neither has an action attached, so a
+ * third state would be a branch nothing exercises. `lastWrote` already tells
+ * the window whether there is a note at all.
+ *
+ * @param {{ id: string } | null} written
+ * @param {string} [dir]
+ * @returns {string[]}
+ */
+function readUnasked(written, dir) {
+  if (written === null) {
+    return [];
+  }
+  try {
+    const body = noteBody(String(written.id), dir);
+    /*
+     * `noteBody` answers `{ available, text | why }` rather than a string, and
+     * an unavailable note is not an empty one. The distinction does not reach
+     * the window here - see the note above on why - but it has to be read
+     * correctly, because `String(undefined)` would have put the word
+     * "undefined" through the question parser.
+     */
+    return body.available === true ? unaskedQuestions(body.text) : [];
+  } catch {
+    return [];
   }
 }
 

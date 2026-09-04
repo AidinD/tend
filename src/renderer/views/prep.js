@@ -172,6 +172,15 @@ function card(c, model) {
         ${c.relationMeans ? `<span class="src">${esc(c.relationMeans)}</span>` : ""}
       </p>
 
+      ${
+        /*
+         * First, above what he promised. It is the only block here he cannot
+         * reconstruct on the way to the room: a broken promise he remembers,
+         * an unasked question is exactly the thing that gets lost.
+         */
+        findOut(c)
+      }
+
       ${section(words.promisedTitle, c.youPromised, (/** @type {any} */ p) => `${esc(p.text)} <span class="src">${words.promisedOpen(esc(p.openFor))}</span>`)}
 
       ${growingBlock(c)}
@@ -205,6 +214,48 @@ function card(c, model) {
           <button class="act" data-act="openPerson" data-person="${esc(c.person)}">${words.openPerson(esc(c.person))}</button>
         </span>
       </div>
+    </div>`;
+}
+
+/**
+ * The questions he did not ask last time.
+ *
+ * Nib's summaries end with a section titled "Frågor jag inte ställde" and
+ * nothing read it until now. This is the best thing in the overhaul for a
+ * reason worth stating: the preparation for the next conversation was already
+ * written, at the end of the last one, in his own words.
+ *
+ * No button. Every other block here offers an action, and this one deliberately
+ * does not - marking a question "asked" would need him to remember which of six
+ * he got to, and the next note's own section is a better record of that than
+ * anything he would tick in a hurry.
+ *
+ * @param {any} c
+ */
+function findOut(c) {
+  const questions = Array.isArray(c.toFindOut) ? c.toFindOut : [];
+  if (questions.length === 0) {
+    return "";
+  }
+  const more = Number(c.toFindOutMore ?? 0);
+
+  return `
+    <div class="prep-block">
+      <h3 class="prep-head">${words.findOutTitle}</h3>
+      <ul class="prep-list">
+        ${questions.map((/** @type {string} */ q) => `<li>${esc(q)}</li>`).join("")}
+        ${more > 0 ? `<li class="src">${words.findOutMore(more)}</li>` : ""}
+      </ul>
+      ${
+        /*
+         * Says whose words these are. They came out of a note he wrote, not
+         * from anything Tend derived, and a block that does not say so is one
+         * he has to guess the provenance of.
+         */
+        c.lastWrote
+          ? `<span class="src">${words.findOutFrom(esc(c.lastWrote.title))}</span>`
+          : ""
+      }
     </div>`;
 }
 
