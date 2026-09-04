@@ -9,7 +9,20 @@
  * report you then have to go and act on somewhere else.
  */
 
-import { act, ask, esc, form, kindsFor, tend, toast } from "../ui.js";
+import {
+  RELATION_GROUPS,
+  act,
+  ask,
+  esc,
+  form,
+  groupOf,
+  humanDays,
+  kindsFor,
+  tend,
+  tileOf,
+  tileWeight,
+  toast
+} from "../ui.js";
 import { go, refresh } from "../app.js";
 import { actions as waitingActions, waitingGroup } from "./waiting.js";
 import { T } from "../text.js";
@@ -17,15 +30,19 @@ import { T } from "../text.js";
 const words = T.now;
 
 export async function render() {
-  const [attention, questions, roster, ledger, mine, waits, archived] = await Promise.all([
-    tend.invoke("attention"),
-    tend.invoke("signals"),
-    tend.invoke("people"),
-    tend.invoke("decisions"),
-    tend.invoke("myAttention"),
-    tend.invoke("waitsOnNow"),
-    tend.invoke("archivedPeople")
-  ]);
+  const [attention, questions, roster, ledger, mine, waits, archived, map, myAims, owed] =
+    await Promise.all([
+      tend.invoke("attention"),
+      tend.invoke("signals"),
+      tend.invoke("people"),
+      tend.invoke("decisions"),
+      tend.invoke("myAttention"),
+      tend.invoke("waitsOnNow"),
+      tend.invoke("archivedPeople"),
+      tend.invoke("roleMap"),
+      tend.invoke("aims"),
+      tend.invoke("promises")
+    ]);
   const waitingOn = Array.isArray(waits) ? waits : [];
 
   if (attention.error) {
@@ -131,6 +148,9 @@ export async function render() {
       </div>
       ${focus}
       <div class="empty">${words.quietEmpty}</div>
+      ${rosterBlock(roster)}
+      ${proposedBlock(map)}
+      ${aimsBlock(myAims)}
       ${
         // Still printed on a quiet day, at the bottom, under the sentence that
         // says nothing needs you. Dropping it here instead would make the flag
@@ -146,6 +166,24 @@ export async function render() {
       <p class="view-sub">${words.sub}</p>
     </div>
     ${focus}
+    ${
+      /*
+       * The roster above the cards, and this is the page's structure rather
+       * than a preference.
+       *
+       * The tiles are the map and the cards are the list. A tile says a
+       * fortnightly duty is running at nineteen weeks; the card below says the
+       * same thing with the button that fixes it. Orientation first, then what
+       * to do about it - which is what makes this a front page rather than a
+       * longer version of the deviation list.
+       *
+       * The duplication is real and deliberate. The alternatives are worse: a
+       * page where the mandate group is described once in two different voices
+       * and you have to reconcile them, or one where you scroll past three
+       * cards before finding out who you are accountable for.
+       */
+      rosterBlock(roster)
+    }
     ${group(words.needsYouGroup, attention.needsYou.map(card).join(""), attention.needsYou.length)}
     ${group(words.revisitsGroup, revisitCards, revisits.length)}
     ${group(words.questionsGroup, due.map(question).join(""), due.length)}
@@ -160,10 +198,312 @@ export async function render() {
       attention.nudges.length
     )}
     ${waitingGroup(waitingOn)}
+    ${owedBlock(owed)}
+    ${proposedBlock(map)}
+    ${aimsBlock(myAims)}
     ${
       signalRows === "" ? "" : mineBlock(signalRows)
     }
   `;
+}
+
+/* --------------------------------------------------------------- Läget -- */
+
+/**
+ * The roster as tiles: the people you are accountable for at the size that
+ * says so, and everybody else on one line each.
+ *
+ * The asymmetry is the whole layout. Four names in a grid and eleven on three
+ * strips is not a space saving - it is the page saying where to look, and a
+ * uniform list of fifteen tiles would say nothing at all.
+ *
+ * @param {any} roster
+ */
+function rosterBlock(roster) {
+  const rows = Array.isArray(roster) ? roster : [];
+  if (rows.length === 0) {
+    return "";
+  }
+
+  const clusters = Object.keys(RELATION_GROUPS).map((name) => ({
+    name,
+    members: rows.filter((/** @type {any} */ p) => groupOf(String(p.relation ?? "")) === name)
+  }));
+
+  /*
+   * The first cluster gets the grid, and it is the first cluster because
+   * `cadence.js` declares it first - not because this loop knows which one it
+   * is. A test asserts that order, so reordering the declaration moves the grid
+   * rather than silently disagreeing with it.
+   */
+  const [mandate, ...strip] = clusters;
+
+  return `<section class="roster-block">
+    <div class="prep-head">
+      <span class="group-title">${words.rosterHead}</span>
+      <span class="group-rule"></span>
+    </div>
+    <p class="view-sub">${words.rosterSub}</p>
+    ${mandate === undefined ? "" : mandateGrid(mandate)}
+    ${strip.map(stripRow).join("")}
+  </section>`;
+}
+
+/**
+ * @param {{ name: string, members: any[] }} cluster
+ */
+function mandateGrid(cluster) {
+  if (cluster.members.length === 0) {
+    /*
+     * Drawn rather than dropped. An empty mandate group is a real state - a
+     * roster of peers and stakeholders and nobody you are accountable for - and
+     * silently removing the page's headline block would read as a broken page
+     * rather than as an answer.
+     */
+    return `<div class="mandate-empty">
+      <span class="group-title">${groupName(cluster.name)}</span>
+      <p class="src">${words.rosterEmpty}</p>
+    </div>`;
+  }
+
+  const tiles = [...cluster.members]
+    .map((p) => ({ p, tile: tileOf(p) }))
+    .sort((a, b) => tileWeight(b.tile) - tileWeight(a.tile))
+    .map(
+      ({ p, tile }) => `<button class="tile tile-${esc(tile.kind)}" data-act="openPerson"
+        data-person="${esc(p.id)}">
+        <span class="tile-name">${esc(p.name)}</span>
+        <span class="tile-says">${tilePhrase(tile)}</span>
+      </button>`
+    )
+    .join("");
+
+  return `<div class="mandate">
+    <div class="group-head">
+      <span class="group-title">${groupName(cluster.name)}</span>
+      <span class="group-rule"></span>
+      <span class="group-meta">${cluster.members.length}</span>
+    </div>
+    <p class="src">${groupNote(cluster.name)}</p>
+    <div class="tile-grid">${tiles}</div>
+  </div>`;
+}
+
+/**
+ * One cluster on one line.
+ *
+ * Everybody in step collapses to a count. The strip exists so the page can say
+ * "and nothing here needs you" in the space of a sentence, and printing eleven
+ * quiet names to prove it defeats the point.
+ *
+ * @param {{ name: string, members: any[] }} cluster
+ */
+function stripRow(cluster) {
+  if (cluster.members.length === 0) {
+    return "";
+  }
+
+  const withTiles = cluster.members.map((p) => ({ p, tile: tileOf(p) }));
+  const asking = withTiles.filter(({ tile }) => tileWeight(tile) >= 2);
+
+  const chips =
+    asking.length === 0
+      ? `<span class="chip quiet">${words.groupAllInStep(withTiles.length)}</span>`
+      : asking
+          .sort((a, b) => tileWeight(b.tile) - tileWeight(a.tile))
+          .map(
+            ({ p, tile }) => `<button class="chip chip-${esc(tile.kind)}" data-act="openPerson"
+              data-person="${esc(p.id)}" title="${esc(plainPhrase(tile))}">
+              ${esc(p.name)}
+            </button>`
+          )
+          .join("");
+
+  return `<div class="strip">
+    <span class="strip-name" title="${esc(groupNote(cluster.name))}">${groupName(cluster.name)}</span>
+    <span class="strip-chips">${chips}</span>
+  </div>`;
+}
+
+/** @param {string} name */
+function groupName(name) {
+  /** @type {Record<string, string>} */
+  const names = {
+    mandate: words.groupMandate,
+    noChannel: words.groupNoChannel,
+    peers: words.groupPeers,
+    outward: words.groupOutward
+  };
+  return names[name] ?? name;
+}
+
+/** @param {string} name */
+function groupNote(name) {
+  /** @type {Record<string, string>} */
+  const notes = {
+    mandate: words.groupMandateNote,
+    noChannel: words.groupNoChannelNote,
+    peers: words.groupPeersNote,
+    outward: words.groupOutwardNote
+  };
+  return notes[name] ?? "";
+}
+
+/**
+ * A tile's sentence, from its kind. Every kind in `TILE_KINDS` has a case here
+ * and a test asserts it, because a missing one renders as a blank tile about a
+ * named colleague.
+ *
+ * @param {any} tile
+ * @returns {string}
+ */
+function tilePhrase(tile) {
+  switch (tile.kind) {
+    case "away":
+      return words.tileAway;
+    case "leaving":
+      return words.tileLeaving;
+    case "left":
+      return words.tileLeft;
+    case "noDuty":
+      return words.tileNoDuty;
+    case "neverYet":
+      return words.tileNeverYet(esc(tile.duty), humanDays(tile.days));
+    case "adrift":
+      return words.tileAdrift(esc(tile.duty), tile.targetDays, tile.sinceDays);
+    case "late":
+      return words.tileLate(esc(tile.duty), humanDays(tile.sinceDays - tile.targetDays));
+    case "inStep":
+      return words.tileInStep(esc(tile.duty));
+    default:
+      /*
+       * Unreachable while the test that walks TILE_KINDS passes, and it does
+       * not return "" - a tile that says nothing about somebody is the failure
+       * this whole rule exists to prevent, so it names the state instead.
+       */
+      return esc(String(tile.kind));
+  }
+}
+
+/**
+ * The same sentence with no markup, for a chip's tooltip.
+ *
+ * @param {any} tile
+ */
+function plainPhrase(tile) {
+  return tilePhrase(tile).replace(/<[^>]*>/g, "");
+}
+
+/**
+ * Duties the role map proposed and nobody answered.
+ *
+ * Here rather than only on the role map, because a proposal does nothing until
+ * it is accepted - so four sitting unanswered means the app is not watching
+ * four things it has already told you it could watch.
+ *
+ * @param {any} map
+ */
+function proposedBlock(map) {
+  const proposed = Array.isArray(map?.proposed) ? map.proposed : [];
+  if (proposed.length === 0) {
+    return "";
+  }
+
+  const cards = proposed
+    .map(
+      (/** @type {any} */ d) => `<div class="card sev-warn">
+        <div class="card-top">
+          <h2 class="card-title">${esc(d.name)}</h2>
+          <span class="badge">${words.proposedEvery(esc(d.every))}</span>
+        </div>
+        ${d.means ? `<p class="card-why">${esc(d.means)}</p>` : ""}
+        <div class="card-foot">
+          <span class="src">${esc(d.source ?? "")}</span>
+          <button class="act primary" data-act="acceptDuty" data-id="${esc(d.id)}">${words.proposedAccept}</button>
+          <button class="act" data-act="declineDuty" data-id="${esc(d.id)}">${words.proposedDecline}</button>
+        </div>
+      </div>`
+    )
+    .join("");
+
+  return `<section class="proposed-block">
+    <div class="group-head">
+      <span class="group-title">${words.proposedHead}</span>
+      <span class="group-rule"></span>
+      <span class="group-meta">${proposed.length}</span>
+    </div>
+    <p class="view-sub">${words.proposedSub}</p>
+    ${cards}
+    <div class="card-foot"><button class="act" data-act="openRole">${words.proposedOpen}</button></div>
+  </section>`;
+}
+
+/**
+ * His own aims.
+ *
+ * Ships empty on purpose - the goals pass happens after this screen exists - so
+ * the empty state is a real sentence saying what an aim is and why there are
+ * only two, rather than a dash.
+ *
+ * @param {any} myAims
+ */
+function aimsBlock(myAims) {
+  const rows = Array.isArray(myAims) ? myAims : [];
+
+  const body =
+    rows.length === 0
+      ? `<p class="src">${words.aimsEmpty}</p>
+         <button class="act" data-act="openReflection">${words.aimsSet}</button>`
+      : rows
+          .map(
+            (/** @type {any} */ a) => `<div class="mine-row">
+              <span class="mine-text">${esc(a.aim)}</span>
+              <span class="src">${words.aimSource(esc(a.source ?? ""))}</span>
+            </div>`
+          )
+          .join("") +
+        `<div class="card-foot"><button class="act" data-act="openReflection">${words.aimsOpen}</button></div>`;
+
+  return `<section class="aims-block">
+    <div class="group-head">
+      <span class="group-title">${words.aimsHead}</span>
+      <span class="group-rule"></span>
+    </div>
+    ${body}
+  </section>`;
+}
+
+/**
+ * What he said he would do, which is the other half of what needs him.
+ *
+ * Only when there is something. An empty promise list is not a fact worth a
+ * heading on the page that exists to show deviations.
+ *
+ * @param {any} owed
+ */
+function owedBlock(owed) {
+  const rows = (Array.isArray(owed) ? owed : []).filter((/** @type {any} */ p) => !p.resolvedAt);
+  if (rows.length === 0) {
+    return "";
+  }
+
+  const lines = rows
+    .map(
+      (/** @type {any} */ p) => `<div class="mine-row">
+        <span class="mine-text">${esc(p.text)}</span>
+        <span class="src">${words.owedLine(esc(p.person ?? ""), esc(p.openFor ?? ""))}</span>
+      </div>`
+    )
+    .join("");
+
+  return `<section class="owed-block">
+    <div class="group-head">
+      <span class="group-title">${words.owedHead}</span>
+      <span class="group-rule"></span>
+      <span class="group-meta">${rows.length}</span>
+    </div>
+    ${lines}
+  </section>`;
 }
 
 /**
@@ -335,6 +675,27 @@ export const actions = {
   openFocus: () => go("focus"),
   openRole: () => go("role"),
   openDecisions: () => go("decisions"),
+  openReflection: () => go("reflection"),
+
+  /*
+   * Answering a proposal from here, because it is where the proposal is now
+   * shown. Routing it through `decideDuty` rather than a second path, so the
+   * role map and this page cannot come to disagree about what accepting means.
+   *
+   * @param {Record<string, string>} d
+   */
+  acceptDuty: async (/** @type {Record<string, string>} */ d) => {
+    if (await act("decideDuty", { id: d.id, status: "active" }, words.proposedAcceptedToast)) {
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  declineDuty: async (/** @type {Record<string, string>} */ d) => {
+    if (await act("decideDuty", { id: d.id, status: "declined" }, words.proposedDeclinedToast)) {
+      refresh();
+    }
+  },
 
   /**
    * "It still holds" from here, so the common answer never needs a second view.

@@ -1222,6 +1222,96 @@ export const T = {
     title: "Now",
     sub: "Only what deviates. Everything in step stays out of the way.",
 
+    /*
+     * The roster, laid out as tiles.
+     *
+     * Four clusters, declared in `cadence.js` because which relationship types
+     * are in which cluster is a fact about the domain. These are only the
+     * names, and each carries a line saying what the cluster IS - because
+     * "Peers" alone does not tell you why those four are on one strip while two
+     * people have a grid to themselves.
+     */
+    rosterHead: "Where to look",
+    rosterSub:
+      "The people you are accountable for, at the size that says so. Everybody else is one line.",
+    groupMandate: "Accountable for them",
+    groupMandateNote: "You hold the mandate. This is the group the page is for.",
+    groupNoChannel: "Their work, no channel",
+    groupNoChannelNote: "You see what they do and have no formal way to act on it.",
+    groupPeers: "Peers",
+    groupPeersNote: "No authority either way, so influence rests entirely on goodwill.",
+    groupOutward: "Upward and outward",
+    groupOutwardNote: "Not yours to lead. You owe them a picture rather than a conversation.",
+
+    /*
+     * A tile's one line, per kind from `tiles.js`. Every one of these is
+     * reachable and a test asserts the renderer handles all eight, because an
+     * unhandled kind renders as a blank tile about a named colleague.
+     *
+     * `adrift` is the sentence the whole screen exists for, so it says both
+     * numbers rather than a badge. "+3w" was true of a fortnightly duty at five
+     * weeks and of a two-monthly one at eleven, and only one of those is a
+     * cadence nobody is keeping.
+     */
+    tileAway: "Away. Nothing is expected.",
+    tileLeaving: "Leaving. Everything still holds until their last day.",
+    tileLeft: "Gone. The history stays.",
+    tileNoDuty: "No duty applies to this relationship.",
+    /** @param {string} duty @param {string} since */
+    tileNeverYet: (duty, since) => `No ${duty} yet. ${since} since this started.`,
+    /** @param {string} duty @param {number} target @param {number} since */
+    tileAdrift: (duty, target, since) =>
+      `${duty} is set to every ${target} days and is running at ${since}.`,
+    /** @param {string} duty @param {string} over */
+    tileLate: (duty, over) => `${duty} is ${over} past due.`,
+    /** @param {string} duty */
+    tileInStep: (duty) => `${duty} is in step.`,
+
+    /* The strip's clusters collapse to a count when nobody in them needs you. */
+    /** @param {number} n */
+    groupAllInStep: (n) => `${n} in step`,
+    rosterEmpty: "Nobody in this group.",
+
+    /*
+     * Duties the role map has proposed and nobody has answered.
+     *
+     * On this page as decisions rather than as a notification, because a
+     * proposal does nothing until it is accepted - and four of them sitting
+     * unanswered is the app asking a question it has already asked.
+     */
+    proposedHead: "Waiting for your answer",
+    proposedSub:
+      "Proposed duties do nothing until you accept them. Until then the app is not watching " +
+      "the thing they describe.",
+    /** @param {string} every */
+    proposedEvery: (every) => `every ${every}`,
+    proposedAccept: "Accept it",
+    proposedDecline: "Not my job",
+    proposedOpen: "Open the role map",
+    proposedAcceptedToast: "Accepted.",
+    proposedDeclinedToast: "Declined.",
+
+    /*
+     * His own aims, on this page because they are the only thing here that is
+     * about him. Ships empty on purpose - the goals pass happens after this
+     * screen exists - so the empty state has to be a real sentence rather than
+     * a dash.
+     */
+    aimsHead: "What I am working on in myself",
+    aimsEmpty:
+      "Nothing set. An aim says what you want to be able to do and how you will know - and two " +
+      "is the limit, because working on four aspects of your own conduct at once is working on " +
+      "none.",
+    aimsSet: "Set an aim",
+    aimsOpen: "Open reflection",
+    /** @param {string} source */
+    aimSource: (source) => `how you will know: ${source}`,
+
+    /* What he owes people, which is the other half of what needs him. */
+    owedHead: "What you said you would do",
+    /** @param {string} name @param {string} open */
+    owedLine: (name, open) => `to ${name}, open ${open}`,
+
     /* The focus strip. */
     focusEyebrow: "Current focus",
     /** @param {number} held */

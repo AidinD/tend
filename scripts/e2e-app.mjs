@@ -3984,6 +3984,169 @@ try {
     }
   });
 
+  /* ------------------------------------------------------------ Läget -- */
+
+  step("The front page says where to look");
+
+  /*
+   * Arrange somebody adrift, because the fixture had nobody and the check below
+   * refuses to pass on an empty set.
+   *
+   * 130 days back rather than 40, and the number took three attempts to get
+   * right. A 1-1 runs every 14 days so 40 days is already adrift - but the
+   * tile shows the WORST drift, and this person also carries a feedback round
+   * that has never happened and is 106 days past its 90-day interval. The 1-1
+   * has to beat that to be the thing the tile talks about.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row') !== null", "the roster");
+  /*
+   * By name rather than by position. The first attempt clicked the first row,
+   * the contact landed on somebody else, and the only symptom was this check
+   * still finding nobody adrift. A positional selector on a roster that has
+   * changed four times during the walkthrough is a guess.
+   */
+  const openedPerson = await page.evaluate(
+    `(() => { const row = [...document.querySelectorAll('.row[data-act=\"open\"]')]
+        .find(r => /Testperson/.test(r.textContent || ""));
+      if (!row) { return "no Testperson row"; }
+      row.click();
+      return "ok"; })()`
+  );
+  if (openedPerson !== "ok") {
+    throw new Error(`could not open the person to backdate: ${openedPerson}`);
+  }
+  await page.waitFor("document.querySelector('[data-act=\"logContact\"]') !== null", "a person page");
+  await page.click('[data-act="logContact"]');
+  await page.fillDialog({
+    kind: "one-to-one",
+    note: "Long enough ago to be a pattern",
+    at: new Date(Date.now() - 130 * 86_400_000).toISOString().slice(0, 10)
+  });
+  await sleep(400);
+
+  await page.click('[data-view="now"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the front page");
+
+  const hasRoster = await page.evaluate("document.querySelector('.roster-block') !== null");
+  check("the roster is on the page you open daily, not only on People", () => {
+    if (hasRoster !== true) {
+      throw new Error("no roster block on the front page");
+    }
+  });
+
+  const mandateTiles = await page.evaluate("document.querySelectorAll('.tile-grid .tile').length");
+  const strips = await page.evaluate("document.querySelectorAll('.strip').length");
+  check("the people you are accountable for get tiles and everybody else gets a line", () => {
+    if (!(mandateTiles > 0)) {
+      throw new Error("the mandate group rendered no tiles");
+    }
+    if (!(strips > 0)) {
+      throw new Error("no cluster rendered as a strip");
+    }
+  });
+
+  const tileSays = await page.texts(".tile .tile-says");
+  check("every tile says something, because a blank tile is the failure to avoid", () => {
+    /*
+     * The check the whole tile rule exists for. A kind added to `tiles.js` and
+     * not to the renderer's switch would render as an empty span, and an empty
+     * span about a named colleague on the page opened every morning is worse
+     * than a wrong sentence - there is nothing to notice.
+     */
+    if (tileSays.length !== mandateTiles) {
+      throw new Error(`${mandateTiles} tiles but ${tileSays.length} phrases`);
+    }
+    const blank = tileSays.filter((t) => String(t).trim() === "");
+    if (blank.length > 0) {
+      throw new Error(`${blank.length} of ${tileSays.length} tiles say nothing`);
+    }
+  });
+
+  const tileNames = await page.texts(".tile .tile-name");
+  check("and every tile names somebody", () => {
+    const blank = tileNames.filter((t) => String(t).trim() === "");
+    if (blank.length > 0) {
+      throw new Error(`${blank.length} tiles have no name`);
+    }
+  });
+
+  const stripNames = await page.texts(".strip .strip-name");
+  check("each strip says which cluster it is, so a chip is not a loose name", () => {
+    if (stripNames.length !== strips) {
+      throw new Error(`${strips} strips but ${stripNames.length} labels`);
+    }
+    const blank = stripNames.filter((t) => String(t).trim() === "");
+    if (blank.length > 0) {
+      throw new Error(`${blank.length} strips are unlabelled`);
+    }
+  });
+
+  const adriftSays = await page.texts(".tile-adrift .tile-says, .chip-adrift");
+  const adriftCount = await page.evaluate(
+    "document.querySelectorAll('.tile-adrift, .chip-adrift').length"
+  );
+  /*
+   * What the page actually shows, for the failure message. A check that says
+   * only "I found nothing to assert" is a check somebody has to reproduce by
+   * hand before they can fix it.
+   */
+  const tileKinds = await page.evaluate(
+    `(() => [...document.querySelectorAll('.tile, .chip')]
+        .map(el => (el.className.match(/(?:tile|chip)-([A-Za-z]+)/) || [,'?'])[1]
+          + " [" + (el.querySelector('.tile-name')?.textContent || el.textContent || '').trim().slice(0, 16)
+          + "] " + (el.querySelector('.tile-says')?.textContent || "").trim())
+        .join(", "))()`
+  );
+  check("a cadence nobody is keeping says both numbers, not a badge", () => {
+    /*
+     * The fact the screen exists for. "+3w" was true of a fortnightly duty at
+     * five weeks and of a two-monthly one at eleven, so a badge cannot say
+     * which cadence is mis-set. If the fixture produced no adrift person there
+     * is nothing to assert, and saying so beats a check that quietly passes.
+     */
+    if (adriftCount === 0) {
+      throw new Error(`the fixture produced nobody adrift, so this proved nothing. Tiles: ${tileKinds}`);
+    }
+    const tiles = adriftSays.filter((t) => /is set to every/.test(String(t)));
+    if (tiles.length === 0 && adriftSays.length > 0) {
+      throw new Error(`an adrift tile does not state the interval: "${adriftSays[0]}"`);
+    }
+  });
+
+  const aimsHead = await page.evaluate("document.querySelector('.aims-block') !== null");
+  const aimsText = await page.text(".aims-block");
+  check("his own aims render with none set, because that is how this ships", () => {
+    /*
+     * The goals pass happens after this screen exists, so an empty aims block
+     * is the state he will actually see first. It has to be a sentence saying
+     * what an aim is, not a dash.
+     */
+    if (aimsHead !== true) {
+      throw new Error("no aims block on the front page");
+    }
+    if (!/Nothing set/.test(aimsText)) {
+      throw new Error(`the empty aims block does not explain itself: "${aimsText.slice(0, 120)}"`);
+    }
+    if (!/how you will know/.test(aimsText)) {
+      throw new Error("the empty aims block does not say what an aim needs");
+    }
+  });
+
+  const proposedOnNow = await page.evaluate(
+    "document.querySelectorAll('.proposed-block .card').length"
+  );
+  const proposedActs = await page.texts(".proposed-block .card-foot .act");
+  check("unanswered proposals are decidable here, not just reported", () => {
+    if (proposedOnNow === 0) {
+      throw new Error("no proposed duty on the front page, so this check proved nothing");
+    }
+    const all = proposedActs.join(" ");
+    if (!/Accept it/.test(all) || !/Not my job/.test(all)) {
+      throw new Error(`a proposal offers no answer: ${all}`);
+    }
+  });
+
   /* ------------------------------------------------------------- exit -- */
 
   step("Finishing up");

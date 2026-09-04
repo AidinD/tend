@@ -534,7 +534,21 @@ export async function act(op, args, success) {
  * be hand-copied here, and a type added to the domain was then unpickable in the
  * window with nothing failing anywhere.
  */
-export { RELATIONS, RELATION_OPTIONS } from "../domain/cadence.js";
+export { RELATIONS, RELATION_OPTIONS, RELATION_GROUPS, groupOf } from "../domain/cadence.js";
+
+/*
+ * The tile rule and the day-count wording, from the domain for the same reason
+ * as every list above: a copy in the renderer is a copy that drifts, and the
+ * way this one would drift is by deciding a tile means something the rule does
+ * not say it means.
+ *
+ * `humanDays` is still English and is the single place a translation swaps.
+ * The renderer calls it rather than assembling its own phrase from
+ * `durationOf`, because a half-translated layer built ahead of the translation
+ * is a layer somebody has to unpick.
+ */
+export { TILE_KINDS, tileOf, tileWeight } from "../domain/tiles.js";
+export { humanDays } from "../domain/time.js";
 
 /*
  * Contact kinds come from the domain, not from a second list here. The rule

@@ -2125,3 +2125,187 @@ kbd {
      as belonging to its summary rather than as loose rows in the list. */
   margin: var(--sp-sub) 0 0 14px;
 }
+
+/* ----------------------------------------------------------------- Läget -- */
+
+/*
+ * The roster, laid out so the page says where to look.
+ *
+ * The asymmetry is the whole design and it is worth stating: the people you are
+ * accountable for get equal tiles in a grid, and the other three clusters get
+ * one line each. A uniform list of fifteen would be a list, and he already has
+ * one of those on People. This is the front page, so its job is priority rather
+ * than completeness.
+ */
+.roster-block {
+  margin-top: var(--sp-block);
+  /*
+   * And a bottom, because the group heading that follows it had a gap of zero.
+   * The heading-gap check caught that the moment the roster moved above the
+   * cards, which is the whole reason that check exists: a label reads as
+   * belonging to whatever it is nearest, so "Needs you" glued to the last
+   * strip looks like a caption for the strip.
+   */
+  margin-bottom: var(--sp-block);
+}
+
+.mandate {
+  margin-top: var(--sp-item);
+}
+
+/*
+ * `auto-fit` rather than a fixed column count, because the number of people he
+ * holds a mandate over is not a design constant - it was two last year and may
+ * be six next. The minimum is wide enough for the longest tile sentence, which
+ * is the adrift one, so a tile never wraps to three lines on a narrow window.
+ */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--sp-item);
+  margin-top: var(--sp-label);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-label);
+  align-items: flex-start;
+  text-align: left;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.tile:hover {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.tile-name {
+  font-size: var(--t-title);
+  color: var(--text);
+}
+
+.tile-says {
+  font-size: var(--t-meta);
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+/*
+ * Severity as a left edge rather than a tint over the whole tile, the same
+ * decision the cards made: a band is width-independent, so a tile in a
+ * four-column grid and the same tile in a one-column grid read as equally
+ * urgent.
+ */
+.tile-adrift {
+  border-left: 3px solid var(--critical);
+}
+
+.tile-adrift .tile-says {
+  color: var(--critical-text);
+}
+
+.tile-neverYet {
+  border-left: 3px solid var(--critical);
+}
+
+.tile-neverYet .tile-says {
+  color: var(--critical-text);
+}
+
+.tile-late {
+  border-left: 3px solid var(--warn);
+}
+
+.tile-late .tile-says {
+  color: var(--warn-text);
+}
+
+/* Nothing is being asked of you, so nothing is coloured. */
+.tile-inStep .tile-says,
+.tile-noDuty .tile-says,
+.tile-away .tile-says,
+.tile-leaving .tile-says,
+.tile-left .tile-says {
+  color: var(--text-faint);
+}
+
+.mandate-empty {
+  margin-top: var(--sp-item);
+  padding: 13px 15px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+
+/*
+ * One cluster, one line. It has to survive a wide monitor and a narrow one, so
+ * the chips wrap rather than scroll - a horizontally scrolling strip hides
+ * names, and a hidden name on this page is the failure the whole roster
+ * grouping was fixed for once already.
+ */
+.strip {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-item);
+  padding: var(--sp-label) 0;
+  border-top: 1px solid var(--line-soft);
+  margin-top: var(--sp-item);
+}
+
+.strip-name {
+  flex: 0 0 auto;
+  min-width: 150px;
+  font-size: var(--t-meta);
+  color: var(--text-faint);
+}
+
+.strip-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-label);
+  min-width: 0;
+}
+
+.chip {
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--t-meta);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--surface-2);
+}
+
+.chip.quiet {
+  border-style: dashed;
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.chip-adrift,
+.chip-neverYet {
+  border-color: var(--critical-edge);
+  color: var(--critical-text);
+}
+
+.chip-late {
+  border-color: var(--warn-edge);
+  color: var(--warn-text);
+}
+
+.proposed-block,
+.aims-block,
+.owed-block {
+  margin-top: var(--sp-block);
+}
