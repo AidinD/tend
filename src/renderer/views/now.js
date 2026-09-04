@@ -23,6 +23,7 @@ import {
   tileWeight,
   toast
 } from "../ui.js";
+import { dayWords } from "../../domain/time.js";
 import { go, refresh } from "../app.js";
 import { actions as waitingActions, waitingGroup } from "./waiting.js";
 import { T } from "../text.js";
@@ -65,15 +66,42 @@ export async function render() {
     return anyArchived ? everybodyArchived(mine) : firstRun();
   }
 
+  /*
+   * The focus on one line.
+   *
+   * It was a panel: an eyebrow, a quoted heading, a paragraph of cost, a
+   * footer and a button, which is five rows for one running priority on the
+   * page whose entire job is fitting the day on a screen. The facts are the
+   * same four; they are now middot-separated, and the two long sentences the
+   * service composes stay as the line's tooltip so nothing said before stopped
+   * being available.
+   *
+   * The button stays. The mock has none, but the mock is a picture and this is
+   * the only way into the focus settings from the page it is about.
+   */
+  const focusFacts = attention.focus
+    ? [
+        Number.isFinite(attention.focus.daysLeft)
+          ? words.focusDaysLeft(attention.focus.daysLeft)
+          : words.focusNoEnd,
+        attention.focus.costKnown === false
+          ? words.costUnknown
+          : attention.focus.costDays > 0
+            ? words.costBehind(attention.focus.costDays.toFixed(1))
+            : words.costNothingBehind,
+        attention.heldBackByFocus > 0 ? words.focusHeldShort(attention.heldBackByFocus) : ""
+      ].filter((part) => part !== "")
+    : [];
+
   const focus = attention.focus
-    ? `<div class="focus-bar${attention.focus.overrun ? " overrun" : ""}">
-        <div class="focus-eyebrow">${words.focusEyebrow}</div>
-        <h2 class="focus-name">${esc(attention.focus.summary)}</h2>
-        <p class="focus-cost">${esc(attention.focus.cost)}</p>
-        <div class="card-foot">
-          <span class="src">${words.focusHeld(attention.heldBackByFocus)}</span>
-          <button class="act" data-act="openFocus">${words.focusSettings}</button>
-        </div>
+    ? `<div class="focus-line${attention.focus.overrun ? " overrun" : ""}"
+        title="${esc(attention.focus.summary)} ${esc(attention.focus.cost)} ${esc(
+          words.focusHeld(attention.heldBackByFocus)
+        )}">
+        <span class="focus-eyebrow">${words.focusLabel}</span>
+        <span class="focus-name">${esc(attention.focus.name)}</span>
+        <span class="focus-facts">${focusFacts.map((f) => esc(f)).join(" · ")}</span>
+        <button class="act tiny" data-act="openFocus">${words.focusSettings}</button>
       </div>`
     : `<div class="no-focus">
         <span class="src">${words.noFocus}</span>
@@ -166,30 +194,35 @@ export async function render() {
   }
 
   return `
-    <div class="view-head">
+    <div class="view-head view-head-dated">
       <h1 class="view-title">${words.title}</h1>
-      <p class="view-sub">${words.sub}</p>
+      <span class="view-date">${esc(dayWords(Date.now()))}</span>
+      <!--
+        What the page is, as a tooltip rather than a paragraph. The sentence is
+        still worth saying - it is the reason the page is nearly empty on a good
+        day - but a front page whose job is overview cannot spend a line on
+        explaining itself. Kept as a string so putting it back is one edit.
+      -->
+      <span class="view-note" title="${esc(words.sub)}">?</span>
     </div>
     ${focus}
     ${
       /*
-       * The roster above the cards, and this is the page's structure rather
-       * than a preference.
+       * What needs him first, then the roster.
        *
-       * The tiles are the map and the cards are the list. A tile says a
-       * fortnightly duty is running at nineteen weeks; the card below says the
-       * same thing with the button that fixes it. Orientation first, then what
-       * to do about it - which is what makes this a front page rather than a
-       * longer version of the deviation list.
+       * This file used to argue the opposite, and the argument was good: the
+       * tiles are the map and the cards are the list, so orientation first,
+       * then what to do about it. Aidin overruled it - the mock's order stands.
+       * The comment defending the old order is gone rather than left sitting
+       * above code that does the other thing, which is worse than no comment.
        *
-       * The duplication is real and deliberate. The alternatives are worse: a
-       * page where the mandate group is described once in two different voices
-       * and you have to reconcile them, or one where you scroll past three
-       * cards before finding out who you are accountable for.
+       * The duplication between the two is still real and still deliberate: a
+       * tile says a fortnightly duty is running at nineteen weeks, and the card
+       * says the same thing with the button that fixes it.
        */
-      rosterBlock(roster)
+      group(words.needsYouGroup, attention.needsYou.map(card).join(""), attention.needsYou.length)
     }
-    ${group(words.needsYouGroup, attention.needsYou.map(card).join(""), attention.needsYou.length)}
+    ${rosterBlock(roster)}
     ${group(words.revisitsGroup, revisitCards, revisits.length)}
     ${group(words.questionsGroup, due.map(question).join(""), due.length)}
     ${group(
@@ -246,11 +279,10 @@ function rosterBlock(roster) {
 
   return `<section class="roster-block">
     <div class="prep-head">
-      <span class="group-title">${words.teamHead}</span>
+      <span class="group-title" title="${esc(words.teamSub)}">${words.teamHead}</span>
       <span class="group-rule"></span>
       <span class="group-meta">${mandate === undefined ? 0 : mandate.members.length}</span>
     </div>
-    <p class="view-sub">${words.teamSub}</p>
     ${mandate === undefined ? "" : mandateGrid(mandate)}
     ${
       /*
@@ -261,11 +293,10 @@ function rosterBlock(roster) {
        */
       strip.some((c) => c.members.length > 0)
         ? `<div class="prep-head around-head">
-             <span class="group-title">${words.aroundHead}</span>
+             <span class="group-title" title="${esc(words.aroundSub)}">${words.aroundHead}</span>
              <span class="group-rule"></span>
            </div>
-           <p class="view-sub">${words.aroundSub}</p>
-           ${strip.map(stripRow).join("")}`
+           <div class="band">${strip.map(stripRow).join("")}</div>`
         : ""
     }
   </section>`;
@@ -294,7 +325,7 @@ function mandateGrid(cluster) {
     .map(
       ({ p, tile }) => `<button class="tile tile-${esc(tile.kind)}" data-act="openPerson"
         data-person="${esc(p.id)}">
-        <span class="tile-name">${esc(p.name)}</span>
+        <span class="tile-name"><i class="dot dot-${dotOf(tile)}"></i>${esc(p.name)}</span>
         <span class="tile-says">${tilePhrase(tile)}</span>
       </button>`
     )
@@ -324,26 +355,65 @@ function stripRow(cluster) {
     return "";
   }
 
-  const withTiles = cluster.members.map((p) => ({ p, tile: tileOf(p, cluster.name) }));
-  const asking = withTiles.filter(({ tile }) => tileWeight(tile) >= 2);
-
-  const chips =
-    asking.length === 0
-      ? `<span class="chip quiet">${words.groupAllInStep(withTiles.length)}</span>`
-      : asking
-          .sort((a, b) => tileWeight(b.tile) - tileWeight(a.tile))
-          .map(
-            ({ p, tile }) => `<button class="chip chip-${esc(tile.kind)}" data-act="openPerson"
-              data-person="${esc(p.id)}" title="${esc(plainPhrase(tile))}">
-              ${esc(p.name)}
-            </button>`
-          )
-          .join("");
+  /*
+   * Every member, with the phrase on the chip.
+   *
+   * This used to show only the ones asking for something and collapse the rest
+   * to "4 i fas", on the argument that printing eleven quiet names to prove
+   * nothing needs you defeats the point. Overruled: the mock shows each person
+   * as a chip carrying its own state, "Jonna aldrig talat" beside "Sanna i fas",
+   * and a count is not something you can click on the day you want to open
+   * somebody who is fine.
+   *
+   * The order still puts what is asking first, so the collapse's actual value -
+   * you never have to read past the quiet ones - survives without hiding them.
+   */
+  const chips = cluster.members
+    .map((p) => ({ p, tile: tileOf(p, cluster.name) }))
+    .sort((a, b) => tileWeight(b.tile) - tileWeight(a.tile))
+    .map(
+      ({ p, tile }) => `<button class="chip chip-${esc(tile.kind)}" data-act="openPerson"
+        data-person="${esc(p.id)}" title="${esc(plainPhrase(tile))}">
+        <i class="dot dot-${dotOf(tile)}"></i>
+        <span class="chip-name">${esc(p.name)}</span>
+        <span class="chip-says">${esc(plainPhrase(tile))}</span>
+      </button>`
+    )
+    .join("");
 
   return `<div class="strip" data-cluster="${esc(cluster.name)}">
     <span class="strip-name" title="${esc(groupNote(cluster.name))}">${groupName(cluster.name)}</span>
     <span class="strip-chips">${chips}</span>
   </div>`;
+}
+
+/**
+ * The coloured dot beside a name, from the tile's own weight.
+ *
+ * Derived rather than a second list of kinds. `tileWeight` already ranks every
+ * kind for the sort, and a hand-written kind-to-colour map would be the fifth
+ * copy of that taxonomy and the one nobody would notice going stale - it only
+ * shows up as a wrong colour, which reads as a design choice.
+ *
+ * Away and left get their own flat colour rather than the calm one: "nothing is
+ * expected" and "everything is in step" are both quiet, and they are not the
+ * same fact.
+ *
+ * @param {any} tile
+ * @returns {string}
+ */
+function dotOf(tile) {
+  if (tile.kind === "away" || tile.kind === "left") {
+    return "off";
+  }
+  const weight = tileWeight(tile);
+  if (weight >= 4) {
+    return "crit";
+  }
+  if (weight >= 2) {
+    return "warn";
+  }
+  return "calm";
 }
 
 /** @param {string} name */
@@ -516,7 +586,7 @@ function myActionsBlock(myOwn) {
   const body =
     rows.length === 0
       ? `<p class="src">${words.myActionsEmpty}</p>`
-      : rows
+      : `<div class="mine-grid">${rows
           .map(
             (/** @type {any} */ r) => `<div class="mine-row">
               <span class="mine-text">${esc(r.text)}</span>
@@ -524,7 +594,7 @@ function myActionsBlock(myOwn) {
               <button class="act tiny" data-act="finishMyAction" data-id="${esc(r.id)}">${words.myActionDone}</button>
             </div>`
           )
-          .join("");
+          .join("")}</div>`;
 
   return `<section class="aims-block">
     <div class="group-head">
@@ -552,15 +622,23 @@ function aimsBlock(myAims) {
     rows.length === 0
       ? `<p class="src">${words.aimsEmpty}</p>
          <button class="act" data-act="openReflection">${words.aimsSet}</button>`
-      : rows
+      : `<div class="mine-grid">${rows
           .map(
             (/** @type {any} */ a) => `<div class="mine-row">
               <span class="mine-text">${esc(a.aim)}</span>
-              <span class="src">${words.aimSource(esc(a.source ?? ""))}</span>
+              <!--
+                sourceLabel, not source. The raw field is an enum key, so the
+                front page read "hur du vet: someone" while Reflektion read
+                "hur du vet: Någon annan säger det" off the same row - the
+                service has carried both fields all along and this one picked
+                the wrong one. Found by a fixture with an aim in it; every
+                walkthrough so far had none set.
+              -->
+              <span class="src">${words.aimSource(esc(a.sourceLabel ?? a.source ?? ""))}</span>
             </div>`
           )
-          .join("") +
-        `<div class="card-foot"><button class="act" data-act="openReflection">${words.aimsOpen}</button></div>`;
+          .join("")}</div>
+         <div class="card-foot"><button class="act" data-act="openReflection">${words.aimsOpen}</button></div>`;
 
   return `<section class="aims-block">
     <div class="group-head">
@@ -686,7 +764,7 @@ function group(title, body, count) {
       <span class="group-rule"></span>
       <span class="group-meta">${count}</span>
     </div>
-    <div class="stack">${body}</div>
+    <div class="stack cards">${body}</div>
   </div>`;
 }
 

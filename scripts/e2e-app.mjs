@@ -3121,7 +3121,7 @@ try {
   await page.waitFor("document.querySelector('.view-title') !== null", "Now");
   const unfiledCard = String(await page.evaluate("document.body.textContent"));
   check("the daily page says the queue exists, once for the meeting", () => {
-    if (!/2 commitments from Tuesday sync/.test(unfiledCard)) {
+    if (!/2 åtaganden från Tuesday sync/.test(unfiledCard)) {
       throw new Error("Now does not mention the unfiled commitments");
     }
   });

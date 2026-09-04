@@ -220,9 +220,33 @@ Tend event log <──┤
    `feedback` - and `drift` is **eftersläpning**, never the English word.
 
    **Where Swedish stops is a stated rule, not a leftover:** a string a person
-   can put on their own screen is Swedish wherever it is composed; the 81 that
-   are keyed by an id or an enum stay English, because only a caller passing bad
+   can put on their own screen is Swedish wherever it is composed; the ones
+   keyed by an id or an enum stay English, because only a caller passing bad
    arguments can produce one. See DECISIONS.md.
+
+   **Not finished, and the sweep is why.** The check that said it was only
+   matched backtick literals, so a plain quoted sentence with no interpolation
+   in it was invisible to it - which is how "Monthly check. The answer is
+   usually no" shipped on a card on the front page. Widened, it finds 347
+   across the two layers. Most are model prompts and reference material and are
+   correctly English; the visible remainder is the private half's relationship
+   kinds in `domain/halves.js`, the journal's three prompts in
+   `domain/journal.js`, the decision form's field notes, and scattered
+   validation. Läget's six went with the layout pass because they were on the
+   page being rebuilt. The rest is its own slice.
+
+14. ~~**The layout pass**~~ done. Läget renders in columns. The stylesheet had
+   three `grid-template-columns` rules in 2322 lines, one of them the sidebar,
+   so every block on the front page was full width and stacked - three cards
+   took a screen and a half to say three sentences. The mock is binding on
+   density and block order and advisory on everything else, which is the
+   opposite of what the building brief said; see DECISIONS.md for why that rule
+   was right for the surface conventions it was written for and wrong as a
+   blanket. Two bugs a realistic fixture found on the way: the front page
+   printed an aim's `source` enum key where Reflektion printed its label off
+   the same row, and a due monthly question renders twice - once with the answer
+   buttons under Frågor and once as a bare nudge card. The second is reported
+   rather than fixed, because which block should own it is a product call.
 
 ## Not built, and why
 

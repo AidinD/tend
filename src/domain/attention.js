@@ -299,7 +299,7 @@ export function buildAttention(state, now) {
       severity: s.severity,
       badge: s.everAnswered ? driftBadge(s.daysSince) : "new",
       guarded: false,
-      source: "Monthly check. The answer is usually no",
+      source: "Månadskoll. Svaret är oftast nej",
       subject: null
     });
   }
@@ -319,7 +319,7 @@ export function buildAttention(state, now) {
       title: `Ingen delegeringsnivå satt på ${subjectName(w)}`,
       why: owner
         ? `${subjectName(owner)} sitter på det här och du har inte sagt hur långt du klivit tillbaka. Det glappet är där ansvaret flyttat och informationen inte har.`
-        : "Nobody is named on this and no level is set, so nothing about it is decided.",
+        : "Ingen är namngiven på det här och ingen nivå är satt, så inget om det är bestämt.",
       severity: "warn",
       badge: "unset",
       guarded: false,
@@ -351,21 +351,21 @@ export function buildAttention(state, now) {
   for (const [key, group] of unfiled) {
     // Same key shape as `pendingCommitments` groups, so the card's button can
     // say which meeting it means without either side re-deriving it.
-    const what = group.note === "" ? "a shared note" : group.note;
+    const what = group.note === "" ? "en delad anteckning" : group.note;
     items.push({
       key: `unfiled:${key}`,
       kind: "unfiled",
       trueSeverity: "warn",
-      title: `${group.count} commitment${group.count === 1 ? "" : "s"} from ${what} need${
-        group.count === 1 ? "s" : ""
-      } a name`,
+      title: `${group.count} ${
+        group.count === 1 ? "åtagande" : "åtaganden"
+      } från ${what} behöver ett namn`,
       why:
-        "Several people were in this one, so there is no way to tell whose each of these is. " +
-        "Until they are filed they are not on anybody's page and nothing will chase them.",
+        "Flera personer var med i den här, så det går inte att avgöra vems var och en av dem är. " +
+        "Innan de är sorterade ligger de inte på någons sida och inget kommer att påminna om dem.",
       severity: "warn",
       badge: "unfiled",
       guarded: false,
-      source: "Notes from Nib",
+      source: "Anteckningar från Nib",
       subject: null
     });
   }

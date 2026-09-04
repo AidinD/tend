@@ -135,8 +135,6 @@ export const T = {
     tileUnknownCluster: (cluster) => `Ingen vokabulär för "${cluster}".`,
 
     /* The strip's clusters collapse to a count when nobody in them needs you. */
-    /** @param {number} n */
-    groupAllInStep: (n) => `${n} i fas`,
     rosterEmpty: "Ingen i den här gruppen.",
 
     /*
@@ -208,7 +206,6 @@ export const T = {
     noFocusStart: "Starta ett",
 
     /* The focus strip. */
-    focusEyebrow: "Nuvarande fokus",
     /*
      * The count comes out as parts so the plural works. English got away with
      * "nudge(s)"; Swedish has no equivalent shortcut and the parenthesis reads
@@ -219,6 +216,22 @@ export const T = {
       `${held} ${held === 1 ? "påminnelse" : "påminnelser"} hålls tillbaka. Inget kritiskt ` +
       `ligger någonsin där.`,
     focusSettings: "Fokusinställningar",
+
+    /*
+     * The focus as one line: name, then the facts, middot-separated. Short
+     * forms on purpose - four facts on a line is the point of the line, and
+     * the long versions are still in the payload and still the tooltip.
+     */
+    focusLabel: "fokus",
+    /** @param {number} n */
+    focusDaysLeft: (n) => `${n} ${n === 1 ? "dag" : "dagar"} kvar`,
+    focusNoEnd: "inget slutdatum",
+    costNothingBehind: "inget har halkat efter",
+    costUnknown: "ingen utgångspunkt registrerad",
+    /** @param {string} days */
+    costBehind: (days) => `${days} dagars eftersläpning sedan starten`,
+    /** @param {number} n */
+    focusHeldShort: (n) => `${n} ${n === 1 ? "undanhållen" : "undanhållna"}`,
 
     /* The groups. */
     needsYouGroup: "Kräver dig",

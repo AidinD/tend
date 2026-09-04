@@ -38,14 +38,33 @@ import { resolvePerson, resolveProject } from "./resolve.js";
  * @param {number} now
  */
 export function attention(store, now) {
-  const a = buildAttention(store.state(), now);
+  const state = store.state();
+  const a = buildAttention(state, now);
   return {
     needsYou: a.needs.map(summariseItem),
     nudges: a.nudges.map(summariseItem),
     heldBackByFocus: a.muted,
     allInStep: a.quiet,
+    /*
+     * The sentences AND the parts they were built from.
+     *
+     * `summary` and `cost` are what `tend_attention` hands a model, and a
+     * finished sentence is right there. Läget shows the focus as one line of
+     * middot-separated facts, which cannot be recovered from either sentence -
+     * `summary` glues the name to the days left, and `cost` is a paragraph.
+     * So the parts travel too and the renderer composes. Additive: nothing
+     * that read this before reads anything different.
+     */
     focus: a.focus.active
-      ? { summary: a.focus.summary, overrun: a.focus.overrun, cost: a.focus.cost.summary }
+      ? {
+          summary: a.focus.summary,
+          overrun: a.focus.overrun,
+          cost: a.focus.cost.summary,
+          name: String(state.focus?.name ?? ""),
+          daysLeft: a.focus.daysLeft,
+          costKnown: a.focus.cost.known,
+          costDays: a.focus.cost.deltaDays
+        }
       : null
   };
 }

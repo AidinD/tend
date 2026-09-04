@@ -782,7 +782,7 @@ describe("what the daily page says about a queue nobody has answered", () => {
     const a = buildAttention(store.state(), NOW);
     const unfiled = a.needs.concat(a.nudges).filter((i) => i.kind === "unfiled");
     assert.equal(unfiled.length, 1);
-    assert.match(unfiled[0].title, /3 commitments/);
+    assert.match(unfiled[0].title, /3 åtaganden/);
     assert.match(unfiled[0].title, /Tuesday sync/);
   });
 

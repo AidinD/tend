@@ -3,6 +3,67 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-04 - Läget is a dashboard, and the stylesheet was the reason it was not
+
+**Decided.** Läget renders in columns. The mock is binding on density and on
+block order; it stays advisory on everything else.
+
+**What was actually wrong.** 2322 lines of stylesheet and three
+`grid-template-columns` rules in them - the sidebar, `.metrics`, and the tile
+grid. Nothing else on the page was in columns, so it rendered as a tall
+single-column stack of full-width blocks. Three deviation cards took a screen
+and a half to say three sentences. The brief the page was built to said "the
+mocks are direction, not specification", which was written to protect surface
+conventions Aidin had already chosen and worked for those - and as a blanket it
+discarded the one property the mock existed to communicate. Density was the
+original complaint, in his words *jag vet inte hur jag ska få överblick*.
+
+**What is binding, and it is a short list.** The date beside the title instead
+of a sentence under it; the focus as one line rather than a five-row panel;
+deviation cards three across; those cards *above* the roster; a status dot
+before each name in the mandate grid; the three other clusters beside each other
+with each person as a chip carrying their own state; the two "mine" blocks two
+across; the explanatory sentence under each heading gone from the page.
+
+**What is not.** Colours, type, spacing, radii - the app's. The severity
+treatment stays the tinted band across the card head rather than the mock's left
+stripe. Section labels stay the app's chips. The rail keeps its ten entries; the
+mock shows eight and is out of date. All wording is the app's, since the mock
+predates the vocabulary work.
+
+**The order inverted, and the argument that lost was a good one.** `now.js` put
+the roster above the cards and said why: the tiles are the map and the cards are
+the list, so orientation first, then what to do about it. Overruled - the mock's
+order stands. The comment defending the old order is deleted rather than left
+above code that does the opposite, which is worse than no comment at all.
+
+**The strips stopped collapsing.** They showed only the people asking for
+something and rendered the rest as "4 i fas", on the argument that printing
+eleven quiet names to prove nothing needs you defeats the point. The mock shows
+every person as a chip with their own state - one name reading "aldrig talat"
+beside another reading "i fas" - and a count is not something you can click on
+the day you want to open somebody who is fine. The sort still puts what is
+asking first, so the collapse's
+real value survives without hiding anybody. `groupAllInStep` is deleted: a key
+for a state the app no longer has is the module lying about what it says.
+
+**The explanatory sentences are tooltips, and this one is reversible.** Removing
+them was the assistant's call, not Aidin's. He raised earlier that he did not
+understand several of Tend's words, and those sentences are the answer to that -
+and a tooltip is not discoverable on a page you are scanning for overview, which
+is the exact use the density work is for. So the strings stay in `text.js` and
+move to `title=`: putting them back is one edit per heading, not a rewrite.
+
+**One thing the columns did not fix, and it is the next thing.** A card's title
+is a whole sentence - "Feedbackrunda från producenter och kollegor har aldrig
+hänt för Ingrid Hallström" - so at three across it wraps to three lines and the
+row heights go ragged. The mock's card is a name, then the duty, then the age:
+*ett namn / Feedbackrunda, aldrig körd / 62 veckor*. That is not a wording change,
+it is which field goes in the title slot, and `title` is what `tend_attention`
+hands a model. It is the composition refactor arriving where a screen needs it,
+same as the focus line's parts did, and it is worth doing on purpose rather than
+inside a layout commit.
+
 ## 2026-09-04 - Swedish, and the one line that says where it stops
 
 **Decided.** A string a person can put on their own screen by using the app is

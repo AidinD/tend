@@ -298,3 +298,28 @@ export function isLaterDay(at, now) {
   endOfToday.setHours(23, 59, 59, 999);
   return at > endOfToday.getTime();
 }
+
+/**
+ * A day as Läget's title says it: "torsdag 3 september".
+ *
+ * Here rather than in the renderer because it is a duration-adjacent wording
+ * decision and this is where those live, and because a test can freeze an
+ * instant and read the string back - which is the only way to catch the
+ * locale silently falling back to English on a machine without full ICU.
+ *
+ * No year. The page is opened daily and the year is never the question; a date
+ * that reads like a filing stamp makes the header look like a report.
+ *
+ * @param {number} at
+ * @returns {string}
+ */
+export function dayWords(at) {
+  if (!Number.isFinite(at)) {
+    return "";
+  }
+  return new Date(at).toLocaleDateString("sv-SE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  });
+}

@@ -358,6 +358,39 @@ main {
   margin-bottom: 24px;
 }
 
+/*
+ * The title with the date beside it, on one baseline. The paragraph that used
+ * to sit under it explaining the page is a tooltip now - see `now.js`.
+ */
+.view-head-dated {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.view-date {
+  color: var(--text-faint);
+  font-size: var(--t-meta);
+}
+
+/*
+ * The mark that carries what the page is. Deliberately the quietest thing in
+ * the header: it is there for the first week and invisible after it.
+ */
+.view-note {
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text-faint);
+  font-size: var(--t-micro);
+  line-height: 13px;
+  text-align: center;
+  cursor: help;
+  user-select: none;
+}
+
 .view-title {
   margin: 0;
   font-size: var(--t-page);
@@ -422,6 +455,25 @@ p + .group {
 .stack {
   display: flex;
   flex-direction: column;
+  gap: 9px;
+}
+
+/*
+ * Deviation cards across, not stacked. This is the single biggest thing between
+ * the page and the mock: three full-width cards used a screen and a half to say
+ * three sentences.
+ *
+ * `auto-fit` and not `repeat(3, 1fr)`, for the same reason the tile grid uses
+ * it - the number of things needing him is not a design constant. The minimum
+ * is 21rem, which gives three across in a maximised window and two at about
+ * 1000px. 255px was the first attempt and gave four, which is denser and
+ * worse: the card's title is a whole sentence naming a duty and a person, and
+ * at four across it wrapped to four lines and the row heights went ragged.
+ */
+.stack.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+  align-items: start;
   gap: 9px;
 }
 
@@ -695,6 +747,64 @@ button.row.sev-warn:hover {
 }
 
 /* --------------------------------------------------------------- focus -- */
+
+/*
+ * One line: label, name, the facts, and the way in. It was a five-row panel.
+ * `min-width: 0` on the facts so a long cost sentence ellipsises rather than
+ * pushing the button off the end.
+ */
+.focus-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 13px 8px 15px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+
+.focus-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+}
+
+.focus-line.overrun::before {
+  background: var(--critical);
+}
+
+.focus-line .focus-eyebrow {
+  flex: 0 0 auto;
+}
+
+.focus-line .focus-name {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--t-body);
+  font-weight: 600;
+}
+
+.focus-facts {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-dim);
+  font-size: var(--t-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.focus-line .act {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
 
 .focus-bar {
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
@@ -1582,6 +1692,37 @@ button.row:hover {
   font-size: var(--t-meta);
 }
 
+/*
+ * Two across. Both blocks are short lines - an aim and its source, an action
+ * point and where it came from - and a stack of four of them at full width is
+ * four rows of mostly empty space at the bottom of the page.
+ */
+.mine-grid {
+  display: grid;
+  /* 28rem gives two at a maximised width and one below about 900px. 19rem was
+     the first attempt and gave three, which is not what was asked for and made
+     an aim's sentence wrap where it had no need to. */
+  grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
+  gap: var(--sp-item);
+  margin-top: var(--sp-label);
+}
+
+/*
+ * Inside a grid a row is a cell, so the top rule that separated it from the
+ * row above now boxes it instead. The stacked form keeps its rule, because
+ * both blocks still render as a stack when there is one of something.
+ */
+.mine-grid .mine-row {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  align-content: start;
+}
+
+.mine-grid .mine-row:first-of-type {
+  border-top: 1px solid var(--line);
+}
+
 .mine-row {
   display: flex;
   flex-wrap: wrap;
@@ -2187,8 +2328,43 @@ kbd {
 }
 
 .tile-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: var(--t-title);
   color: var(--text);
+}
+
+/*
+ * The dot the mock has and the tiles did not. It says the same thing the tile's
+ * sentence says, which is the point: the sentence is for reading and the dot is
+ * for scanning, and a page whose job is overview needs the second one. Its
+ * severity is derived from `tileWeight` in `now.js` rather than from a colour
+ * map, so it cannot disagree with the sort order.
+ */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--ok);
+}
+
+.dot-crit {
+  background: var(--critical);
+}
+
+.dot-warn {
+  background: var(--warn);
+}
+
+.dot-calm {
+  background: var(--ok);
+}
+
+/* Away and left. Quiet, and not the same quiet as "in step". */
+.dot-off {
+  background: var(--line);
 }
 
 .tile-says {
@@ -2249,19 +2425,41 @@ kbd {
  * names, and a hidden name on this page is the failure the whole roster
  * grouping was fixed for once already.
  */
-.strip {
+/*
+ * The three clusters beside each other, two per line on a wide window.
+ *
+ * `flex: 1 1 20rem` rather than a column count: three clusters in a 52rem
+ * content area wrap to 2 + 1, which is what the mock shows, and on a narrow
+ * window they stack without a media query. The basis is what decides the wrap,
+ * so it is the number to change if the pairing is wrong.
+ */
+.band {
   display: flex;
-  align-items: baseline;
-  gap: var(--sp-item);
-  padding: var(--sp-label) 0;
-  border-top: 1px solid var(--line-soft);
+  flex-wrap: wrap;
+  gap: var(--sp-item) 24px;
+  align-items: flex-start;
   margin-top: var(--sp-item);
 }
 
+.strip {
+  flex: 1 1 20rem;
+  min-width: 0;
+  padding: var(--sp-label) 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+/*
+ * Above its chips rather than in a fixed column beside them. The column was
+ * what made each cluster a full-width row, and a 150px gutter repeated three
+ * times is most of the space the second column needed.
+ */
 .strip-name {
-  flex: 0 0 auto;
-  min-width: 150px;
-  font-size: var(--t-meta);
+  display: block;
+  margin-bottom: var(--sp-label);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
   color: var(--text-faint);
 }
 
@@ -2272,15 +2470,33 @@ kbd {
   min-width: 0;
 }
 
+/*
+ * A chip is a name and its state now, not a bare name, so it is a small block
+ * rather than a pill - a 999px radius on two lines of text looks like a
+ * mistake. The name reads at full contrast and the phrase a step down, which
+ * is the same relationship the tiles use.
+ */
 .chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   padding: 3px 9px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 5px;
   background: var(--surface);
   color: var(--text-dim);
   font: inherit;
   font-size: var(--t-meta);
+  text-align: left;
   cursor: pointer;
+}
+
+.chip-name {
+  color: var(--text);
+}
+
+.chip-says {
+  color: var(--text-faint);
 }
 
 .chip:hover {
