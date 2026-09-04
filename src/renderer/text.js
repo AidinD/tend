@@ -42,91 +42,89 @@
 
 export const T = {
   now: {
-    readFailedTitle: "Could not read the data",
+    readFailedTitle: "Kunde inte läsa datan",
 
     /* The quiet day, which is the design rather than a gap. */
-    quietTitle: "Nothing needs you",
+    quietTitle: "Inget behöver dig",
     quietSub:
-      "Every cadence is inside its interval, no promise is ageing, and no question is due. This " +
-      "view is meant to be empty most days.",
-    quietEmpty: "When something drifts, it appears here and nowhere else.",
-
-    title: "Now",
-    sub: "Only what deviates. Everything in step stays out of the way.",
+      "Varje takt ligger inom sitt intervall, inget löfte åldras och ingen fråga är aktuell. " +
+      "Den här sidan är tänkt att vara tom de flesta dagarna.",
+    quietEmpty: "När något släpar efter dyker det upp här och ingen annanstans.",
 
     /*
-     * The roster, laid out as tiles.
+     * The name it waited for. It has been "Now" and then "Where things stand",
+     * which were both stand-ins - the screen has been called Läget since the
+     * brief was written.
+     */
+    title: "Läget",
+    sub: "Bara det som avviker. Allt som ligger i fas håller sig ur vägen.",
+
+    /*
+     * The roster as tiles, in two sections rather than one, because they
+     * answer different questions. The grid is the people he is accountable for
+     * and it owns the vertical space; the strips are everybody else, and they
+     * exist so the page can say "and nothing here needs you" in one line.
      *
-     * Four clusters, declared in `cadence.js` because which relationship types
-     * are in which cluster is a fact about the domain. These are only the
-     * names, and each carries a line saying what the cluster IS - because
-     * "Peers" alone does not tell you why those four are on one strip while two
-     * people have a grid to themselves.
+     * Which relationship types are in which cluster is declared in
+     * `cadence.js`, because that is a fact about the domain. These are only
+     * the names - and each strip carries a line saying what the cluster IS,
+     * since "Sidoordnade" alone does not say why those four share one line
+     * while two people have a grid to themselves.
      */
-    /*
-     * Two sections rather than one, because they answer different questions.
-     * The grid is the people you are accountable for and it owns the vertical
-     * space; the strips are everybody else and they exist so the page can say
-     * "and nothing here needs you" in one line.
-     */
-    teamHead: "My team",
-    teamSub: "The people you hold a mandate over. Where each of them stands, not what is late.",
-    aroundHead: "Around me",
-    aroundSub: "Everybody else, one line per kind of relationship.",
+    teamHead: "Mitt team",
+    teamSub: "De du ansvarar för. Var var och en står, inte vad som är sent.",
+    aroundHead: "Runt omkring",
+    aroundSub: "Alla andra, en rad per sorts relation.",
 
-    groupMandate: "My team",
-    groupNoChannel: "Their work, no channel",
-    groupNoChannelNote: "You see what they do and have no formal way to act on it.",
-    groupPeers: "Peers",
-    groupPeersNote: "No authority either way, so influence rests entirely on goodwill.",
-    groupOutward: "Upward and outward",
-    groupOutwardNote: "Not yours to lead. You owe them a picture rather than a conversation.",
+    groupMandate: "Mitt team",
+    groupNoChannel: "Leder utan kanal",
+    groupNoChannelNote: "Du ser vad de gör och har ingen formell väg att agera på det.",
+    groupPeers: "Sidoordnade",
+    groupPeersNote: "Ingen bestämmanderätt någon väg, så inflytandet vilar helt på goodwill.",
+    groupOutward: "Uppåt och utåt",
+    groupOutwardNote: "Inte dina att leda. Du är skyldig dem en bild, inte ett samtal.",
 
     /*
-     * A tile's one line, per kind from `tiles.js`. Every one of these is
-     * reachable and a test asserts the renderer handles all eight, because an
+     * A tile's one line, per kind from `tiles.js`. Every kind in every set is
+     * reachable and a test walks all of them from real rows, because an
      * unhandled kind renders as a blank tile about a named colleague.
      *
-     * `adrift` is the sentence the whole screen exists for, so it says both
-     * numbers rather than a badge. "+3w" was true of a fortnightly duty at five
-     * weeks and of a two-monthly one at eleven, and only one of those is a
-     * cadence nobody is keeping.
+     * Mitt team first. That set is about where somebody's development stands,
+     * because the cadences have their own section as cards above - saying both
+     * on the same tile is what made the first version of this page repeat
+     * itself.
      */
-    /*
-     * My team. The set is about where somebody's development stands, because
-     * the cadences have their own section as cards above - saying both on the
-     * same tile is what made the first version of this page repeat itself.
-     */
-    tileAway: "Away. Nothing is expected.",
-    tileLeaving: "Leaving. Everything holds until their last day.",
+    tileAway: "Borta. Inget förväntas.",
+    tileLeaving: "Slutar. Allt gäller fram till sista dagen.",
     /** @param {string} duty */
-    tileNeedsYou: (duty) => `${duty} needs you now.`,
-    tileNoDirection: "No direction open.",
-    tileDirectionUntested: "A direction, not yet put to them.",
-    tileDirectionShowing: "A direction, and it is showing.",
-    tilePlanNotStarted: "A plan, not ready to start.",
-    tilePlanRunning: "A plan, running.",
+    tileNeedsYou: (duty) => `${duty} behöver dig nu.`,
+    tileNoDirection: "Ingen riktning öppen.",
+    tileDirectionUntested: "En riktning, inte prövad på dem än.",
+    tileDirectionShowing: "En riktning, och den syns.",
+    tilePlanNotStarted: "En plan, inte klar att starta.",
+    tilePlanRunning: "En plan, pågår.",
 
-    /* Their work, no channel. Whether feedback is actually reaching them. */
+    /* Leder utan kanal. Whether feedback is actually reaching them. */
     /** @param {string} duty */
-    tileNeverSpoken: (duty) => `No ${duty} has ever happened.`,
+    tileNeverSpoken: (duty) => `${duty} har aldrig blivit av.`,
     /** @param {string} duty */
-    tileFeedbackOverdue: (duty) => `${duty} is overdue.`,
-    tileInStep: "In step.",
+    tileFeedbackOverdue: (duty) => `${duty} är försenad.`,
+    tileInStep: "I fas.",
 
     /*
      * Peers. The only set that says a number, because "over" without a count
      * says nothing about a relationship with no duty behind it.
      */
     /** @param {number} days */
-    tileDaysOver: (days) => `${days} days over.`,
+    tileDaysOver: (days) => `${days} dagar över.`,
 
-    /* Upward and outward. Entirely about what you owe them. */
+    /* Uppåt och utåt. Entirely about what he owes them. */
     /** @param {number} n */
-    tilePromisesOwed: (n) => (n === 1 ? "You owe them one thing." : `You owe them ${n} things.`),
-    tileQuestionToAsk: "A question to ask.",
-    tileUpdateOverdue: "An update is overdue.",
-    tileUpdatedRecently: "Updated recently.",
+    tilePromisesOwed: (n) =>
+      n === 1 ? "Du är skyldig dem en sak." : `Du är skyldig dem ${n} saker.`,
+    tileQuestionToAsk: "En fråga att ställa.",
+    tileUpdateOverdue: "En uppdatering är försenad.",
+    tileUpdatedRecently: "Uppdaterad nyligen.",
 
     /*
      * The cluster and the vocabulary disagreed. Not a phrase about the person -
@@ -134,12 +132,12 @@ export const T = {
      * could not decide what it was looking at.
      */
     /** @param {string} cluster */
-    tileUnknownCluster: (cluster) => `No vocabulary for "${cluster}".`,
+    tileUnknownCluster: (cluster) => `Ingen vokabulär för "${cluster}".`,
 
     /* The strip's clusters collapse to a count when nobody in them needs you. */
     /** @param {number} n */
-    groupAllInStep: (n) => `${n} in step`,
-    rosterEmpty: "Nobody in this group.",
+    groupAllInStep: (n) => `${n} i fas`,
+    rosterEmpty: "Ingen i den här gruppen.",
 
     /*
      * Duties the role map has proposed and nobody has answered.
@@ -148,17 +146,17 @@ export const T = {
      * proposal does nothing until it is accepted - and four of them sitting
      * unanswered is the app asking a question it has already asked.
      */
-    proposedHead: "Waiting for your answer",
+    proposedHead: "Väntar på ditt svar",
     proposedSub:
-      "Proposed duties do nothing until you accept them. Until then the app is not watching " +
-      "the thing they describe.",
+      "Föreslagna plikter gör ingenting förrän du accepterar dem. Fram till dess bevakar appen " +
+      "inte det de beskriver.",
     /** @param {string} every */
-    proposedEvery: (every) => `every ${every}`,
-    proposedAccept: "Accept it",
-    proposedDecline: "Not my job",
-    proposedOpen: "Open the role map",
-    proposedAcceptedToast: "Accepted.",
-    proposedDeclinedToast: "Declined.",
+    proposedEvery: (every) => `var ${every}`,
+    proposedAccept: "Acceptera",
+    proposedDecline: "Inte mitt jobb",
+    proposedOpen: "Öppna rollkartan",
+    proposedAcceptedToast: "Accepterad.",
+    proposedDeclinedToast: "Avvisad.",
 
     /*
      * His own aims, on this page because they are the only thing here that is
@@ -166,15 +164,15 @@ export const T = {
      * screen exists - so the empty state has to be a real sentence rather than
      * a dash.
      */
-    aimsHead: "What I am working on in myself",
+    aimsHead: "Vad jag jobbar med hos mig själv",
     aimsEmpty:
-      "Nothing set. An aim says what you want to be able to do and how you will know - and two " +
-      "is the limit, because working on four aspects of your own conduct at once is working on " +
-      "none.",
-    aimsSet: "Set an aim",
-    aimsOpen: "Open reflection",
+      "Inget satt. Ett mål säger vad du vill kunna göra och hur du kommer att veta - och två är " +
+      "gränsen, för att jobba på fyra sidor av sitt eget uppträdande samtidigt är att jobba på " +
+      "ingen.",
+    aimsSet: "Sätt ett mål",
+    aimsOpen: "Öppna reflektionen",
     /** @param {string} source */
-    aimSource: (source) => `how you will know: ${source}`,
+    aimSource: (source) => `hur du vet: ${source}`,
 
     /*
      * His own action points.
@@ -183,19 +181,19 @@ export const T = {
      * way, and the empty state has to say what would put something here -
      * otherwise it reads as a feature that does not work.
      */
-    myActionsHead: "My action points",
+    myActionsHead: "Mina action points",
     myActionsEmpty:
-      "Nothing filed as your own yet. When a shared meeting note turns up something that is " +
-      "your work rather than a promise to somebody, file it as yours and it lands here.",
+      "Inget arkiverat som ditt eget än. När en delad mötesanteckning ger något som är ditt " +
+      "arbete snarare än ett löfte till någon, lägg det som ditt och det landar här.",
     /** @param {string} note */
-    myActionFrom: (note) => `from "${note}"`,
-    myActionDone: "Done",
-    myActionDoneToast: "Done.",
+    myActionFrom: (note) => `från "${note}"`,
+    myActionDone: "Klar",
+    myActionDoneToast: "Klar.",
 
     /* What he owes people, which is the other half of what needs him. */
-    owedHead: "What you said you would do",
+    owedHead: "Vad du sa att du skulle göra",
     /** @param {string} name @param {string} open */
-    owedLine: (name, open) => `to ${name}, open ${open}`,
+    owedLine: (name, open) => `till ${name}, öppet ${open}`,
 
     /*
      * No focus running. One line rather than a card: it is an offer, not a
@@ -206,98 +204,106 @@ export const T = {
      * apart from Ctrl+K, and a feature reachable only from a command palette
      * is a feature he will forget he has.
      */
-    noFocus: "No focus running.",
-    noFocusStart: "Start one",
+    noFocus: "Inget fokus pågår.",
+    noFocusStart: "Starta ett",
 
     /* The focus strip. */
-    focusEyebrow: "Current focus",
+    focusEyebrow: "Nuvarande fokus",
+    /*
+     * The count comes out as parts so the plural works. English got away with
+     * "nudge(s)"; Swedish has no equivalent shortcut and the parenthesis reads
+     * as a bug.
+     */
     /** @param {number} held */
-    focusHeld: (held) => `${held} nudge(s) held back. Nothing critical is ever in there.`,
-    focusSettings: "Focus settings",
+    focusHeld: (held) =>
+      `${held} ${held === 1 ? "påminnelse" : "påminnelser"} hålls tillbaka. Inget kritiskt ` +
+      `ligger någonsin där.`,
+    focusSettings: "Fokusinställningar",
 
     /* The groups. */
-    needsYouGroup: "Needs you",
-    revisitsGroup: "Decisions to look at again",
-    questionsGroup: "Questions",
-    nudgeGroup: "Nudge",
+    needsYouGroup: "Kräver dig",
+    revisitsGroup: "Beslut att se på igen",
+    questionsGroup: "Frågor",
+    nudgeGroup: "Värt en påminnelse",
     /** @param {number} n */
-    softerHeld: (n) => `${n} softer nudge(s) held back while the focus runs.`,
+    softerHeld: (n) =>
+      `${n} mjukare ${n === 1 ? "påminnelse" : "påminnelser"} hålls tillbaka medan fokuset ` +
+      `pågår.`,
 
     /* A decision asking to be looked at again. */
     /** @param {string} by */
-    decisionDue: (by) => `decision due ${by}`,
-    dueNow: "now",
-    decisionSrc: "You set this date when you decided it.",
-    stillHolds: "It still holds",
-    openLog: "Open the log",
+    decisionDue: (by) => `beslut aktuellt ${by}`,
+    dueNow: "nu",
+    decisionSrc: "Du satte det här datumet när du bestämde.",
+    stillHolds: "Det gäller fortfarande",
+    openLog: "Öppna loggen",
 
     /*
      * Patterns in his own month, at the bottom rather than the top. They are not
      * deviations from a duty and nothing is late because of them, so they must
      * not compete with what is.
      */
-    mineHead: "My month",
-    mineSub: "About me, not about them. Nothing here is late.",
+    mineHead: "Min månad",
+    mineSub: "Om mig, inte om dem. Inget här är sent.",
 
     /* Nobody active, but not nobody. A state that can be reversed rather than a
        setup step that was never done. */
     archivedSub:
-      "Nobody is active right now - everybody is archived, and every 1-1, promise and decision " +
-      "about them is exactly where it was. Bring anyone back from the archived group on People, " +
-      "or start over by adding somebody new.",
+      "Ingen är aktiv just nu - alla är arkiverade, och varje 1-1, löfte och beslut om dem " +
+      "ligger exakt där det låg. Ta tillbaka vem som helst från den arkiverade gruppen under " +
+      "Personer, eller börja om genom att lägga till någon ny.",
     archivedEmpty:
-      "Nothing has been deleted. When somebody is active again, what is behind on them appears here.",
+      "Inget har tagits bort. När någon är aktiv igen dyker det som släpar efter på dem upp här.",
 
     /* First run. */
-    firstTitle: "Nothing to watch yet",
+    firstTitle: "Inget att bevaka än",
     firstSub:
-      "Tend needs two things before it can tell you anything: the people you are responsible " +
-      "for, and what the job asks of you.",
-    firstPeopleTitle: "1. Add the people",
+      "Tend behöver två saker innan den kan säga dig något: personerna du ansvarar för, och " +
+      "vad jobbet kräver av dig.",
+    firstPeopleTitle: "1. Lägg till personerna",
     firstPeopleWhy:
-      "Everyone you lead or manage, and the other leads you work beside. Set the date each " +
-      "relationship started, not today - otherwise someone you have not spoken to in months " +
-      "looks perfectly in step.",
-    firstPeopleNote: "Nothing leaves this machine",
-    firstPeopleButton: "Add someone",
-    firstRoleTitle: "2. Start the role map",
+      "Alla du leder eller ansvarar för, och de andra ledarna du jobbar vid sidan av. Sätt " +
+      "datumet då varje relation började, inte idag - annars ser någon du inte pratat med på " +
+      "flera månader ut att ligga perfekt i fas.",
+    firstPeopleNote: "Inget lämnar den här maskinen",
+    firstPeopleButton: "Lägg till någon",
+    firstRoleTitle: "2. Börja med rollkartan",
     firstRoleWhy:
-      "Three duties you already practise, five proposed from the management reading, and three " +
-      "monthly questions. The proposals do nothing until you accept them, and you can change any " +
-      "of it afterwards.",
-    firstRoleNote: "You can edit or delete every one of them",
-    firstRoleButton: "Set up the role map",
-    firstRoleLook: "Look first",
+      "Tre plikter du redan utövar, fem föreslagna ur ledarskapsläsningen, och tre månadsfrågor. " +
+      "Förslagen gör ingenting förrän du accepterar dem, och du kan ändra allt efteråt.",
+    firstRoleNote: "Du kan ändra eller ta bort varenda en av dem",
+    firstRoleButton: "Sätt upp rollkartan",
+    firstRoleLook: "Titta först",
 
     /* One card. */
-    softened: "Actually critical. The focus is only softening how it reads.",
-    logProject: "Log a look",
-    logWorkstream: "Log a review",
-    logStake: "Log an update",
-    logPerson: "Log contact",
-    open: "Open",
-    done: "Done",
-    drop: "Drop",
-    setLevelButton: "Set the level",
-    fileButton: "Say whose these are",
-    guarded: " · guarded",
+    softened: "Faktiskt kritiskt. Fokuset dämpar bara hur det läses.",
+    logProject: "Logga en titt",
+    logWorkstream: "Logga en genomgång",
+    logStake: "Logga en uppdatering",
+    logPerson: "Logga kontakt",
+    open: "Öppna",
+    done: "Klar",
+    drop: "Släpp",
+    setLevelButton: "Sätt nivån",
+    fileButton: "Säg vems de är",
+    guarded: " · skyddad",
 
     /* A monthly question. The answer is usually no, and saying so is the point. */
-    neverAsked: "never asked",
-    questionSrc: "Monthly check. The answer is usually no",
-    answerNo: "No",
-    answerYes: "Yes, and here is what I saw",
+    neverAsked: "aldrig frågad",
+    questionSrc: "Månadskoll. Svaret är oftast nej",
+    answerNo: "Nej",
+    answerYes: "Ja, och så här såg jag det",
 
     /* Filing commitments out of one shared note. */
-    fileTitle: "Whose are these?",
+    fileTitle: "Vems är de här?",
     /** @param {number} n @param {string} note */
     fileIntro: (n, note) =>
-      `${n} thing${n === 1 ? "" : "s"} were flagged in "${note}". ` +
-      "Several people were in it, so Tend cannot tell whose each one is - and filing one against " +
-      "everybody would turn one obligation into several. Anything left as not-yet stays in the queue.",
-    fileNotYet: "Not yet - leave it in the queue",
+      `${n} ${n === 1 ? "sak" : "saker"} flaggades i "${note}". ` +
+      "Flera personer var med, så Tend kan inte veta vems var och en är - och att lägga en på " +
+      "allihop skulle göra en skyldighet till flera. Allt som lämnas som inte-än stannar i kön.",
+    fileNotYet: "Inte än - lämna den i kön",
     /** @param {string} name */
-    filePromiseTo: (name) => `A promise to ${name}`,
+    filePromiseTo: (name) => `Ett löfte till ${name}`,
     /*
      * The third answer, and the one whose absence cost him eleven tracked
      * action points from one meeting: a shared note can only offer the other
@@ -308,117 +314,118 @@ export const T = {
      * and every attention signal would have to decide what it means to be
      * behind on yourself.
      */
-    fileMine: "Mine - my own work, not a promise",
+    fileMine: "Min - mitt eget arbete, inget löfte",
 
-    fileNobody: "Nobody's promise - discard it",
-    fileConfirm: "File them",
+    fileNobody: "Ingens löfte - släng den",
+    fileConfirm: "Lägg dem",
     /** @param {number} n */
-    filedCount: (n) => `${n} filed`,
+    filedCount: (n) => `${n} lagda`,
     /** @param {number} n */
-    discardedCount: (n) => `${n} discarded`,
+    discardedCount: (n) => `${n} slängda`,
 
     /* Logging contact, where the subject decides the wording and the kinds. */
-    logTitlePerson: "Log contact",
-    logTitleOther: "Log what you looked at",
+    logTitlePerson: "Logga kontakt",
+    logTitleOther: "Logga vad du tittade på",
     logIntroPerson:
-      "The kind decides which cadence this satisfies. Hearing about someone from their lead is " +
-      "not the same as having spoken to them, and Tend keeps those apart on purpose.",
+      "Sorten avgör vilken takt det här uppfyller. Att höra om någon från deras ledare är inte " +
+      "samma sak som att ha pratat med dem, och Tend håller dem åtskilda med flit.",
     logIntroOther:
-      "Only the kinds that can be about this sort of subject are offered. The rest would record " +
-      "something that satisfies no cadence.",
-    logKindLabel: "What kind",
-    logNoteLabel: "One line, optional",
-    logNotePlaceholder: "What it was about",
-    logConfirm: "Log it",
-    loggedToast: "Logged.",
+      "Bara de sorter som kan handla om den här typen av ämne erbjuds. Resten skulle registrera " +
+      "något som inte uppfyller någon takt.",
+    logKindLabel: "Vilken sort",
+    logNoteLabel: "En rad, frivilligt",
+    logNotePlaceholder: "Vad det handlade om",
+    logConfirm: "Logga",
+    loggedToast: "Loggat.",
 
-    closedToast: "Closed.",
-    dropTitle: "Drop this promise?",
+    closedToast: "Stängt.",
+    dropTitle: "Släppa det här löftet?",
     dropBody:
-      "It stops being tracked. Use this when you decided not to do it, rather than when you did it.",
-    dropConfirm: "Drop it",
-    droppedToast: "Dropped.",
-    seededToast: "Role map set up.",
+      "Det slutar bevakas. Använd det när du bestämt dig för att inte göra det, inte när du " +
+      "har gjort det.",
+    dropConfirm: "Släpp det",
+    droppedToast: "Släppt.",
+    seededToast: "Rollkartan uppsatt.",
 
-    answeredNoToast: "Noted. Back in a month.",
-    yesTitle: "What did you see?",
+    answeredNoToast: "Noterat. Tillbaka om en månad.",
+    yesTitle: "Vad såg du?",
     yesIntro:
-      "A bare yes is no use in three months. One or two concrete sentences is enough, and this " +
-      "question comes back in a week rather than a month.",
-    yesLabel: "What you saw",
-    yesConfirm: "Record it",
-    recordedToast: "Recorded."
+      "Ett bart ja är till ingen nytta om tre månader. En eller två konkreta meningar räcker, " +
+      "och den här frågan kommer tillbaka om en vecka i stället för om en månad.",
+    yesLabel: "Vad du såg",
+    yesConfirm: "Registrera",
+    recordedToast: "Registrerat."
   },
 
   focus: {
     /* Nothing running. */
-    noneTitle: "No focus running",
+    noneTitle: "Inget fokus pågår",
     noneSub:
-      "A focus is for when one thing genuinely has to come first for a while. " +
-      "Tend will stretch the softer thresholds so they stop competing with it, " +
-      "and tell you afterwards what that cost.",
-    contractTitle: "What a focus does, and does not",
+      "Ett fokus är för när en sak verkligen måste komma först en tid. Tend " +
+      "tänjer de mjukare trösklarna så att de slutar konkurrera med den, och " +
+      "säger efteråt vad det kostade.",
+    contractTitle: "Vad ett fokus gör, och inte gör",
     contractDoes:
-      "<strong>Does:</strong> stretches the thresholds on soft nudges, stops " +
-      "surfacing proposed duties, and counts everything it holds back so you " +
-      "always know how much is being kept from you.",
+      "<strong>Gör:</strong> tänjer trösklarna på mjuka påminnelser, slutar " +
+      "visa föreslagna plikter, och räknar allt det håller tillbaka så att du " +
+      "alltid vet hur mycket som undanhålls dig.",
     contractNever:
-      "<strong>Never:</strong> hides anything critical, touches a guarded duty, " +
-      "or lets a promise age quietly. Everything it stretched reverts on the end " +
-      "date whether or not the work is done, so an unfinished focus becomes a " +
-      "decision to renew rather than a drift nobody noticed.",
-    endEarly: "You can end it early at any time",
-    startButton: "Start a focus",
+      "<strong>Aldrig:</strong> döljer något kritiskt, rör en skyddad plikt, " +
+      "eller låter ett löfte åldras i tysthet. Allt det tänjt går tillbaka på " +
+      "slutdatumet oavsett om arbetet är klart, så ett oavslutat fokus blir ett " +
+      "beslut att förnya i stället för en eftersläpning ingen märkte.",
+    endEarly: "Du kan avsluta det tidigt när du vill",
+    startButton: "Starta ett fokus",
 
     /* One running. */
-    replace: "Replace",
-    endButton: "End it",
-    overrunTitle: "Past its end date",
+    replace: "Byt ut",
+    endButton: "Avsluta",
+    overrunTitle: "Förbi sitt slutdatum",
     overrunWhy:
-      "Every stretched threshold is already back to normal, so nothing is being " +
-      "dampened. Renew it with a new date, or close it out.",
+      "Varje tänjd tröskel är redan tillbaka på normalt, så inget dämpas. " +
+      "Förnya det med ett nytt datum, eller stäng det.",
     budgetLabel: "Budget",
-    budgetNote: "of the week",
-    heldBackLabel: "Held back now",
-    heldBackNote: "soft nudges, nothing critical",
-    thresholdsLabel: "Thresholds",
-    thresholdsNormal: "normal",
-    thresholdsNote: "on unguarded duties only",
-    costTitle: "What it has cost",
+    budgetNote: "av veckan",
+    heldBackLabel: "Hålls tillbaka nu",
+    heldBackNote: "mjuka påminnelser, inget kritiskt",
+    thresholdsLabel: "Trösklar",
+    thresholdsNormal: "normala",
+    thresholdsNote: "bara på oskyddade plikter",
+    costTitle: "Vad det har kostat",
 
     /* The guarded list, which is the promise the feature rests on. */
-    guardedTitle: "Guarded",
+    guardedTitle: "Skyddade",
     guardedNone:
-      "Nothing is guarded. Mark a duty as guarded in the role map and a focus " +
-      "can never dampen it.",
-    guardedSomeTitle: "Guarded, never dampened",
+      "Inget är skyddat. Markera en plikt som skyddad i rollkartan och ett " +
+      "fokus kan aldrig dämpa den.",
+    guardedSomeTitle: "Skyddade, aldrig dämpade",
     /** @param {string} every */
-    guardedEvery: (every) => `every ${every}`,
-    guardedPill: "held",
+    guardedEvery: (every) => `var ${every}`,
+    guardedPill: "hålls",
 
     /* Starting one. */
-    startTitle: "Start a focus",
+    startTitle: "Starta ett fokus",
     startIntro:
-      "Tend captures how far behind things are right now, so it can tell you " +
-      "later what this cost.",
-    startNameLabel: "What has to come first",
-    startNamePlaceholder: "Ship the new onboarding",
-    startEndsLabel: "Until when",
+      "Tend fångar hur långt efter saker ligger just nu, så att den kan säga " +
+      "dig senare vad det här kostade.",
+    startNameLabel: "Vad som måste komma först",
+    startNamePlaceholder: "Få ut den nya onboardingen",
+    startEndsLabel: "Till när",
     startEndsHint:
-      "Everything reverts on this date whether or not the work is done. That is " +
-      "the point: an unfinished focus becomes a decision, not a drift.",
-    startBudgetLabel: "Share of the week, percent",
-    startBudgetHint: "Only used to show you the shape of the week. It does not enforce anything.",
-    startConfirm: "Start",
-    startedToast: "Focus started.",
+      "Allt går tillbaka på det här datumet oavsett om arbetet är klart. Det är " +
+      "hela poängen: ett oavslutat fokus blir ett beslut, inte en eftersläpning.",
+    startBudgetLabel: "Andel av veckan, procent",
+    startBudgetHint: "Används bara för att visa dig veckans form. Den tvingar ingenting.",
+    startConfirm: "Starta",
+    startedToast: "Fokus startat.",
 
     /* Ending one. */
-    endTitle: "End the focus?",
+    endTitle: "Avsluta fokuset?",
     endBody:
-      "Every stretched threshold goes back to normal immediately, so anything " +
-      "that has been drifting quietly will surface.",
-    endConfirm: "End it",
-    endedToast: "Ended."
+      "Varje tänjd tröskel går tillbaka på normalt omedelbart, så allt som " +
+      "släpat efter i tysthet kommer fram.",
+    endConfirm: "Avsluta",
+    endedToast: "Avslutat."
   },
 
   prep: {
@@ -433,31 +440,36 @@ export const T = {
      * note, not something Tend worked out, and the card has to say which - the
      * same rule as labelling anything a model produced.
      */
-    findOutTitle: "To find out",
+    findOutTitle: "Att ta reda på",
     /** @param {string} note */
-    findOutFrom: (note) => `Your own questions at the end of "${note}".`,
+    findOutFrom: (note) => `Dina egna frågor i slutet av "${note}".`,
     /** @param {number} n */
-    findOutMore: (n) => `and ${n} more in the note`,
-    readFailedTitle: "Could not read the data",
-    title: "Before you talk to them",
+    findOutMore: (n) => `och ${n} fler i anteckningen`,
+    readFailedTitle: "Kunde inte läsa datan",
+    /*
+     * The name it waited for, like Läget. It was "Prep" through the whole
+     * build.
+     */
+    title: "Inför",
     sub:
-      "Who has drifted or is owed something, with what they own, what is open on the board, and " +
-      "the last thing you wrote. Worst first, and only a few: this is meant to be read and " +
-      "finished.",
+      "Vem som släpar efter eller är skyldig något, med vad de äger, vad som är öppet på tavlan, " +
+      "och det senaste du skrev. Värst först, och bara några få: det här är tänkt att läsas och " +
+      "bli klart.",
     empty:
-      "Nobody is behind and nothing is owed. This page is empty most days, which is the point of it.",
+      "Ingen ligger efter och inget är skyldigt. Den här sidan är tom de flesta dagarna, vilket " +
+      "är hela poängen med den.",
     /** @param {number} n */
-    dropped: (n) => `${n} more further behind than nobody, held back so this page ends.`,
+    dropped: (n) => `${n} fler ligger efter men inte värst, hållna tillbaka så att sidan tar slut.`,
 
     /* What he is practising, once for the page rather than on every card. */
-    practiceNoneTitle: "Nothing to practise",
-    practiceTitle: "What you are working on",
+    practiceNoneTitle: "Inget att öva på",
+    practiceTitle: "Vad du jobbar på",
     practiceWhy:
-      "Flagged in Nib, read from there every time. Lower the flag when it starts coming naturally " +
-      "and pick up the next one - the timing is yours, and Tend deliberately puts no date on it.",
-    practiceTodoTitle: "And one thing you said you would do",
+      "Flaggat i Nib, läst därifrån varje gång. Sänk flaggan när det börjar komma naturligt och " +
+      "ta upp nästa - tidpunkten är din, och Tend sätter med flit inget datum på det.",
+    practiceTodoTitle: "Och en sak du sa att du skulle göra",
     /** @param {string} noteTitle */
-    practiceWrote: (noteTitle) => `you wrote this on ${noteTitle}`,
+    practiceWrote: (noteTitle) => `du skrev det här ${noteTitle}`,
 
     /*
      * Where the card could not reach, said out loud. A card with no open work
@@ -465,49 +477,49 @@ export const T = {
      * integration that fails quietly sits there for weeks looking like a calm
      * week.
      */
-    sourceJot: "the Jot board",
-    sourceNib: "Nib's notes",
+    sourceJot: "Jot-tavlan",
+    sourceNib: "Nibs anteckningar",
     /** @param {string} which */
     sourcesMissing: (which) =>
-      `Could not read ${which}, so those parts of every card are blank rather than empty. ` +
-      `Check the data directories in `,
-    sourcesSettings: "Settings",
+      `Kunde inte läsa ${which}, så de delarna av varje kort är blanka snarare än tomma. ` +
+      `Kolla datamapparna under `,
+    sourcesSettings: "Inställningar",
 
     /* One person's card. */
     /** @param {string} why @param {string} lastSpoke */
-    cardWhy: (why, lastSpoke) => `${why}. Last spoke ${lastSpoke}.`,
-    promisedTitle: "You promised them",
+    cardWhy: (why, lastSpoke) => `${why}. Pratade senast ${lastSpoke}.`,
+    promisedTitle: "Du lovade dem",
     /** @param {string} openFor */
-    promisedOpen: (openFor) => `open ${openFor}`,
-    theyOwnTitle: "They own",
+    promisedOpen: (openFor) => `öppet ${openFor}`,
+    theyOwnTitle: "De äger",
     /** @param {string} mandate @param {string} reviewed */
-    theyOwnMeta: (mandate, reviewed) => `${mandate} &middot; reviewed ${reviewed}`,
-    openWorkTitle: "Open on the board",
-    jotUnreadable: "Jot could not be read.",
+    theyOwnMeta: (mandate, reviewed) => `${mandate} &middot; genomgånget ${reviewed}`,
+    openWorkTitle: "Öppet på tavlan",
+    jotUnreadable: "Jot kunde inte läsas.",
     /** @param {string} category @param {string} status @param {boolean} named */
     openWorkMeta: (category, status, named) =>
-      `${category} &middot; ${status}${named ? " &middot; matched on their name" : ""}`,
-    lastWroteTitle: "You last wrote",
-    footNote: "Everything here is already in Tend, Jot or Nib.",
+      `${category} &middot; ${status}${named ? " &middot; matchat på deras namn" : ""}`,
+    lastWroteTitle: "Du skrev senast",
+    footNote: "Allt här finns redan i Tend, Jot eller Nib.",
     /** @param {string} person */
-    openPerson: (person) => `Open ${person}`,
+    openPerson: (person) => `Öppna ${person}`,
 
     /*
      * Each topic carries its own reason, and that is not padding: the whole set
      * is questions whose value is not obvious in the moment, and a question you
      * do not believe in is one you skip.
      */
-    raisingTitle: "Worth raising",
-    raisedButton: "Raised it",
+    raisingTitle: "Värt att ta upp",
+    raisedButton: "Tog upp det",
     /** @param {string} when */
-    lastRaised: (when) => `Last raised ${when}.`,
+    lastRaised: (when) => `Togs upp senast ${when}.`,
 
     /* The model buttons, or a disabled pair that says why. */
-    draftingOff: "Drafting is off - no Claude Code on this machine.",
-    drafting: "Drafting…",
-    draftButton: "Draft a brief",
-    reading: "Reading…",
-    readNoteButton: "Read that note"
+    draftingOff: "Utkast är av - ingen Claude Code på den här maskinen.",
+    drafting: "Skriver utkast…",
+    draftButton: "Skriv ett utkast",
+    reading: "Läser…",
+    readNoteButton: "Läs den anteckningen"
   },
 
   people: {
