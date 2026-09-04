@@ -523,267 +523,270 @@ export const T = {
   },
 
   people: {
-    title: "People",
-    subPrivate: "Who they are, and what you have said you would do. Nothing here is on a schedule.",
-    subWork: "Grouped by the relationship, not the org chart.",
-    addButton: "Add someone",
+    title: "Personer",
+    subPrivate: "Vilka de är, och vad du sagt att du ska göra. Inget här går på ett schema.",
+    subWork: "Grupperat efter relationen, inte organisationsschemat.",
+    addButton: "Lägg till någon",
 
     /* "Nobody yet" and "everybody is archived" are different facts, and after a
        bulk archive the second is the common one. */
     emptyArchived:
-      "Nobody active. Everybody here is archived - open the group below to bring anyone back, or " +
-      "add somebody new.",
+      "Ingen aktiv. Alla här är arkiverade - öppna gruppen nedan för att ta tillbaka någon, " +
+      "eller lägg till någon ny.",
     emptyPrivate:
-      "Nobody here yet. Adding somebody gives you a place to put what you promised them - and " +
-      "nothing else, because nothing outside work runs on a cadence.",
-    emptyWork: "Nobody here yet. Add the people you lead or manage, and the leads you work beside.",
+      "Ingen här än. Att lägga till någon ger dig en plats för vad du lovat dem - och inget " +
+      "annat, eftersom inget utanför jobbet går på en takt.",
+    emptyWork:
+      "Ingen här än. Lägg till dem du leder eller ansvarar för, och ledarna du jobbar vid sidan av.",
 
     /* A roster row's right-hand side. */
-    awayNothing: "nothing expected while they are away",
-    leftNothing: "history kept, nothing expected",
-    noDuty: "no duty applies",
+    awayNothing: "inget förväntas medan de är borta",
+    leftNothing: "historiken behålls, inget förväntas",
+    noDuty: "ingen plikt gäller",
 
-    archivedGroup: "Archived",
+    archivedGroup: "Arkiverade",
     /** @param {string} date */
-    archivedOn: (date) => `archived ${date}`,
-    view: "View",
-    unarchive: "Unarchive",
+    archivedOn: (date) => `arkiverad ${date}`,
+    view: "Visa",
+    unarchive: "Ta tillbaka",
 
-    notFoundTitle: "Not found",
-    allPeople: "All people",
-    back: "← All people",
-    edit: "Edit",
-    notRight: "Not right",
-    remove: "Remove",
+    notFoundTitle: "Hittades inte",
+    allPeople: "Alla personer",
+    back: "← Alla personer",
+    edit: "Ändra",
+    notRight: "Blev fel",
+    remove: "Ta bort",
 
     /* A folded run of identical history rows. */
     /** @param {number} n */
-    identical: (n) => `${n} identical`,
+    identical: (n) => `${n} identiska`,
 
     /*
      * What the rows amount to, counted in the service over the whole set rather
      * than the capped twenty rendered above.
      */
-    noContactYet: "No contact recorded yet",
-    conversationOne: "conversation",
-    conversationMany: "conversations",
+    noContactYet: "Ingen kontakt registrerad än",
+    conversationOne: "samtal",
+    conversationMany: "samtal",
     /** @param {number} n @param {string} word */
     countOf: (n, word) => `${n} ${word}`,
     /** @param {string} month */
-    since: (month) => `since ${month}`,
+    since: (month) => `sedan ${month}`,
     /** @param {number} days @param {string} word */
-    roughlyEvery: (days, word) => `roughly every ${days} ${word}`,
-    dayOne: "day",
-    dayMany: "days",
+    roughlyEvery: (days, word) => `ungefär var ${days} ${word}`,
+    dayOne: "dag",
+    dayMany: "dagar",
     /** @param {string} words */
-    lastAt: (words) => `last ${words}`,
+    lastAt: (words) => `senast ${words}`,
 
     /* A cancellation, kept legible as a different thing from a conversation. */
     /** @param {string} kind @param {string} why */
-    didNotHappen: (kind, why) => `<strong>${kind}</strong> did not happen${why}`,
+    didNotHappen: (kind, why) => `<strong>${kind}</strong> blev inte av${why}`,
     /** @param {string} why */
     skipWhy: (why) => ` - ${why}`,
     /** @param {string} kind */
-    skipWhat: (kind) => `${kind} that did not happen`,
+    skipWhat: (kind) => `${kind} som inte blev av`,
 
     /* Moments, and the people also in them. */
     /** @param {string} who */
-    alsoThere: (who) => `with ${who}`,
+    alsoThere: (who) => `med ${who}`,
 
     /* The action row on a person's page. */
-    logContactButton: "Log contact",
-    logSkipButton: "It did not happen",
-    logMomentButton: "Something happened",
-    linkButton: "Link something",
-    observationButton: "Record an observation",
-    readingNotes: "Reading notes…",
-    themesButton: "What keeps coming up",
+    logContactButton: "Logga kontakt",
+    logSkipButton: "Det blev inte av",
+    logMomentButton: "Något hände",
+    linkButton: "Länka något",
+    observationButton: "Registrera en observation",
+    readingNotes: "Läser anteckningar…",
+    themesButton: "Vad som återkommer",
 
     /* The blocks, in the order they answer a question about somebody. */
-    cadencesBlock: "Cadences",
-    cadencesNone: "No duty in the role map applies to this relationship type.",
-    promisesBlock: "Open promises",
-    promisesNone: "Nothing outstanding.",
-    observationsBlock: "Observations",
-    observationsNone: "Nothing recorded. This is what a review conversation is built from.",
-    historyBlock: "Contact history",
-    skippedBlock: "Booked and did not happen",
-    linkedBlock: "Linked",
+    cadencesBlock: "Takter",
+    cadencesNone: "Ingen plikt i rollkartan gäller den här relationstypen.",
+    promisesBlock: "Öppna löften",
+    promisesNone: "Inget utestående.",
+    observationsBlock: "Observationer",
+    observationsNone:
+      "Inget registrerat. Det är det här ett utvecklingssamtal byggs av.",
+    historyBlock: "Kontakthistorik",
+    skippedBlock: "Bokat och blev inte av",
+    linkedBlock: "Länkat",
     linkedNone:
-      "Nothing linked. Prepared notes and anything else that lives outside Tend can be pointed " +
-      "at from here.",
-    momentsBlock: "Moments",
+      "Inget länkat. Förberedda anteckningar och allt annat som lever utanför Tend kan pekas " +
+      "på härifrån.",
+    momentsBlock: "Ögonblick",
     momentsNone:
-      "Nothing yet. One thing that happened and your own part in it - which is the half you can " +
-      "change, and the only half worth keeping.",
+      "Inget än. En sak som hände och din egen del i den - vilket är den halva du kan ändra, " +
+      "och den enda halvan värd att behålla.",
 
     /* Archiving, in its own block because it is reversible and Remove is not. */
     /** @param {string} date */
     archivedNote: (date) =>
-      `Archived on ${date}. They stop appearing in Now, prep, attention nudges and duty ` +
-      `cadences - everything already on this page stays exactly as it is.`,
+      `Arkiverad ${date}. De slutar dyka upp i Läget, Inför, uppmärksamhetspåminnelser och ` +
+      `plikttakter - allt som redan finns på den här sidan står kvar precis som det är.`,
     /** @param {string} name */
-    unarchiveNamed: (name) => `Unarchive ${name}`,
+    unarchiveNamed: (name) => `Ta tillbaka ${name}`,
     /** @param {string} name */
-    archiveNamed: (name) => `Archive ${name}`,
+    archiveNamed: (name) => `Arkivera ${name}`,
     /** @param {string} name */
-    removeNamed: (name) => `Remove ${name}`,
+    removeNamed: (name) => `Ta bort ${name}`,
 
     /* Adding somebody. */
-    addTitle: "Add someone",
+    addTitle: "Lägg till någon",
     /*
      * No mention of duties in the private half, because there are none. The
      * relationship there is a label: it groups the list and sits on their page,
      * and nothing is derived from it. Saying so is the difference between a
      * field somebody answers carefully and one they answer wrong on purpose.
      */
-    addIntroPrivate: "Who they are, for your own reference. Nothing is scheduled from it.",
-    addIntroWork: "The relationship type decides which duties apply to them.",
-    nameLabel: "Name",
-    namePlaceholderPrivate: "What you call them",
-    namePlaceholderWork: "Their full name",
-    relationPrivate: "Who they are",
-    relationWork: "How you relate to them",
-    sinceLabel: "Since when",
+    addIntroPrivate: "Vilka de är, för din egen skull. Inget schemaläggs utifrån det.",
+    addIntroWork: "Relationstypen avgör vilka plikter som gäller dem.",
+    nameLabel: "Namn",
+    namePlaceholderPrivate: "Vad du kallar dem",
+    namePlaceholderWork: "Deras fullständiga namn",
+    relationPrivate: "Vilka de är",
+    relationWork: "Hur du förhåller dig till dem",
+    sinceLabel: "Sedan när",
     addSinceHint:
-      "When the relationship started, not today. Leave it as today for someone who just joined; " +
-      "set it back for someone you have had for months, or Tend will think you are perfectly in " +
-      "step with them.",
-    add: "Add",
+      "När relationen började, inte idag. Låt det stå som idag för någon som just börjat; sätt " +
+      "det bakåt för någon du haft i månader, annars tror Tend att du ligger perfekt i fas med " +
+      "dem.",
+    add: "Lägg till",
     /** @param {string} name */
-    addedNamed: (name) => `${name} added.`,
+    addedNamed: (name) => `${name} tillagd.`,
 
     /* Taking a moment back. */
-    unlogMomentTitle: "Take it back?",
+    unlogMomentTitle: "Ta tillbaka?",
     /** @param {string} what */
-    unlogMomentBody: (what) => `"${what}" is removed. The log keeps the history; the page stops showing it.`,
-    removedToast: "Removed.",
+    unlogMomentBody: (what) =>
+      `"${what}" tas bort. Loggen behåller historiken; sidan slutar visa den.`,
+    removedToast: "Borttaget.",
 
     /* A cancellation, recorded - and it satisfies nothing. */
-    skipTitle: "What did not happen?",
+    skipTitle: "Vad blev inte av?",
     skipIntro:
-      "Recorded, and it satisfies nothing - the conversation still has not taken place, so " +
-      "the clock keeps running. The point is the difference between never having booked it " +
-      "and having cancelled it three times, which contact alone cannot show.",
-    skipKindLabel: "What it would have been",
-    skipWhyLabel: "Why, in a line",
-    skipWhyPlaceholder: "Release week, moved it myself for the third time",
+      "Registrerat, och det uppfyller ingenting - samtalet har fortfarande inte ägt rum, så " +
+      "klockan går vidare. Poängen är skillnaden mellan att aldrig ha bokat det och att ha " +
+      "ställt in det tre gånger, vilket kontakt i sig inte kan visa.",
+    skipKindLabel: "Vad det skulle ha varit",
+    skipWhyLabel: "Varför, på en rad",
+    skipWhyPlaceholder: "Releasevecka, flyttade det själv för tredje gången",
     skipWhyHint:
-      'Your own words rather than a category. The difference between "he was ill" and ' +
-      '"I moved it again" is the whole reason to write it down.',
-    skipWhenLabel: "When it should have been",
-    recordIt: "Record it",
-    recordedToast: "Recorded.",
+      'Dina egna ord snarare än en kategori. Skillnaden mellan "han var sjuk" och "jag ' +
+      'flyttade det igen" är hela skälet att skriva ner det.',
+    skipWhenLabel: "När det skulle ha varit",
+    recordIt: "Registrera",
+    recordedToast: "Registrerat.",
 
-    takeBackTitle: "Take this back?",
+    takeBackTitle: "Ta tillbaka det här?",
     /** @param {string} what */
     unlogSkipBody: (what) =>
-      `"${what}" stops being on record. Nothing else changes - a skip never satisfied anything.`,
+      `"${what}" slutar finnas på pränt. Inget annat ändras - att något inte blev av uppfyllde ` +
+      `aldrig något.`,
     /** @param {string} what */
     unlogContactBody: (what) =>
-      `"${what}" stops counting, so whatever cadence it satisfied goes back to where it was. The ` +
-      `event stays in the log - nothing here is ever really deleted - it just stops being evidence.`,
-    takeItBack: "Take it back",
-    takenBackToast: "Taken back.",
+      `"${what}" slutar räknas, så den takt det uppfyllde går tillbaka dit den var. Händelsen ` +
+      `stannar i loggen - inget här tas någonsin riktigt bort - den slutar bara vara underlag.`,
+    takeItBack: "Ta tillbaka",
+    takenBackToast: "Tillbakataget.",
 
     /* Editing. */
     /** @param {string} name */
-    editTitle: (name) => `Edit ${name}`,
+    editTitle: (name) => `Ändra ${name}`,
     editIntro:
-      "Their history comes with them whatever you change here - everything that points at " +
-      "somebody holds their id, so the name is only what is shown and what Ctrl+K matches.",
+      "Historiken följer med vad du än ändrar här - allt som pekar på någon håller deras id, " +
+      "så namnet är bara vad som visas och vad Ctrl+K matchar på.",
     editSinceHint:
-      "When the relationship started. Every cadence measures from here until there is " +
-      "contact to measure from instead, so a placeholder puts somebody months behind on " +
-      "their first day - or perfectly in step with somebody you have never spoken to.",
-    awayLabel: "Away until",
+      "När relationen började. Varje takt mäter härifrån till det finns kontakt att mäta " +
+      "från i stället, så ett platshållardatum sätter någon månader efter på sin första dag - " +
+      "eller perfekt i fas med någon du aldrig pratat med.",
+    awayLabel: "Borta till",
     awayHint:
-      "Parental leave, a sabbatical, a long illness. Nothing is expected of you while " +
-      "they are away, and the clock restarts from the day they are back rather than from " +
-      "the last time you spoke. Clear it if they return early.",
-    leftLabel: "Last day",
+      "Föräldraledighet, en sabbatical, en lång sjukdom. Inget förväntas av dig medan de är " +
+      "borta, och klockan startar om från dagen de är tillbaka i stället för från senaste " +
+      "gången ni pratade. Rensa det om de kommer tillbaka tidigare.",
+    leftLabel: "Sista dagen",
     leftHint:
-      "Set it as soon as you know it. Everything holds until that day - a promise to " +
-      "somebody leaving next week is exactly the promise to keep - and after it their " +
-      "cadences go quiet while the whole history stays. Better than removing them.",
-    save: "Save",
-    updatedToast: "Updated.",
+      "Sätt det så snart du vet. Allt gäller fram till den dagen - ett löfte till någon som " +
+      "slutar nästa vecka är precis det löfte man ska hålla - och efter den tystnar deras " +
+      "takter medan hela historiken står kvar. Bättre än att ta bort dem.",
+    save: "Spara",
+    updatedToast: "Uppdaterat.",
 
-    /* Logging contact. A second-hand report is not having spoken to them. */
-    logTitle: "Log contact",
+    /* Logging contact. A second hand report is not having spoken to them. */
+    logTitle: "Logga kontakt",
     logIntro:
-      "The kind decides which cadence this satisfies. A second-hand report does not count as " +
-      "having spoken to them.",
-    logKindLabel: "What kind",
-    logNoteLabel: "One line, optional",
-    logNotePlaceholder: "What it was about",
-    when: "When",
-    logWhenHint: "Backdate it if you are catching up.",
-    logIt: "Log it",
-    loggedToast: "Logged.",
+      "Sorten avgör vilken takt det här uppfyller. En second hand-rapport räknas inte som att " +
+      "ha pratat med dem.",
+    logKindLabel: "Vilken sort",
+    logNoteLabel: "En rad, frivilligt",
+    logNotePlaceholder: "Vad det handlade om",
+    when: "När",
+    logWhenHint: "Bakdatera det om du tar igen.",
+    logIt: "Logga",
+    loggedToast: "Loggat.",
 
     /* A promise. When unsure, log it. */
-    promiseTitle: "Something you promised",
+    promiseTitle: "Något du lovade",
     promiseIntro:
-      "When you are not sure it counts, log it. A false one costs a click; a missed one costs " +
-      "trust with a real person.",
-    promiseTextLabel: "What you said you would do",
-    promiseTextPlaceholder: "Check with Nina about the conference",
-    promiseDueLabel: "By when, optional",
-    promiseMadeLabel: "When you said it",
+      "När du inte är säker på att det räknas, logga det. Ett felaktigt kostar ett klick; ett " +
+      "missat kostar tillit hos en verklig människa.",
+    promiseTextLabel: "Vad du sa att du skulle göra",
+    promiseTextPlaceholder: "Kolla med Nina om konferensen",
+    promiseDueLabel: "Senast när, frivilligt",
+    promiseMadeLabel: "När du sa det",
     promiseMadeHint:
-      "Backdate it and it ages correctly. Anything open past two weeks escalates whatever else " +
-      "is going on.",
+      "Bakdatera det och det åldras rätt. Allt som är öppet längre än två veckor eskalerar " +
+      "oavsett vad annat som pågår.",
 
     /* A link: the address, never a copy. */
-    linkTitle: "Link something",
+    linkTitle: "Länka något",
     linkIntro:
-      "The address is stored, never a copy - the same arrangement as the Nib pointer. Every " +
-      "row shows how old it is, because prepared notes stop being current once the " +
-      "conversation happens and nothing here expires on its own.",
-    linkUrlLabel: "Address",
+      "Adressen sparas, aldrig en kopia - samma upplägg som Nib-pekaren. Varje rad visar hur " +
+      "gammal den är, eftersom förberedda anteckningar slutar vara aktuella så snart samtalet " +
+      "ägt rum och inget här går ut av sig självt.",
+    linkUrlLabel: "Adress",
     linkUrlPlaceholder: "https://",
-    linkTitleLabel: "What it is",
-    linkTitlePlaceholder: "Prep for the next 1-1",
-    linkNoteLabel: "Why, if it is not obvious",
-    linkConfirm: "Link it",
-    linkedToast: "Linked.",
+    linkTitleLabel: "Vad det är",
+    linkTitlePlaceholder: "Inför nästa 1-1",
+    linkNoteLabel: "Varför, om det inte är uppenbart",
+    linkConfirm: "Länka",
+    linkedToast: "Länkat.",
     /** @param {string} name */
-    unlinkTitle: (name) => `Remove the link to ${name}?`,
-    unlinkBody: "Only the pointer goes. Whatever it pointed at is untouched.",
+    unlinkTitle: (name) => `Ta bort länken till ${name}?`,
+    unlinkBody: "Bara pekaren försvinner. Det den pekade på är orört.",
 
     /* An observation, so a review is built on notes rather than on memory. */
-    observationTitle: "Record an observation",
+    observationTitle: "Registrera en observation",
     observationIntro:
-      "What they delivered, how they handled something. Written down now so a review is built " +
-      "on notes rather than on memory of the last three weeks.",
-    observationTextLabel: "What happened",
-    observationAreaLabel: "Tag, optional",
-    observationAreaPlaceholder: "code, ownership, communication",
+      "Vad de levererade, hur de hanterade något. Nedskrivet nu så att ett utvecklingssamtal " +
+      "byggs på anteckningar snarare än på minnet av de senaste tre veckorna.",
+    observationTextLabel: "Vad som hände",
+    observationAreaLabel: "Tagg, frivilligt",
+    observationAreaPlaceholder: "kod, ägarskap, kommunikation",
 
-    closedToast: "Closed.",
+    closedToast: "Stängt.",
 
     /* Archiving is reversible, so it gets its own gentler dialog. */
     /** @param {string} name */
-    archiveTitle: (name) => `Archive ${name}?`,
+    archiveTitle: (name) => `Arkivera ${name}?`,
     archiveBody:
-      "They stop appearing in Now, prep, attention nudges and duty cadences. Every 1-1, promise, " +
-      "decision and growth direction about them stays exactly as it is and can be looked at " +
-      "again. " +
-      "Fully reversible - unarchive them any time from their page.",
-    archive: "Archive",
+      "De slutar dyka upp i Läget, Inför, uppmärksamhetspåminnelser och plikttakter. Varje 1-1, " +
+      "löfte, beslut och riktning om dem står kvar precis som det är och kan tittas på igen. " +
+      "Helt återställbart - ta tillbaka dem när du vill från deras sida.",
+    archive: "Arkivera",
     /** @param {string} name */
-    archivedToast: (name) => `${name} archived.`,
+    archivedToast: (name) => `${name} arkiverad.`,
     /** @param {string} name */
-    unarchivedToast: (name) => `${name} unarchived.`,
+    unarchivedToast: (name) => `${name} tillbaka.`,
     /** @param {string} name */
-    removeTitle: (name) => `Remove ${name}?`,
+    removeTitle: (name) => `Ta bort ${name}?`,
     removeBody:
-      "They stop appearing and their cadences stop counting. Nothing is destroyed - the history " +
-      "stays in the log and can be recovered - but the app will act as though they were never " +
-      "your responsibility.",
+      "De slutar dyka upp och deras takter slutar räknas. Inget förstörs - historiken stannar " +
+      "i loggen och kan återskapas - men appen kommer att bete sig som om de aldrig varit ditt " +
+      "ansvar.",
     /** @param {string} name */
-    removedNamed: (name) => `${name} removed.`
+    removedNamed: (name) => `${name} borttagen.`
   },
 
   growth: {
