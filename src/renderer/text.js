@@ -1699,34 +1699,34 @@ export const T = {
   },
 
   role: {
-    title: "Role map",
+    title: "Rollkarta",
     sub:
-      "What the job asks of you, and how you are doing against it. Change any of it - a duty you " +
-      "never act on is worse than no duty at all.",
-    addButton: "Add a duty",
+      "Vad jobbet kräver av dig, och hur du ligger till mot det. Ändra vad som helst av det - " +
+      "en plikt du aldrig agerar på är sämre än ingen plikt alls.",
+    addButton: "Lägg till en plikt",
 
     /* Nothing here yet. The seeded set is proposals, never decisions. */
-    seedTitle: "Nothing here yet",
+    seedTitle: "Inget här än",
     seedWhy:
-      "Start from a set drawn from management reading: three duties most managers already " +
-      "practise, five worth considering, three monthly questions, and a set of standing topics to " +
-      "raise with your own manager and your peer leads. The proposals do nothing until you accept " +
-      "them, and you can edit or delete every one.",
-    seedOr: "Or write your own from scratch",
-    seedButton: "Set up the role map",
-    seedOwnButton: "Write my own",
+      "Börja från en uppsättning hämtad ur ledarskapsläsning: tre plikter de flesta redan " +
+      "utövar, fem värda att överväga, tre månadsfrågor, och en uppsättning stående ämnen att ta " +
+      "upp med din egen chef och dina sidoordnade. Förslagen gör ingenting förrän du accepterar " +
+      "dem, och du kan ändra eller ta bort varenda en.",
+    seedOr: "Eller skriv dina egna från början",
+    seedButton: "Sätt upp rollkartan",
+    seedOwnButton: "Skriv mina egna",
 
     /* A proposed duty. */
-    proposedPill: "proposed",
+    proposedPill: "föreslagen",
     /** @param {string} every @param {string} source */
-    proposedMeta: (every, source) => `Suggested every ${every} · from ${source}`,
-    acceptButton: "Add to my map",
-    adjustButton: "Adjust first",
-    declineButton: "Not for me",
+    proposedMeta: (every, source) => `Föreslagen var ${every} · från ${source}`,
+    acceptButton: "Lägg till i min karta",
+    adjustButton: "Justera först",
+    declineButton: "Inte för mig",
 
     /* An accepted one. */
     /** @param {string} behind */
-    behindPill: (behind) => `${behind} behind`,
+    behindPill: (behind) => `efter med ${behind}`,
     /**
      * @param {string} every
      * @param {string} appliesTo
@@ -1735,154 +1735,155 @@ export const T = {
      * @param {boolean} pausedForLeavers
      */
     activeMeta: (every, appliesTo, source, guarded, pausedForLeavers) =>
-      `Every ${every} · ${appliesTo} · from ${source}` +
-      (guarded ? " · guarded" : "") +
-      (pausedForLeavers ? " · paused for leavers" : ""),
-    editButton: "Edit",
-    removeButton: "Remove",
+      `Var ${every} · ${appliesTo} · från ${source}` +
+      (guarded ? " · skyddad" : "") +
+      (pausedForLeavers ? " · pausad för dem som slutar" : ""),
+    editButton: "Ändra",
+    removeButton: "Ta bort",
 
     /* The groups. */
-    proposedGroup: "Proposed, undecided",
-    activeGroup: "Yours, active",
-    activeEmpty: "Nothing active yet.",
-    questionsGroup: "Monthly questions",
+    proposedGroup: "Föreslagna, obeslutade",
+    activeGroup: "Dina, aktiva",
+    activeEmpty: "Inget aktivt än.",
+    questionsGroup: "Månadsfrågor",
     questionsNote:
-      "The one thing Tend cannot work out on its own, so it asks. They appear in Now when they " +
-      "are due.",
-    neverAsked: "never asked",
+      "Det enda Tend inte kan räkna ut själv, så den frågar. De dyker upp i Läget när de är " +
+      "aktuella.",
+    neverAsked: "aldrig frågad",
     /** @param {string} when */
-    asked: (when) => `asked ${when}`,
+    asked: (when) => `frågad ${when}`,
 
-    topicsGroup: "Topics to raise",
+    topicsGroup: "Ämnen att ta upp",
     topicsNote:
-      "Not duties. A duty asks whether you spoke to someone at all and turns up in Now when you " +
-      "have not; a topic is what to actually say, and it appears only on that person's card in " +
-      "Prep. These are the two directions nothing else covers: upward, where the questions are " +
-      "about what you want rather than what you owe, and sideways, where there is no formal " +
-      "channel in either direction.",
+      "Inte plikter. En plikt frågar om du pratat med någon alls och dyker upp i Läget när du " +
+      "inte har; ett ämne är vad du faktiskt ska säga, och det syns bara på den personens kort " +
+      "i Inför. Det här är de två riktningarna inget annat täcker: uppåt, där frågorna handlar " +
+      "om vad du vill snarare än vad du är skyldig, och sideways, där det inte finns någon " +
+      "formell kanal i någon riktning.",
     /** @param {number} days @param {string} scope */
-    topicMeta: (days, scope) => `every ${days} days &middot; ${scope}`,
-    topicOnePerson: "one person",
-    topicNobody: "nobody yet",
-    useItButton: "Use it",
+    topicMeta: (days, scope) => `var ${days} dagar &middot; ${scope}`,
+    topicOnePerson: "en person",
+    topicNobody: "ingen än",
+    useItButton: "Använd det",
 
     /* The duty form. */
-    fName: "What it is",
+    fName: "Vad det är",
     fNamePlaceholder: "1-1",
-    fMeans: "What it means in practice",
+    fMeans: "Vad det betyder i praktiken",
     fMeansHint:
-      "In your own words. This is what you will read in six months when you have forgotten why " +
-      "you added it.",
-    fAppliesTo: "Applies to",
-    fCadence: "How often, in days",
-    fGuarded: "Never dampen this, even under a focus",
+      "Med dina egna ord. Det här är vad du läser om ett halvår när du glömt varför du lade " +
+      "till den.",
+    fAppliesTo: "Gäller",
+    fCadence: "Hur ofta, i dagar",
+    fGuarded: "Dämpa aldrig den här, inte ens under ett fokus",
     fGuardedHint:
-      "For the things a busy month must not be allowed to bury. Note that a focus never " +
-      "removes anything critical from Now whether this is set or not - it holds back the " +
-      "softest tier, and guarding also protects the tier above it.",
-    fLeavers: "Still applies to somebody working out their notice",
+      "För de saker en tung månad inte får begrava. Observera att ett fokus aldrig tar bort " +
+      "något kritiskt från Läget vare sig det här är satt eller inte - det håller tillbaka det " +
+      "mjukaste skiktet, och att skydda skyddar även skiktet ovanför.",
+    fLeavers: "Gäller fortfarande någon som jobbar ut sin uppsägningstid",
     fLeaversHint:
-      "Leave it on for a 1-1: a notice period is when the handover gets arranged. Turn it " +
-      "off for anything meant to develop somebody, like a peer review round - running one " +
-      "for a person on their way out is work for everybody and changes nothing.",
+      "Låt den vara på för en 1-1: uppsägningstiden är när överlämningen ordnas. Slå av den " +
+      "för allt som är tänkt att utveckla någon, som en feedback-runda - att köra en för någon " +
+      "på väg ut är arbete för alla och ändrar ingenting.",
 
     /* Relationships, asked separately because the answer only makes sense for a
        person-shaped duty. */
-    relationsTitle: "Who does it apply to?",
-    relationsIntro: "Leave them all off to mean everyone.",
-    relationsConfirm: "Done",
+    relationsTitle: "Vem gäller den?",
+    relationsIntro: "Lämna alla av för att mena alla.",
+    relationsConfirm: "Klar",
 
-    addTitle: "Add a duty",
+    addTitle: "Lägg till en plikt",
     addIntro:
-      "Something the job asks of you that can be neglected. Keep the map short - a long list is " +
-      "one you stop reading.",
-    addConfirm: "Next",
-    addedToast: "Added.",
+      "Något jobbet kräver av dig som kan försummas. Håll kartan kort - en lång lista är en " +
+      "du slutar läsa.",
+    addConfirm: "Nästa",
+    addedToast: "Tillagd.",
     /** @param {string} name */
-    editTitle: (name) => `Edit ${name}`,
-    editConfirm: "Save",
-    savedToast: "Saved.",
+    editTitle: (name) => `Ändra ${name}`,
+    editConfirm: "Spara",
+    savedToast: "Sparat.",
 
-    seededToast: "Role map set up.",
-    acceptedToast: "Added to your map.",
-    declinedToast: "Declined.",
-    topicAcceptedToast: "It will show up when you next prepare for them.",
+    seededToast: "Rollkartan uppsatt.",
+    acceptedToast: "Tillagd i din karta.",
+    declinedToast: "Avvisad.",
+    topicAcceptedToast: "Det dyker upp nästa gång du förbereder dig för dem.",
 
-    removeTopicTitle: "Remove this topic?",
+    removeTopicTitle: "Ta bort det här ämnet?",
     /** @param {string} name */
     removeTopicBody: (name) =>
-      `"${name}" stops appearing on anyone's card. The times you already marked it raised stay on record.`,
-    removeConfirm: "Remove",
-    removedToast: "Removed.",
+      `"${name}" slutar dyka upp på någons kort. De gånger du redan markerat det som taget ` +
+      `står kvar.`,
+    removeConfirm: "Ta bort",
+    removedToast: "Borttaget.",
     /** @param {string} name */
-    removeDutyTitle: (name) => `Remove "${name}"?`,
+    removeDutyTitle: (name) => `Ta bort "${name}"?`,
     removeDutyBody:
-      "It stops applying to anyone and stops appearing in Now. The contact you have already " +
-      "logged stays."
+      "Den slutar gälla någon och slutar dyka upp i Läget. Kontakten du redan loggat står kvar."
   },
 
   decisions: {
-    readFailedTitle: "Could not read the data",
-    title: "Decisions",
+    readFailedTitle: "Kunde inte läsa datan",
+    title: "Beslut",
     sub:
-      "What was decided about the organisation, why, and what was rejected. Every " +
-      "one carries a date it comes back on, which is what makes it something you " +
-      "can decide quickly: a decision with a revisit date is not forever.",
-    codeNote: "Code has DECISIONS.md. This is the half that has no commit history.",
-    addButton: "Record a decision",
+      "Vad som beslutades om organisationen, varför, och vad som förkastades. Varje " +
+      "ett bär ett datum det kommer tillbaka på, vilket är det som gör det till något " +
+      "du kan besluta snabbt: ett beslut med ett återkomstdatum är inte för alltid.",
+    codeNote: "Koden har DECISIONS.md. Det här är den halvan som inte har någon commit-historik.",
+    addButton: "Registrera ett beslut",
     empty:
-      "Nothing logged yet. The ones worth recording are the ones that get " +
-      "renegotiated: who owns what, who is not being backfilled, what is waiting " +
-      "a cycle.",
+      "Inget loggat än. De som är värda att registrera är de som omförhandlas: vem " +
+      "som äger vad, vem som inte ersätts, vad som får vänta en cykel.",
 
     /* The three bands, in the order they need you. */
-    proposedBand: "Suggested, not yet recorded",
-    proposedNote: "An agent read these somewhere. Recording one is what starts its clock.",
-    revisitBand: "Worth another look",
-    revisitNote: "The date you set has passed. Saying it still holds takes one click.",
-    loggedBand: "Logged",
+    proposedBand: "Föreslagna, inte registrerade än",
+    proposedNote:
+      "En agent läste de här någonstans. Att registrera ett är det som startar dess klocka.",
+    revisitBand: "Värt en titt igen",
+    revisitNote: "Datumet du satte har passerat. Att säga att det gäller tar ett klick.",
+    loggedBand: "Loggade",
 
     /* A proposal. */
-    proposedBadge: "proposed",
+    proposedBadge: "föreslaget",
     /** @param {string} source */
-    readIn: (source) => `Read in ${source}`,
-    noSource: "No source given",
+    readIn: (source) => `Läst i ${source}`,
+    noSource: "Ingen källa angiven",
     /** @param {string} who */
-    proposedBy: (who) => ` &middot; by ${who}`,
-    recordIt: "Record it",
-    editFirst: "Edit first",
-    notADecision: "Not a decision",
+    proposedBy: (who) => ` &middot; av ${who}`,
+    recordIt: "Registrera det",
+    editFirst: "Ändra först",
+    notADecision: "Inget beslut",
 
     /* One asking to be looked at again. */
     /** @param {string} by */
-    dueBadge: (by) => `due ${by}`,
-    dueNow: "now",
-    revisitSrc: "You set this date. Nothing has happened to the decision.",
-    stillHolds: "It still holds",
-    changeIt: "Change it",
-    reverseIt: "Reverse it",
+    dueBadge: (by) => `aktuellt ${by}`,
+    dueNow: "nu",
+    revisitSrc: "Du satte det här datumet. Inget har hänt med beslutet.",
+    stillHolds: "Det gäller fortfarande",
+    changeIt: "Ändra det",
+    reverseIt: "Riv upp det",
 
     /* One in the log. */
-    noRevisit: "&middot; no revisit date",
+    noRevisit: "&middot; inget återkomstdatum",
     /** @param {string} date */
-    backOn: (date) => `&middot; back on ${date}`,
-    edit: "Edit",
+    backOn: (date) => `&middot; tillbaka ${date}`,
+    edit: "Ändra",
 
     /* Fields, and what is missing. */
-    rejectedLabel: "Rejected:",
-    consultedLabel: "Consulted:",
+    rejectedLabel: "Förkastat:",
+    consultedLabel: "Rådfrågade:",
     /** @param {string} what */
-    missing: (what) => `Missing ${what}`,
+    missing: (what) => `Saknar ${what}`,
 
-    fWhat: "What was decided",
-    fStatus: "Is this decided, or are you proposing it?",
-    fStatusRecorded: "Decided - this is what we are doing",
-    fStatusProposed: "Proposed - waiting for somebody to agree",
+    fWhat: "Vad som beslutades",
+    fStatus: "Är det här beslutat, eller föreslår du det?",
+    fStatusRecorded: "Beslutat - det här är vad vi gör",
+    fStatusProposed: "Föreslaget - väntar på att någon ska hålla med",
     fStatusHint:
-      "A proposal gets no revisit date. Nothing has been decided yet, so there is nothing to come back to.",
-    fBecause: "Why. In a year this is the only field that matters",
-    fRejected: "What was considered and not chosen",
-    fConsulted: "Who was consulted",
+      "Ett förslag får inget återkomstdatum. Inget är beslutat än, så det finns inget att " +
+      "komma tillbaka till.",
+    fBecause: "Varför. Om ett år är det här det enda fältet som betyder något",
+    fRejected: "Vad som övervägdes och inte valdes",
+    fConsulted: "Vilka som rådfrågades",
     /*
      * Only people Tend already knows, and the list is the enforcement rather
      * than a warning. Adding somebody to the roster just to name them here
@@ -1890,39 +1891,43 @@ export const T = {
      * by the attention signals.
      */
     fConsultedHint:
-      "Anybody not on this list belongs in the reason instead - adding them to the roster to name " +
-      "them here would make every attention signal noisier.",
-    fConsultedHintEmpty: "Nobody on the roster yet, so name whoever it was in the reason instead.",
-    fRevisit: "Come back to it in how many days",
+      "Alla som inte står på den här listan hör hemma i skälet i stället - att lägga dem på " +
+      "rostern bara för att kunna namnge dem här skulle göra varje uppmärksamhetssignal " +
+      "brusigare.",
+    fConsultedHintEmpty:
+      "Ingen på rostern än, så namnge vem det var i skälet i stället.",
+    fRevisit: "Kom tillbaka till det om hur många dagar",
     fRevisitHint:
-      "A date is a poor stand-in for a real trigger. When what should bring it back is an event - " +
-      "the next project of a certain kind, a new hire - write the event into the reason and treat " +
-      "this as the backstop that catches it if the event passes unnoticed.",
+      "Ett datum är en dålig ersättning för en riktig utlösare. När det som borde ta upp det " +
+      "igen är en händelse - nästa projekt av ett visst slag, en nyanställning - skriv " +
+      "händelsen i skälet och betrakta det här som skyddsnätet som fångar det om händelsen " +
+      "passerar obemärkt.",
 
     /* Recording one. */
-    addTitle: "Record a decision",
+    addTitle: "Registrera ett beslut",
     addIntro:
-      "The revisit date is the field that makes this a tool. A decision that comes back to you is " +
-      "one you can make today instead of gathering information you will not use.",
-    addConfirm: "Record it",
+      "Återkomstdatumet är det fält som gör det här till ett verktyg. Ett beslut som kommer " +
+      "tillbaka till dig är ett du kan fatta idag i stället för att samla information du inte " +
+      "kommer att använda.",
+    addConfirm: "Registrera det",
 
     /* Reversing, dropping, editing. */
-    reverseTitle: "Reverse it?",
+    reverseTitle: "Riva upp det?",
     reverseBody:
-      "It stays in the log as reversed, and stops coming back. The reasoning is still readable, " +
-      "which is the point of keeping it.",
-    reverseConfirm: "Reverse it",
-    dropTitle: "Not a decision?",
+      "Det stannar i loggen som upprivet, och slutar komma tillbaka. Resonemanget är " +
+      "fortfarande läsbart, vilket är hela poängen med att behålla det.",
+    reverseConfirm: "Riv upp det",
+    dropTitle: "Inget beslut?",
     dropBody:
-      "The proposal is removed and nothing else changes. Turning one down is information too - it " +
-      "says the reading was wrong.",
-    dropConfirm: "Remove it",
-    editTitle: "Edit",
-    editConfirm: "Save"
+      "Förslaget tas bort och inget annat ändras. Att avvisa ett är också information - det " +
+      "säger att läsningen var fel.",
+    dropConfirm: "Ta bort det",
+    editTitle: "Ändra",
+    editConfirm: "Spara"
   },
 
   knowledge: {
-    title: "What do I know about this?",
+    title: "Vad vet jag om det här?",
     /*
      * The example has to belong to the half. The placeholder is the only
      * instruction anybody reads here, and a work situation offered on a page
@@ -1931,32 +1936,32 @@ export const T = {
      */
     /** @param {boolean} isPrivate */
     sub: (isPrivate) =>
-      "Ask about the situation you are in, not the book you half remember. Your own notes " +
-      `answer - what you read and wrote down, and ${isPrivate ? "the evenings you wrote up" : "the conversations you had"}.`,
-    placeholderPrivate: "I keep getting short with somebody when I am tired",
-    placeholderWork: "Someone on my team has stopped disagreeing with me",
-    searchButton: "Search",
+      "Fråga om situationen du är i, inte om boken du halvt minns. Dina egna anteckningar " +
+      `svarar - vad du läst och skrivit ner, och ${isPrivate ? "kvällarna du skrev upp" : "samtalen du haft"}.`,
+    placeholderPrivate: "Jag blir kort mot någon när jag är trött",
+    placeholderWork: "Någon i mitt team har slutat säga emot mig",
+    searchButton: "Sök",
     /** @param {boolean} isPrivate */
     searchNote: (isPrivate) =>
-      "Searching only titles and opening lines. Nothing is opened until you ask for it." +
+      "Söker bara i rubriker och inledande rader. Inget öppnas förrän du ber om det." +
       (isPrivate
-        ? " What you have read reaches both halves; notes about people stay in the one they were written in."
+        ? " Det du läst når båda sidorna; anteckningar om personer stannar på den sida de skrevs på."
         : ""),
 
-    searchFailedTitle: "Could not search",
+    searchFailedTitle: "Kunde inte söka",
     /** @param {string} searched */
     nothingShares: (searched) =>
-      `Nothing in ${searched} notes shares wording with that. This search matches words, so try ` +
-      `the words you would have written at the time - or write the note, and it will be here next time.`,
+      `Inget i ${searched} anteckningar delar ordval med det. Den här sökningen matchar ord, så ` +
+      `prova orden du skulle ha skrivit då - eller skriv anteckningen, och den finns här nästa gång.`,
 
-    sharesGroup: "Shares wording",
+    sharesGroup: "Delar ordval",
     /** @param {number} n @param {string} searched */
-    sharesMeta: (n, searched) => `${n} of ${searched}`,
-    wordMatchNote: "A word match. It finds the obvious and misses the rest.",
-    reading: "Reading…",
-    readProperly: "Read them properly",
-    readingOff: "Reading is off - no Claude Code on this machine.",
-    untitled: "Untitled",
+    sharesMeta: (n, searched) => `${n} av ${searched}`,
+    wordMatchNote: "En ordmatchning. Den hittar det uppenbara och missar resten.",
+    reading: "Läser…",
+    readProperly: "Läs dem ordentligt",
+    readingOff: "Läsning är av - ingen Claude Code på den här maskinen.",
+    untitled: "Utan titel",
 
     /*
      * The general-knowledge offer, below the notes and never the primary action
@@ -1965,28 +1970,29 @@ export const T = {
      * with this one.
      */
     generalOffer:
-      "Not from your notes: what is generally understood about this. Only the sentence you typed " +
-      "is sent - no notes, and nobody from your roster.",
-    generalLooking: "Looking it up…",
-    generalAsk: "What is generally understood?",
+      "Inte ur dina anteckningar: vad som allmänt är känt om det här. Bara meningen du skrev " +
+      "skickas - inga anteckningar, och ingen från din roster.",
+    generalLooking: "Söker upp det…",
+    generalAsk: "Vad är allmänt känt?",
 
     /* The general answer, framed as the weakest thing on the page. */
-    generalTitle: "Generally understood - not from your notes",
-    copy: "Copy",
-    discard: "Discard",
+    generalTitle: "Allmänt känt - inte ur dina anteckningar",
+    copy: "Kopiera",
+    discard: "Släng",
     /** @param {string} who */
-    onlyTheyCanAnswer: (who) => `Only they can answer: ${who}`,
-    wherePeopleStart: "Where people start",
+    onlyTheyCanAnswer: (who) => `Bara de kan svara: ${who}`,
+    wherePeopleStart: "Var folk börjar",
     /** @param {string} what */
-    wouldAnswer: (what) => `What would actually answer it: ${what}`,
+    wouldAnswer: (what) => `Vad som faktiskt skulle svara på det: ${what}`,
     generalWide:
-      "General, and this varies widely between people - a starting point, and the people involved outrank it. ",
-    generalNarrow: "General. ",
+      "Allmänt, och det här varierar kraftigt mellan människor - en utgångspunkt, och de " +
+      "inblandade väger tyngre. ",
+    generalNarrow: "Allmänt. ",
     /** @param {string} model @param {string} cost */
     generalFoot: (model, cost) =>
-      `Written by ${model}${cost} from its own knowledge, not from anything you have read. ` +
-      `Nothing was saved - copy it into Nib if it is worth keeping.`,
-    someModel: "a model",
+      `Skrivet av ${model}${cost} ur sin egen kunskap, inte ur något du läst. ` +
+      `Inget sparades - kopiera det till Nib om det är värt att behålla.`,
+    someModel: "en modell",
 
     /*
      * The copy, with its provenance line. A general summary pasted into Nib
@@ -1994,16 +2000,16 @@ export const T = {
      * actually read, which is the confusion this block is drawn to prevent.
      */
     /** @param {string} who */
-    textOnlyThey: (who) => `\nOnly they can answer: ${who}`,
-    textStarts: "\nWhere people start:",
+    textOnlyThey: (who) => `\nBara de kan svara: ${who}`,
+    textStarts: "\nVar folk börjar:",
     /** @param {string} what */
-    textWouldAnswer: (what) => `\nWhat would actually answer it: ${what}`,
+    textWouldAnswer: (what) => `\nVad som faktiskt skulle svara på det: ${what}`,
     /** @param {string} model @param {boolean} wide */
     textProvenance: (model, wide) =>
-      `General knowledge, written by ${model}. Not from anything I have read.` +
-      (wide ? " Varies widely between people; the people involved outrank it." : ""),
-    copiedToast: "Copied, with the line saying it is general.",
-    copyFailedToast: "Could not reach the clipboard. Select the text and copy it.",
+      `Allmän kunskap, skriven av ${model}. Inte ur något jag läst.` +
+      (wide ? " Varierar kraftigt mellan människor; de inblandade väger tyngre." : ""),
+    copiedToast: "Kopierat, med raden som säger att det är allmänt.",
+    copyFailedToast: "Kunde inte nå urklippet. Markera texten och kopiera den.",
 
     /*
      * `missing` is printed as prominently as the hits, deliberately. The useful
@@ -2011,14 +2017,14 @@ export const T = {
      * a view that only ever lists matches implies the opposite.
      */
     /** @param {string} n */
-    readTitle: (n) => `Read ${n} of them`,
-    noneBear: "None of them actually bear on this.",
+    readTitle: (n) => `Läste ${n} av dem`,
+    noneBear: "Ingen av dem har egentligen med det här att göra.",
     /** @param {string} what */
-    notAnswered: (what) => `Not answered by anything you have written: ${what}`,
+    notAnswered: (what) => `Inte besvarat av något du skrivit: ${what}`,
     /** @param {string} by @param {string} cost */
-    answerFoot: (by, cost) => `Read from your own notes${by}${cost}. Nothing was saved.`,
+    answerFoot: (by, cost) => `Läst ur dina egna anteckningar${by}${cost}. Inget sparades.`,
     /** @param {string} model */
-    answerBy: (model) => ` by ${model}`
+    answerBy: (model) => ` av ${model}`
   },
 
   settings: {
