@@ -70,7 +70,7 @@ describe("what a roster row says about drift", () => {
     spokeDaysAgo(35);
 
     const row = api.people(store, NOW)[0];
-    assert.notEqual(row.worstDrift, null, "no drift on somebody 35 days past a fortnightly duty");
+    assert.ok(row.worstDrift, "no drift on somebody 35 days past a fortnightly duty");
     assert.equal(row.worstDrift.targetDays, 14);
     assert.equal(row.worstDrift.sinceDays, 35);
   });
@@ -105,6 +105,7 @@ describe("what a roster row says about drift", () => {
       }
     }
     const bo = api.people(store, NOW).find((/** @type {any} */ p) => p.name === "Bo");
+    assert.ok(bo, "Bo was added but is not on the roster");
     ok(
       api.logTouch(store, {
         subject: String(bo.id),
@@ -116,6 +117,9 @@ describe("what a roster row says about drift", () => {
 
     const loose = api.people(store, NOW).find((/** @type {any} */ p) => p.name === "Bo");
 
+    assert.ok(loose, "Bo is not on the roster");
+    assert.ok(fortnightly.worstDrift, "the fortnightly duty produced no drift");
+    assert.ok(loose.worstDrift, "the two-monthly duty produced no drift");
     assert.equal(fortnightly.worstDrift.behindBy, loose.worstDrift.behindBy, "same badge");
     assert.notEqual(
       fortnightly.worstDrift.targetDays,
@@ -132,16 +136,19 @@ describe("what a roster row says about drift", () => {
      * the window to guess from the number.
      */
     const never = api.people(store, NOW)[0];
+    assert.ok(never.worstDrift, "a duty applies, so there is a drift even before any contact");
     assert.equal(never.worstDrift.everHappened, false);
 
     spokeDaysAgo(35);
     const spoken = api.people(store, NOW)[0];
+    assert.ok(spoken.worstDrift);
     assert.equal(spoken.worstDrift.everHappened, true);
   });
 
   it("keeps the badge, because the views that read it are unchanged", () => {
     spokeDaysAgo(35);
     const row = api.people(store, NOW)[0];
+    assert.ok(row.worstDrift, "no drift to check the badge on");
     assert.equal(typeof row.worstDrift.behindBy, "string");
     assert.equal(row.worstDrift.urgency, "critical");
     assert.equal(row.worstDrift.duty, "1-1");
