@@ -250,7 +250,29 @@ export function people(store, now, relation) {
         // Said on the roster, because "no duty applies" reads as a gap in the
         // setup when the truth is that somebody is on leave or has left.
         availability: availability(p, now),
-        worstDrift: worst ? { duty: worst.duty.name, behindBy: driftBadge(worst.drift.driftDays), urgency: worst.drift.trueSeverity } : null
+        /*
+         * The two numbers, not only the badge.
+         *
+         * `behindBy` is "+3w", which answers how late and hides the fact that
+         * matters more: a cadence targeting a fortnight and actually running at
+         * five weeks is not late once, it is mis-set. Both are already computed
+         * in `computeDrift`; the roster was dropping them and every caller then
+         * had to fetch the person to get them back.
+         *
+         * Numbers rather than phrases, so the window can word them in its own
+         * language and a model reading this over MCP gets the arithmetic
+         * instead of a rounded English sentence.
+         */
+        worstDrift: worst
+          ? {
+              duty: worst.duty.name,
+              behindBy: driftBadge(worst.drift.driftDays),
+              urgency: worst.drift.trueSeverity,
+              targetDays: worst.drift.interval,
+              sinceDays: worst.drift.daysSince,
+              everHappened: worst.drift.everHappened
+            }
+          : null
       };
     })
     .sort((a, b) => (b.worstDrift ? 1 : 0) - (a.worstDrift ? 1 : 0));
