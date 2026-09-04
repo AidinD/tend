@@ -240,12 +240,28 @@ function rosterBlock(roster) {
 
   return `<section class="roster-block">
     <div class="prep-head">
-      <span class="group-title">${words.rosterHead}</span>
+      <span class="group-title">${words.teamHead}</span>
       <span class="group-rule"></span>
+      <span class="group-meta">${mandate === undefined ? 0 : mandate.members.length}</span>
     </div>
-    <p class="view-sub">${words.rosterSub}</p>
+    <p class="view-sub">${words.teamSub}</p>
     ${mandate === undefined ? "" : mandateGrid(mandate)}
-    ${strip.map(stripRow).join("")}
+    ${
+      /*
+       * Its own section rather than three more rows under the grid. "My team"
+       * and "everybody else" answer different questions, and one heading over
+       * both made the strips read as an afterthought to the grid instead of as
+       * the other half of the roster.
+       */
+      strip.some((c) => c.members.length > 0)
+        ? `<div class="prep-head around-head">
+             <span class="group-title">${words.aroundHead}</span>
+             <span class="group-rule"></span>
+           </div>
+           <p class="view-sub">${words.aroundSub}</p>
+           ${strip.map(stripRow).join("")}`
+        : ""
+    }
   </section>`;
 }
 
@@ -267,7 +283,7 @@ function mandateGrid(cluster) {
   }
 
   const tiles = [...cluster.members]
-    .map((p) => ({ p, tile: tileOf(p) }))
+    .map((p) => ({ p, tile: tileOf(p, cluster.name) }))
     .sort((a, b) => tileWeight(b.tile) - tileWeight(a.tile))
     .map(
       ({ p, tile }) => `<button class="tile tile-${esc(tile.kind)}" data-act="openPerson"
@@ -278,13 +294,12 @@ function mandateGrid(cluster) {
     )
     .join("");
 
-  return `<div class="mandate">
-    <div class="group-head">
-      <span class="group-title">${groupName(cluster.name)}</span>
-      <span class="group-rule"></span>
-      <span class="group-meta">${cluster.members.length}</span>
-    </div>
-    <p class="src">${groupNote(cluster.name)}</p>
+  /*
+   * No heading of its own. The section above already says "My team", and this
+   * printed the same words again four pixels below it. The count moves up to
+   * the section head, which is where it belonged - it counts the section.
+   */
+  return `<div class="mandate" data-cluster="${esc(cluster.name)}">
     <div class="tile-grid">${tiles}</div>
   </div>`;
 }
@@ -303,7 +318,7 @@ function stripRow(cluster) {
     return "";
   }
 
-  const withTiles = cluster.members.map((p) => ({ p, tile: tileOf(p) }));
+  const withTiles = cluster.members.map((p) => ({ p, tile: tileOf(p, cluster.name) }));
   const asking = withTiles.filter(({ tile }) => tileWeight(tile) >= 2);
 
   const chips =
@@ -319,7 +334,7 @@ function stripRow(cluster) {
           )
           .join("");
 
-  return `<div class="strip">
+  return `<div class="strip" data-cluster="${esc(cluster.name)}">
     <span class="strip-name" title="${esc(groupNote(cluster.name))}">${groupName(cluster.name)}</span>
     <span class="strip-chips">${chips}</span>
   </div>`;
@@ -327,6 +342,11 @@ function stripRow(cluster) {
 
 /** @param {string} name */
 function groupName(name) {
+  /*
+   * Only the strips ask for a name now - the grid takes the section's. The
+   * mandate entry stays in the map anyway, because `mandateGrid` reads it for
+   * its empty state and a missing entry there would print the raw cluster key.
+   */
   /** @type {Record<string, string>} */
   const names = {
     mandate: words.groupMandate,
@@ -337,11 +357,15 @@ function groupName(name) {
   return names[name] ?? name;
 }
 
-/** @param {string} name */
+/**
+ * What the cluster IS, for the strip's tooltip. "Peers" alone does not say why
+ * those four are on one line while two people have a grid to themselves.
+ *
+ * @param {string} name
+ */
 function groupNote(name) {
   /** @type {Record<string, string>} */
   const notes = {
-    mandate: words.groupMandateNote,
     noChannel: words.groupNoChannelNote,
     peers: words.groupPeersNote,
     outward: words.groupOutwardNote
@@ -359,27 +383,54 @@ function groupNote(name) {
  */
 function tilePhrase(tile) {
   switch (tile.kind) {
+    /* My team. */
     case "away":
       return words.tileAway;
     case "leaving":
       return words.tileLeaving;
-    case "left":
-      return words.tileLeft;
-    case "noDuty":
-      return words.tileNoDuty;
-    case "neverYet":
-      return words.tileNeverYet(esc(tile.duty), humanDays(tile.days));
-    case "adrift":
-      return words.tileAdrift(esc(tile.duty), tile.targetDays, tile.sinceDays);
-    case "late":
-      return words.tileLate(esc(tile.duty), humanDays(tile.sinceDays - tile.targetDays));
+    case "needsYou":
+      return words.tileNeedsYou(esc(tile.duty));
+    case "planNotStarted":
+      return words.tilePlanNotStarted;
+    case "planRunning":
+      return words.tilePlanRunning;
+    case "directionShowing":
+      return words.tileDirectionShowing;
+    case "directionUntested":
+      return words.tileDirectionUntested;
+    case "noDirection":
+      return words.tileNoDirection;
+
+    /* Their work, no channel. */
+    case "neverSpoken":
+      return words.tileNeverSpoken(esc(tile.duty));
+    case "feedbackOverdue":
+      return words.tileFeedbackOverdue(esc(tile.duty));
     case "inStep":
-      return words.tileInStep(esc(tile.duty));
+      return words.tileInStep;
+
+    /* Peers. */
+    case "daysOver":
+      return words.tileDaysOver(tile.days);
+
+    /* Upward and outward. */
+    case "promisesOwed":
+      return words.tilePromisesOwed(tile.count);
+    case "questionToAsk":
+      return words.tileQuestionToAsk;
+    case "updateOverdue":
+      return words.tileUpdateOverdue;
+    case "updatedRecently":
+      return words.tileUpdatedRecently;
+
+    case "unknownCluster":
+      return words.tileUnknownCluster(esc(tile.cluster));
     default:
       /*
-       * Unreachable while the test that walks TILE_KINDS passes, and it does
-       * not return "" - a tile that says nothing about somebody is the failure
-       * this whole rule exists to prevent, so it names the state instead.
+       * Unreachable while the test walking TILE_KINDS passes. It names the
+       * state rather than returning "" - a tile that says nothing about
+       * somebody is the failure the whole rule exists to prevent, and an empty
+       * span is the one version of it nobody notices.
        */
       return esc(String(tile.kind));
   }

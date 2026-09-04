@@ -1,5 +1,5 @@
 /**
- * Every tile phrase is decided by rule, and every state has one.
+ * Every tile phrase is decided by rule, one closed set per cluster.
  *
  * The front page is mostly tiles, so an unhandled state is not a cosmetic gap -
  * it is a blank tile about a named colleague on the page opened every morning.
@@ -8,144 +8,247 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { ADRIFT_MULTIPLE, TILE_KINDS, tileOf, tileWeight } from "../src/domain/tiles.js";
+import {
+  TILE_KINDS,
+  TILE_SETS,
+  UNREACHABLE_KINDS,
+  tileOf,
+  tileWeight
+} from "../src/domain/tiles.js";
+import { RELATION_GROUPS } from "../src/domain/cadence.js";
 
 /** @param {object} over */
-const row = (over = {}) => ({ id: "p1", name: "Ada", relation: "lead-and-manage", ...over });
+const row = (over = {}) => ({ id: "p1", name: "Ada", ...over });
 
 /** @param {object} over */
 const drift = (over = {}) => ({
   duty: "1-1",
-  behindBy: "+3w",
-  urgency: "critical",
+  urgency: "warn",
   targetDays: 14,
-  sinceDays: 35,
+  sinceDays: 20,
   everHappened: true,
   ...over
 });
 
-test("a tile says one thing, chosen by rule", async (t) => {
-  await t.test("nothing is expected of you while somebody is away", () => {
+test("the sets and the clusters agree", async (t) => {
+  await t.test("there is a set for every cluster and no set without one", () => {
     /*
-     * Availability wins over drift, and it has to: the clock accrues while
-     * somebody is on parental leave, so printing the drift would be the app
-     * crying wolf about a person who is not there.
+     * The failure this guards is the same one `RELATION_GROUPS` guards: a
+     * cluster with no set renders tiles that speak no vocabulary, and a set
+     * with no cluster is a vocabulary nothing can reach.
      */
-    assert.equal(tileOf(row({ availability: "away", worstDrift: drift() })).kind, "away");
-    assert.equal(tileOf(row({ availability: "left", worstDrift: drift() })).kind, "left");
+    assert.deepEqual(Object.keys(TILE_SETS).sort(), Object.keys(RELATION_GROUPS).sort());
   });
 
-  await t.test("but somebody working out their notice stays live", () => {
-    /*
-     * `leaving` is not `left`. A promise to somebody leaving next week is
-     * exactly the promise to keep, so the tile has to stay on the page and say
-     * why it is different rather than going quiet.
-     */
-    const tile = tileOf(row({ availability: "leaving", worstDrift: drift() }));
-    assert.equal(tile.kind, "leaving");
-    assert.notEqual(tile.kind, "left");
+  await t.test("this check found the sets at all", () => {
+    assert.ok(Object.keys(TILE_SETS).length >= 4, "fewer than four sets");
+    assert.ok(TILE_KINDS.length >= 12, `only ${TILE_KINDS.length} kinds across all sets`);
   });
 
-  await t.test("no duty applying is its own answer, not an empty one", () => {
-    assert.equal(tileOf(row({ worstDrift: null })).kind, "noDuty");
-    assert.equal(tileOf(row({})).kind, "noDuty");
+  await t.test("no set is empty, and each is small enough to be a vocabulary", () => {
+    for (const [cluster, set] of Object.entries(TILE_SETS)) {
+      assert.ok(set.length >= 3, `${cluster} has only ${set.length} phrases`);
+      /*
+       * Eight is the largest set in the brief. A set past that has stopped
+       * being a vocabulary and become a list of cases, which is the point at
+       * which the phrases stop being derivable.
+       */
+      assert.ok(set.length <= 8, `${cluster} has grown to ${set.length} phrases`);
+    }
+  });
+});
+
+test("a mandate tile says where development stands", async (t) => {
+  await t.test("nothing is expected while somebody is away", () => {
+    assert.equal(tileOf(row({ availability: "away", worstDrift: drift() }), "mandate").kind, "away");
   });
 
-  await t.test("never having spoken is not a very large lateness", () => {
+  await t.test("but a leaver stays in the grid rather than going quiet", () => {
     /*
-     * `sinceDays` counts from the relationship's start when nothing has
-     * happened, so rendering it as "400 days since your last 1-1" would be a
-     * sentence about a conversation that never took place.
+     * Drops out when the last day has passed, not when they announce. A promise
+     * to somebody leaving next week is exactly the promise to keep, and taking
+     * the tile away at resignation is the app deciding they stopped mattering.
      */
-    const tile = tileOf(row({ worstDrift: drift({ everHappened: false, sinceDays: 400 }) }));
-    assert.equal(tile.kind, "neverYet");
-    assert.equal(tile.kind === "neverYet" && tile.days, 400);
+    assert.equal(tileOf(row({ availability: "leaving" }), "mandate").kind, "leaving");
   });
 
-  await t.test("late and adrift are different facts, which is the point", () => {
-    /*
-     * The reason the screen is worth building. Both of these badged "+3w"
-     * before today, and one is a cancelled meeting while the other is a cadence
-     * nobody is keeping.
-     */
-    const late = tileOf(row({ worstDrift: drift({ targetDays: 14, sinceDays: 17 }) }));
-    assert.equal(late.kind, "late");
-
-    const adrift = tileOf(row({ worstDrift: drift({ targetDays: 14, sinceDays: 35 }) }));
-    assert.equal(adrift.kind, "adrift");
+  await t.test("a critical cadence outranks any development state", () => {
+    const tile = tileOf(
+      row({
+        worstDrift: drift({ urgency: "critical" }),
+        direction: { status: "open", stance: "agreed", observations: 3 }
+      }),
+      "mandate"
+    );
+    assert.equal(tile.kind, "needsYou");
   });
 
-  await t.test("and the boundary is exactly twice the interval", () => {
+  await t.test("no direction open is its own answer, not an empty tile", () => {
+    assert.equal(tileOf(row({ direction: null }), "mandate").kind, "noDirection");
+    assert.equal(tileOf(row({}), "mandate").kind, "noDirection");
+  });
+
+  await t.test("untested is about the stance, not the age", () => {
     /*
-     * Asserted at the edge rather than near it, because "roughly double" is not
-     * a rule somebody can reproduce when they wonder why a tile changed.
+     * A direction he has not put to them is untested however long it has been
+     * open, and one they agreed to is tested even if nothing has been seen.
      */
-    assert.equal(tileOf(row({ worstDrift: drift({ targetDays: 14, sinceDays: 27 }) })).kind, "late");
     assert.equal(
-      tileOf(row({ worstDrift: drift({ targetDays: 14, sinceDays: 28 }) })).kind,
-      "adrift"
+      tileOf(row({ direction: { status: "open", stance: "unasked", observations: 0 } }), "mandate")
+        .kind,
+      "directionUntested"
     );
-    assert.equal(ADRIFT_MULTIPLE, 2);
+    assert.equal(
+      tileOf(row({ direction: { status: "open", stance: "agreed", observations: 0 } }), "mandate")
+        .kind,
+      "directionShowing"
+    );
   });
 
-  await t.test("in step says so, rather than saying nothing", () => {
-    assert.equal(tileOf(row({ worstDrift: drift({ targetDays: 14, sinceDays: 14 }) })).kind, "inStep");
-    assert.equal(tileOf(row({ worstDrift: drift({ targetDays: 14, sinceDays: 3 }) })).kind, "inStep");
+  await t.test("and something actually seen says so", () => {
+    assert.equal(
+      tileOf(row({ direction: { status: "open", stance: "unasked", observations: 2 } }), "mandate")
+        .kind,
+      "directionShowing"
+    );
+  });
+});
+
+test("the other three sets answer their own question", async (t) => {
+  await t.test("no channel is about whether feedback is reaching them", () => {
+    assert.equal(
+      tileOf(row({ worstDrift: drift({ everHappened: false }) }), "noChannel").kind,
+      "neverSpoken"
+    );
+    assert.equal(
+      tileOf(row({ worstDrift: drift({ sinceDays: 40, targetDays: 28 }) }), "noChannel").kind,
+      "feedbackOverdue"
+    );
+    assert.equal(
+      tileOf(row({ worstDrift: drift({ sinceDays: 10, targetDays: 28 }) }), "noChannel").kind,
+      "inStep"
+    );
   });
 
-  await t.test("every kind it can return is declared", () => {
+  await t.test("a peer gets a number, because there is no duty behind it", () => {
     /*
-     * The guard that makes TILE_KINDS worth having. A kind added to the
-     * function and not to the list is a phrase the renderer was never asked to
-     * handle, which renders as nothing.
+     * The only set that counts days. "Over" without a count says nothing about
+     * a relationship that rests entirely on goodwill.
      */
-    const seen = new Set(
-      [
-        row({ availability: "away" }),
-        row({ availability: "leaving" }),
-        row({ availability: "left" }),
-        row({ worstDrift: null }),
-        row({ worstDrift: drift({ everHappened: false }) }),
-        row({ worstDrift: drift({ targetDays: 14, sinceDays: 35 }) }),
-        row({ worstDrift: drift({ targetDays: 14, sinceDays: 17 }) }),
-        row({ worstDrift: drift({ targetDays: 14, sinceDays: 2 }) })
-      ].map((r) => tileOf(r).kind)
-    );
+    const tile = tileOf(row({ worstDrift: drift({ sinceDays: 20, targetDays: 7 }) }), "peers");
+    assert.equal(tile.kind, "daysOver");
+    assert.equal(tile.days, 13);
+  });
 
-    assert.equal(seen.size, TILE_KINDS.length, `reached ${seen.size} of ${TILE_KINDS.length} kinds`);
-    for (const kind of TILE_KINDS) {
-      assert.ok(seen.has(kind), `${kind} is declared but nothing produces it`);
+  await t.test("upward and outward is entirely about what you owe", () => {
+    assert.equal(tileOf(row({ promisesOwed: 2 }), "outward").kind, "promisesOwed");
+    assert.equal(tileOf(row({ promisesOwed: 2 }), "outward").count, 2);
+    assert.equal(tileOf(row({ promisesOwed: 0, hasQuestion: true }), "outward").kind, "questionToAsk");
+    assert.equal(
+      tileOf(row({ update: { overdue: true } }), "outward").kind,
+      "updateOverdue"
+    );
+    assert.equal(tileOf(row({ update: { overdue: false } }), "outward").kind, "updatedRecently");
+  });
+
+  await t.test("an owed promise outranks a question, because somebody is waiting", () => {
+    const tile = tileOf(row({ promisesOwed: 1, hasQuestion: true }), "outward");
+    assert.equal(tile.kind, "promisesOwed");
+  });
+});
+
+test("every declared phrase is reachable, or declared unreachable", async (t) => {
+  /**
+   * One row per kind, so the whole vocabulary is exercised from real inputs
+   * rather than asserted against itself.
+   *
+   * @type {[string, string, object][]}
+   */
+  const cases = [
+    ["mandate", "away", { availability: "away" }],
+    ["mandate", "leaving", { availability: "leaving" }],
+    ["mandate", "needsYou", { worstDrift: drift({ urgency: "critical" }) }],
+    ["mandate", "noDirection", {}],
+    [
+      "mandate",
+      "directionUntested",
+      { direction: { status: "open", stance: "unasked", observations: 0 } }
+    ],
+    [
+      "mandate",
+      "directionShowing",
+      { direction: { status: "open", stance: "agreed", observations: 1 } }
+    ],
+    ["noChannel", "neverSpoken", { worstDrift: drift({ everHappened: false }) }],
+    ["noChannel", "feedbackOverdue", { worstDrift: drift({ sinceDays: 40, targetDays: 28 }) }],
+    ["noChannel", "inStep", { worstDrift: drift({ sinceDays: 2, targetDays: 28 }) }],
+    ["peers", "away", { availability: "away" }],
+    ["peers", "daysOver", { worstDrift: drift({ sinceDays: 20, targetDays: 7 }) }],
+    ["peers", "inStep", { worstDrift: drift({ sinceDays: 2, targetDays: 7 }) }],
+    ["outward", "promisesOwed", { promisesOwed: 1 }],
+    ["outward", "questionToAsk", { hasQuestion: true }],
+    ["outward", "updateOverdue", { update: { overdue: true } }],
+    ["outward", "updatedRecently", { update: { overdue: false } }]
+  ];
+
+  await t.test("each case produces the kind it claims to", () => {
+    for (const [cluster, kind, over] of cases) {
+      assert.equal(tileOf(row(over), cluster).kind, kind, `${cluster}/${kind}`);
     }
   });
 
-  await t.test("what is being asked of you sorts above what is not", () => {
+  await t.test("and together they reach every kind except the declared gaps", () => {
     /*
-     * Deliberately not the drift's own severity. `away` and `noDuty` are quiet
-     * because nothing is expected, not because everything is fine, and they
-     * must not sort above a cadence nobody is keeping.
+     * The guard that makes the sets worth having. A kind added to a set and not
+     * producible by any input is a phrase the renderer will be written for and
+     * nothing will ever show - and the reverse, a kind the rule can return that
+     * no set declares, is a tile speaking a vocabulary nobody reviewed.
      */
-    const weights = TILE_KINDS.map((kind) => ({
-      kind,
-      weight: tileWeight(/** @type {any} */ ({ kind }))
-    }));
+    const reached = new Set(cases.map(([, kind]) => kind));
+    const missing = TILE_KINDS.filter((k) => !reached.has(k));
+    assert.deepEqual(
+      missing.sort(),
+      [...UNREACHABLE_KINDS].sort(),
+      "the unreachable kinds are not the ones declared unreachable"
+    );
+  });
 
-    const asking = weights.filter((w) => ["adrift", "neverYet", "late"].includes(w.kind));
-    const quiet = weights.filter((w) => ["away", "leaving", "left", "noDuty"].includes(w.kind));
+  await t.test("the unreachable ones are unreachable because plans do not exist", () => {
+    /*
+     * Asserted so the day the plan shape lands, this test fails and says so.
+     * A declared phrase that stays unshowable after its feature ships is dead
+     * vocabulary, and dead vocabulary is what confuses a rewriting pass.
+     */
+    for (const kind of UNREACHABLE_KINDS) {
+      assert.ok(kind.startsWith("plan"), `${kind} is unreachable for an unrecorded reason`);
+    }
+    assert.equal(tileOf(row({ plan: { started: false } }), "mandate").kind, "planNotStarted");
+    assert.equal(tileOf(row({ plan: { started: true } }), "mandate").kind, "planRunning");
+  });
+
+  await t.test("an unknown cluster names itself rather than guessing a phrase", () => {
+    const tile = tileOf(row({}), "not-a-cluster");
+    assert.equal(tile.kind, "unknownCluster");
+    assert.equal(tile.cluster, "not-a-cluster");
+  });
+});
+
+test("what is being asked of you sorts above what is not", async (t) => {
+  await t.test("quiet states never outrank asking ones", () => {
+    const quiet = ["away", "inStep", "directionShowing", "updatedRecently"];
+    const asking = ["needsYou", "neverSpoken", "planNotStarted", "promisesOwed", "daysOver"];
 
     for (const a of asking) {
       for (const q of quiet) {
-        assert.ok(a.weight > q.weight, `${a.kind} must outrank ${q.kind}`);
+        assert.ok(
+          tileWeight({ kind: a }) > tileWeight({ kind: q }),
+          `${a} must outrank ${q}`
+        );
       }
     }
-    assert.ok(
-      tileWeight(/** @type {any} */ ({ kind: "adrift" })) >
-        tileWeight(/** @type {any} */ ({ kind: "late" })),
-      "a cadence nobody keeps outranks one conversation being late"
-    );
-    assert.ok(
-      tileWeight(/** @type {any} */ ({ kind: "inStep" })) >
-        tileWeight(/** @type {any} */ ({ kind: "noDuty" })),
-      "in step is a fact about a duty; no duty is the absence of one"
-    );
+  });
+
+  await t.test("and a plan nobody has started outranks one that is running", () => {
+    assert.ok(tileWeight({ kind: "planNotStarted" }) > tileWeight({ kind: "planRunning" }));
   });
 });

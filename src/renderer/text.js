@@ -1231,11 +1231,18 @@ export const T = {
      * "Peers" alone does not tell you why those four are on one strip while two
      * people have a grid to themselves.
      */
-    rosterHead: "Where to look",
-    rosterSub:
-      "The people you are accountable for, at the size that says so. Everybody else is one line.",
-    groupMandate: "Accountable for them",
-    groupMandateNote: "You hold the mandate. This is the group the page is for.",
+    /*
+     * Two sections rather than one, because they answer different questions.
+     * The grid is the people you are accountable for and it owns the vertical
+     * space; the strips are everybody else and they exist so the page can say
+     * "and nothing here needs you" in one line.
+     */
+    teamHead: "My team",
+    teamSub: "The people you hold a mandate over. Where each of them stands, not what is late.",
+    aroundHead: "Around me",
+    aroundSub: "Everybody else, one line per kind of relationship.",
+
+    groupMandate: "My team",
     groupNoChannel: "Their work, no channel",
     groupNoChannelNote: "You see what they do and have no formal way to act on it.",
     groupPeers: "Peers",
@@ -1253,19 +1260,49 @@ export const T = {
      * weeks and of a two-monthly one at eleven, and only one of those is a
      * cadence nobody is keeping.
      */
+    /*
+     * My team. The set is about where somebody's development stands, because
+     * the cadences have their own section as cards above - saying both on the
+     * same tile is what made the first version of this page repeat itself.
+     */
     tileAway: "Away. Nothing is expected.",
-    tileLeaving: "Leaving. Everything still holds until their last day.",
-    tileLeft: "Gone. The history stays.",
-    tileNoDuty: "No duty applies to this relationship.",
-    /** @param {string} duty @param {string} since */
-    tileNeverYet: (duty, since) => `No ${duty} yet. ${since} since this started.`,
-    /** @param {string} duty @param {number} target @param {number} since */
-    tileAdrift: (duty, target, since) =>
-      `${duty} is set to every ${target} days and is running at ${since}.`,
-    /** @param {string} duty @param {string} over */
-    tileLate: (duty, over) => `${duty} is ${over} past due.`,
+    tileLeaving: "Leaving. Everything holds until their last day.",
     /** @param {string} duty */
-    tileInStep: (duty) => `${duty} is in step.`,
+    tileNeedsYou: (duty) => `${duty} needs you now.`,
+    tileNoDirection: "No direction open.",
+    tileDirectionUntested: "A direction, not yet put to them.",
+    tileDirectionShowing: "A direction, and it is showing.",
+    tilePlanNotStarted: "A plan, not ready to start.",
+    tilePlanRunning: "A plan, running.",
+
+    /* Their work, no channel. Whether feedback is actually reaching them. */
+    /** @param {string} duty */
+    tileNeverSpoken: (duty) => `No ${duty} has ever happened.`,
+    /** @param {string} duty */
+    tileFeedbackOverdue: (duty) => `${duty} is overdue.`,
+    tileInStep: "In step.",
+
+    /*
+     * Peers. The only set that says a number, because "over" without a count
+     * says nothing about a relationship with no duty behind it.
+     */
+    /** @param {number} days */
+    tileDaysOver: (days) => `${days} days over.`,
+
+    /* Upward and outward. Entirely about what you owe them. */
+    /** @param {number} n */
+    tilePromisesOwed: (n) => (n === 1 ? "You owe them one thing." : `You owe them ${n} things.`),
+    tileQuestionToAsk: "A question to ask.",
+    tileUpdateOverdue: "An update is overdue.",
+    tileUpdatedRecently: "Updated recently.",
+
+    /*
+     * The cluster and the vocabulary disagreed. Not a phrase about the person -
+     * naming the fault is the only honest thing a tile can say when the rule
+     * could not decide what it was looking at.
+     */
+    /** @param {string} cluster */
+    tileUnknownCluster: (cluster) => `No vocabulary for "${cluster}".`,
 
     /* The strip's clusters collapse to a count when nobody in them needs you. */
     /** @param {number} n */

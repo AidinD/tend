@@ -21,6 +21,7 @@ import { personBlocksIn, relationsIn } from "../domain/halves.js";
 import { myAttention } from "../domain/myattention.js";
 import { availability } from "../domain/people.js";
 import { openPromises } from "../domain/promises.js";
+import { isLiveStatus, threadState } from "../domain/growth.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import { namedStakes } from "../domain/stakes.js";
 import { agoWords, daysSince, driftBadge, humanDays } from "../domain/time.js";
@@ -232,6 +233,17 @@ export function person(store, query, now) {
  */
 export function people(store, now, relation) {
   const cadences = expandCadences(store.state(), now);
+
+  /*
+   * Read once for the whole roster rather than per person. The front page asks
+   * for the roster on every draw, and a per-person read of three collections
+   * turns one page into thirty passes over the log.
+   */
+  const growthRows = store.rows("growth").filter((g) => !g._deleted);
+  const growthNotes = store.rows("growthNotes").filter((n) => !n._deleted);
+  const promises = openPromises(store.rows("promises"), now);
+  const stakes = store.rows("stakes").filter((x) => !x._deleted);
+
   return store
     .rows("people")
     // Archived people are the whole point of archiving: they stop cluttering
@@ -243,9 +255,60 @@ export function people(store, now, relation) {
     .map((p) => {
       const theirs = cadences.filter((c) => c.subject.id === p.id);
       const worst = theirs[0];
+
+      /*
+       * The live growth thread, if there is one, reduced to the three facts a
+       * tile can be decided from. Not the whole thread: the front page must
+       * not carry a person's development prose, and a payload that does is one
+       * an agent over MCP reads too.
+       *
+       * `isLiveStatus` rather than a status comparison here, because the
+       * window had its own copy of that test once and printed homework under an
+       * ended direction.
+       */
+      const live = growthRows.find(
+        (g) => g.person === p.id && isLiveStatus(/** @type {any} */ (String(g.status)))
+      );
+      const direction =
+        live === undefined
+          ? null
+          : (() => {
+              const state = threadState(
+                /** @type {any} */ (live),
+                /** @type {any} */ (growthNotes),
+                /** @type {any} */ (p),
+                now
+              );
+              return {
+                status: String(state.status),
+                stance: String(state.stance),
+                observations: Number(state.observations)
+              };
+            })();
+
       return {
         id: p.id,
         name: p.name,
+        /*
+         * What a tile needs and nothing more. Each is a count or a flag, so
+         * this stays a roster row rather than becoming a second person page.
+         */
+        direction,
+        promisesOwed: promises.filter((x) => x.person === p.id).length,
+        /*
+         * Always false until Inför wires `worthRaising` to the "Frågor jag
+         * inte ställde" section of a Nib summary. Sent as a flag anyway so the
+         * tile rule is complete now and gains its input later, rather than the
+         * rule changing shape when the feature lands.
+         */
+        hasQuestion: false,
+        /*
+         * Null when this person is nobody's stakeholder, which is not the same
+         * as an update being due. The tile set for the outward cluster has a
+         * phrase for overdue and one for recent, and neither is true of
+         * somebody who owes no reports at all.
+         */
+        update: stakeUpdate(stakes, cadences, p.id),
         relation: p.relation,
         // Said on the roster, because "no duty applies" reads as a gap in the
         // setup when the truth is that somebody is on leave or has left.
@@ -276,6 +339,29 @@ export function people(store, now, relation) {
       };
     })
     .sort((a, b) => (b.worstDrift ? 1 : 0) - (a.worstDrift ? 1 : 0));
+}
+
+/**
+ * Whether a stakeholder is owed an update, or null if they are not one.
+ *
+ * Null and not `{ overdue: false }`. "Nobody is waiting on a report from you"
+ * and "the report is current" are different facts, and the tile vocabulary has
+ * a phrase for the second and none for the first - which is the right place for
+ * that gap to be visible rather than papered over here.
+ *
+ * @param {any[]} stakes
+ * @param {any[]} cadences
+ * @param {string} personId
+ * @returns {{ overdue: boolean } | null}
+ */
+function stakeUpdate(stakes, cadences, personId) {
+  const theirs = stakes.filter((s) => String(s.person) === personId);
+  if (theirs.length === 0) {
+    return null;
+  }
+  const ids = new Set(theirs.map((s) => String(s.id)));
+  const drifting = cadences.filter((c) => ids.has(String(c.subject.id)));
+  return { overdue: drifting.some((c) => Number(c.drift.driftDays) > 0) };
 }
 
 /**

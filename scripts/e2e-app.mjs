@@ -46,6 +46,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { TILE_SETS } from "../src/domain/tiles.js";
 
 import { RELATIONS } from "../src/domain/cadence.js";
 import {
@@ -4082,35 +4083,67 @@ try {
     }
   });
 
-  const adriftSays = await page.texts(".tile-adrift .tile-says, .chip-adrift");
-  const adriftCount = await page.evaluate(
-    "document.querySelectorAll('.tile-adrift, .chip-adrift').length"
-  );
   /*
-   * What the page actually shows, for the failure message. A check that says
-   * only "I found nothing to assert" is a check somebody has to reproduce by
-   * hand before they can fix it.
+   * Every tile's kind, with the cluster it was rendered in. Read off the DOM
+   * rather than recomputed, so this checks what the page actually shows.
    */
-  const tileKinds = await page.evaluate(
-    `(() => [...document.querySelectorAll('.tile, .chip')]
-        .map(el => (el.className.match(/(?:tile|chip)-([A-Za-z]+)/) || [,'?'])[1]
-          + " [" + (el.querySelector('.tile-name')?.textContent || el.textContent || '').trim().slice(0, 16)
-          + "] " + (el.querySelector('.tile-says')?.textContent || "").trim())
-        .join(", "))()`
+  const renderedTiles = await page.evaluate(
+    `(() => [...document.querySelectorAll('[data-cluster]')].flatMap(box => {
+        const cluster = box.getAttribute('data-cluster');
+        return [...box.querySelectorAll('.tile, .chip')]
+          .filter(el => !el.classList.contains('quiet'))
+          .map(el => {
+            const m = el.className.match(/(?:tile|chip)-([A-Za-z]+)/);
+            return cluster + ":" + (m ? m[1] : "NONE");
+          });
+      }).join(","))()`
   );
-  check("a cadence nobody is keeping says both numbers, not a badge", () => {
+
+  check("a tile only ever speaks its own cluster's vocabulary", () => {
     /*
-     * The fact the screen exists for. "+3w" was true of a fortnightly duty at
-     * five weeks and of a two-monthly one at eleven, so a badge cannot say
-     * which cadence is mis-set. If the fixture produced no adrift person there
-     * is nothing to assert, and saying so beats a check that quietly passes.
+     * The invariant the closed sets exist for. One set per cluster is only
+     * worth having if a tile cannot reach another cluster's phrases - a
+     * mandate tile saying "N days over" would mean the vocabulary had quietly
+     * widened, and a widened set is one whose phrases stop being derivable.
      */
-    if (adriftCount === 0) {
-      throw new Error(`the fixture produced nobody adrift, so this proved nothing. Tiles: ${tileKinds}`);
+    const seen = String(renderedTiles).split(",").filter(Boolean);
+    if (seen.length === 0) {
+      throw new Error("no tiles or chips rendered, so this proved nothing");
     }
-    const tiles = adriftSays.filter((t) => /is set to every/.test(String(t)));
-    if (tiles.length === 0 && adriftSays.length > 0) {
-      throw new Error(`an adrift tile does not state the interval: "${adriftSays[0]}"`);
+    const wrong = [];
+    for (const entry of seen) {
+      const [cluster, kind] = entry.split(":");
+      const set = /** @type {Record<string, readonly string[]>} */ (TILE_SETS)[cluster];
+      if (set === undefined) {
+        wrong.push(`${entry} (no set for that cluster)`);
+        continue;
+      }
+      if (kind === "NONE") {
+        wrong.push(`${entry} (rendered with no kind on it)`);
+        continue;
+      }
+      if (!set.includes(kind)) {
+        wrong.push(`${entry} (not in [${set.join(" ")}])`);
+      }
+    }
+    if (wrong.length > 0) {
+      throw new Error(`tiles speaking the wrong set: ${wrong.join("; ")}`);
+    }
+  });
+
+  const teamSays = await page.texts(".mandate .tile .tile-says");
+  check("and my team's tiles say where somebody stands, not what is late", () => {
+    /*
+     * The cadences are cards above, so a tile repeating them is the page saying
+     * the same thing twice - which the first version of this screen did, and
+     * the screenshot made obvious.
+     */
+    if (teamSays.length === 0) {
+      throw new Error("no tiles in the mandate grid, so this proved nothing");
+    }
+    const targets = teamSays.filter((t) => /is set to every|days and is running/.test(String(t)));
+    if (targets.length > 0) {
+      throw new Error(`a team tile is talking about a cadence interval: "${targets[0]}"`);
     }
   });
 
