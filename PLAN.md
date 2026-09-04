@@ -284,6 +284,37 @@ Tend event log <──┤
    description tells a model to start with, so dropping them there would cost a
    model the questions. See DECISIONS.md for the field-by-field comparison.
 
+18. ~~**The bottom half of Läget was rows while the top half was cards**~~ fixed.
+   Everything about other people got cards and tiles; his own aims and action
+   points were `mine-row` - a text span and a grey label - and they sat ninth
+   and tenth on the page under four blocks about waiting and proposing. He could
+   not find his own goals on the screen he opens daily. Both blocks are now
+   three-slot and two-slot cards in a two-across grid directly after the roster,
+   `Väntar på ditt svar` is one folded line per proposal at the bottom instead
+   of the largest thing on the page, and `mine-grid` is gone rather than left
+   unused. **Two defects came out of the reshaping rather than the brief:** the
+   promise rows printed `till , öppet 3 dagar` because the view read `p.person`
+   and the payload has only ever carried `to`, and every late promise was drawn
+   twice - a card with the button that closes it and a bare row without one,
+   the same defect as the monthly question in a different block. The second is
+   now counted per promise off the service, so it holds whichever side a promise
+   falls on. See DECISIONS.md.
+
+## Next
+
+**The air, measured rather than felt.** `app.css` declares four spacing steps
+and uses six tokenised gaps against roughly forty-five hardcoded ones, at least
+two of which (`9px`, `5px`) are the tokens spelled out - ten distinct gap values
+in a design that declares four. The mock reads tight rather than cramped
+because it uses about three values everywhere, not because the values are small.
+Its own pass: replace each hardcoded gap with its nearest token, report rather
+than add a fifth step where none fits, then the same for padding and margin,
+then an invariant asserted against the source the way `palette.test.mjs` already
+guards the type scale. Two known holes to fold in: a severity card's band
+carries `margin-bottom: var(--sp-block)`, which is tuned for a paragraph and
+leaves a hole under three short lines, and the section blocks use `--sp-block`
+where a group heading uses 28px.
+
 ## Not built, and why
 
 **The private half's signals.** The questions Tend asks rather than derives, over

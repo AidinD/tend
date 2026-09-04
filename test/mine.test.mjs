@@ -18,6 +18,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import * as api from "../src/service/api.js";
+import { ACTION_STALE_DAYS } from "../src/service/niblinks.js";
 import { DAY_MS } from "../src/domain/time.js";
 import { openStore } from "../src/storage/store.js";
 import { ok, failed } from "./helpers.mjs";
@@ -66,6 +67,32 @@ describe("filing a commitment as mine", () => {
     assert.equal(mine.length, 1);
     assert.equal(mine[0].text, "Skriv ihop underlaget till nästa styrgrupp");
     assert.equal(mine[0].noteTitle, "Chefsmöte 1 september");
+  });
+
+  it("ages it, so a card can mark the old one rather than only sort it first", () => {
+    /*
+     * The list was already ordered oldest first "because the one from three
+     * weeks ago is the one worth seeing", and being first in a list of nine is
+     * not the same as being marked. `age` and `stale` are what let the card
+     * show it; the threshold is that sentence's own three weeks and nothing
+     * new, which is why it is asserted against the constant rather than 21.
+     */
+    ok(api.keepCommitment(store, "pend-1", NOW));
+    const [row] = api.myActions(store, NOW);
+    assert.equal(row.days, 4);
+    assert.equal(row.age, "4 dagar");
+    assert.equal(row.stale, false, "four days old is not stale");
+  });
+
+  it("and calls one stale on the day it reaches the threshold, not after it", () => {
+    ok(api.keepCommitment(store, "pend-1", NOW));
+    const at = api.myActions(store, NOW)[0].at;
+
+    const justUnder = api.myActions(store, at + (ACTION_STALE_DAYS - 1) * DAY_MS)[0];
+    assert.equal(justUnder.stale, false, `${ACTION_STALE_DAYS - 1} days read as stale`);
+
+    const exactly = api.myActions(store, at + ACTION_STALE_DAYS * DAY_MS)[0];
+    assert.equal(exactly.stale, true, `${ACTION_STALE_DAYS} days did not read as stale`);
   });
 
   it("dates it from when it was agreed, not when it was filed", () => {

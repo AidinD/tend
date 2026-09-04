@@ -148,6 +148,13 @@ export const T = {
     proposedSub:
       "Föreslagna plikter gör ingenting förrän du accepterar dem. Fram till dess bevakar appen " +
       "inte det de beskriver.",
+    /*
+     * The four of them are one expandable line each now, so the prose is a
+     * click away rather than the largest thing on the page. There is no word
+     * for the control: the disclosure triangle and the duty's own name are
+     * what it says, and a label reading "what it means" beside a name that
+     * already says what it is would be one more thing to read.
+     */
     /** @param {string} every */
     proposedEvery: (every) => `var ${every}`,
     proposedAccept: "Acceptera",
@@ -162,7 +169,13 @@ export const T = {
      * screen exists - so the empty state has to be a real sentence rather than
      * a dash.
      */
-    aimsHead: "Vad jag jobbar med hos mig själv",
+    /*
+     * "Mina mål", which is the mock's heading and four words shorter than the
+     * sentence that was here. The old one described the block correctly and
+     * was still the wrong thing on a page you scan: a heading that reads as a
+     * sentence reads as a footnote, and this is the block he could not find.
+     */
+    aimsHead: "Mina mål",
     aimsEmpty:
       "Inget satt. Ett mål säger vad du vill kunna göra och hur du kommer att veta - och två är " +
       "gränsen, för att jobba på fyra sidor av sitt eget uppträdande samtidigt är att jobba på " +
@@ -171,6 +184,29 @@ export const T = {
     aimsOpen: "Öppna reflektionen",
     /** @param {string} source */
     aimSource: (source) => `hur du vet: ${source}`,
+
+    /*
+     * An aim as a card: the aim, the test, then how it is actually going.
+     *
+     * The test is the second slot because it is the half that makes it a goal
+     * rather than a wish, and an aim with none is worth saying out loud rather
+     * than leaving the slot blank.
+     */
+    /** @param {string} measure */
+    aimTest: (measure) => `testet är ${measure}`,
+    aimNoTest: "Inget test satt, så ingenting säger när det har ändrats.",
+    aimNever: "inget tillfälle loggat",
+    /** @param {number} seen @param {number} missed */
+    aimTally: (seen, missed) => {
+      // Swedish agrees and English does not, so the whole phrase branches
+      // rather than the noun. "1 tillfälle taget", "2 tillfällen tagna".
+      const taken = seen === 1 ? "1 tillfälle taget" : `${seen} tillfällen tagna`;
+      if (missed === 0) {
+        return taken;
+      }
+      return `${taken}, ${missed === 1 ? "1 missat" : `${missed} missade`}`;
+    },
+    aimHorizonPast: "horisonten passerad",
 
     /*
      * His own action points.
@@ -187,11 +223,22 @@ export const T = {
     myActionFrom: (note) => `från "${note}"`,
     myActionDone: "Klar",
     myActionDoneToast: "Klar.",
+    myActionNoNote: "eget, inte ur en anteckning",
 
-    /* What he owes people, which is the other half of what needs him. */
+    /*
+     * What he owes people, which is the other half of what needs him.
+     *
+     * Two lines and not one with an empty half. `till ${name}` printed
+     * "till , öppet 3 dagar" whenever there was no name, and there is a real
+     * case for that: a promise whose person is no longer in the roster at all.
+     */
     owedHead: "Vad du sa att du skulle göra",
-    /** @param {string} name @param {string} open */
-    owedLine: (name, open) => `till ${name}, öppet ${open}`,
+    /** @param {string} name */
+    owedTo: (name) => `till ${name}`,
+    owedToUnknown: "till någon som inte längre finns i registret",
+    owedNote:
+      "De försenade ligger som kort högre upp, med knappen som stänger dem. Här är resten, så " +
+      "ingenting du lovat är osynligt.",
 
     /*
      * No focus running. One line rather than a card: it is an offer, not a

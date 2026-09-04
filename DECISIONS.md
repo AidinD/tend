@@ -3,6 +3,90 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-04 - His own work gets the card treatment, and gets it first
+
+**Decided.** Mina mål and Mina action points are cards in a two-across grid,
+directly after the roster. `Väntar på ditt svar` is one folded line per
+proposal, at the bottom. `mine-grid` is deleted rather than left unused.
+
+**The complaint was one pattern, not four.** The top half of Läget got cards and
+tiles; the bottom half got rows - and the bottom half is where his own work
+lives. Everything about other people got the treatment and everything about him
+got a text span and a grey label, which is backwards from the reason the Mine
+slice was built. The order compounded it: four blocks about waiting and
+proposing sat between the roster and his own things, so his goals landed ninth
+on the page and he could not find them.
+
+**What each block carries, and why those fields.** An aim is three slots: the
+aim, then the test, then how it is going. The test is the middle slot because it
+is the half that makes it a goal rather than a wish, and an aim with none says
+so on its face. An action point is two slots, not three: it is a line he wrote
+in a meeting and there is no second sentence about it, so a middle slot would be
+an empty row on every card. The mock's own action points have exactly two.
+
+**Severity is per card and every one of them comes off the payload.** An aim is
+warn when `overdue` (its own cadence has passed) or `pastHorizon` (the date he
+set). An action point is warn when `stale`, which is the sort order's own
+reasoning - "the one from three weeks ago is the one worth seeing" - made
+visible: being first in a list of nine is not the same as being marked. The
+threshold is that sentence's three weeks and lives in the service beside the
+sort, not in a template, so it can be tested.
+
+**Live aims only.** `aims()` returns reached and dropped ones ordered after the
+open ones, and on the front page an aim reached in March reads as a goal he
+still has; the block would also grow forever, which is the opposite of making
+two things prominent. The history is all still on Reflektion.
+
+**Two defects came out of reshaping the blocks, and both are worth more than
+the layout.**
+
+The promise rows printed `till , öppet 3 dagar` - a preposition, a comma and
+nothing - for every promise ever shown there. The view read `p.person` and the
+payload has only ever carried `to`. `null` is a real case as well as a typo,
+because the person can be gone from the roster while the promise stays, so
+there are two sentences now rather than one with an empty half.
+
+And every late promise was drawn twice. `buildAttention` emits every open
+promise whose severity is not ok, so a late one was a card under Kräver dig
+with the button that closes it AND a bare row at the bottom without one - the
+same defect as the duplicated monthly question, in a different block, and
+reshaping a duplicate into a prettier duplicate would have been worse than
+leaving it alone. Two of the three promises in the capture fixture were
+duplicated, so this was live rather than hypothetical.
+
+**The complement is computed from what was drawn, not from `urgency`.** The two
+are not the same set: attention also drops a promise to somebody who has left,
+and filtering the bottom block on severity would have made those vanish from
+the page entirely rather than fall through to it. That is the kind of hole that
+hides for months. So the view collects the promise ids the card blocks actually
+rendered and the block below shows the rest.
+
+**Two more that were only visible once there were plain cards.** `.card-line`
+and `.card-age` carried `padding: 0 15px`, which put the second and third slots
+fifteen pixels right of the title they belong to - invisible while nearly every
+card was tinted with a paragraph of prose, obvious with eight three-slot cards
+in a column. And an empty `.src` drew its bullet and held the buttons out with
+its auto margin, so every card whose subject is not a guarded duty has had a
+stray dot floating in its foot since the three-slot card arrived.
+
+**A fourth vacuous check, found the same way as the other three.** The shared
+import's check for a guessed owner was `/[1-9]\d* promise/` against a toast
+that has been Swedish since the translation, so the half of the check its own
+comment calls the point could not match and was green on every run since. It
+reads off `T` now.
+
+**And the walkthrough had never taken the third answer.** Filing a commitment
+offers three: a person, nobody, or keep it as mine. The fixture had two
+commitments and the run answered them "person" and "nobody", so the answer the
+whole Mine slice exists for was never taken in an app run - which is why his
+own action points were empty on every walkthrough and nothing checked their
+shape. There are three now.
+
+**Not done, and it is the next commit rather than this one.** The spacing. Ten
+distinct gap values in a stylesheet that declares four steps, measured; the
+mock reads tight because it uses about three everywhere. Folded into this
+commit it would have made a layout change unreviewable.
+
 ## 2026-09-04 - A monthly question is drawn once, and the service keeps emitting it
 
 **Decided.** The card blocks on Läget stop drawing signal items. Frågor keeps

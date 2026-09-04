@@ -756,9 +756,19 @@ function writeNibFixture() {
               edited: now - 4 * day,
               pinned: false,
               tint: "",
+              /*
+               * Three, and the third is the one that is his own work.
+               *
+               * There were two, answered as "somebody" and "nobody", so the
+               * third answer the dialog offers - keep it as mine - was never
+               * taken in a run. That is the answer the Mine slice exists for,
+               * and it was the reason his own action points were empty on
+               * every walkthrough, which is why nothing checked their shape.
+               */
               alerts: [
                 { id: "al-s1", text: "Skriva ihop en överlämningsplan", done: false },
-                { id: "al-s2", text: "Boka rummet för workshopen", done: false }
+                { id: "al-s2", text: "Boka rummet för workshopen", done: false },
+                { id: "al-s3", text: "Läsa igenom utkastet till tidplanen", done: false }
               ],
               flag: "",
               tags: ["tag-meeting"],
@@ -3199,13 +3209,22 @@ try {
   });
 
   check("and its commitments are held rather than copied onto each of them", () => {
-    // Two action points across two attendees would be four promises. That is
+    // Three action points across two attendees would be six promises. That is
     // the bug this whole shape exists to avoid, so the import must report them
     // as waiting and must not report any promise at all.
-    if (/[1-9]\d* promise/.test(sharedImport)) {
+    //
+    // The needle was `/[1-9]\d* promise/` and the toast has been Swedish since
+    // the translation, so the half of this check that watches for a guessed
+    // owner - the half the comment says is the point - could not match and was
+    // green on every run since. Read off T rather than spelled out, so it
+    // cannot rot that way again.
+    const promised = new RegExp(
+      `[1-9]\\d* (?:${T.settings.promiseOne}|${T.settings.promiseMany})`
+    );
+    if (promised.test(sharedImport)) {
       throw new Error(`a shared note guessed an owner: "${sharedImport}"`);
     }
-    if (!/2 åtaganden väntar/.test(sharedImport)) {
+    if (!new RegExp(`3 ${T.settings.commitmentAreMany} väntar`).test(sharedImport)) {
       throw new Error(`the commitments were not queued: "${sharedImport}"`);
     }
   });
@@ -3214,7 +3233,7 @@ try {
   await page.waitFor("document.querySelector('.view-title') !== null", "Now");
   const unfiledCard = String(await page.evaluate("document.body.textContent"));
   check("the daily page says the queue exists, once for the meeting", () => {
-    if (!/2 åtaganden från Tuesday sync/.test(unfiledCard)) {
+    if (!/3 åtaganden från Tuesday sync/.test(unfiledCard)) {
       throw new Error("Now does not mention the unfiled commitments");
     }
   });
@@ -3263,7 +3282,11 @@ try {
   });
 
   const firstOwner = owners.find((o) => /Testperson/.test(o.label));
-  await page.fillDialog({ c0: firstOwner?.value ?? "", c1: "none" });
+  /*
+   * One to a person, one discarded, one kept as his own. All three answers the
+   * dialog offers, in one pass - the third had never been taken in a run.
+   */
+  await page.fillDialog({ c0: firstOwner?.value ?? "", c1: "none", c2: "mine" });
   await page.waitFor(
     "document.body.textContent.includes('Skriva ihop') || !document.body.textContent.includes('commitments from Tuesday sync')",
     "the queue to clear"
@@ -4521,17 +4544,44 @@ try {
     }
   });
 
-  const proposedOnNow = await page.evaluate(
-    "document.querySelectorAll('.proposed-block .card').length"
-  );
-  const proposedActs = await page.texts(".proposed-block .card-foot .act");
+  const proposedFolds = JSON.parse(String(await page.evaluate(`(() => {
+        const folds = [...document.querySelectorAll('.proposed-block .fold')];
+        return JSON.stringify({
+          folds: folds.length,
+          open: folds.filter((f) => f.hasAttribute('open')).length,
+          cards: document.querySelectorAll('.proposed-block .card').length,
+          withProse: folds.filter((f) => (f.querySelector('.card-why')?.textContent ?? '').trim() !== '').length,
+          acts: folds.map((f) => [...f.querySelectorAll('.card-foot .act')].map((a) => a.textContent.trim()))
+        });
+      })()`)));
+
   check("unanswered proposals are decidable here, not just reported", () => {
-    if (proposedOnNow === 0) {
+    if (proposedFolds.folds === 0) {
       throw new Error("no proposed duty on the front page, so this check proved nothing");
     }
-    const all = proposedActs.join(" ");
-    if (!all.includes(T.now.proposedAccept) || !all.includes(T.now.proposedDecline)) {
-      throw new Error(`a proposal offers no answer: ${all}`);
+    for (const acts of proposedFolds.acts) {
+      const all = acts.join(" ");
+      if (!all.includes(T.now.proposedAccept) || !all.includes(T.now.proposedDecline)) {
+        throw new Error(`a proposal offers no answer: ${JSON.stringify(acts)}`);
+      }
+    }
+  });
+
+  check("and are one folded line each, not the largest thing on the page", () => {
+    /*
+     * Four of them as full cards with a paragraph of prose each made the least
+     * urgent block on the page the biggest, sitting above his own goals. The
+     * prose has to still be there - it is the only thing that lets him answer -
+     * so this asserts both halves: folded shut, and the reason inside.
+     */
+    if (proposedFolds.cards > 0) {
+      throw new Error(`${proposedFolds.cards} proposals are still full cards`);
+    }
+    if (proposedFolds.open > 0) {
+      throw new Error(`${proposedFolds.open} of ${proposedFolds.folds} proposals start open`);
+    }
+    if (proposedFolds.withProse === 0) {
+      throw new Error("no proposal carries what it means, so folding it hid the reason");
     }
   });
 
@@ -4686,6 +4736,202 @@ try {
       if (g.names.length === 1) {
         throw new Error(`a group of one got a head: "${g.head}"`);
       }
+    }
+  });
+
+  /* ------------------------------------------------------- his own half -- */
+
+  /*
+   * The bottom half of Läget, which is where his own work lives.
+   *
+   * Everything above got cards and tiles; his own aims and action points were
+   * `mine-row` - a text span and a grey label - and they sat ninth and tenth
+   * on the page under four blocks about waiting and proposing. He could not
+   * find his own goals on the screen that exists to show him his day.
+   *
+   * An aim is set here rather than earlier on purpose: the check above asserts
+   * the empty state, which is what ships, and it has to run first.
+   */
+  await page.click('.nav-btn[data-view="reflection"]');
+  await page.waitFor("document.querySelector('[data-act=\"setAim\"]') !== null", "Reflektion");
+  await page.click('[data-act="setAim"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the aim form");
+  await page.fillDialog({
+    aim: "Sluta svara i rummet innan någon annan hunnit tänka",
+    measure: "om någon annan lägger första förslaget på tre möten i rad",
+    why: "De tystaste förslagen har varit de bästa, och jag hinner före dem"
+  });
+  await page.waitFor("document.body.textContent.includes('Sluta svara i rummet')", "the aim");
+
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the front page");
+  await sleep(400);
+
+  const openPromises = JSON.parse(
+    String(
+      await page.evaluate(
+        "window.tend.invoke('promises', {}).then((p) => JSON.stringify(p.map((x) => x.text)))"
+      )
+    )
+  );
+
+  const mineHalf = JSON.parse(String(await page.evaluate(`(() => {
+        const AIMS = ${JSON.stringify(T.now.aimsHead)};
+        const ACTS = ${JSON.stringify(T.now.myActionsHead)};
+        const OWED = ${JSON.stringify(T.now.owedHead)};
+
+        const titleOf = (el) => (el.querySelector('.group-title')?.textContent ?? '').trim();
+        const blockOf = (title) =>
+          [...document.querySelectorAll('section, .group')].find((s) => titleOf(s) === title);
+
+        const readCards = (title) => {
+          const b = blockOf(title);
+          if (!b) { return null; }
+          return [...b.querySelectorAll('.card')].map((c) => ({
+            title: (c.querySelector('.card-title')?.textContent ?? '').trim(),
+            line: (c.querySelector('.card-line')?.textContent ?? '').trim(),
+            age: (c.querySelector('.card-age')?.textContent ?? '').trim(),
+            pill: (c.querySelector('.pill')?.textContent ?? '').trim(),
+            acts: [...c.querySelectorAll('.card-foot .act')].map((a) => a.getAttribute('data-act')),
+            twoAcross: (c.closest('.stack') ?? {}).className ?? ''
+          }));
+        };
+
+        return JSON.stringify({
+          order: [...document.querySelectorAll('.group-title')].map((t) => t.textContent.trim()),
+          aims: readCards(AIMS),
+          actions: readCards(ACTS),
+          owed: readCards(OWED),
+          rowsLeft: [AIMS, ACTS, OWED].reduce((n, t) => {
+            const b = blockOf(t);
+            return n + (b ? b.querySelectorAll('.mine-row').length : 0);
+          }, 0),
+          /* Every sentence on the page a promise could be printed in. */
+          allText: [...document.querySelectorAll('.card-title, .card-line')].map((e) =>
+            e.textContent.trim()
+          )
+        });
+      })()`)));
+
+  check("his own aims are cards in the page's own shape, not rows", () => {
+    if (mineHalf.aims === null) {
+      throw new Error("no aims block on the page");
+    }
+    if (mineHalf.aims.length === 0) {
+      throw new Error("the aim was set but no card was drawn, so this proved nothing");
+    }
+    if (mineHalf.rowsLeft > 0) {
+      throw new Error(`${mineHalf.rowsLeft} of his own things are still mine-rows`);
+    }
+    const [aim] = mineHalf.aims;
+    if (!aim.title.includes("Sluta svara i rummet")) {
+      throw new Error(`the card's title is "${aim.title}"`);
+    }
+    /*
+     * Three slots and all three filled, which is the whole complaint: the row
+     * form carried the aim and a grey source label and nothing about how it is
+     * going. The middle slot is the test, because that is the half that makes
+     * it a goal rather than a wish.
+     */
+    if (!aim.line.includes("om någon annan lägger första förslaget")) {
+      throw new Error(`the card does not carry the test: "${aim.line}"`);
+    }
+    if (aim.age === "") {
+      throw new Error("the card says nothing about how it is actually going");
+    }
+    if (!/cards-two/.test(String(aim.twoAcross))) {
+      throw new Error(`the aims are not in a two-across grid: "${aim.twoAcross}"`);
+    }
+  });
+
+  check("and his action points too, each with the button that closes it", () => {
+    if (mineHalf.actions === null) {
+      throw new Error("no action points block on the page");
+    }
+    if (mineHalf.actions.length === 0) {
+      throw new Error(
+        "no action point was filed, so nothing about their shape was exercised - the third " +
+          "commitment should have been kept as his own"
+      );
+    }
+    for (const a of mineHalf.actions) {
+      if (!a.acts.includes("finishMyAction")) {
+        throw new Error(`"${a.title}" offers no way to finish it: ${JSON.stringify(a.acts)}`);
+      }
+      if (a.pill === "") {
+        throw new Error(`"${a.title}" does not say how long it has been sitting`);
+      }
+    }
+  });
+
+  check("they sit above everything about waiting and proposing, not below it", () => {
+    /*
+     * The order was the other half of why he could not find them. The four
+     * blocks between the roster and his own things - questions, nudges,
+     * waiting, proposals - are all about somebody else's move, and his own
+     * goals were underneath all of them.
+     */
+    const at = (/** @type {string} */ t) => mineHalf.order.indexOf(t);
+    const aims = at(T.now.aimsHead);
+    const actions = at(T.now.myActionsHead);
+    if (aims < 0 || actions < 0) {
+      throw new Error(`his own blocks are not on the page: ${JSON.stringify(mineHalf.order)}`);
+    }
+    if (actions !== aims + 1) {
+      throw new Error(`the two are not adjacent: ${JSON.stringify(mineHalf.order)}`);
+    }
+    for (const later of [T.now.questionsGroup, T.now.nudgeGroup, T.now.proposedHead, T.now.owedHead]) {
+      const i = at(later);
+      if (i >= 0 && i < aims) {
+        throw new Error(`"${later}" is above his own goals: ${JSON.stringify(mineHalf.order)}`);
+      }
+    }
+  });
+
+  check("a promise says who it is to, which it never did", () => {
+    /*
+     * The rows printed "till , öppet 3 dagar" - a preposition, a comma and
+     * nothing - for every promise ever shown here, because the view read
+     * `p.person` and the payload has only ever carried `to`. So the check is
+     * not "there is a name" but "the sentence is not the broken one", and it
+     * reads every card rather than the first.
+     */
+    if (mineHalf.owed === null || mineHalf.owed.length === 0) {
+      throw new Error("nothing owed on the page, so this proved nothing");
+    }
+    for (const p of mineHalf.owed) {
+      if (p.line === "" || /^till[\s,.]*$/.test(p.line)) {
+        throw new Error(`"${p.title}" says "${p.line}"`);
+      }
+      if (!p.acts.includes("resolvePromise")) {
+        throw new Error(`"${p.title}" cannot be closed from the card`);
+      }
+    }
+  });
+
+  check("and is drawn once, as a card up there or a card down here", () => {
+    /*
+     * The same defect as the duplicated monthly question, in a different
+     * block: `buildAttention` emits every open promise whose severity is not
+     * ok, so a late one was a card under Kräver dig with the button that
+     * closes it AND a bare row under here with no button.
+     *
+     * Counted per promise off the service rather than compared block to
+     * block, so it holds whichever side a given promise falls on.
+     */
+    if (openPromises.length === 0) {
+      throw new Error("no open promise, so this proved nothing");
+    }
+    /** @type {string[]} */
+    const problems = [];
+    for (const text of openPromises) {
+      const hits = mineHalf.allText.filter((/** @type {string} */ t) => t.includes(text)).length;
+      if (hits !== 1) {
+        problems.push(`"${text}" appears ${hits} times`);
+      }
+    }
+    if (problems.length > 0) {
+      throw new Error(problems.join("; "));
     }
   });
 

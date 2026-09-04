@@ -416,12 +416,17 @@ main {
  * `p` for the same reason, found the same way: on The day, the line counting
  * the entries sat flush against the heading below it, because the paragraph
  * classes carry a top margin and no bottom one and a group head carries no top
- * margin at all. Listing the block types that need this was always going to
- * miss the next one, so the rule is now about what a group FOLLOWS.
+ * margin at all.
+ *
+ * The comment here already said that listing the block types was going to miss
+ * the next one - and then listed three of them, and duly missed the next one:
+ * moving his own aims above Frågor put a `<section>` there, and Frågor's
+ * heading sat flush against it at zero pixels. So the rule is now what the
+ * comment always claimed, which is anything at all. A `.group` after another
+ * `.group` is excluded because that one already has its air from the first
+ * group's bottom margin, and doubling it is what the exclusion prevents.
  */
-.card + .group,
-.metrics + .group,
-p + .group {
+:not(.group) + .group {
   margin-top: 28px;
 }
 
@@ -475,6 +480,24 @@ p + .group {
   grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
   align-items: start;
   gap: 9px;
+}
+
+/*
+ * Two across rather than three, for the blocks that are about him.
+ *
+ * 28rem, which is the measure the old `.mine-grid` had already arrived at: two
+ * at a maximised width and one below about 900px. Not the same as `.cards`
+ * above, deliberately - an aim's title is a sentence he wrote rather than a
+ * name, and at 21rem it wraps to three lines where it has no need to. The mock
+ * has these two blocks at `g2` and everything above them at `g3` or `g4` for
+ * the same reason.
+ */
+.stack.cards-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
+  align-items: start;
+  gap: 9px;
+  margin-top: 5px;
 }
 
 /* --------------------------------------------------------------- cards -- */
@@ -640,7 +663,16 @@ button.row.sev-warn:hover {
    * here rather than by changing the token, which four other views share.
    */
   margin: 0;
-  padding: 0 15px;
+  /*
+   * No horizontal padding. It was 15px, which put the second and third slots
+   * fifteen pixels to the right of the title they belong to - the card's own
+   * content edge is 17px and a severity card's band cancels and restores
+   * exactly that, so the title sits at the content edge and these did not.
+   * Invisible while nearly every card was a tinted one with a paragraph;
+   * obvious the moment his aims and action points became plain three-slot
+   * cards and there were eight of them in a column.
+   */
+  padding: 0;
   color: var(--text-dim);
   font-size: var(--t-meta);
   line-height: 1.45;
@@ -725,7 +757,8 @@ button.row.sev-warn:hover {
 
 .card-age {
   margin: 3px 0 0;
-  padding: 0 15px;
+  /* Aligned with the title, for the reason on `.card-line` above. */
+  padding: 0;
   color: var(--text-faint);
   font-size: var(--t-micro);
   font-variant-numeric: tabular-nums;
@@ -747,6 +780,34 @@ button.row.sev-warn:hover {
   margin-top: 11px;
   padding-top: 10px;
   border-top: 1px solid var(--line-soft);
+}
+
+/*
+ * A card with nothing to say about where it came from.
+ *
+ * `.src` draws a bullet before its text and holds the buttons out to the right
+ * with an auto margin, so an empty one rendered as a stray dot floating on the
+ * left of the foot. It has done that on every card whose subject is not a
+ * guarded duty since the three-slot card arrived; it only became obvious when
+ * his own aims and action points started using the same shape and every one of
+ * them had an empty foot.
+ *
+ * Scoped inside `.card` on purpose: a block-level foot - "Öppna reflektionen"
+ * under his aims - is not a card's foot and its button stays where it is.
+ */
+.card .src:empty {
+  display: none;
+}
+
+/*
+ * With no source there is no auto margin to hold the buttons out, so the foot
+ * has to do it. Only in that case: a foot that HAS a source already puts its
+ * buttons right, and forcing this on all of them right-aligned the second line
+ * of a foot whose buttons had wrapped, which was not broken.
+ */
+.card .card-foot:has(.src:empty),
+.card .card-foot:not(:has(.src)) {
+  justify-content: flex-end;
 }
 
 .src {
@@ -1798,35 +1859,13 @@ button.row:hover {
 }
 
 /*
- * Two across. Both blocks are short lines - an aim and its source, an action
- * point and where it came from - and a stack of four of them at full width is
- * four rows of mostly empty space at the bottom of the page.
+ * `.mine-grid` was here: two across, a bordered box per row, for the aims and
+ * action points. Both are cards now, in `.stack.cards-two`, which is the same
+ * two-across measure this rule had arrived at - so what is gone is the second
+ * implementation of a card, not the layout. Removed rather than left unused:
+ * the rows it styled read as almost-cards, which is what made his own work
+ * look like a footnote under a page of real ones.
  */
-.mine-grid {
-  display: grid;
-  /* 28rem gives two at a maximised width and one below about 900px. 19rem was
-     the first attempt and gave three, which is not what was asked for and made
-     an aim's sentence wrap where it had no need to. */
-  grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
-  gap: var(--sp-item);
-  margin-top: var(--sp-label);
-}
-
-/*
- * Inside a grid a row is a cell, so the top rule that separated it from the
- * row above now boxes it instead. The stacked form keeps its rule, because
- * both blocks still render as a stack when there is one of something.
- */
-.mine-grid .mine-row {
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  align-content: start;
-}
-
-.mine-grid .mine-row:first-of-type {
-  border-top: 1px solid var(--line);
-}
 
 .mine-row {
   display: flex;
@@ -2640,4 +2679,91 @@ kbd {
   align-items: center;
   gap: var(--sp-item);
   margin-top: var(--sp-item);
+}
+
+/* ---------------------------------------------------------------- folds -- */
+
+/*
+ * A proposal as one line that opens.
+ *
+ * Four proposed duties rendered as full cards, each with a paragraph of prose,
+ * made the least urgent thing on the page the largest thing on it - and it sat
+ * above his own goals. A proposal does nothing at all until it is answered, so
+ * it may not outweigh the work he has already taken on.
+ *
+ * Deliberately not a card. A card here is something to act on today, and the
+ * whole point of this block is that these are not - giving them the same shape
+ * would put them back in the same weight class by another route.
+ */
+.folds {
+  display: flex;
+  flex-direction: column;
+  margin-top: 9px;
+}
+
+.fold {
+  border-top: 1px solid var(--line-soft);
+}
+
+.fold:first-child {
+  border-top: 0;
+}
+
+.fold-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 2px;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* The default triangle sits outside the flex row and cannot be aligned with
+   the text, so it is replaced by one that is part of the row. */
+.fold-head::-webkit-details-marker {
+  display: none;
+}
+
+.fold-head::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid var(--text-faint);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transform: translateY(-1px);
+  transition: transform 120ms ease;
+}
+
+.fold[open] > .fold-head::before {
+  transform: translateY(-1px) rotate(90deg);
+}
+
+.fold-head:hover {
+  background: var(--surface-2);
+}
+
+.fold-title {
+  font-size: var(--t-body);
+  color: var(--text);
+}
+
+.fold-meta {
+  margin-left: auto;
+  font-size: var(--t-micro);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.fold-body {
+  padding: 0 2px 10px 16px;
+}
+
+/* The foot's own top rule would draw a second line inside an already ruled
+   row, so inside a fold it is spacing only. */
+.fold-body .card-foot {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 9px;
 }

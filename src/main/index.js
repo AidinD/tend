@@ -255,7 +255,7 @@ const OPERATIONS = {
    * was missing. Not a promise: nobody is waiting for it.
    */
   keepCommitment: (/** @type {any} */ a) => api.keepCommitment(store, a.id),
-  myActions: () => api.myActions(store),
+  myActions: (/** @type {any} */ a) => api.myActions(store, a?.now ?? Date.now()),
 
   /*
    * Plans. No MCP tool for any of these - a plan is a decision about whether

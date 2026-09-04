@@ -18,6 +18,7 @@
  */
 
 import { boundPeople, isShared, sourceName } from "../domain/sources.js";
+import { daysSince, humanDays } from "../domain/time.js";
 import { resolvePerson } from "./resolve.js";
 
 /**
@@ -420,25 +421,46 @@ export function keepCommitment(store, id, now = Date.now()) {
 }
 
 /**
+ * How long an action point may sit before the list says so.
+ *
+ * Not a new judgement: it is the sort order's own reasoning above, which says
+ * the one from three weeks ago is the one worth seeing. The number was already
+ * implied by the ordering; this only makes it visible on the card, so the
+ * three-week-old one is marked rather than merely first.
+ */
+export const ACTION_STALE_DAYS = 21;
+
+/**
  * His own action points, oldest first.
  *
  * Oldest first because this is a list to work through rather than a feed. The
  * one from three weeks ago is the one worth seeing, and newest-first would put
  * it under whatever he filed this morning.
  *
+ * `age` and `stale` are here rather than in the view because the view is not
+ * the only client, and because a threshold in a template is a threshold nobody
+ * can test. Added beside `at` rather than instead of it.
+ *
  * @param {import("../storage/store.js").TendStore} store
+ * @param {number} [now]
  */
-export function myActions(store) {
+export function myActions(store, now = Date.now()) {
   return store
     .rows("myActions")
     .filter((r) => !r._deleted && r.state !== "done")
     .sort((a, b) => Number(a.at ?? 0) - Number(b.at ?? 0))
-    .map((r) => ({
-      id: String(r.id),
-      text: String(r.text ?? ""),
-      at: Number(r.at ?? 0),
-      noteTitle: String(r.noteTitle ?? "")
-    }));
+    .map((r) => {
+      const days = daysSince(Number(r.at ?? 0), now) ?? 0;
+      return {
+        id: String(r.id),
+        text: String(r.text ?? ""),
+        at: Number(r.at ?? 0),
+        noteTitle: String(r.noteTitle ?? ""),
+        days,
+        age: humanDays(days),
+        stale: days >= ACTION_STALE_DAYS
+      };
+    });
 }
 
 /**

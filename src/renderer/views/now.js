@@ -137,6 +137,21 @@ export async function render() {
   const nudgeCards = withoutQuestions(attention.nudges);
 
   /*
+   * Which promises the card blocks actually drew.
+   *
+   * Read off what was drawn rather than re-derived from severity, so
+   * `owedBlock` can show the complement without holding a second copy of
+   * attention's rules. Attention drops a promise to somebody who has left, and
+   * a severity filter down there would have deleted those from the page
+   * instead of letting them fall through.
+   */
+  const promisesOnCards = new Set(
+    [...needsYouCards, ...nudgeCards]
+      .filter((/** @type {any} */ i) => i.kind === "promise" && typeof i.key === "string")
+      .map((/** @type {any} */ i) => String(i.key).slice("promise:".length))
+  );
+
+  /*
    * Decisions asking to be looked at again.
    *
    * They belong on this page and not only on their own, because "nothing needs
@@ -207,9 +222,9 @@ export async function render() {
       ${focus}
       <div class="empty">${words.quietEmpty}</div>
       ${rosterBlock(roster)}
-      ${proposedBlock(map)}
       ${aimsBlock(myAims)}
       ${myActionsBlock(myOwn)}
+      ${proposedBlock(map)}
       ${
         // Still printed on a quiet day, at the bottom, under the sentence that
         // says nothing needs you. Dropping it here instead would make the flag
@@ -249,6 +264,20 @@ export async function render() {
       group(words.needsYouGroup, cards(needsYouCards), needsYouCards.length)
     }
     ${rosterBlock(roster)}
+    ${
+      /*
+       * His own things, directly after the roster, which is where the mock puts
+       * them and the whole of what this pass is about.
+       *
+       * They were ninth and tenth on the page, under four blocks about waiting
+       * and proposing, and he could not find his own goals - "jag hittade den,
+       * men det är inte alls synligt". The top half of the page had cards and
+       * the bottom half had rows, so everything about other people got the
+       * treatment and everything about him got a grey label. That is backwards
+       * from the reason the Mine slice was built.
+       */
+      aimsBlock(myAims) + myActionsBlock(myOwn)
+    }
     ${group(words.revisitsGroup, revisitCards, revisits.length)}
     ${group(words.questionsGroup, due.map(question).join(""), due.length)}
     ${group(
@@ -262,10 +291,8 @@ export async function render() {
       nudgeCards.length
     )}
     ${waitingGroup(waitingOn)}
-    ${owedBlock(owed)}
+    ${owedBlock(owed, promisesOnCards)}
     ${proposedBlock(map)}
-    ${aimsBlock(myAims)}
-    ${myActionsBlock(myOwn)}
     ${
       signalRows === "" ? "" : mineBlock(signalRows)
     }
@@ -562,20 +589,35 @@ function proposedBlock(map) {
     return "";
   }
 
-  const cards = proposed
+  /*
+   * One line each, expanding to the paragraph.
+   *
+   * Four of these as full cards made the least urgent thing on the page the
+   * largest thing on it, and it sat above his own goals. A proposal does
+   * nothing at all until he answers it, so it may not outweigh the work he
+   * has actually taken on.
+   *
+   * The prose is not deleted, only folded. It is the one thing that lets him
+   * answer, so it has to be a click away rather than gone - and the two
+   * buttons live inside the fold with it, because accepting a duty on the
+   * strength of its name is the thing this block exists to prevent.
+   */
+  const lines = proposed
     .map(
-      (/** @type {any} */ d) => `<div class="card sev-warn">
-        <div class="card-top">
-          <h2 class="card-title">${esc(d.name)}</h2>
-          <span class="badge">${words.proposedEvery(esc(d.every))}</span>
+      (/** @type {any} */ d) => `<details class="fold">
+        <summary class="fold-head">
+          <span class="fold-title">${esc(d.name)}</span>
+          <span class="fold-meta">${words.proposedEvery(esc(d.every))}</span>
+        </summary>
+        <div class="fold-body">
+          ${d.means ? `<p class="card-why">${esc(d.means)}</p>` : ""}
+          <div class="card-foot">
+            <span class="src">${esc(d.source ?? "")}</span>
+            <button class="act primary" data-act="acceptDuty" data-id="${esc(d.id)}">${words.proposedAccept}</button>
+            <button class="act" data-act="declineDuty" data-id="${esc(d.id)}">${words.proposedDecline}</button>
+          </div>
         </div>
-        ${d.means ? `<p class="card-why">${esc(d.means)}</p>` : ""}
-        <div class="card-foot">
-          <span class="src">${esc(d.source ?? "")}</span>
-          <button class="act primary" data-act="acceptDuty" data-id="${esc(d.id)}">${words.proposedAccept}</button>
-          <button class="act" data-act="declineDuty" data-id="${esc(d.id)}">${words.proposedDecline}</button>
-        </div>
-      </div>`
+      </details>`
     )
     .join("");
 
@@ -585,8 +627,8 @@ function proposedBlock(map) {
       <span class="group-rule"></span>
       <span class="group-meta">${proposed.length}</span>
     </div>
-    <p class="view-sub">${words.proposedSub}</p>
-    ${cards}
+    <p class="group-note">${words.proposedSub}</p>
+    <div class="folds">${lines}</div>
     <div class="card-foot"><button class="act" data-act="openRole">${words.proposedOpen}</button></div>
   </section>`;
 }
@@ -612,15 +654,7 @@ function myActionsBlock(myOwn) {
   const body =
     rows.length === 0
       ? `<p class="src">${words.myActionsEmpty}</p>`
-      : `<div class="mine-grid">${rows
-          .map(
-            (/** @type {any} */ r) => `<div class="mine-row">
-              <span class="mine-text">${esc(r.text)}</span>
-              ${r.noteTitle ? `<span class="src">${words.myActionFrom(esc(r.noteTitle))}</span>` : ""}
-              <button class="act tiny" data-act="finishMyAction" data-id="${esc(r.id)}">${words.myActionDone}</button>
-            </div>`
-          )
-          .join("")}</div>`;
+      : `<div class="stack cards-two">${rows.map(myActionCard).join("")}</div>`;
 
   return `<section class="aims-block">
     <div class="group-head">
@@ -633,6 +667,37 @@ function myActionsBlock(myOwn) {
 }
 
 /**
+ * One action point of his own: two slots and the button that closes it.
+ *
+ * Two rather than three, deliberately. An action point is a line he wrote in a
+ * meeting and there is no second sentence about it, so a middle slot would be
+ * an empty row on every card - the mock's own action points have the title and
+ * the source and nothing between them.
+ *
+ * The severity is age and is per card, not per block: `stale` comes from the
+ * service, which is where the number lives so it can be tested. It is the
+ * sort order's own reasoning made visible - being first in a list of nine is
+ * not the same as being marked.
+ *
+ * @param {any} r
+ */
+function myActionCard(r) {
+  const stale = r.stale === true;
+  return `<article class="card${stale ? " sev-warn" : ""}">
+    <div class="card-top">
+      <h2 class="card-title">${esc(r.text)}</h2>
+      <span class="pill${stale ? " warn" : ""}">${esc(r.age ?? "")}</span>
+    </div>
+    <p class="card-age">${
+      r.noteTitle ? words.myActionFrom(esc(r.noteTitle)) : words.myActionNoNote
+    }</p>
+    <div class="card-foot">
+      <button class="act tiny" data-act="finishMyAction" data-id="${esc(r.id)}">${words.myActionDone}</button>
+    </div>
+  </article>`;
+}
+
+/**
  * His own aims.
  *
  * Ships empty on purpose - the goals pass happens after this screen exists - so
@@ -642,37 +707,76 @@ function myActionsBlock(myOwn) {
  * @param {any} myAims
  */
 function aimsBlock(myAims) {
-  const rows = Array.isArray(myAims) ? myAims : [];
+  /*
+   * The live ones. `aims()` returns reached and dropped ones too, ordered
+   * after the open ones, and on the front page an aim he reached in March
+   * reads as a goal he still has - the block would also grow forever, which
+   * is the opposite of making two things prominent. The history is all still
+   * on Reflektion, which is the page it belongs to.
+   */
+  const rows = (Array.isArray(myAims) ? myAims : []).filter(
+    (/** @type {any} */ a) => String(a.status ?? "open") === "open"
+  );
 
   const body =
     rows.length === 0
       ? `<p class="src">${words.aimsEmpty}</p>
          <button class="act" data-act="openReflection">${words.aimsSet}</button>`
-      : `<div class="mine-grid">${rows
-          .map(
-            (/** @type {any} */ a) => `<div class="mine-row">
-              <span class="mine-text">${esc(a.aim)}</span>
-              <!--
-                sourceLabel, not source. The raw field is an enum key, so the
-                front page read "hur du vet: someone" while Reflektion read
-                "hur du vet: Någon annan säger det" off the same row - the
-                service has carried both fields all along and this one picked
-                the wrong one. Found by a fixture with an aim in it; every
-                walkthrough so far had none set.
-              -->
-              <span class="src">${words.aimSource(esc(a.sourceLabel ?? a.source ?? ""))}</span>
-            </div>`
-          )
-          .join("")}</div>
+      : `<div class="stack cards-two">${rows.map(aimCard).join("")}</div>
          <div class="card-foot"><button class="act" data-act="openReflection">${words.aimsOpen}</button></div>`;
 
   return `<section class="aims-block">
     <div class="group-head">
       <span class="group-title">${words.aimsHead}</span>
       <span class="group-rule"></span>
+      ${rows.length > 0 ? `<span class="group-meta">${rows.length}</span>` : ""}
     </div>
     ${body}
   </section>`;
+}
+
+/**
+ * One aim of his own, in the same three slots as every other card here.
+ *
+ * The test is the middle slot because it is the half that makes it a goal
+ * rather than a wish, and an aim with no test says so on its face rather than
+ * leaving the slot empty - that is the one thing about an aim worth being
+ * nagged about.
+ *
+ * Severity is per card and comes off the payload: `overdue` is the aim's own
+ * cadence having passed, `pastHorizon` is the date he set for it. Neither is a
+ * measure of him, and neither is decorative.
+ *
+ * What came off the face is in the tooltip rather than deleted - the why, and
+ * `sourceLabel`, which is how he will know. `sourceLabel` and not `source`:
+ * the raw field is an enum key, so the front page read "hur du vet: someone"
+ * while Reflektion read the label off the same row.
+ *
+ * @param {any} a
+ */
+function aimCard(a) {
+  const warn = a.overdue === true || a.pastHorizon === true;
+  const know = a.sourceLabel ?? a.source ?? "";
+  const hint = [a.why ?? "", know === "" ? "" : words.aimSource(know)]
+    .filter((part) => String(part).trim() !== "")
+    .join(" ");
+
+  return `<article class="card${warn ? " sev-warn" : ""}"${
+    hint === "" ? "" : ` title="${esc(hint)}"`
+  }>
+    <div class="card-top">
+      <h2 class="card-title">${esc(a.aim)}</h2>
+      <span class="pill${warn ? " warn" : ""}">${esc(
+        a.pastHorizon === true ? words.aimHorizonPast : (a.lastLogged ?? "")
+      )}</span>
+    </div>
+    <p class="card-line">${
+      String(a.measure ?? "").trim() === "" ? words.aimNoTest : words.aimTest(esc(a.measure))
+    }</p>
+    <p class="card-age">${
+      Number(a.logged ?? 0) > 0 ? words.aimTally(Number(a.seen ?? 0), Number(a.missed ?? 0)) : words.aimNever
+    }</p>
+  </article>`;
 }
 
 /**
@@ -681,20 +785,53 @@ function aimsBlock(myAims) {
  * Only when there is something. An empty promise list is not a fact worth a
  * heading on the page that exists to show deviations.
  *
+ * Only the ones that are not already a card, and `onCards` is the ids the card
+ * blocks actually drew rather than a rule that reproduces how they choose.
+ *
+ * This block was seven undifferentiated rows and some of them were repeats:
+ * `buildAttention` emits every open promise whose severity is not ok, so a
+ * late promise was a card up there with the button that closes it AND a bare
+ * row down here with no button. The same defect as the monthly question, in a
+ * different block, and reshaping a duplicate into a prettier duplicate would
+ * have been worse than leaving it alone.
+ *
+ * The complement is computed from what was drawn and not from `urgency`,
+ * because the two are not the same set: attention also drops a promise to
+ * somebody who has left, and filtering on severity here would have made those
+ * vanish from the page entirely rather than fall through to this block. That
+ * is precisely the kind of hole that hides for months.
+ *
  * @param {any} owed
+ * @param {Set<string>} onCards
  */
-function owedBlock(owed) {
-  const rows = (Array.isArray(owed) ? owed : []).filter((/** @type {any} */ p) => !p.resolvedAt);
+function owedBlock(owed, onCards) {
+  const rows = (Array.isArray(owed) ? owed : []).filter(
+    (/** @type {any} */ p) => !onCards.has(String(p.id))
+  );
   if (rows.length === 0) {
     return "";
   }
 
-  const lines = rows
+  const owedCards = rows
     .map(
-      (/** @type {any} */ p) => `<div class="mine-row">
-        <span class="mine-text">${esc(p.text)}</span>
-        <span class="src">${words.owedLine(esc(p.person ?? ""), esc(p.openFor ?? ""))}</span>
-      </div>`
+      (/** @type {any} */ p) => `<article class="card sev-${esc(p.urgency ?? "ok")}">
+        <div class="card-top">
+          <h2 class="card-title">${esc(p.text)}</h2>
+          <span class="pill ${esc(p.urgency ?? "ok")}">${esc(p.openFor ?? "")}</span>
+        </div>
+        <!--
+          p.to, not p.person. The payload has never carried a person field, so
+          this printed "till , öppet 3 dagar" for every promise ever shown
+          here - and null is a real case as well as a typo, because the person
+          can be gone from the roster while the promise stays.
+        -->
+        <p class="card-line">${
+          p.to ? words.owedTo(esc(p.to)) : words.owedToUnknown
+        }</p>
+        <div class="card-foot">
+          <button class="act tiny" data-act="resolvePromise" data-id="${esc(p.id)}">${words.done}</button>
+        </div>
+      </article>`
     )
     .join("");
 
@@ -704,7 +841,8 @@ function owedBlock(owed) {
       <span class="group-rule"></span>
       <span class="group-meta">${rows.length}</span>
     </div>
-    ${lines}
+    <p class="group-note">${words.owedNote}</p>
+    <div class="stack cards-two">${owedCards}</div>
   </section>`;
 }
 
