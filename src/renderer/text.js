@@ -1468,120 +1468,125 @@ export const T = {
   },
 
   journal: {
-    readFailedTitle: "Could not read the journal",
-    title: "The day",
+    readFailedTitle: "Kunde inte läsa dagboken",
+    title: "Dagen",
     /*
      * The private half's version carries the rule, because the cheaper half of
      * enforcing it is upstream: the labels say it while the entry is being
      * written, which is worth more than reading it back afterwards.
      */
     subPrivate:
-      "Four boxes, all optional, no reminder and no streak. One rule, and it is the whole reason " +
-      "this is safe to write: record what happened and your own part in it, never the other " +
-      "person's state. That is the half you can change, and it is the only version you could show " +
-      "the person it is about.",
+      "Fyra rutor, alla frivilliga, ingen påminnelse och ingen streak. En regel, och den är hela " +
+      "skälet att det här är tryggt att skriva: registrera vad som hände och din egen del i det, " +
+      "aldrig den andra personens tillstånd. Det är den halvan du kan ändra, och den enda " +
+      "versionen du skulle kunna visa personen det handlar om.",
     subWork:
-      "Four boxes, all optional, no reminder and no streak. Missing days is expected - the value " +
-      "is in a month of them rather than in any one, so the only thing that matters is that " +
-      "writing one is cheap.",
-    logMomentButton: "Log something",
-    writeButton: "Write today",
+      "Fyra rutor, alla frivilliga, ingen påminnelse och ingen streak. Att missa dagar är " +
+      "väntat - värdet ligger i en månad av dem snarare än i någon enskild, så det enda som " +
+      "spelar roll är att det är billigt att skriva en.",
+    logMomentButton: "Logga något",
+    writeButton: "Skriv idag",
     tooThinNote:
-      " Too few to call anything a pattern yet, which is worth knowing before any reading is read.",
+      " För få för att kalla något ett mönster än, vilket är värt att veta innan någon läsning " +
+      "läses.",
     empty:
-      "Nothing written yet. The questions are what took the day, what you avoided, and what you " +
-      "would do differently - none of them things Tend can work out on its own, which is the only " +
-      "reason it asks.",
+      "Inget skrivet än. Frågorna är vad dagen gick till, vad du undvek, och vad du skulle göra " +
+      "annorlunda - inget av det något Tend kan räkna ut själv, vilket är det enda skälet att " +
+      "den frågar.",
 
     /* Moments, on this page because one involving three people has no single
        page it belongs to. */
-    momentsGroup: "Moments",
+    momentsGroup: "Ögonblick",
     /** @param {number} n */
-    momentsMore: (n) => `${n} more, on the pages of the people they involved.`,
+    momentsMore: (n) => `${n} fler, på sidorna för personerna de rörde.`,
 
     /* Reading across the moments. Every finding has the writer as its subject,
        which is what makes pattern-finding safe to have in this half at all. */
-    patternsTitle: "What keeps happening",
+    patternsTitle: "Vad som återkommer",
     /** @param {number} moments @param {number} days */
     patternsTooThin: (moments, days) =>
-      `${moments} ${moments === 1 ? "moment" : "moments"} across ${days} ${days === 1 ? "day" : "days"}. ` +
-      `A reading needs at least four across at least three separate days, because several logged ` +
-      `in one sitting describe one afternoon however many rows they make.`,
+      `${moments} ${moments === 1 ? "ögonblick" : "ögonblick"} över ${days} ` +
+      `${days === 1 ? "dag" : "dagar"}. En läsning behöver minst fyra över minst tre skilda ` +
+      `dagar, eftersom flera loggade i ett svep beskriver en eftermiddag hur många rader de än ` +
+      `blir.`,
     patternsReady:
-      "Reads what you wrote and names what recurs in what YOU did. Never what anybody else in " +
-      "them is like - that half is not the app's to name, and it is why this is safe to run at all.",
-    patternsNoModel: "No model is reachable, so these can only be read by you.",
-    patternsNote: "Nothing is written, kept or sent anywhere",
-    patternsReading: "Reading...",
-    patternsRead: "Read across them",
-    patternsFailedTitle: "Could not read across them",
-    close: "Close",
-    patternsNothing: "Nothing recurs across these yet, which is a real answer rather than a failure.",
+      "Läser vad du skrev och namnger vad som återkommer i vad DU gjorde. Aldrig hur någon " +
+      "annan i dem är - den halvan är inte appens att sätta ord på, och det är därför det här " +
+      "är tryggt att köra alls.",
+    patternsNoModel: "Ingen modell går att nå, så de här kan bara läsas av dig.",
+    patternsNote: "Inget skrivs, sparas eller skickas någonstans",
+    patternsReading: "Läser...",
+    patternsRead: "Läs tvärs över dem",
+    patternsFailedTitle: "Kunde inte läsa tvärs över dem",
+    close: "Stäng",
+    patternsNothing:
+      "Inget återkommer över de här än, vilket är ett riktigt svar snarare än ett misslyckande.",
     /** @param {string} days */
-    patternsDays: (days) => `${days} days`,
-    toPutToYourself: "To put to yourself",
-    doneWithIt: "Done with it",
+    patternsDays: (days) => `${days} dagar`,
+    toPutToYourself: "Att ställa till dig själv",
+    doneWithIt: "Klar med det",
 
     /* The journal reading. Every state says what would change it, because a
        disabled button that says nothing reads as broken. */
-    readingGroup: "The reading",
-    readTitle: "Read the last 30 days",
+    readingGroup: "Läsningen",
+    readTitle: "Läs de senaste 30 dagarna",
     readTooThin:
-      "A reading needs at least four entries across at least three separate days. Fewer than that " +
-      "and a pattern is one evening restated with confidence - which then gets remembered next " +
-      "month as a fact.",
+      "En läsning behöver minst fyra poster över minst tre skilda dagar. Färre än så och ett " +
+      "mönster är en kväll upprepad med självförtroende - som sedan minns nästa månad som ett " +
+      "faktum.",
     readReady:
-      "Reads every entry in the window and names what recurs: where the days actually went, and " +
-      "what kept being avoided. Nothing is written unless you keep it.",
-    readNoModel: "No model is reachable, so the entries can only be read by you.",
+      "Läser varje post i fönstret och namnger vad som återkommer: vart dagarna faktiskt gick, " +
+      "och vad som gång på gång undveks. Inget skrivs om du inte behåller det.",
+    readNoModel: "Ingen modell går att nå, så posterna kan bara läsas av dig.",
     readWhatItLooksFor:
-      "What it looks for is the pair of things that are invisible on the day and obvious across a " +
-      "month. It asks questions rather than reaching verdicts, and the counts the app recorded " +
-      "over the same days travel with it - a memory of a month is worse than a memory of a day, " +
-      "and only one of the two is checkable.",
-    reading: "Reading...",
-    readThem: "Read them",
+      "Vad den letar efter är de två sakerna som är osynliga på dagen och uppenbara över en " +
+      "månad. Den ställer frågor snarare än att döma, och räkningarna appen registrerade över " +
+      "samma dagar följer med - ett minne av en månad är sämre än ett minne av en dag, och bara " +
+      "en av de två går att kontrollera.",
+    reading: "Läser...",
+    readThem: "Läs dem",
 
     /* Kept readings. The second one is where this earns anything: a pattern that
        survived three months is a different fact from one noticed tonight. */
-    keptGroup: "Kept readings",
+    keptGroup: "Sparade läsningar",
     /** @param {string} entries @param {string} spread */
-    keptCoverage: (entries, spread) => `${entries} entries over ${spread} days`,
-    keptAvoided: "Kept being avoided",
-    keptWentInto: "Where the days went",
-    keptSaidVsDid: "Against what you said you would do",
-    keptQuestions: "Worth asking yourself",
+    keptCoverage: (entries, spread) => `${entries} poster över ${spread} dagar`,
+    keptAvoided: "Undveks gång på gång",
+    keptWentInto: "Vart dagarna gick",
+    keptSaidVsDid: "Mot vad du sa att du skulle göra",
+    keptQuestions: "Värt att ställa till dig själv",
     /** @param {string} days @param {string} by */
-    keptFoot: (days, by) => `Covered the ${days} days to then${by}.`,
+    keptFoot: (days, by) => `Täckte de ${days} dagarna fram till då${by}.`,
     /** @param {string} who */
-    keptReadBy: (who) => `, read by ${who}`,
-    remove: "Remove",
+    keptReadBy: (who) => `, läst av ${who}`,
+    remove: "Ta bort",
 
     /* One day. */
-    entryFoot: "Written by you. Read by the pass above, when you ask for it.",
-    readBackButton: "Read it back",
-    edit: "Edit",
-    readingBack: "Reading it back...",
-    ownPartNoModel: "No model is reachable, so nothing can read this back.",
+    entryFoot: "Skrivet av dig. Läst av passet ovan, när du ber om det.",
+    readBackButton: "Läs tillbaka",
+    edit: "Ändra",
+    readingBack: "Läser tillbaka...",
+    ownPartNoModel: "Ingen modell går att nå, så inget kan läsa tillbaka det här.",
 
     /* Logging a moment. */
-    momentNoRoster: "Add somebody first - a moment is about the people who were in it.",
-    momentTitle: "What happened?",
+    momentNoRoster: "Lägg till någon först - ett ögonblick handlar om personerna som var i det.",
+    momentTitle: "Vad hände?",
     momentIntro:
-      "An event rather than a day, so log as many as the day holds. Your own part in it is the " +
-      "half worth keeping - it is the half you can change, and the only version you could show " +
-      "the person it is about.",
-    momentWhatLabel: "What happened",
-    momentWhatHint: "Optional. Often obvious to you, and leaving it out costs nothing.",
-    momentPartLabel: "My part in it",
-    momentPartHint: "What you did, chose, felt or avoided. Not what they were like.",
-    momentWhoLabel: "Who was in it",
-    momentWhoHint: "Written once, and it appears on each of their pages.",
-    momentWhenLabel: "When",
-    momentConfirm: "Keep it",
-    momentNobody: "Tick at least one person - a moment with nobody in it belongs in the day.",
-    keptToast: "Kept.",
-    removedToast: "Removed.",
+      "En händelse snarare än en dag, så logga så många som dagen rymmer. Din egen del i det är " +
+      "den halva som är värd att behålla - det är den halvan du kan ändra, och den enda " +
+      "versionen du skulle kunna visa personen det handlar om.",
+    momentWhatLabel: "Vad som hände",
+    momentWhatHint: "Frivilligt. Ofta uppenbart för dig, och att hoppa över det kostar inget.",
+    momentPartLabel: "Min del i det",
+    momentPartHint: "Vad du gjorde, valde, kände eller undvek. Inte hur de var.",
+    momentWhoLabel: "Vilka som var med",
+    momentWhoHint: "Skrivet en gång, och det dyker upp på var och ens sida.",
+    momentWhenLabel: "När",
+    momentConfirm: "Behåll det",
+    momentNobody:
+      "Bocka minst en person - ett ögonblick med ingen i hör hemma i dagen.",
+    keptToast: "Behållet.",
+    removedToast: "Borttaget.",
 
     /*
      * Writing the day. No people on this form, deliberately - a whole-day
@@ -1589,44 +1594,44 @@ export const T = {
      * people's pages. What belongs to a person is a moment.
      */
     /** @param {string} day */
-    writeEditTitle: (day) => `Edit ${day}`,
-    writeTitle: "How was the day?",
+    writeEditTitle: (day) => `Ändra ${day}`,
+    writeTitle: "Hur var dagen?",
     writeIntro:
-      "Leave any of them empty. One filled box is a real entry, and three required ones would " +
-      "only produce something invented at eleven at night - which reads like a fact afterwards " +
-      "and is worse than nothing.",
-    writeWhichDay: "Which day",
-    writeConfirm: "Keep it"
+      "Lämna vilken som helst av dem tom. En ifylld ruta är en riktig post, och tre obligatoriska " +
+      "skulle bara producera något påhittat vid elva på kvällen - som läses som ett faktum " +
+      "efteråt och är sämre än ingenting.",
+    writeWhichDay: "Vilken dag",
+    writeConfirm: "Behåll det"
   },
 
   reflection: {
-    title: "Reflection",
+    title: "Reflektion",
     sub:
-      "Occasional, never late, and two fixed questions rather than a blank box: what went well " +
-      "over the last week or so, and what you would do differently. Nothing here is required, and " +
-      "nothing here is read back to anyone.",
-    addButton: "Add a reflection",
+      "Sporadisk, aldrig sen, och två fasta frågor i stället för en tom ruta: vad som gick bra " +
+      "den senaste veckan eller så, och vad du skulle göra annorlunda. Inget här är " +
+      "obligatoriskt, och inget här läses tillbaka för någon.",
+    addButton: "Lägg till en reflektion",
     empty:
-      "Nothing written yet. The two questions are what went well and what you would do " +
-      "differently - answer either one, or both.",
-    writtenBy: "Written by you.",
-    remove: "Remove",
+      "Inget skrivet än. De två frågorna är vad som gick bra och vad du skulle göra " +
+      "annorlunda - svara på en av dem, eller båda.",
+    writtenBy: "Skrivet av dig.",
+    remove: "Ta bort",
 
     /* The aims block. */
-    aimsTitle: "What I am working on in myself",
-    aimsAtLimit: "Two is the limit. Reach or let one go first.",
-    aimsSetButton: "Set an aim",
+    aimsTitle: "Vad jag jobbar med hos mig själv",
+    aimsAtLimit: "Två är gränsen. Nå eller släpp ett först.",
+    aimsSetButton: "Sätt ett mål",
     aimsEmpty:
-      "Nothing set. An aim says what you want to be able to do and how you will know - the " +
-      "record counting it, somebody else saying so, or you logging the occasions. Without one " +
-      "of those it can only ever be kept to next time.",
+      "Inget satt. Ett mål säger vad du vill kunna göra och hur du kommer att veta - registret " +
+      "som räknar det, någon annan som säger det, eller att du loggar tillfällena. Utan något " +
+      "av det kan det bara skjutas till nästa gång.",
 
     /* One aim's card. The three headings are the fields doing one job each. */
-    aimStillToAnswer: "Still to answer",
-    aimHowIKnow: "How I will know",
-    aimWhereItHappens: "Where it happens",
-    aimAsking: "Asking",
-    aimNothingLogged: "Nothing logged yet.",
+    aimStillToAnswer: "Kvar att svara på",
+    aimHowIKnow: "Hur jag kommer att veta",
+    aimWhereItHappens: "Var det sker",
+    aimAsking: "Frågar",
+    aimNothingLogged: "Inget loggat än.",
     /**
      * The two counts side by side rather than as one number, because the pair IS
      * the evaluation: eight occasions logged and two of them taken says something
@@ -1636,62 +1641,61 @@ export const T = {
      * @param {number} missed
      * @param {string} last
      */
-    aimCounts: (seen, missed, last) => `${seen} taken, ${missed} missed, last ${last}`,
-    aimLogButton: "Log an occasion",
-    aimCloseButton: "Close it",
+    aimCounts: (seen, missed, last) => `${seen} tagna, ${missed} missade, senast ${last}`,
+    aimLogButton: "Logga ett tillfälle",
+    aimCloseButton: "Stäng det",
 
     /* Setting one. The source is asked before the test, deliberately. */
-    setTitle: "Set an aim",
+    setTitle: "Sätt ett mål",
     setIntro:
-      "Something you want to be able to do, and how you will know. Without that it can only " +
-      "ever be kept to next time, which is what a development point with nothing to see " +
-      "becomes.",
-    setAimLabel: "What you want to be able to do",
-    setSourceLabel: "How you will know",
-    setSourceLogged: "You log the occasions, taken and missed",
-    setSourceRecord: "The record can count it",
-    setSourceAsked: "Somebody else says so",
-    setMeasureLabel: "The actual test, in words",
-    setAsksWhoLabel: "Who you are asking, if somebody else decides",
-    setThroughLabel: "Which real work this happens in",
-    setThroughPlaceholder: "The Tuesday meeting, every 1-1",
-    setThroughHint: "Without this it waits for a free evening.",
-    setWhyLabel: "Why it is worth the months",
-    setConfirm: "Set it",
-    setToast: "Set.",
+      "Något du vill kunna göra, och hur du kommer att veta. Utan det kan det bara skjutas " +
+      "till nästa gång, vilket är vad en utvecklingspunkt utan något att se blir.",
+    setAimLabel: "Vad du vill kunna göra",
+    setSourceLabel: "Hur du kommer att veta",
+    setSourceLogged: "Du loggar tillfällena, tagna och missade",
+    setSourceRecord: "Registret kan räkna det",
+    setSourceAsked: "Någon annan säger det",
+    setMeasureLabel: "Det faktiska testet, i ord",
+    setAsksWhoLabel: "Vem du frågar, om någon annan avgör",
+    setThroughLabel: "Vilket verkligt arbete det här sker i",
+    setThroughPlaceholder: "Tisdagsmötet, varje 1-1",
+    setThroughHint: "Utan det här väntar det på en ledig kväll.",
+    setWhyLabel: "Varför det är värt månaderna",
+    setConfirm: "Sätt det",
+    setToast: "Satt.",
 
     /* Logging an occasion. A miss is a choice on the form, not prose. */
     /** @param {string} aim */
-    logTitle: (aim) => `One occasion: ${aim}`,
+    logTitle: (aim) => `Ett tillfälle: ${aim}`,
     logIntro:
-      "Both kinds count. The gap between the occasions you took and the ones you missed is " +
-      "what makes this measurable rather than a feeling about the quarter.",
-    logNoteLabel: "What happened",
-    logWhichLabel: "Which was it",
-    logYes: "I did the thing",
-    logNo: "The occasion came and I did not",
-    logConfirm: "Log it",
-    logToast: "Logged.",
+      "Båda sorterna räknas. Glappet mellan tillfällena du tog och de du missade är det som " +
+      "gör det här mätbart snarare än en känsla om kvartalet.",
+    logNoteLabel: "Vad som hände",
+    logWhichLabel: "Vilket var det",
+    logYes: "Jag gjorde saken",
+    logNo: "Tillfället kom och jag gjorde det inte",
+    logConfirm: "Logga",
+    logToast: "Loggat.",
 
     /* Closing one. */
     /** @param {string} aim */
-    closeTitle: (aim) => `Close: ${aim}`,
+    closeTitle: (aim) => `Stäng: ${aim}`,
     closeIntro:
-      "Reached and let go are both endings and only one is a success. Saying which is the " +
-      "point - an aim quietly abandoned is what this shape exists to prevent.",
-    closeHowLabel: "How it ended",
-    closeReached: "Reached - it comes naturally now",
-    closeDropped: "Let go - not the thing after all",
-    closeWhyLabel: "What decided it",
-    closeConfirm: "Close it",
-    closeToast: "Closed.",
+      "Nått och släppt är båda avslut och bara ett är en framgång. Att säga vilket är hela " +
+      "poängen - ett mål som tyst överges är vad den här formen finns för att förhindra.",
+    closeHowLabel: "Hur det slutade",
+    closeReached: "Nått - det kommer naturligt nu",
+    closeDropped: "Släppt - inte rätt sak trots allt",
+    closeWhyLabel: "Vad som avgjorde det",
+    closeConfirm: "Stäng det",
+    closeToast: "Stängt.",
 
     /* Writing a reflection. */
-    writeTitle: "How did the week go?",
-    writeIntro: "Answer at least one of the first two - notes alone is not a reflection.",
-    writeConfirm: "Keep it",
-    writeToast: "Kept.",
-    removedToast: "Removed."
+    writeTitle: "Hur gick veckan?",
+    writeIntro: "Svara på minst en av de två första - bara anteckningar är ingen reflektion.",
+    writeConfirm: "Behåll det",
+    writeToast: "Behållet.",
+    removedToast: "Borttaget."
   },
 
   role: {
