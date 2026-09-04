@@ -3121,9 +3121,32 @@ try {
     if (!owners.some((o) => o.value === "none")) {
       throw new Error("there is no way to say it is nobody's promise");
     }
-    const named = owners.filter((o) => o.value !== "" && o.value !== "none");
+    /*
+     * "mine" is a fixed answer rather than a candidate, so it comes out with
+     * the other two. It names no person on purpose: putting him in his own
+     * roster would make every cadence, duty and attention signal decide what
+     * being behind on yourself means.
+     */
+    const named = owners.filter(
+      (o) => o.value !== "" && o.value !== "none" && o.value !== "mine"
+    );
     if (named.length !== 2) {
       throw new Error(`offered ${named.length} candidates for a two-person meeting`);
+    }
+  });
+
+  check("and offers his own work as an answer, which is where eleven went", () => {
+    /*
+     * The gap this closes. Eleven action points out of one manager meeting had
+     * nowhere to go: Tend found them, could offer only the other two
+     * attendees, and the only other answer was to discard them.
+     */
+    const mine = owners.find((o) => o.value === "mine");
+    if (mine === undefined) {
+      throw new Error(`no "mine" option: ${owners.map((o) => o.value).join(", ")}`);
+    }
+    if (!/not a promise/i.test(String(mine.label))) {
+      throw new Error(`the option does not say why it differs: "${mine.label}"`);
     }
   });
 

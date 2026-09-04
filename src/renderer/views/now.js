@@ -30,7 +30,7 @@ import { T } from "../text.js";
 const words = T.now;
 
 export async function render() {
-  const [attention, questions, roster, ledger, mine, waits, archived, map, myAims, owed] =
+  const [attention, questions, roster, ledger, mine, waits, archived, map, myAims, owed, myOwn] =
     await Promise.all([
       tend.invoke("attention"),
       tend.invoke("signals"),
@@ -41,7 +41,8 @@ export async function render() {
       tend.invoke("archivedPeople"),
       tend.invoke("roleMap"),
       tend.invoke("aims"),
-      tend.invoke("promises")
+      tend.invoke("promises"),
+      tend.invoke("myActions")
     ]);
   const waitingOn = Array.isArray(waits) ? waits : [];
 
@@ -154,6 +155,7 @@ export async function render() {
       ${rosterBlock(roster)}
       ${proposedBlock(map)}
       ${aimsBlock(myAims)}
+      ${myActionsBlock(myOwn)}
       ${
         // Still printed on a quiet day, at the bottom, under the sentence that
         // says nothing needs you. Dropping it here instead would make the flag
@@ -204,6 +206,7 @@ export async function render() {
     ${owedBlock(owed)}
     ${proposedBlock(map)}
     ${aimsBlock(myAims)}
+    ${myActionsBlock(myOwn)}
     ${
       signalRows === "" ? "" : mineBlock(signalRows)
     }
@@ -493,6 +496,47 @@ function proposedBlock(map) {
 }
 
 /**
+ * His own action points.
+ *
+ * The block the Mine option feeds, and the reason that option exists: eleven
+ * action points out of one manager meeting had nowhere to go, because a shared
+ * note can only offer the other attendees and he is not a person in his own
+ * roster.
+ *
+ * Always drawn, including empty. Every other block on this page hides when it
+ * has nothing, and this one does not - it is new, and an absent block cannot
+ * say what would put something in it. Once it has been used for a while it
+ * should probably hide like the rest.
+ *
+ * @param {any} myOwn
+ */
+function myActionsBlock(myOwn) {
+  const rows = Array.isArray(myOwn) ? myOwn : [];
+
+  const body =
+    rows.length === 0
+      ? `<p class="src">${words.myActionsEmpty}</p>`
+      : rows
+          .map(
+            (/** @type {any} */ r) => `<div class="mine-row">
+              <span class="mine-text">${esc(r.text)}</span>
+              ${r.noteTitle ? `<span class="src">${words.myActionFrom(esc(r.noteTitle))}</span>` : ""}
+              <button class="act tiny" data-act="finishMyAction" data-id="${esc(r.id)}">${words.myActionDone}</button>
+            </div>`
+          )
+          .join("");
+
+  return `<section class="aims-block">
+    <div class="group-head">
+      <span class="group-title">${words.myActionsHead}</span>
+      <span class="group-rule"></span>
+      ${rows.length > 0 ? `<span class="group-meta">${rows.length}</span>` : ""}
+    </div>
+    ${body}
+  </section>`;
+}
+
+/**
  * His own aims.
  *
  * Ships empty on purpose - the goals pass happens after this screen exists - so
@@ -731,6 +775,13 @@ export const actions = {
   openDecisions: () => go("decisions"),
   openReflection: () => go("reflection"),
 
+  /** @param {Record<string, string>} d */
+  finishMyAction: async (/** @type {Record<string, string>} */ d) => {
+    if (await act("finishMyAction", { id: d.id }, words.myActionDoneToast)) {
+      refresh();
+    }
+  },
+
   /*
    * Answering a proposal from here, because it is where the proposal is now
    * shown. Routing it through `decideDuty` rather than a second path, so the
@@ -804,6 +855,13 @@ export const actions = {
         options: [
           { value: "", label: words.fileNotYet },
           ...item.candidates.map((/** @type {any} */ c) => ({ value: c.id, label: words.filePromiseTo(c.name) })),
+          /*
+           * Above "nobody", because it is an answer rather than a dismissal.
+           * Below the people, because the common case for a 1-1 note really is
+           * a promise to them - it is the shared meeting notes where most of
+           * these are his.
+           */
+          { value: "mine", label: words.fileMine },
           { value: "none", label: words.fileNobody }
         ]
       })),
@@ -823,6 +881,18 @@ export const actions = {
       if (answer === "none") {
         if (await act("dropCommitment", { id: item.id })) {
           discarded += 1;
+        }
+        continue;
+      }
+      if (answer === "mine") {
+        /*
+         * Counted with the filed rather than separately. From where he is
+         * standing he answered the question either way, and a toast that
+         * distinguishes "two filed and one kept" is arithmetic he did not ask
+         * for.
+         */
+        if (await act("keepCommitment", { id: item.id })) {
+          filed += 1;
         }
         continue;
       }

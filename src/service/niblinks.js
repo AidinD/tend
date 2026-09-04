@@ -377,6 +377,91 @@ export function assignCommitment(store, { id, person, due }) {
 }
 
 /**
+ * File one queued commitment as his own work.
+ *
+ * The third answer, and the one that was missing. A task he was handed in a
+ * meeting is not a promise: nobody is waiting for it, so it has no person and
+ * belongs on his own page rather than on somebody else's card.
+ *
+ * Takes the pending row's id, exactly as `assignCommitment` does, which is
+ * what keeps the import idempotent - the next pass finds the id already taken
+ * and writes nothing. Filing the same row as his own and as a promise is
+ * therefore impossible, which is correct: it is one or the other.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ * @param {number} [now]
+ */
+export function keepCommitment(store, id, now = Date.now()) {
+  const row = store.rows("pendingPromises").find((p) => String(p.id) === String(id));
+  if (!row) {
+    return { error: `No commitment waiting with id "${id}".` };
+  }
+
+  store.create("myActions", {
+    id: String(row.id),
+    text: String(row.text ?? ""),
+    /*
+     * When it was agreed, not when it was filed. The pending row already knows
+     * - it came off a dated note - and using the filing time instead would
+     * make everything he files today look like it started today, which is the
+     * ageing that the promise rows were careful about for the same reason.
+     */
+    at: Number(row.madeAt ?? now),
+    /* Where it came from, so a row can be traced back to the meeting. */
+    note: String(row.note ?? ""),
+    noteTitle: String(row.noteTitle ?? ""),
+    state: "open",
+    from: "nib"
+  });
+  store.remove("pendingPromises", String(row.id));
+
+  return { id: String(row.id), kept: String(row.text ?? "") };
+}
+
+/**
+ * His own action points, oldest first.
+ *
+ * Oldest first because this is a list to work through rather than a feed. The
+ * one from three weeks ago is the one worth seeing, and newest-first would put
+ * it under whatever he filed this morning.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ */
+export function myActions(store) {
+  return store
+    .rows("myActions")
+    .filter((r) => !r._deleted && r.state !== "done")
+    .sort((a, b) => Number(a.at ?? 0) - Number(b.at ?? 0))
+    .map((r) => ({
+      id: String(r.id),
+      text: String(r.text ?? ""),
+      at: Number(r.at ?? 0),
+      noteTitle: String(r.noteTitle ?? "")
+    }));
+}
+
+/**
+ * Mark one of his own action points done.
+ *
+ * `state` rather than removal, so the log keeps what he actually got through.
+ * The same reasoning as resolving a promise: the record of having done it is
+ * worth more than the tidiness of the list.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ * @param {number} [now]
+ */
+export function finishMyAction(store, id, now = Date.now()) {
+  const row = store.rows("myActions").find((r) => String(r.id) === String(id));
+  if (!row) {
+    return { error: `No action point with id "${id}".` };
+  }
+  store.update("myActions", String(id), { state: "done", doneAt: now });
+  return { id: String(id), done: true };
+}
+
+/**
  * Say that a queued commitment is nobody's promise.
  *
  * Not everything somebody flags in a meeting note is an obligation to another

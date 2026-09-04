@@ -250,6 +250,13 @@ const OPERATIONS = {
   pendingCommitments: () => api.pendingCommitments(store),
   assignCommitment: (/** @type {any} */ a) => api.assignCommitment(store, a),
   dropCommitment: (/** @type {any} */ a) => api.dropCommitment(store, a.id),
+  /*
+   * His own work, which is the third answer to "whose is this" and the one that
+   * was missing. Not a promise: nobody is waiting for it.
+   */
+  keepCommitment: (/** @type {any} */ a) => api.keepCommitment(store, a.id),
+  myActions: () => api.myActions(store),
+  finishMyAction: (/** @type {any} */ a) => api.finishMyAction(store, a.id),
   indexNib: (/** @type {any} */ a) => nib.indexNib(store, { dry: Boolean(a.dry) }),
 
   setFocus: (/** @type {any} */ a) => api.setFocus(store, { ...a, now: a.now ?? Date.now() }),

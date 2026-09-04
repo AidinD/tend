@@ -67,6 +67,29 @@ export const COLLECTIONS = /** @type {const} */ ([
    */
   "pendingPromises",
   /**
+   * His own action points: work he was handed, that nobody is waiting for.
+   *
+   * A separate collection for the same reason `pendingPromises` is one, and
+   * the reason is the whole feature. A promise needs somebody waiting for it.
+   * A task out of a meeting has no such person - he is not in his own roster -
+   * so filing it as a promise would have to name somebody, and naming the
+   * nearest attendee inflates their card and puts work that is not about them
+   * into their 1-1 prep.
+   *
+   * The absence of this cost him eleven tracked action points from one manager
+   * meeting: Tend found them, could offer only the other two attendees, and
+   * they went nowhere.
+   *
+   * Rows keep the id of the pending row they came from, so filing one as his
+   * own and as a promise is impossible - which is correct, it is one or the
+   * other - and a re-import cannot resurrect it.
+   *
+   * Not in AGENT_WRITABLE. An agent may add a promise, because somebody said
+   * it out loud and there is a person who is waiting; deciding that a piece of
+   * work is his is a judgement about his own week.
+   */
+  "myActions",
+  /**
    * Decisions about the organisation, with a date to revisit them.
    *
    * Not promises. A promise is given TO a person; a decision is ABOUT the

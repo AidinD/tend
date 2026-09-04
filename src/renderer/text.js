@@ -1344,6 +1344,22 @@ export const T = {
     /** @param {string} source */
     aimSource: (source) => `how you will know: ${source}`,
 
+    /*
+     * His own action points.
+     *
+     * The block the Mine option feeds. Empty until he files something that
+     * way, and the empty state has to say what would put something here -
+     * otherwise it reads as a feature that does not work.
+     */
+    myActionsHead: "My action points",
+    myActionsEmpty:
+      "Nothing filed as your own yet. When a shared meeting note turns up something that is " +
+      "your work rather than a promise to somebody, file it as yours and it lands here.",
+    /** @param {string} note */
+    myActionFrom: (note) => `from "${note}"`,
+    myActionDone: "Done",
+    myActionDoneToast: "Done.",
+
     /* What he owes people, which is the other half of what needs him. */
     owedHead: "What you said you would do",
     /** @param {string} name @param {string} open */
@@ -1450,6 +1466,18 @@ export const T = {
     fileNotYet: "Not yet - leave it in the queue",
     /** @param {string} name */
     filePromiseTo: (name) => `A promise to ${name}`,
+    /*
+     * The third answer, and the one whose absence cost him eleven tracked
+     * action points from one meeting: a shared note can only offer the other
+     * attendees, because he is not a person in his own roster.
+     *
+     * Worded as "mine" rather than as a name, because naming himself in the
+     * list would make him a person in it - and then every cadence, every duty
+     * and every attention signal would have to decide what it means to be
+     * behind on yourself.
+     */
+    fileMine: "Mine - my own work, not a promise",
+
     fileNobody: "Nobody's promise - discard it",
     fileConfirm: "File them",
     /** @param {number} n */
