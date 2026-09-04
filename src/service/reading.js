@@ -109,6 +109,13 @@ export function myAttentionSignals(store, now) {
 function summariseItem(i) {
   return {
     key: i.key,
+    /*
+     * What sort of thing this is, said rather than sniffed off the key's
+     * prefix. The view has to be able to leave one kind out of a block, and
+     * `key.startsWith("signal:")` is a discriminator that works until
+     * somebody renames an id.
+     */
+    kind: i.kind,
     what: i.title,
     why: i.why,
     urgency: i.severity,

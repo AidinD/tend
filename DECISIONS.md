@@ -3,6 +3,61 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-04 - A monthly question is drawn once, and the service keeps emitting it
+
+**Decided.** The card blocks on Läget stop drawing signal items. Frågor keeps
+them. Nothing is removed from `buildAttention`.
+
+**The bug.** The same three monthly questions appeared twice on the front page:
+once under Frågor with the answer buttons, and once under Värt en påminnelse as
+a bare card with no way to answer. `buildAttention` puts signal items in needs
+and nudges, and the view also renders `signals` separately. Both blocks were
+visible in the 0.1.163 capture, one above the other.
+
+**Why Frågor wins, and it is the file's own rule rather than taste.** `now.js`'s
+header says: every card carries the action that would resolve it, so nothing
+here is a report you then have to go and act on somewhere else. The copy under
+Värt en påminnelse had no answer buttons, so it was by definition that report.
+
+**Both card blocks, not only the nudge one.** The instruction named the nudge
+block. `severityFor` can put a signal at `critical`, and `buildAttention` then
+pushes it into `needs` rather than `nudges` - so the duplicate could appear
+under Kräver dig too, beside cards that can actually be acted on, and filtering
+only the quieter block would have left the defect alive in exactly the loudest
+case. One line further, same reason.
+
+**The service is untouched, and the check that was asked for says it has to be.**
+`buildAttention` also feeds `tend_attention`. The question was whether
+`tend_signals` covers the same ground, and it does not:
+
+- It carries **more raw detail** - id, the raw `why`, `lastAnswer`, and every
+  signal rather than only the due ones.
+- It carries **no severity**. `tend_attention` distinguishes `warn` from
+  `critical`; `tend_signals` collapses that to a boolean `due`, so a question
+  a month late and one six months late read alike.
+- Decisively, it is **not the call a model is told to make**. `tend_attention`'s
+  own description says "Start here for any 'what should I be doing' or 'what
+  have I forgotten' question", and nothing in the tool surface points onward to
+  `tend_signals`. Drop signals from the service and a model asking what needs
+  the user loses the questions from the one call it was told to begin with.
+
+So the shape is the same discipline as the card's parts: add beside, do not take
+away. The view leaves a kind out of a block; the payload still says everything
+it said.
+
+**`kind` is now in the payload.** The view needed to leave one kind out of a
+block, and `key.startsWith("signal:")` is a discriminator that works until
+somebody renames an id. Four other places in `card()` still sniff the key
+prefix for their actions; those are unchanged and are the next thing to tidy if
+it ever matters.
+
+**The check that existed passed all the way through the bug.** "so are the
+monthly questions" asserted that a question was on the page at all, which was
+true before and after. Counting is the assertion, and so is answerability: the
+new check requires exactly one card per question AND that the surviving copy
+carries the answer buttons, because "drawn once" is satisfied just as well by
+keeping the useless copy. Mutation-tested by putting the duplicate back.
+
 ## 2026-09-04 - One duty for six people is one card with six rows
 
 **Decided.** Items sharing a duty and a state are drawn as one card with a row

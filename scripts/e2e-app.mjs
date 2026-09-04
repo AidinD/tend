@@ -1113,6 +1113,58 @@ try {
     }
   });
 
+  /*
+   * Read per card rather than as a list of titles: whether the copy that
+   * survived is the answerable one cannot be seen from titles alone, and that
+   * is the half of this the fix is actually about.
+   */
+  const questionCards = JSON.parse(
+    String(
+      await page.evaluate(`(() => {
+        const cards = [...document.querySelectorAll('.card')];
+        return JSON.stringify(cards.map((c) => ({
+          title: (c.querySelector('.card-title')?.textContent ?? '').trim(),
+          answers: c.querySelectorAll('[data-act="answerNo"], [data-act="answerYes"]').length
+        })));
+      })()`)
+    )
+  );
+
+  check("each one exactly once, and it is the copy you can answer", () => {
+    /*
+     * The check above passed all through the bug: a question WAS on the page,
+     * twice, once under Frågor with the answer buttons and once under Värt en
+     * påminnelse as a bare card. Counting is what catches that, and asserting
+     * the survivor is answerable is what stops the wrong copy being the one
+     * that stays - "drawn once" is satisfied just as well by keeping the
+     * useless one.
+     */
+    const asked = DEFAULT_SIGNALS.map((q) => String(q.text));
+    /** @type {string[]} */
+    const problems = [];
+    let seen = 0;
+    for (const q of asked) {
+      const mine = questionCards.filter((/** @type {any} */ c) => c.title.includes(q));
+      if (mine.length === 0) {
+        continue;
+      }
+      seen += 1;
+      if (mine.length > 1) {
+        problems.push(`"${q}" is on ${mine.length} cards`);
+        continue;
+      }
+      if (mine[0].answers === 0) {
+        problems.push(`"${q}" is drawn once but with no way to answer it`);
+      }
+    }
+    if (seen === 0) {
+      throw new Error("no question matched any card, so this proved nothing");
+    }
+    if (problems.length > 0) {
+      throw new Error(problems.join("; "));
+    }
+  });
+
   /* --------------------------------------------------------- the loop -- */
 
   step("Doing the work from the window");

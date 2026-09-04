@@ -111,6 +111,32 @@ export async function render() {
   const due = (questions ?? []).filter((/** @type {any} */ q) => q.due);
 
   /*
+   * A monthly question is drawn once, and Frågor is where.
+   *
+   * `buildAttention` puts signal items in needs and nudges, and this view also
+   * renders `signals` separately, so the same three questions appeared twice -
+   * once with the answer buttons and once as a bare card with no way to answer.
+   * The second is a report you then have to go and act on somewhere else, which
+   * is the one thing this file's header says the front page must not be.
+   *
+   * Both card blocks and not only the quieter one: `severityFor` can put a
+   * signal at critical, and `buildAttention` then pushes it into `needs`. So
+   * the duplicate could appear under Kräver dig too, beside cards that can
+   * actually be acted on, and filtering one block would have left the defect in
+   * the loudest case.
+   *
+   * The service still emits them. It feeds `tend_attention` as well, and a
+   * model asking what needs him would lose the questions entirely - see the
+   * DECISIONS entry for what `tend_signals` does and does not cover.
+   */
+  /** @param {any[]} items */
+  const withoutQuestions = (items) =>
+    (Array.isArray(items) ? items : []).filter((/** @type {any} */ i) => i.kind !== "signal");
+
+  const needsYouCards = withoutQuestions(attention.needsYou);
+  const nudgeCards = withoutQuestions(attention.nudges);
+
+  /*
    * Decisions asking to be looked at again.
    *
    * They belong on this page and not only on their own, because "nothing needs
@@ -220,20 +246,20 @@ export async function render() {
        * tile says a fortnightly duty is running at nineteen weeks, and the card
        * says the same thing with the button that fixes it.
        */
-      group(words.needsYouGroup, cards(attention.needsYou), attention.needsYou.length)
+      group(words.needsYouGroup, cards(needsYouCards), needsYouCards.length)
     }
     ${rosterBlock(roster)}
     ${group(words.revisitsGroup, revisitCards, revisits.length)}
     ${group(words.questionsGroup, due.map(question).join(""), due.length)}
     ${group(
       words.nudgeGroup,
-      cards(attention.nudges) +
+      cards(nudgeCards) +
         (attention.heldBackByFocus > 0 && !attention.focus
           ? ""
           : attention.heldBackByFocus > 0
             ? `<div class="muted-row">${words.softerHeld(attention.heldBackByFocus)}</div>`
             : ""),
-      attention.nudges.length
+      nudgeCards.length
     )}
     ${waitingGroup(waitingOn)}
     ${owedBlock(owed)}

@@ -274,6 +274,16 @@ Tend event log <──┤
    late 1-1s are six conversations, and the role map does not record the
    difference. See DECISIONS.md.
 
+17. ~~**The duplicated monthly question**~~ fixed. The same question was drawn
+   twice on the front page: once under Frågor with the answer buttons and once
+   as a bare card with no way to answer, which is the one thing `now.js`'s own
+   header says the page must not carry. The card blocks stop drawing signal
+   items - both of them, because a signal can reach `critical` and land under
+   Kräver dig. **The service still emits them**: `tend_signals` carries more
+   raw detail but no severity, and it is not the call `tend_attention`'s
+   description tells a model to start with, so dropping them there would cost a
+   model the questions. See DECISIONS.md for the field-by-field comparison.
+
 ## Not built, and why
 
 **The private half's signals.** The questions Tend asks rather than derives, over
