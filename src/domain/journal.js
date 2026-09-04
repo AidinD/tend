@@ -47,23 +47,23 @@ import { DAY_MS } from "./time.js";
 export const JOURNAL_FIELDS = /** @type {const} */ ([
   {
     name: "took",
-    label: "What took the day",
-    hint: "Where it actually went, which is rarely where it was meant to go."
+    label: "Vad dagen gick till",
+    hint: "Vart den faktiskt tog vägen, vilket sällan är dit den var tänkt."
   },
   {
     name: "avoided",
-    label: "What I avoided",
-    hint: "The uncomfortable one. Invisible on the day, obvious across a month."
+    label: "Vad jag undvek",
+    hint: "Den obekväma. Osynlig på dagen, uppenbar över en månad."
   },
   {
     name: "differently",
-    label: "What I would do differently",
-    hint: "One line. The smallest useful retrospective."
+    label: "Vad jag skulle gjort annorlunda",
+    hint: "En rad. Den minsta användbara återblicken."
   },
   {
     name: "notes",
-    label: "Anything else",
-    hint: "For the days there is more to say than three lines."
+    label: "Något annat",
+    hint: "För de dagar det finns mer att säga än tre rader."
   }
 ]);
 

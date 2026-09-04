@@ -677,6 +677,15 @@ export const T = {
     /* The blocks, in the order they answer a question about somebody. */
     cadencesBlock: "Takter",
     cadencesNone: "Ingen plikt i rollkartan gäller den här relationstypen.",
+    /*
+     * The same sentence a project's page draws, and it was spelled into this
+     * view's template in English while `T.work.cadenceLine` said it in
+     * Swedish - so "1-1 - target var 14 dagar, last för 18 veckor sedan" sat
+     * on every person's page. Two copies because the table is namespaced per
+     * screen; the twin is `T.work.cadenceLine` and they say the same thing.
+     */
+    /** @param {string} duty @param {string} target @param {string} last */
+    cadenceLine: (duty, target, last) => `<strong>${duty}</strong> - mål ${target}, senast ${last}`,
     promisesBlock: "Öppna löften",
     promisesNone: "Inget utestående.",
     observationsBlock: "Observationer",
@@ -1962,6 +1971,13 @@ export const T = {
     consultedLabel: "Rådfrågade:",
     /** @param {string} what */
     missing: (what) => `Saknar ${what}`,
+    /*
+     * The joiner between two missing fields, which was the literal " Missing "
+     * inside the view - so a card missing two of them read "Saknar varför. ...
+     * Missing vad som valdes bort. ...". A word the app says belongs here with
+     * the rest of them, not spelled into a template.
+     */
+    missingJoin: " Saknar ",
 
     fWhat: "Vad som beslutades",
     fStatus: "Är det här beslutat, eller föreslår du det?",

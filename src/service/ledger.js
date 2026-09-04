@@ -66,7 +66,7 @@ export function decisions(store, now, status) {
         because: d.because ? String(d.because) : null,
         rejected: d.rejected ? String(d.rejected) : null,
         consulted: (Array.isArray(d.consulted) ? d.consulted : []).map(
-          (/** @type {string} */ id) => names.get(String(id)) ?? "someone no longer on the roster"
+          (/** @type {string} */ id) => names.get(String(id)) ?? "någon som inte längre är på registret"
         ),
         status: String(d.status ?? "recorded"),
         decidedAt: Number(d.decidedAt ?? d._at ?? 0),
@@ -107,7 +107,7 @@ export const revisitsDue = (store, now) => decisions(store, now).filter((d) => d
  */
 export function logDecision(store, { what, because, rejected, consulted, decidedAt, revisitDays, source, status, now }) {
   if (!String(what ?? "").trim()) {
-    return { error: "A decision needs a sentence saying what was decided." };
+    return { error: "Ett beslut behöver en mening som säger vad som beslutades." };
   }
   if (status !== undefined && !isDecisionStatus(String(status))) {
     return { error: `Unknown status "${status}". Valid: proposed, recorded, revisited, reversed.` };
@@ -190,7 +190,7 @@ export function decideDecision(store, id, fields, now) {
   }
 
   if (Object.keys(patch).length === 0) {
-    return { error: "Nothing to change." };
+    return { error: "Ingenting att ändra." };
   }
 
   store.update("decisions", id, patch);
@@ -215,7 +215,7 @@ export function stillHolds(store, id, now, days = DEFAULT_REVISIT_DAYS) {
     return { error: `No decision with id "${id}".` };
   }
   if (String(row.status ?? "") === "proposed") {
-    return { error: "That is a proposal, not a decision. Record it first." };
+    return { error: "Det är ett förslag, inte ett beslut. Registrera det först." };
   }
   store.update("decisions", id, { status: "revisited", revisitAt: revisitAt(now, days) });
   return { id, revisitIn: `${days} dagar` };

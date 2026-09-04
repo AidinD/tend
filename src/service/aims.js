@@ -43,14 +43,14 @@ const text = (value) => String(value ?? "").trim();
  */
 export function setAim(store, { aim, source, why, measure, asksWho, through, cadenceDays, horizonDays, now }) {
   if (text(aim) === "") {
-    return { error: "An aim needs one sentence saying what you want to be able to do." };
+    return { error: "Ett mål behöver en mening som säger vad du vill kunna göra." };
   }
   if (!isSource(source)) {
     return {
       error:
-        `An aim has to say where its verdict comes from. Valid: ${Object.keys(SOURCES).join(", ")}. ` +
-        "Without one it can never be judged, and a goal nothing can satisfy is a standing reproach " +
-        "rather than a goal."
+        `Ett mål måste säga varifrån domen kommer. Giltiga: ${Object.keys(SOURCES).join(", ")}. ` +
+        "Utan en kan det aldrig bedömas, och ett mål som ingenting kan uppfylla är en stående " +
+        "förebråelse snarare än ett mål."
     };
   }
 
@@ -63,8 +63,8 @@ export function setAim(store, { aim, source, why, measure, asksWho, through, cad
   if (live.length >= AT_ONCE) {
     return {
       error:
-        `${live.length} aims are already open, which is the limit. Reach or let one go first - ` +
-        `working on more than ${AT_ONCE} things about your own conduct at once is working on none.`
+        `${live.length} mål är redan öppna, vilket är gränsen. Nå eller släpp ett först - ` +
+        `att jobba på fler än ${AT_ONCE} saker om sitt eget uppträdande samtidigt är att jobba på inget.`
     };
   }
 
@@ -168,12 +168,12 @@ export function logAim(store, { aim: aimId, note, happened, now, at }) {
   if (typeof happened !== "boolean") {
     return {
       error:
-        "Say whether it happened. A log of only the times it went well is a scrapbook - the gap " +
-        "between the occasions taken and the ones missed is the whole reading."
+        "Säg om det hände. En logg med bara gångerna det gick bra är ett klippalbum - glappet " +
+        "mellan tillfällena du tog och de du missade är hela läsningen."
     };
   }
   if (text(note) === "") {
-    return { error: "Say what happened, concretely enough to recognise it in three months." };
+    return { error: "Säg vad som hände, konkret nog att känna igen om tre månader." };
   }
 
   const id = store.create("aimNotes", {

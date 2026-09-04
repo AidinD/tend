@@ -180,7 +180,7 @@ describe("topics through the store", () => {
 
   it("refuses a topic that applies to nobody", () => {
     const why = failed(api.proposeTopic(store, { text: "t", why: "w", cadenceDays: 30 }));
-    assert.match(why, /relationship type or to one person/);
+    assert.match(why, /relationstyp eller en person/);
   });
 
   it("refuses to record a conversation that has not happened yet", () => {
@@ -188,7 +188,7 @@ describe("topics through the store", () => {
       text: "t", why: "w", cadenceDays: 30, relations: ["own-manager"], status: "active"
     }));
     const why = failed(api.markRaised(store, { topic: made.id, person: "Halvar", at: NOW + DAY_MS, now: NOW }));
-    assert.match(why, /has not arrived yet/);
+    assert.match(why, /har inte kommit än/);
   });
 
   it("puts his manager on the prep page even though no duty covers that direction", () => {

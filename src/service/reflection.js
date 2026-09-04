@@ -44,7 +44,7 @@ import { journal } from "./journal.js";
 export function logReflection(store, { wellDone, differently, notes, at, now }) {
   const when = typeof at === "number" ? at : now;
   if (isLaterDay(when, now)) {
-    return { error: "That week has not happened yet." };
+    return { error: "Den veckan har inte varit än." };
   }
 
   /** @type {Record<string, any>} */
@@ -55,7 +55,7 @@ export function logReflection(store, { wellDone, differently, notes, at, now }) 
   }
 
   if (!String(row.wellDone ?? "").trim() && !String(row.differently ?? "").trim()) {
-    return { error: "Answer at least one of the two questions - notes alone is not a reflection." };
+    return { error: "Svara på minst en av de två frågorna - bara anteckningar är ingen reflektion." };
   }
 
   const id = store.create("reflections", row);
@@ -188,7 +188,7 @@ export function journalMaterial(store, now, days = REVIEW_WINDOW_DAYS) {
 export function noteReviewRun(store, { at, days = REVIEW_WINDOW_DAYS, entries = 0, spread = 0 }) {
   const when = Number(at);
   if (!Number.isFinite(when) || when <= 0) {
-    return { error: "A reading has to have run at some point." };
+    return { error: "En läsning måste ha körts någon gång." };
   }
   const id = `review:${when}`;
   store.create("reviews", { id, at: when, days, entries, spread, kept: false });
@@ -228,7 +228,7 @@ export function lastReviewRun(store) {
 export function keepReview(store, review) {
   const at = Number(/** @type {any} */ (review)?.at ?? 0);
   if (!Number.isFinite(at) || at <= 0) {
-    return { error: "That is not a review this app produced." };
+    return { error: "Det är ingen genomgång den här appen gjort." };
   }
   const r = /** @type {any} */ (review);
 
@@ -241,7 +241,7 @@ export function keepReview(store, review) {
     questions.length === 0 &&
     String(r.saidVsDid ?? "").trim() === ""
   ) {
-    return { error: "That review found nothing, so there is nothing worth keeping." };
+    return { error: "Den genomgången hittade ingenting, så det finns ingenting värt att spara." };
   }
 
   // The same id `noteReviewRun` derived, so keeping a reading fills in the row

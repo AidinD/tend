@@ -74,7 +74,7 @@ export function watchEvents({ dir, self, onChange, onWarning = () => {}, settleM
     try {
       onChange();
     } catch (error) {
-      onWarning(`A change notification could not be delivered: ${describe(error)}`);
+      onWarning(`En ändringsnotis kunde inte levereras: ${describe(error)}`);
     }
   };
 
@@ -96,11 +96,11 @@ export function watchEvents({ dir, self, onChange, onWarning = () => {}, settleM
       timer = setTimeout(fire, settleMs);
     });
     watcher.on("error", (error) => {
-      onWarning(`Stopped watching for changes from other windows: ${describe(error)}`);
+      onWarning(`Slutade bevaka ändringar från andra fönster: ${describe(error)}`);
     });
   } catch (error) {
     onWarning(
-      `Could not watch for changes from other windows, so this one only updates when you navigate: ${describe(error)}`
+      `Kunde inte bevaka ändringar från andra fönster, så det här uppdateras bara när du navigerar: ${describe(error)}`
     );
   }
 

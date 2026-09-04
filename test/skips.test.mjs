@@ -116,7 +116,7 @@ describe("recording one", () => {
 
   it("refuses a day that has not arrived", () => {
     const why = failed(api.logSkip(store, { person: "Ada", kind: "one-to-one", at: NOW + 8 * DAY_MS, now: NOW }));
-    assert.match(why, /has not arrived yet/);
+    assert.match(why, /har inte kommit än/);
     assert.equal(store.rows("skips").length, 0);
   });
 
@@ -126,7 +126,7 @@ describe("recording one", () => {
   });
 
   it("needs to say what it would have been", () => {
-    assert.match(failed(api.logSkip(store, { person: "Ada", kind: "", now: NOW })), /what it would have been/);
+    assert.match(failed(api.logSkip(store, { person: "Ada", kind: "", now: NOW })), /vad det skulle ha varit/);
   });
 
   it("shows up on the person page beside the contact, not inside it", () => {

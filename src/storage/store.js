@@ -74,8 +74,8 @@ export class TendStore {
     const { events, skipped } = readAll(this.eventsDir);
     if (skipped > 0) {
       this.onWarning(
-        `${skipped} event line(s) could not be read and were skipped. ` +
-          `This is expected while Dropbox is mid-sync; they are picked up on the next read.`
+        `${skipped} händelserad(er) kunde inte läsas och hoppades över. ` +
+          `Det är väntat medan Dropbox synkar; de plockas upp vid nästa läsning.`
       );
     }
 

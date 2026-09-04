@@ -83,7 +83,7 @@ export function updatePlan(store, args, now = Date.now()) {
     return { error: `No plan with id "${id}".` };
   }
   if (!isLivePlan(String(row.status))) {
-    return { error: `That plan has ended. Its record stays as it is.` };
+    return { error: `Den planen är avslutad. Det som står i den står kvar.` };
   }
 
   const merged = { ...row, ...fields(args) };
@@ -124,7 +124,7 @@ export function endPlan(store, args, now = Date.now()) {
   }
   const why = String(args.why ?? "").trim();
   if (as !== "met" && why === "") {
-    return { error: `Ending a plan as ${as} needs a reason. It is what makes it readable later.` };
+    return { error: `Att avsluta en plan som ${as} behöver ett skäl. Det är det som gör den läsbar sedan.` };
   }
 
   store.update("plans", id, { status: as, endedAt: now, endedWhy: why });

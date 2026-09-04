@@ -364,7 +364,7 @@ describe("through the service", () => {
 
   it("refuses a thread with no direction", () => {
     const err = failed(api.openThread(store, { person: "Halvar", aim: "  ", now: NOW }));
-    assert.match(err, /one sentence/);
+    assert.match(err, /en mening/);
   });
 
   it("keeps even a stalled thread out of Now, which is the whole licence for the feature", () => {
@@ -499,7 +499,7 @@ describe("through the service", () => {
 
   it("refuses to record an observation before there is anything to observe", () => {
     const err = failed(api.logGrowthNote(store, { growth: id, observed: true, now: NOW }));
-    assert.match(err, /no marker/);
+    assert.match(err, /ingen markör/);
   });
 
   it("accepts the observation once a marker exists", () => {
@@ -510,7 +510,7 @@ describe("through the service", () => {
 
   it("refuses a conversation dated in the future", () => {
     const err = failed(api.logGrowthNote(store, { growth: id, at: NOW + 3 * DAY_MS, now: NOW }));
-    assert.match(err, /has not arrived/);
+    assert.match(err, /har inte kommit/);
   });
 
   it("refuses an unknown stance rather than storing it", () => {
@@ -520,7 +520,7 @@ describe("through the service", () => {
 
   it("refuses an ending with no reason", () => {
     const err = failed(api.endThread(store, id, { status: "dropped", why: " " }));
-    assert.match(err, /needs its reason/);
+    assert.match(err, /behöver sitt skäl/);
   });
 
   it("treats a dropped thread as untold until he says otherwise", () => {
@@ -589,7 +589,7 @@ describe("through the service", () => {
       })
     );
     const err = failed(api.removeRow(store, "growth", id));
-    assert.match(err, /reason is the record/i);
+    assert.match(err, /skälet är själva posten/i);
 
     const seen = ok(api.growth(store, "Halvar", NOW));
     assert.equal(seen.threads.length, 1, "the thread survived the attempt");
@@ -607,7 +607,7 @@ describe("through the service", () => {
    */
   it("refuses it for a stated expectation too, not only a dropped one", () => {
     ok(api.endThread(store, id, { status: "expectation", why: "he leads the review or he stays put" }));
-    assert.match(failed(api.removeRow(store, "growth", id)), /reason is the record/i);
+    assert.match(failed(api.removeRow(store, "growth", id)), /skälet är själva posten/i);
   });
 
   /*
@@ -847,7 +847,7 @@ describe("emptying a field", () => {
   });
 
   it("refuses to empty the cadence, since an interval of nothing is not one", () => {
-    assert.match(failed(api.updateThread(store, id, { cadenceDays: 0 })), /positive number of days/);
+    assert.match(failed(api.updateThread(store, id, { cadenceDays: 0 })), /positivt antal dagar/);
   });
 });
 

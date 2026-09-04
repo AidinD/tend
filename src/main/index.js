@@ -64,7 +64,7 @@ const privateIcon = join(here, "..", "..", "resources", "icon-private.ico");
 const warnings = [];
 
 /** Last thing the updater said, so Settings can show it. */
-let updateStatus = "No update check has run yet.";
+let updateStatus = "Ingen uppdateringskoll har körts än.";
 let updateListenersAttached = false;
 
 /**
@@ -305,7 +305,7 @@ const OPERATIONS = {
 
   checkForUpdates: () => {
     if (!app.isPackaged) {
-      return { error: "Running from source, so there is no installed copy to update." };
+      return { error: "Kör från källkod, så det finns ingen installerad kopia att uppdatera." };
     }
     checkForUpdates();
     return { checking: true };
@@ -327,7 +327,7 @@ const OPERATIONS = {
     // Said out loud on the one screen somebody visits to ask whether the import
     // is working. A background job with no visible state is one you end up
     // pressing the manual button beside anyway, which defeats the point of it.
-    nibSync: nibSync === null ? "Importing from Nib has not started." : describeSync(nibSync.state()),
+    nibSync: nibSync === null ? "Importen från Nib har inte startat." : describeSync(nibSync.state()),
     nibWatching: nibSync?.state().watching ?? false
   })
 };
@@ -440,26 +440,26 @@ function checkForUpdates() {
   if (!updateListenersAttached) {
     updateListenersAttached = true;
     autoUpdater.on("update-available", (info) => {
-      updateStatus = `Version ${info.version} is available and downloading.`;
+      updateStatus = `Version ${info.version} finns och laddas ner.`;
       console.log(`[tend] update available: ${info.version}`);
     });
     autoUpdater.on("update-not-available", () => {
-      updateStatus = "You are on the latest version.";
+      updateStatus = "Du har senaste versionen.";
     });
     autoUpdater.on("update-downloaded", (info) => {
-      updateStatus = `Version ${info.version} is ready and installs when you quit.`;
+      updateStatus = `Version ${info.version} är klar och installeras när du avslutar.`;
       console.log(`[tend] update ${info.version} downloaded; it installs on quit`);
     });
     autoUpdater.on("error", (error) => {
       // Being offline is the common case and is not worth a dialog.
-      updateStatus = "Could not reach the update server. Probably offline.";
+      updateStatus = "Nådde inte uppdateringsservern. Troligen offline.";
       console.error("[tend] update check failed", error);
     });
   }
 
-  updateStatus = "Checking...";
+  updateStatus = "Kollar...";
   void autoUpdater.checkForUpdatesAndNotify().catch((error) => {
-    updateStatus = "The update check could not start.";
+    updateStatus = "Uppdateringskollen kunde inte starta.";
     console.error("[tend] update check could not start", error);
   });
 }

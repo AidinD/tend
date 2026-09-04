@@ -121,7 +121,7 @@ function words(text) {
 export function search(situation, dir, half = "work") {
   const asked = words(situation);
   if (asked.length === 0) {
-    return { error: "Say what the situation is, in a sentence." };
+    return { error: "Säg vad situationen är, i en mening." };
   }
 
   // This half's notes, plus the reference material from either. See the header.
@@ -208,7 +208,7 @@ const ANSWER_SCHEMA = {
 export async function consider({ situation, candidates, dir, askImpl = ask }) {
   const shortlist = (Array.isArray(candidates) ? candidates : []).slice(0, READ_AT_MOST);
   if (shortlist.length === 0) {
-    return { error: "Nothing to read. Narrow the situation, or write the note first." };
+    return { error: "Ingenting att läsa. Smalna av situationen, eller skriv anteckningen först." };
   }
 
   /** @type {any[]} */
@@ -221,7 +221,7 @@ export async function consider({ situation, candidates, dir, askImpl = ask }) {
   }
 
   if (read.length === 0) {
-    return { error: "Those notes have titles but no text yet." };
+    return { error: "De anteckningarna har rubriker men ingen text än." };
   }
 
   // Through runPass, which is where this pass gains the availability check it

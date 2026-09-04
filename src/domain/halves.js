@@ -65,13 +65,13 @@ import { RELATIONS } from "./cadence.js";
 export const PRIVATE_RELATIONS = /** @type {const} */ ({
   partner: {
     label: "Partner",
-    note: "The relationship the rest of them are arranged around.",
+    note: "Relationen de andra är ordnade omkring.",
     choice: "Partner"
   },
   child: {
-    label: "Child",
-    note: "Yours. The one relationship where the asymmetry is the point.",
-    choice: "Child"
+    label: "Barn",
+    note: "Ditt eget. Den enda relationen där asymmetrin är själva poängen.",
+    choice: "Barn"
   },
   /*
    * A partner's child, whether or not you live together.
@@ -85,43 +85,47 @@ export const PRIVATE_RELATIONS = /** @type {const} */ ({
    * Not called a stepchild. That word carries a formal standing this may not
    * have, and the whole difficulty of the relationship is that the involvement is
    * real and the standing is not.
+   *
+   * "Bonusbarn" is the same refusal in Swedish and for the same reason: it is
+   * the word that makes the arrangement sound settled. "Partnerns barn" says
+   * only what is true, which is the whole point of the entry.
    */
   "partners-child": {
-    label: "Partner's child",
+    label: "Partnerns barn",
     note:
-      "In your life through your partner rather than through being their parent. Real involvement, " +
-      "no standing, and the terms are not yours to set.",
-    choice: "Partner's child - in your life through your partner"
+      "I ditt liv genom din partner snarare än genom att vara hens förälder. Verkligt engagemang, " +
+      "ingen ställning, och villkoren är inte dina att sätta.",
+    choice: "Partnerns barn - i ditt liv genom din partner"
   },
   parent: {
-    label: "Parent",
-    note: "Yours. The relationship most likely to be running on assumptions from twenty years ago.",
-    choice: "Parent"
+    label: "Förälder",
+    note: "Din egen. Relationen som mest sannolikt går på antaganden från tjugo år tillbaka.",
+    choice: "Förälder"
   },
   sibling: {
-    label: "Sibling",
-    note: "Where contact is a choice rather than a given.",
-    choice: "Sibling"
+    label: "Syskon",
+    note: "Där kontakt är ett val snarare än en självklarhet.",
+    choice: "Syskon"
   },
   family: {
-    label: "Wider family",
-    note: "In-laws, cousins, the ones you see at gatherings.",
-    choice: "Wider family - in-laws, cousins, the ones you see at gatherings"
+    label: "Släkt",
+    note: "Svärföräldrar, kusiner, de man ses med på kalas.",
+    choice: "Släkt - svärföräldrar, kusiner, de man ses med på kalas"
   },
   "close-friend": {
-    label: "Close friend",
-    note: "The handful you would actually call.",
-    choice: "Close friend - the handful you would actually call"
+    label: "Nära vän",
+    note: "De få du faktiskt skulle ringa.",
+    choice: "Nära vän - de få du faktiskt skulle ringa"
   },
   friend: {
-    label: "Friend",
-    note: "Real, and not one of the handful.",
-    choice: "Friend"
+    label: "Vän",
+    note: "På riktigt, men inte en av de få.",
+    choice: "Vän"
   },
   other: {
-    label: "Someone else",
-    note: "Outside work and none of the above.",
-    choice: "Someone else - outside work and none of the above"
+    label: "Någon annan",
+    note: "Utanför jobbet och ingen av ovanstående.",
+    choice: "Någon annan - utanför jobbet och ingen av ovanstående"
   }
 });
 

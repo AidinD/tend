@@ -38,7 +38,7 @@ export function logSkip(store, { person: who, kind, why, at, now }) {
 
   const asked = String(kind ?? "").trim();
   if (!asked) {
-    return { error: "A skipped meeting needs to say what it would have been." };
+    return { error: "Ett inställt möte behöver säga vad det skulle ha varit." };
   }
   if (subjectOf(asked) !== "person") {
     const offer = kindsFor("person")
@@ -51,8 +51,8 @@ export function logSkip(store, { person: who, kind, why, at, now }) {
   if (isLaterDay(when, now)) {
     return {
       error:
-        "That day has not arrived yet. A meeting can only be recorded as not having happened " +
-        "once its day has passed."
+        "Den dagen har inte kommit än. Ett möte kan bara registreras som att det inte blev av " +
+        "när dagen har passerat."
     };
   }
 

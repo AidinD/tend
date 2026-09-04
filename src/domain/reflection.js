@@ -51,18 +51,18 @@
 export const REFLECTION_FIELDS = /** @type {const} */ ([
   {
     name: "wellDone",
-    label: "What went well?",
-    hint: "The last week or so, in brief."
+    label: "Vad gick bra?",
+    hint: "Den senaste veckan eller så, kort."
   },
   {
     name: "differently",
-    label: "What would you do differently?",
-    hint: "One or two lines is enough."
+    label: "Vad skulle du göra annorlunda?",
+    hint: "En eller två rader räcker."
   },
   {
     name: "notes",
-    label: "Anything else",
-    hint: "Optional, and clearly secondary to the two questions above."
+    label: "Något annat",
+    hint: "Frivilligt, och tydligt underordnat de två frågorna ovan."
   }
 ]);
 

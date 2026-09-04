@@ -116,7 +116,7 @@ describe("through the store", () => {
   });
 
   it("refuses an entry with nothing in it, rather than storing a blank day", () => {
-    assert.match(failed(api.logEntry(store, { now: NOW })), /nothing to keep/);
+    assert.match(failed(api.logEntry(store, { now: NOW })), /ingenting att spara/);
     assert.equal(store.rows("entries").length, 0);
   });
 
@@ -142,7 +142,7 @@ describe("through the store", () => {
   it("refuses a day that has not arrived", () => {
     assert.match(
       failed(api.logEntry(store, { took: "tomorrow", at: NOW + 2 * DAY_MS, now: NOW })),
-      /has not arrived yet/
+      /har inte kommit än/
     );
   });
 

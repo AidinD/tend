@@ -50,6 +50,13 @@ import { fileURLToPath } from "node:url";
  * which language it shows it in. Same reason as the work walkthrough.
  */
 import { T } from "../src/renderer/text.js";
+/*
+ * The private half's own vocabulary, from the definition rather than spelled
+ * out here. These two checks are about which SET the dialog offers - the
+ * private relationship kinds and not the management ones - and that question
+ * does not change when the words do, as it just did in the translation.
+ */
+import { PRIVATE_RELATIONS } from "../src/domain/halves.js";
 
 import { DEFAULT_PORT, describeListener, parsePort, portInUse, refusalMessage } from "./e2e-port.mjs";
 
@@ -361,7 +368,7 @@ try {
         throw new Error(`still offered: "${gone}"`);
       }
     }
-    if (!text.includes("Partner") || !text.includes("Close friend")) {
+    if (!text.includes(PRIVATE_RELATIONS.partner.label) || !text.includes(PRIVATE_RELATIONS["close-friend"].label)) {
       throw new Error(`the private vocabulary is missing: ${text.slice(0, 200)}`);
     }
   });
@@ -416,7 +423,7 @@ try {
         throw new Error(`"${gone}" is still on the page`);
       }
     }
-    if (!/arranged around/.test(theirPage.role)) {
+    if (!theirPage.role.includes(PRIVATE_RELATIONS.partner.note)) {
       throw new Error(`the relationship note is not the private one: "${theirPage.role}"`);
     }
   });

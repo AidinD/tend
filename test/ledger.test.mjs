@@ -42,7 +42,7 @@ afterEach(() => {
 describe("recording a decision", () => {
   it("needs a sentence, and says so", () => {
     const result = api.logDecision(store, { what: "   ", now: NOW });
-    assert.match(String(result.error), /needs a sentence/);
+    assert.match(String(result.error), /behöver en mening/);
   });
 
   it("resolves who was consulted against the roster", () => {
@@ -71,7 +71,7 @@ describe("recording a decision", () => {
     // nobody wrote down.
     const result = ok(api.logDecision(store, { what: "Something terse", now: NOW }));
     assert.equal(result.missing.length, 3);
-    assert.match(result.missing.join(" "), /why/);
+    assert.match(result.missing.join(" "), /varför/);
   });
 });
 
@@ -115,7 +115,7 @@ describe("the revisit date", () => {
 
   it("refuses to revisit a proposal, which has not been decided yet", () => {
     const { id } = ok(api.logDecision(store, { what: "Maybe", status: "proposed", source: "a note", now: NOW }));
-    assert.match(String(api.stillHolds(store, id, NOW).error), /proposal/);
+    assert.match(String(api.stillHolds(store, id, NOW).error), /förslag/);
   });
 });
 

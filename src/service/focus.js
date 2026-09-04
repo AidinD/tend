@@ -55,13 +55,13 @@ export function focus(store, now) {
  */
 export function setFocus(store, { name, endsAt, budget, stretch, guarded, now }) {
   if (!String(name ?? "").trim()) {
-    return { error: "A focus needs a name - what are you actually trying to get done?" };
+    return { error: "Ett fokus behöver ett namn - vad är det du faktiskt försöker få gjort?" };
   }
   if (typeof endsAt === "number" && endsAt <= now) {
-    return { error: "The end date is in the past. A focus without a future end date cannot revert." };
+    return { error: "Slutdatumet har passerat. Ett fokus utan ett slutdatum framåt kan aldrig gå tillbaka." };
   }
   if (budget !== undefined && (!(budget > 0) || budget > 1)) {
-    return { error: "Budget is a share of the week between 0 and 1." };
+    return { error: "Budgeten är en andel av veckan mellan 0 och 1." };
   }
 
   const baselineDrift = meanDrift(expandCadences(store.state(), now));
@@ -85,11 +85,11 @@ export function setFocus(store, { name, endsAt, budget, stretch, guarded, now })
  */
 export function endFocus(store) {
   if (!store.focus()) {
-    return { error: "No focus is running." };
+    return { error: "Inget fokus körs." };
   }
   const was = String(store.focus()?.name ?? "");
   store.emit("focus.end", {});
-  return { ended: was, note: "Every stretched threshold is back to normal." };
+  return { ended: was, note: "Varje uttänjd tröskel är tillbaka till det normala." };
 }
 
 /** Ids that read as ids rather than as anything meaningful. */

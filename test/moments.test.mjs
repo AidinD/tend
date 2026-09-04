@@ -142,14 +142,14 @@ describe("the floor on reading across them", () => {
   it("refuses when nothing is logged, and says why", () => {
     const r = momentReadiness({ moments: 0, spread: 0, days: 30 });
     assert.equal(r.ready, false);
-    assert.match(r.why, /nothing to read across/);
+    assert.match(r.why, /ingenting att läsa tvärs över/);
   });
 
   it("refuses too few, and says how many more", () => {
     const r = momentReadiness({ moments: 2, spread: 2, days: 30 });
     assert.equal(r.ready, false);
-    assert.match(r.why, /at least 4/);
-    assert.match(r.why, /2 more/);
+    assert.match(r.why, /minst 4/);
+    assert.match(r.why, /2 till/);
   });
 
   it("refuses enough rows written on too few days", () => {
@@ -157,8 +157,8 @@ describe("the floor on reading across them", () => {
     // is in: plenty written, all of it one afternoon.
     const r = momentReadiness({ moments: 6, spread: 1, days: 30 });
     assert.equal(r.ready, false);
-    assert.match(r.why, /only 1 day/);
-    assert.match(r.why, /one sitting/);
+    assert.match(r.why, /bara 1 dag/);
+    assert.match(r.why, /vid ett tillfälle/);
   });
 
   it("uses the journal pass's floors rather than its own numbers", () => {
@@ -166,11 +166,11 @@ describe("the floor on reading across them", () => {
     // edited, and this project has been bitten by exactly that more than once.
     assert.match(
       momentReadiness({ moments: 1, spread: 1, days: 30 }).why,
-      new RegExp(`at least ${MIN_ENTRIES}`)
+      new RegExp(`minst ${MIN_ENTRIES}`)
     );
     assert.match(
       momentReadiness({ moments: MIN_ENTRIES, spread: 1, days: 30 }).why,
-      new RegExp(`at least ${MIN_SPREAD}`)
+      new RegExp(`minst ${MIN_SPREAD}`)
     );
   });
 
@@ -208,7 +208,7 @@ describe("reading across the moments", () => {
   it("refuses before spending anything when there is too little", async () => {
     store.create("moments", { id: "m1", people: ["p1"], part: "jag blev kort", at: daysAgo(2) });
     const askImpl = stub(ANSWER);
-    assert.match(failed(await readOwnPatterns(store, { now: NOW, askImpl })), /at least 4/);
+    assert.match(failed(await readOwnPatterns(store, { now: NOW, askImpl })), /minst 4/);
     assert.equal(askImpl.calls.length, 0, "it paid for a call it had already decided to refuse");
   });
 
@@ -222,7 +222,7 @@ describe("reading across the moments", () => {
       });
     }
     const askImpl = stub(ANSWER);
-    assert.match(failed(await readOwnPatterns(store, { now: NOW, askImpl })), /one sitting/);
+    assert.match(failed(await readOwnPatterns(store, { now: NOW, askImpl })), /vid ett tillfälle/);
     assert.equal(askImpl.calls.length, 0);
   });
 
@@ -320,7 +320,7 @@ describe("reading across the moments", () => {
     const r = ok(await readOwnPatterns(store, { now: NOW, askImpl: stub(ANSWER) }));
     assert.equal(r.model, "claude-sonnet-5");
     assert.equal(r.costUsd, 0.004);
-    assert.match(String(r.coverage.summary), /4 moments across 4 days/);
+    assert.match(String(r.coverage.summary), /4 stunder över 4 dagar/);
   });
 
   it("passes a failure through as data rather than throwing", async () => {

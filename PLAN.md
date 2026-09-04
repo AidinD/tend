@@ -235,6 +235,34 @@ Tend event log <──┤
    validation. Läget's six went with the layout pass because they were on the
    page being rebuilt. The rest is its own slice.
 
+   **The remainder is done, and the list above was itself incomplete.** The
+   named four were the ones somebody had noticed; a calibrated sweep across all
+   three quote kinds found nine more files nobody had listed - Reflektion's
+   three prompts, the delegation level's authority sentence and every review
+   interval word, the stakeholder fallback names, one attention signal, the
+   coverage and ledger sentences a model pass is set beside, the auto-updater's
+   status line in Settings, the mode-save failure, three storage warnings a
+   person sees while Dropbox is syncing, and the words `target` and `last`
+   spelled into a person page's template while the twin on a project's page
+   said them in Swedish off `T`.
+
+   **The calibration is the part worth keeping.** A sweep reporting zero was run
+   first against needles known to be present - and the first attempt failed,
+   because the needles were guessed rather than read out of the file. It failed
+   again in a subtler way once it passed: the scanner found `"Partner"` and the
+   filter discarded it for being under twelve characters, so a slice made
+   entirely of short labels read as clean. The needles now point at strings that
+   stay English on purpose, plus two Swedish ones, so the calibration cannot go
+   stale the moment the work is finished and cannot pass on an ASCII-only
+   scanner.
+
+   **What is still English is a rule and not a leftover.** 580 literals: 437 are
+   model prompts, tool descriptions and JSON-schema field descriptions; 59 are
+   keyed by an id or an enum value, or thrown as developer errors, and only a
+   caller passing bad arguments can produce one. Every message a form, a date
+   input or a button can produce is Swedish. The duty names on his own cards are
+   the exception, and they are data rather than a string table - see item 19.
+
 14. ~~**The layout pass**~~ done. Läget renders in columns. The stylesheet had
    three `grid-template-columns` rules in 2322 lines, one of them the sidebar,
    so every block on the front page was full width and stacked - three cards
@@ -299,6 +327,14 @@ Tend event log <──┤
    the same defect as the monthly question in a different block. The second is
    now counted per promise off the service, so it holds whichever side a promise
    falls on. See DECISIONS.md.
+
+19. **The duty names in his own store are still English, and they are not the
+   translation's to fix.** `dutyLabel()` reads `shortName ?? name` off the
+   stored duty row, so "Producer and peer feedback round behöver dig nu" is
+   data. `src/service/seed.js` has been Swedish since item 13, but seeding
+   creates rows once and never renames them, so a store built from the English
+   seed keeps the English names. Renaming them is his, in the role map, and it
+   belongs with the short names on that same card. Reported, not guessed at.
 
 ## Next
 

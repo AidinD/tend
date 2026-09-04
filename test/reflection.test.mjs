@@ -63,7 +63,7 @@ describe("through the store", () => {
   it("refuses a fully blank reflection", () => {
     assert.match(
       failed(api.logReflection(store, { now: NOW })),
-      /Answer at least one of the two questions/
+      /minst en av de två frågorna/
     );
     assert.equal(store.rows("reflections").length, 0);
   });
@@ -73,7 +73,7 @@ describe("through the store", () => {
     // nothing, because neither question the feature exists to ask got answered.
     assert.match(
       failed(api.logReflection(store, { notes: "reorganised my desk", now: NOW })),
-      /Answer at least one of the two questions/
+      /minst en av de två frågorna/
     );
     assert.equal(store.rows("reflections").length, 0);
   });
@@ -110,7 +110,7 @@ describe("through the store", () => {
   it("refuses a week that has not happened yet", () => {
     assert.match(
       failed(api.logReflection(store, { wellDone: "too soon", at: NOW + 2 * DAY_MS, now: NOW })),
-      /has not happened yet/
+      /har inte varit än/
     );
   });
 

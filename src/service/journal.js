@@ -38,7 +38,7 @@ import { resolvePerson } from "./resolve.js";
 export function logEntry(store, { now, at, ...fields }) {
   const when = typeof at === "number" ? at : now;
   if (isLaterDay(when, now)) {
-    return { error: "That day has not arrived yet." };
+    return { error: "Den dagen har inte kommit än." };
   }
 
   /** @type {Record<string, any>} */
@@ -50,7 +50,7 @@ export function logEntry(store, { now, at, ...fields }) {
 
 
   if (!hasContent(entry)) {
-    return { error: "Nothing was written, so there is nothing to keep." };
+    return { error: "Ingenting skrevs, så det finns ingenting att spara." };
   }
 
   const day = new Date(when).toISOString().slice(0, 10);
@@ -143,14 +143,14 @@ export function logMoment(store, { people, person, part, what, at, now }) {
   if (!String(part ?? "").trim()) {
     return {
       error:
-        "Say what your own part in it was. That is the half you can change, and it is the only " +
-        "half worth keeping - a note about what somebody else did is the thing this half refuses."
+        "Säg vad din egen del i det var. Det är halvan du kan ändra, och den enda halvan värd att " +
+        "spara - en anteckning om vad någon annan gjorde är just det den här halvan vägrar."
     };
   }
 
   const asked = [...(Array.isArray(people) ? people : []), ...(person ? [person] : [])];
   if (asked.length === 0) {
-    return { error: "Say who it involved. A moment with nobody in it belongs in the day." };
+    return { error: "Säg vem det handlade om. En stund utan någon i hör hemma i dagen." };
   }
 
   /** @type {string[]} */
@@ -167,7 +167,7 @@ export function logMoment(store, { people, person, part, what, at, now }) {
 
   const when = typeof at === "number" ? at : now;
   if (isLaterDay(when, now)) {
-    return { error: "That day has not arrived yet." };
+    return { error: "Den dagen har inte kommit än." };
   }
 
   const id = store.create("moments", {

@@ -362,8 +362,8 @@ export function myAttention({
       key: `aim-unmeasured:${String(row.id)}`,
       text: `Jag har inte sagt hur jag skulle veta om "${String(row.aim ?? "")}" händer.`,
       detail:
-        "Until it has a test, it can only ever be kept to next time - which is what a development " +
-        "point with no marker becomes.",
+        "Utan ett test kan det bara skjutas till nästa gång - vilket är vad en utvecklingspunkt " +
+        "utan markör blir.",
       weight: 18,
       habit: true
     });

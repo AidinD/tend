@@ -88,7 +88,7 @@ export function archivedWorkstreams(store, now) {
  */
 export function addWorkstream(store, { name, owner, project, level, now }) {
   if (!String(name ?? "").trim()) {
-    return { error: "A workstream needs a name." };
+    return { error: "Ett arbetsområde behöver ett namn." };
   }
   if (level !== undefined && !isLevel(String(level))) {
     return { error: `Unknown level "${level}". Valid: ${Object.keys(LEVELS).join(", ")}.` };
@@ -317,7 +317,7 @@ export function undoableBulkArchive(store) {
 export function undoBulkArchive(store, { now } = {}) {
   const run = latestBulkArchive(store);
   if (run === null) {
-    return { error: "There is no bulk archive left to undo." };
+    return { error: "Det finns ingen massarkivering kvar att ångra." };
   }
 
   const undo = {

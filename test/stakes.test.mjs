@@ -32,7 +32,7 @@ describe("naming a stake", () => {
     // spelling, which reads as a second person you have neglected.
     const people = new Map([["p1", "Rasmus"]]);
     const projects = new Map([["j1", "Sjöhästen"]]);
-    assert.equal(stakeName({ person: "p1", project: "j1" }, people, projects), "Rasmus, about Sjöhästen");
+    assert.equal(stakeName({ person: "p1", project: "j1" }, people, projects), "Rasmus, om Sjöhästen");
   });
 
   it("drops a stake whose person or project is gone rather than showing a placeholder", () => {
@@ -151,7 +151,7 @@ describe("stakeholders through the store", () => {
     assert.equal(byProject.get("Sjöhästen")?.lastUpdated, "idag");
     assert.equal(byProject.get("Sjöhästen")?.note, "shipped the import");
     assert.equal(byProject.get("Vinterlek")?.lastUpdated, "aldrig", "never is not the same fact as zero days ago");
-    assert.equal(byProject.get("Vinterlek")?.label, "Nadia, about Vinterlek");
+    assert.equal(byProject.get("Vinterlek")?.label, "Nadia, om Vinterlek");
   });
 
   it("narrows to one project when asked", () => {
@@ -204,7 +204,7 @@ describe("stakeholders through the store", () => {
   it("surfaces the stakeholder nobody has updated, once the duty is active", () => {
     stakeOn("Sjöhästen");
     const items = api.attention(store, NOW).needsYou ?? [];
-    const mine = items.find((/** @type {any} */ i) => /Nadia, about Sjöhästen/.test(String(i.what)));
+    const mine = items.find((/** @type {any} */ i) => /Nadia, om Sjöhästen/.test(String(i.what)));
     assert.ok(mine, `no stakeholder item: ${items.map((/** @type {any} */ i) => i.what).join(" | ")}`);
     assert.equal(mine.subjectKind, "stake", "the card has to know what it is about to offer the right action");
   });

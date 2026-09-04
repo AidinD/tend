@@ -47,7 +47,7 @@ const ALLOWED = ["http:", "https:"];
 export function webAddress(raw) {
   const text = String(raw ?? "").trim();
   if (text === "") {
-    return { ok: false, why: "A link needs an address." };
+    return { ok: false, why: "En länk behöver en adress." };
   }
 
   let parsed;

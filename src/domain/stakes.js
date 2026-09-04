@@ -76,9 +76,9 @@ export function stakeInterval(stake, dutyDays) {
  * @returns {string}
  */
 export function stakeName(stake, people, projects) {
-  const who = people.get(String(stake.person ?? "")) ?? "somebody no longer on the roster";
-  const what = projects.get(String(stake.project ?? "")) ?? "a project that is gone";
-  return `${who}, about ${what}`;
+  const who = people.get(String(stake.person ?? "")) ?? "någon som inte längre är på registret";
+  const what = projects.get(String(stake.project ?? "")) ?? "ett projekt som är borta";
+  return `${who}, om ${what}`;
 }
 
 /**

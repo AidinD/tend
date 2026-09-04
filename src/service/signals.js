@@ -47,7 +47,7 @@ export function answerSignal(store, { signal, answer, note, now }) {
     return { error: `Answer must be "yes" or "no".` };
   }
   if (answer === "yes" && !String(note ?? "").trim()) {
-    return { error: "A yes needs a note saying what you saw. A bare yes is not actionable later." };
+    return { error: "Ett ja behöver en anteckning om vad du såg. Ett naket ja går inte att göra något med sedan." };
   }
   store.create("signalAnswers", { signal, answer, note: note ?? null, at: now });
   return { signal, answer, nextAskedIn: answer === "yes" ? "7 dagar" : "30 dagar" };

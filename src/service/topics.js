@@ -100,10 +100,10 @@ export function allTopics(store) {
  */
 export function proposeTopic(store, { text, why, cadenceDays, relations, person: who, source, id, status }) {
   if (!String(text ?? "").trim() || !String(why ?? "").trim()) {
-    return { error: "A topic needs the thing to raise and why it is worth the minutes." };
+    return { error: "Ett ämne behöver saken att ta upp och varför den är värd minuterna." };
   }
   if (!(Number(cadenceDays) > 0)) {
-    return { error: "A topic needs a positive interval in days." };
+    return { error: "Ett ämne behöver ett positivt intervall i dagar." };
   }
   if (relations && relations.some((r) => !isRelation(r))) {
     return { error: `Unknown relationship type. Valid: ${Object.keys(RELATIONS).join(", ")}.` };
@@ -119,7 +119,7 @@ export function proposeTopic(store, { text, why, cadenceDays, relations, person:
   }
 
   if (pinned === undefined && (relations ?? []).length === 0) {
-    return { error: "A topic applies to a relationship type or to one person. It needs one of them." };
+    return { error: "Ett ämne gäller en relationstyp eller en person. Det behöver ett av dem." };
   }
 
   const fields = {
@@ -190,7 +190,7 @@ export function markRaised(store, { topic, person: who, note, at, now }) {
   }
   const when = typeof at === "number" ? at : now;
   if (isLaterDay(when, now)) {
-    return { error: "That day has not arrived yet. A topic is marked raised after the conversation, not before." };
+    return { error: "Den dagen har inte kommit än. Ett ämne bockas av efter samtalet, inte före." };
   }
 
   const id = store.create("raised", {

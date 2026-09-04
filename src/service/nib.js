@@ -651,8 +651,8 @@ export function indexNib(store, { dir, dry = false } = {}) {
   if (bindings.length === 0) {
     return {
       error:
-        "No Nib folders are bound to anyone yet, so there is nothing to index. " +
-        "Bind a category or sub-category to a person first."
+        "Inga Nib-mappar är bundna till någon än, så det finns ingenting att indexera. " +
+        "Bind en kategori eller underkategori till en person först."
     };
   }
 

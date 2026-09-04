@@ -189,7 +189,7 @@ export function openThread(store, { person: who, aim, cadenceDays, horizonDays, 
     return { error: found.error };
   }
   if (String(aim ?? "").trim() === "") {
-    return { error: "A thread needs a direction in one sentence. Everything else can wait." };
+    return { error: "Ett spår behöver en riktning i en mening. Allt annat kan vänta." };
   }
   if (rest.driver !== undefined && rest.driver !== "" && !isDriver(String(rest.driver))) {
     return { error: `Unknown driver. Valid: ${Object.keys(DRIVERS).join(", ")}.` };
@@ -255,7 +255,7 @@ export function updateThread(store, id, fields) {
     return { error: `Unknown status. Valid: ${Object.keys(STATUSES).join(", ")}.` };
   }
   if (fields.cadenceDays !== undefined && !(Number(fields.cadenceDays) > 0)) {
-    return { error: "A cadence has to be a positive number of days." };
+    return { error: "En takt måste vara ett positivt antal dagar." };
   }
 
   /** @type {Record<string, any>} */
@@ -293,7 +293,7 @@ export function updateThread(store, id, fields) {
   }
 
   if (Object.keys(patch).length === 0) {
-    return { error: "Nothing to change." };
+    return { error: "Ingenting att ändra." };
   }
 
   store.update("growth", id, patch);
@@ -326,7 +326,7 @@ export function endThread(store, id, { status, why, said }) {
     return { error: "An ending is one of: reached, dropped, expectation." };
   }
   if (String(why ?? "").trim() === "") {
-    return { error: "An ending needs its reason. A thread that ends silently becomes a grudge." };
+    return { error: "Ett avslut behöver sitt skäl. Ett spår som tar slut i tystnad blir ett agg." };
   }
 
   store.update("growth", id, {
@@ -365,10 +365,10 @@ export function logGrowthNote(store, { growth: threadId, note, observed, tell, a
   }
   const when = typeof at === "number" ? at : now;
   if (isLaterDay(when, now)) {
-    return { error: "That day has not arrived yet. A conversation is logged after it happens." };
+    return { error: "Den dagen har inte kommit än. Ett samtal loggas efter att det ägt rum." };
   }
   if (observed === true && String(row.marker ?? "").trim() === "") {
-    return { error: "There is no marker on this thread yet, so there is nothing to have observed." };
+    return { error: "Det finns ingen markör på det här spåret än, så det finns ingenting att ha sett." };
   }
 
   const id = store.create("growthNotes", {

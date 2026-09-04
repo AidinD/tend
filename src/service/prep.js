@@ -241,7 +241,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
           .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))[0];
         return {
           name: String(w.name ?? ""),
-          mandate: isLevel(level) ? LEVELS[level].authority : "nobody has said who decides",
+          mandate: isLevel(level) ? LEVELS[level].authority : "ingen har sagt vem som bestämmer",
           reviewEvery: `${reviewInterval(w.level)} dagar`,
           lastReviewed: reviewed
             ? agoWords(daysSince(reviewed.at, now) ?? 0)

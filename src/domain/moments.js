@@ -66,10 +66,10 @@ export function momentCoverage(moments, days) {
     spread,
     summary:
       moments.length === 0
-        ? `Nothing logged in the last ${days} days.`
-        : `${moments.length} ${moments.length === 1 ? "moment" : "moments"} across ${spread} ${
-            spread === 1 ? "day" : "days"
-          }, out of the last ${days}.`
+        ? `Inget loggat de senaste ${days} dagarna.`
+        : `${moments.length} ${moments.length === 1 ? "stund" : "stunder"} över ${spread} ${
+            spread === 1 ? "dag" : "dagar"
+          }, av de senaste ${days}.`
   };
 }
 
@@ -88,7 +88,7 @@ export function momentReadiness(cover) {
   if (cover.moments === 0) {
     return {
       ready: false,
-      why: `Nothing logged in the last ${cover.days} days, so there is nothing to read across.`
+      why: `Inget loggat de senaste ${cover.days} dagarna, så det finns ingenting att läsa tvärs över.`
     };
   }
   if (cover.moments < MIN_ENTRIES) {
@@ -96,18 +96,18 @@ export function momentReadiness(cover) {
     return {
       ready: false,
       why:
-        `${cover.moments} ${cover.moments === 1 ? "moment" : "moments"} in the last ${cover.days} days. ` +
-        `A pass needs at least ${MIN_ENTRIES} - ${short} more - because a pattern named from two is ` +
-        "one afternoon restated with confidence."
+        `${cover.moments} ${cover.moments === 1 ? "stund" : "stunder"} de senaste ${cover.days} dagarna. ` +
+        `En genomgång behöver minst ${MIN_ENTRIES} - ${short} till - för att ett mönster utpekat ur två ` +
+        "är en eftermiddag omsagd med självförtroende."
     };
   }
   if (cover.spread < MIN_SPREAD) {
     return {
       ready: false,
       why:
-        `Those ${cover.moments} moments cover only ${cover.spread} ${cover.spread === 1 ? "day" : "days"}. ` +
-        `A pass needs at least ${MIN_SPREAD}, because several logged in one sitting describe one ` +
-        "afternoon however many rows they make."
+        `De ${cover.moments} stunderna täcker bara ${cover.spread} ${cover.spread === 1 ? "dag" : "dagar"}. ` +
+        `En genomgång behöver minst ${MIN_SPREAD}, för att flera loggade vid ett tillfälle beskriver en ` +
+        "eftermiddag hur många rader de än blir."
     };
   }
   return { ready: true, why: "" };

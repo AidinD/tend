@@ -80,10 +80,10 @@ function incoherent(subjectKind, evidenceKinds) {
  */
 export function proposeDuty(store, { name, means, source, subjectKind, cadenceDays, evidenceKinds, relations }) {
   if (!String(name ?? "").trim() || !String(means ?? "").trim()) {
-    return { error: "A proposed duty needs a name and a plain description of what it means." };
+    return { error: "En föreslagen plikt behöver ett namn och en enkel beskrivning av vad den innebär." };
   }
   if (!(Number(cadenceDays) > 0)) {
-    return { error: "A proposed duty needs a positive cadence in days." };
+    return { error: "En föreslagen plikt behöver en positiv takt i dagar." };
   }
   if (relations && relations.some((r) => !isRelation(r))) {
     return { error: `Unknown relationship type. Valid: ${Object.keys(RELATIONS).join(", ")}.` };
@@ -112,7 +112,7 @@ export function proposeDuty(store, { name, means, source, subjectKind, cadenceDa
     keepWhileLeaving: true,
     status: "proposed"
   });
-  return { id, proposed: name, note: "Proposed only. It does nothing until accepted in the app." };
+  return { id, proposed: name, note: "Bara föreslagen. Den gör ingenting förrän du accepterar den i appen." };
 }
 
 /**
@@ -130,7 +130,7 @@ export function updateDuty(store, id, fields) {
     return { error: `No duty with id "${id}".` };
   }
   if (fields.cadenceDays !== undefined && !(Number(fields.cadenceDays) > 0)) {
-    return { error: "A cadence has to be a positive number of days." };
+    return { error: "En takt måste vara ett positivt antal dagar." };
   }
   if (fields.relations && fields.relations.some((/** @type {string} */ r) => !isRelation(r))) {
     return { error: `Unknown relationship type. Valid: ${Object.keys(RELATIONS).join(", ")}.` };
@@ -205,9 +205,9 @@ export function removeRow(store, collection, id) {
   if (collection === "growth" && isKeptRecord(/** @type {any} */ (row))) {
     return {
       error:
-        "That thread has ended and its reason is the record. Removing it would delete why the " +
-        "direction was let go, which is the answer to why it is no longer discussed. Reword the " +
-        "direction if it is wrong; a thread only becomes removable before it has an ending."
+        "Det spåret är avslutat och skälet är själva posten. Att ta bort det skulle radera varför " +
+        "riktningen släpptes, vilket är svaret på varför den inte diskuteras längre. Skriv om " +
+        "riktningen om den är fel; ett spår går bara att ta bort innan det fått ett avslut."
     };
   }
   store.remove(collection, id);

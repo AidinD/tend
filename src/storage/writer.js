@@ -98,9 +98,9 @@ export class EventWriter {
       // reordered by this.
       this.segment += 1;
       this.onRollover(
-        `Could not append to ${path} after ${RETRY_DELAYS.length} retries ` +
+        `Kunde inte skriva till ${path} efter ${RETRY_DELAYS.length} försök ` +
           `(${/** @type {NodeJS.ErrnoException} */ (err).code}). ` +
-          `Rolling over to segment ${this.segment}.`
+          `Rullar över till segment ${this.segment}.`
       );
 
       if (this.segment > 64) {

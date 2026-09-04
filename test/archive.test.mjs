@@ -534,7 +534,7 @@ describe("a name held by an archived row", () => {
 describe("undoing a bulk archive", () => {
   it("offers nothing to undo until a bulk archive has run", () => {
     assert.equal(api.undoableBulkArchive(store), null);
-    assert.match(failed(api.undoBulkArchive(store, { now: NOW })), /no bulk archive/i);
+    assert.match(failed(api.undoBulkArchive(store, { now: NOW })), /ingen massarkivering/i);
   });
 
   it("puts back exactly what one press archived", () => {
@@ -592,7 +592,7 @@ describe("undoing a bulk archive", () => {
     ok(api.undoBulkArchive(store, { now: NOW + DAY_MS }));
 
     assert.equal(api.undoableBulkArchive(store), null, "the run is spent");
-    assert.match(failed(api.undoBulkArchive(store, { now: NOW + 2 * DAY_MS })), /no bulk archive/i);
+    assert.match(failed(api.undoBulkArchive(store, { now: NOW + 2 * DAY_MS })), /ingen massarkivering/i);
   });
 
   it("undoes the most recent press, not the first one", () => {

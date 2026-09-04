@@ -63,6 +63,12 @@ import { RELATIONS } from "../src/domain/cadence.js";
 import { SEED_DUTIES } from "../src/service/seed.js";
 import { DEFAULT_SIGNALS } from "../src/domain/signals.js";
 import { TOPIC_SEEDS } from "../src/domain/topics.js";
+/*
+ * The journal's own field labels. Read from the definition rather than spelled
+ * out, so the check watches which box survived rather than what it is called -
+ * the wording moved in the translation and the assertion should not have to.
+ */
+import { JOURNAL_FIELDS } from "../src/domain/journal.js";
 
 /** @param {string} id */
 const dutyNamed = (id) => String(SEED_DUTIES.find((d) => d.id === id)?.name);
@@ -2128,7 +2134,7 @@ try {
     // Both halves named on the row it landed on. The clock is per person AND
     // project, and an update filed against either one alone would still leave
     // a fresh date somewhere on this page.
-    if (!/Testperson Ström, about Bergsklyftan/.test(stakeRow.name)) {
+    if (!/Testperson Ström, om Bergsklyftan/.test(stakeRow.name)) {
       throw new Error(`the row names "${stakeRow.name}", which is not the pair`);
     }
     if (!/senast idag/.test(stakeRow.meta)) {
@@ -2602,7 +2608,7 @@ try {
     if (card.heads.length !== 1) {
       throw new Error(`an empty box was rendered anyway: ${JSON.stringify(card.heads)}`);
     }
-    if (!/What I avoided/.test(card.heads[0])) {
+    if (!new RegExp(JOURNAL_FIELDS[1].label).test(card.heads[0])) {
       throw new Error(`the wrong box survived: ${JSON.stringify(card.heads)}`);
     }
   });

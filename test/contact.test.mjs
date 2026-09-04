@@ -210,7 +210,7 @@ describe("logging contact against the right sort of subject", () => {
     // and stays green until the day arrives - wrong in the flattering
     // direction, which is the direction nobody checks.
     const why = failed(api.logTouch(store, { subject: "Ada", kind: "one-to-one", at: NOW + 8 * DAY_MS, now: NOW }));
-    assert.match(why, /has not arrived yet/);
+    assert.match(why, /har inte kommit än/);
     assert.equal(store.rows("touches").length, 0);
   });
 

@@ -38,7 +38,7 @@ export const LEVELS = /** @type {const} */ ({
   doing: {
     label: "Gör det själv",
     means: "Fortfarande min. Ingen annan ansvarar för det här än.",
-    authority: "I decide. Nobody is waiting on me for a call they thought was theirs.",
+    authority: "Jag bestämmer. Ingen väntar på mig för ett beslut de trodde var deras.",
     review: 7
   },
   close: {
@@ -107,22 +107,26 @@ export function isUnspecified(workstream) {
 }
 
 /*
- * Intervals English has a word for.
+ * Intervals Swedish has a word for.
  *
  * The window used to spell these out in a hand-written option list, so changing
  * `review` above left the dropdown quietly promising the old interval. Anything
  * not in this table falls back to the day count, which is worth more than a
- * wrong word: an interval nobody has a name for should read as "every 21 days"
+ * wrong word: an interval nobody has a name for should read as "var 21:a dag"
  * rather than get rounded to the nearest familiar one.
+ *
+ * Not the same set as English: Swedish has no single word for fortnightly, so
+ * 14 gets the two-week phrase rather than a coined one. The fallback is the
+ * same shape as the entries so a dropdown reads consistently either way.
  */
 const REVIEW_WORDS = /** @type {Record<number, string>} */ ({
-  1: "daily",
-  7: "weekly",
-  14: "fortnightly",
-  30: "monthly",
-  60: "every two months",
-  90: "every three months",
-  365: "yearly"
+  1: "dagligen",
+  7: "varje vecka",
+  14: "varannan vecka",
+  30: "varje månad",
+  60: "varannan månad",
+  90: "var tredje månad",
+  365: "årligen"
 });
 
 /**
@@ -132,7 +136,7 @@ const REVIEW_WORDS = /** @type {Record<number, string>} */ ({
  * @returns {string}
  */
 export function reviewPhrase(days) {
-  return REVIEW_WORDS[days] ?? `every ${days} days`;
+  return REVIEW_WORDS[days] ?? `var ${days}:e dag`;
 }
 
 /**

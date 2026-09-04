@@ -250,7 +250,7 @@ async function personPage(id) {
     .map(
       (/** @type {any} */ c) => `<div class="line">
         <span class="line-when">${esc(c.behindBy)}</span>
-        <span class="line-text"><strong>${esc(c.duty)}</strong> - target ${esc(c.target)}, last ${esc(c.lastHappened)}</span>
+        <span class="line-text">${words.cadenceLine(esc(c.duty), esc(c.target), esc(c.lastHappened))}</span>
         <span class="line-right">${pill(c.urgency)}</span>
       </div>`
     )

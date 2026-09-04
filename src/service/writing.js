@@ -437,8 +437,8 @@ export function logTouch(store, { subject, kind, note, at, now }) {
   if (isLaterDay(when, now)) {
     return {
       error:
-        "That day has not arrived yet. Contact is a record of something that happened, so a " +
-        "meeting in the diary cannot satisfy a cadence - log it once it has, or backdate it."
+        "Den dagen har inte kommit än. En kontakt är en registrering av något som hänt, så ett " +
+        "möte i kalendern kan inte uppfylla en takt - logga den när den ägt rum, eller backdatera."
     };
   }
 

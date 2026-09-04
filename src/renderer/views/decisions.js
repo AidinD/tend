@@ -147,7 +147,7 @@ function body(d) {
     }
     ${d.rejected ? `<p class="card-why dim"><span class="inline-label">${words.rejectedLabel}</span> ${esc(d.rejected)}</p>` : ""}
     ${d.consulted.length > 0 ? `<p class="card-why dim"><span class="inline-label">${words.consultedLabel}</span> ${esc(d.consulted.join(", "))}</p>` : ""}
-    ${d.missing.length > 0 ? `<p class="card-why warn-text">${words.missing(esc(d.missing.join(" Missing ")))}</p>` : ""}`;
+    ${d.missing.length > 0 ? `<p class="card-why warn-text">${words.missing(esc(d.missing.join(words.missingJoin)))}</p>` : ""}`;
 }
 
 /**

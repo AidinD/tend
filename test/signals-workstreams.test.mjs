@@ -116,7 +116,7 @@ describe("the monthly questions", () => {
 
   it("refuses a bare yes, because a yes with no note is useless later", () => {
     const r = api.answerSignal(store, { signal: "signal-pushback", answer: "yes", now: NOW });
-    assert.match(String(r.error), /needs a note/);
+    assert.match(String(r.error), /behöver en anteckning/);
   });
 
   it("accepts a yes with a note", () => {
@@ -175,8 +175,8 @@ describe("delegation levels", () => {
   });
 
   it("names the intervals it has a word for and counts the days when it has none", () => {
-    assert.equal(reviewPhrase(7), "weekly");
-    assert.equal(reviewPhrase(21), "every 21 days");
+    assert.equal(reviewPhrase(7), "varje vecka");
+    assert.equal(reviewPhrase(21), "var 21:e dag");
   });
 
   it("looks more often the less you have handed over", () => {
@@ -436,7 +436,7 @@ describe("indexing Nib", () => {
 
   it("explains itself when nothing is bound", () => {
     const empty = openStore({ dataDir: mkdtempSync(join(tmpdir(), "tend-nb-")), role: "app", host: "t" });
-    assert.match(failed(nibService.indexNib(empty, { dir: nibDir })), /nothing to index/);
+    assert.match(failed(nibService.indexNib(empty, { dir: nibDir })), /ingenting att indexera/);
   });
 
   it("never writes to Nib", () => {

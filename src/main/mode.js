@@ -105,7 +105,7 @@ export function writeMode(configDir, mode) {
   } catch (error) {
     return {
       ok: false,
-      why: `The mode could not be saved, so the next start will be in work mode: ${
+      why: `Läget kunde inte sparas, så nästa start blir i arbetsläge: ${
         error instanceof Error ? error.message : String(error)
       }`
     };

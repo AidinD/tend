@@ -92,13 +92,15 @@ export const revisitAt = (now, days = DEFAULT_REVISIT_DAYS) =>
 export function thin(decision) {
   const missing = [];
   if (String(decision.because ?? "").trim() === "") {
-    missing.push("why. In a year this is the only field that matters.");
+    missing.push("varför. Om ett år är det här det enda fältet som betyder något.");
   }
   if (String(decision.rejected ?? "").trim() === "") {
-    missing.push("what was rejected. A decision with no alternatives reads as the only option, which it never was.");
+    missing.push(
+      "vad som valdes bort. Ett beslut utan alternativ läser som det enda alternativet, vilket det aldrig var."
+    );
   }
   if (!Array.isArray(decision.consulted) || decision.consulted.length === 0) {
-    missing.push("who was consulted. It is also who to tell when this changes.");
+    missing.push("vem som tillfrågades. Det är också vilka som ska få veta när det här ändras.");
   }
   return missing;
 }

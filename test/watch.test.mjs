@@ -112,6 +112,6 @@ describe("watching a directory", () => {
       });
     });
     assert.equal(warnings.length, 1);
-    assert.match(warnings[0], /only updates when you navigate/);
+    assert.match(warnings[0], /uppdateras bara när du navigerar/);
   });
 });

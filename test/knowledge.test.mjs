@@ -116,7 +116,7 @@ describe("the free pass", () => {
     writeNotebook([{ id: "n1", cat: "Books", title: "Kritisera inte" }]);
     // "what is it that I have to do about this" is all stopwords: a search that
     // matched on them would return the whole notebook and look like an answer.
-    assert.match(failed(search("what is it that I have to do about this", dir)), /in a sentence/);
+    assert.match(failed(search("what is it that I have to do about this", dir)), /i en mening/);
   });
 
   it("says nothing rather than everything when nothing matches", () => {
@@ -149,7 +149,7 @@ describe("the free pass", () => {
   });
 
   it("refuses an empty situation before touching the notebook", () => {
-    assert.match(failed(search("   ", dir)), /in a sentence/);
+    assert.match(failed(search("   ", dir)), /i en mening/);
   });
 });
 
@@ -210,7 +210,7 @@ describe("the reading pass", () => {
 
   it("refuses before spending anything when the shortlist is empty", async () => {
     const impl = fakeAsk({ applies: [], missing: "" });
-    assert.match(failed(await consider({ situation: "x", candidates: [], dir, askImpl: impl })), /Nothing to read/);
+    assert.match(failed(await consider({ situation: "x", candidates: [], dir, askImpl: impl })), /Ingenting att läsa/);
     assert.equal(impl.calls.length, 0);
   });
 
@@ -220,7 +220,7 @@ describe("the reading pass", () => {
     const message = failed(
       await consider({ situation: "x", candidates: [{ id: "n1", title: "Empty", trail: "Books" }], dir, askImpl: impl })
     );
-    assert.match(message, /no text yet/);
+    assert.match(message, /ingen text än/);
     assert.equal(impl.calls.length, 0);
   });
 });

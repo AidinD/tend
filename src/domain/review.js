@@ -78,7 +78,7 @@ export function readiness(coverage) {
   if (coverage.entries === 0) {
     return {
       ready: false,
-      why: `Nothing was written in the last ${coverage.days} days, so there is nothing to read.`
+      why: `Ingenting skrevs de senaste ${coverage.days} dagarna, så det finns ingenting att läsa.`
     };
   }
   if (coverage.entries < MIN_ENTRIES) {
@@ -86,18 +86,18 @@ export function readiness(coverage) {
     return {
       ready: false,
       why:
-        `${coverage.entries} ${coverage.entries === 1 ? "entry" : "entries"} in the last ${coverage.days} days. ` +
-        `A pass needs at least ${MIN_ENTRIES} - ${short} more ${short === 1 ? "evening" : "evenings"} - because a ` +
-        "pattern named from two is one evening restated with confidence, and it gets read as a fact next month."
+        `${coverage.entries} ${coverage.entries === 1 ? "anteckning" : "anteckningar"} de senaste ${coverage.days} dagarna. ` +
+        `En genomgång behöver minst ${MIN_ENTRIES} - ${short} ${short === 1 ? "kväll" : "kvällar"} till - för att ett ` +
+        "mönster utpekat ur två är en kväll omsagd med självförtroende, och det läses som ett faktum nästa månad."
     };
   }
   if (coverage.spread < MIN_SPREAD) {
     return {
       ready: false,
       why:
-        `Those entries cover only ${coverage.spread} ${coverage.spread === 1 ? "day" : "days"}. ` +
-        `A pass needs at least ${MIN_SPREAD}, because several written in one sitting about one week are one ` +
-        "data point rather than several."
+        `De anteckningarna täcker bara ${coverage.spread} ${coverage.spread === 1 ? "dag" : "dagar"}. ` +
+        `En genomgång behöver minst ${MIN_SPREAD}, för att flera skrivna vid ett tillfälle om en vecka är en ` +
+        "datapunkt snarare än flera."
     };
   }
   return { ready: true, why: "" };
@@ -195,14 +195,14 @@ export function ledger(rows, now, days) {
  */
 export function ledgerLines(l) {
   return [
-    `Days with an entry: ${l.journalled} of the last ${l.days}.`,
-    `Conversations recorded: ${l.conversations}.`,
-    `Promises made in the window: ${l.promisesMade}, of which ${l.promisesKept} are now closed.`,
-    `Promises open right now, made at any time: ${l.promisesStillOpen}.`,
-    `Decisions recorded: ${l.decisions}.`,
-    `Growth threads discussed: ${l.growthNotes}, with the marker actually observed ${l.growthObserved} time(s).`,
-    `Meetings that did not happen: ${l.skips}.`,
-    `Times somebody was chased for an answer: ${l.chases}.`
+    `Dagar med en anteckning: ${l.journalled} av de senaste ${l.days}.`,
+    `Registrerade samtal: ${l.conversations}.`,
+    `Löften givna i perioden: ${l.promisesMade}, varav ${l.promisesKept} nu är stängda.`,
+    `Löften öppna just nu, givna när som helst: ${l.promisesStillOpen}.`,
+    `Registrerade beslut: ${l.decisions}.`,
+    `Utvecklingsspår som togs upp: ${l.growthNotes}, med markören faktiskt sedd ${l.growthObserved} gång(er).`,
+    `Möten som inte blev av: ${l.skips}.`,
+    `Gånger någon påmindes om ett svar: ${l.chases}.`
   ];
 }
 
@@ -238,7 +238,7 @@ export function declared(focus, now, days, costSummary) {
     name: String(focus.name),
     budgetOfWeek: typeof focus.budget === "number" ? focus.budget : null,
     overlapDays,
-    cost: costSummary ?? "The cost of this focus was not measured."
+    cost: costSummary ?? "Kostnaden för det här fokuset mättes inte."
   };
 }
 

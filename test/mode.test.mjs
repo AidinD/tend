@@ -147,7 +147,7 @@ describe("remembering the choice", () => {
     assert.equal(result.ok, false);
     // Said out loud, because the alternative is a mode that appears to change
     // and quietly reverts on the next launch.
-    assert.match(result.ok === false ? result.why : "", /next start will be in work mode/);
+    assert.match(result.ok === false ? result.why : "", /nästa start blir i arbetsläge/);
   });
 
   it("lets the environment decide this launch, for a harness and for a way out", () => {
@@ -197,7 +197,7 @@ describe("what each half consists of", () => {
     // have, and the difficulty of it is exactly that the involvement is real and
     // the standing is not.
     assert.equal(/step/i.test(kind.label + kind.choice + kind.note), false);
-    assert.match(kind.note, /not yours to set/);
+    assert.match(kind.note, /inte dina att sätta/);
   });
 
   it("keeps the two relationship vocabularies apart", () => {
@@ -345,7 +345,7 @@ describe("the service, per half", () => {
     const p = /** @type {any} */ (person(s, "Someone", 1));
     assert.equal(p.blocks.growth, false);
     assert.equal(p.blocks.promises, true);
-    assert.match(String(p.relationMeans), /arranged around/);
+    assert.match(String(p.relationMeans), /ordnade omkring/);
     rmSync(dir, { recursive: true, force: true });
   });
 });
@@ -642,7 +642,7 @@ describe("a moment, and the people it involved", () => {
       part: "   ",
       now: NOW
     });
-    assert.match(String(/** @type {any} */ (refused).error), /your own part/);
+    assert.match(String(/** @type {any} */ (refused).error), /din egen del/);
     assert.equal(store.rows("moments").length, 0);
   });
 
@@ -656,7 +656,7 @@ describe("a moment, and the people it involved", () => {
 
   it("refuses one with nobody in it", () => {
     const refused = logMoment(store, { people: [], part: "Something", now: NOW });
-    assert.match(String(/** @type {any} */ (refused).error), /belongs in the day/);
+    assert.match(String(/** @type {any} */ (refused).error), /hör hemma i dagen/);
   });
 
   it("refuses somebody who is not here, rather than dropping them quietly", () => {
@@ -680,7 +680,7 @@ describe("a moment, and the people it involved", () => {
       at: NOW + 3 * 86_400_000,
       now: NOW
     });
-    assert.match(String(/** @type {any} */ (refused).error), /has not arrived/);
+    assert.match(String(/** @type {any} */ (refused).error), /har inte kommit/);
   });
 
   it("holds several on one day, because a day holds more than one moment", () => {

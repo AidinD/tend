@@ -112,7 +112,7 @@ describe("how many at once", () => {
     set({ aim: "Ask about the workload before adding to it" });
 
     const why = failed(api.setAim(store, { aim: "A third thing", source: "logged", now: NOW }));
-    assert.match(why, /limit/);
+    assert.match(why, /gränsen/);
     assert.equal(store.rows("aims").filter((a) => a.status === "open").length, AT_ONCE);
   });
 
@@ -157,7 +157,7 @@ describe("logging an occasion", () => {
     const why = failed(
       api.logAim(store, /** @type {any} */ ({ aim: String(made.id), note: "Went okay", now: NOW }))
     );
-    assert.match(why, /scrapbook/);
+    assert.match(why, /klippalbum/);
     assert.equal(store.rows("aimNotes").length, 0);
   });
 
@@ -234,7 +234,7 @@ describe("the nudge", () => {
     const unmeasured = signals(NOW).find((s) => s.key.startsWith("aim-unmeasured"));
     assert.ok(unmeasured, "an aim with no measure said nothing");
     assert.match(unmeasured.text, /^Jag /);
-    assert.match(String(unmeasured.detail), /kept to next time/);
+    assert.match(String(unmeasured.detail), /skjutas till nästa gång/);
   });
 
   it("never lets an aim change the daily page's headline", () => {

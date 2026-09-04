@@ -91,7 +91,7 @@ describe("the floor", () => {
   it("refuses an empty window and says so plainly", () => {
     const r = readiness({ entries: 0, spread: 0, days: 30 });
     assert.equal(r.ready, false);
-    assert.match(r.why, /Nothing was written/);
+    assert.match(r.why, /Ingenting skrevs/);
   });
 
   it("refuses too few entries and says how many more would do it", () => {
@@ -99,7 +99,7 @@ describe("the floor", () => {
     assert.equal(r.ready, false);
     // The refusal has to be actionable. "Not enough data" is a dead end; "one
     // more evening" is a thing somebody can do tonight.
-    assert.match(r.why, /1 more evening/);
+    assert.match(r.why, /1 kväll till/);
   });
 
   it("refuses entries that all landed in one sitting, however many there are", () => {
@@ -108,7 +108,7 @@ describe("the floor", () => {
     // days would let it through.
     const r = readiness({ entries: 8, spread: MIN_SPREAD - 1, days: 30 });
     assert.equal(r.ready, false);
-    assert.match(r.why, /one data point/);
+    assert.match(r.why, /en datapunkt/);
   });
 
   it("allows a window that clears both", () => {
@@ -121,7 +121,7 @@ describe("the floor", () => {
 
     const result = failed(await reviewJournal(store, { now: NOW, askImpl }));
 
-    assert.match(result, /at least 4/);
+    assert.match(result, /minst 4/);
     // And no call was made. A refusal that still pays for a model call is a
     // refusal in name only.
     assert.equal(askImpl.calls.length, 0);
@@ -191,10 +191,10 @@ describe("the counts the prose is set against", () => {
 
   it("states a zero rather than leaving it out", () => {
     const lines = ledgerLines(ledger({}, NOW, 30));
-    assert.match(lines.join("\n"), /Decisions recorded: 0\./);
+    assert.match(lines.join("\n"), /Registrerade beslut: 0\./);
     // "No decisions in a month" is one of the more interesting things a month
     // can say, and a list of only what happened cannot say it.
-    assert.match(lines.join("\n"), /Meetings that did not happen: 0\./);
+    assert.match(lines.join("\n"), /Möten som inte blev av: 0\./);
   });
 });
 
@@ -233,7 +233,7 @@ describe("what was declared for the window", () => {
 
   it("says outright when the cost was never measured", () => {
     const focus = { id: "f", name: "The migration", startedAt: NOW - 5 * DAY_MS, endsAt: NOW };
-    assert.match(String(declared(focus, NOW, 30)?.cost), /not measured/);
+    assert.match(String(declared(focus, NOW, 30)?.cost), /mättes inte/);
   });
 });
 
@@ -276,8 +276,8 @@ describe("the reading itself", () => {
     // The boxes are not interchangeable - "what took the day" and "what I
     // avoided" are different claims - so flattening them into prose would throw
     // away the entire value of the avoidance field.
-    assert.match(prompt, /What took the day:/);
-    assert.match(prompt, /What I avoided:/);
+    assert.match(prompt, /Vad dagen gick till:/);
+    assert.match(prompt, /Vad jag undvek:/);
   });
 
   it("gives the model the counts as well as the prose", async () => {
@@ -286,7 +286,7 @@ describe("the reading itself", () => {
     const askImpl = stub(answer);
     ok(await reviewJournal(store, { now: NOW, askImpl }));
 
-    assert.match(askImpl.calls[0].prompt, /Conversations recorded: 1\./);
+    assert.match(askImpl.calls[0].prompt, /Registrerade samtal: 1\./);
     assert.match(askImpl.calls[0].system, /where the entries and the counts disagree/i);
   });
 
@@ -354,12 +354,12 @@ describe("keeping a reading", () => {
   });
 
   it("refuses something that is not a reading", () => {
-    assert.match(failed(keepReview(store, {})), /not a review/);
+    assert.match(failed(keepReview(store, {})), /ingen genomgång/);
   });
 
   it("refuses a reading that found nothing", () => {
     const empty = { ...kept, wentInto: [], avoidance: [], questions: [], saidVsDid: "" };
-    assert.match(failed(keepReview(store, empty)), /nothing worth keeping/);
+    assert.match(failed(keepReview(store, empty)), /ingenting värt att spara/);
   });
 
   it("lists the readings newest first", () => {
@@ -522,7 +522,7 @@ describe("recording that a pass ran", () => {
   });
 
   it("refuses a run with no time on it", () => {
-    assert.match(failed(noteReviewRun(store, { at: 0 })), /run at some point/);
+    assert.match(failed(noteReviewRun(store, { at: 0 })), /körts någon gång/);
   });
 
   it("keeps a reading that was never recorded as a run, since the pass may predate this", () => {
@@ -553,7 +553,7 @@ describe("the material, without a model", () => {
     assert.equal(material.entries.length, 6);
     assert.equal(material.readiness.ready, true);
     assert.equal(material.recorded.conversations, 1);
-    assert.match(material.recordedLines.join("\n"), /Conversations recorded: 1\./);
+    assert.match(material.recordedLines.join("\n"), /Registrerade samtal: 1\./);
     // Nothing was declared, and the field says so rather than being absent -
     // absent reads as "not looked at".
     assert.equal(material.declared, null);
@@ -568,6 +568,6 @@ describe("the material, without a model", () => {
     const material = journalMaterial(store, NOW);
 
     assert.equal(material.readiness.ready, false);
-    assert.match(material.readiness.why, /at least 4/);
+    assert.match(material.readiness.why, /minst 4/);
   });
 });

@@ -3,6 +3,69 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-05 - The translation's remainder, and the sweep that was supposed to find it
+
+**Decided.** Everything a form, a date input or a button can produce is Swedish.
+What stays English is model prompts and tool descriptions, and messages keyed by
+an id or an enum value that only a caller passing bad arguments can produce.
+
+**The named list was itself incomplete, which is the finding.** PLAN.md named
+four places: the private half's relationship kinds, the journal's prompts, the
+decision form's field notes, scattered validation. A calibrated sweep across all
+three quote kinds found nine more files nobody had listed - Reflektion's three
+prompts, the delegation level's authority sentence and every review interval
+word, the stakeholder fallback names, one attention signal, the coverage and
+ledger sentences a model pass is set beside, the auto-updater's status line in
+Settings, the mode-save failure, and three storage warnings a person reads while
+Dropbox is syncing.
+
+**And two words spelled into a template.** A person's page drew
+`<strong>${duty}</strong> - target ${target}, last ${last}` in the markup while
+a project's page drew the same sentence from `T.work.cadenceLine` in Swedish.
+So "1-1 - target var 14 dagar, last för 18 veckor sedan" sat on every person's
+page, in a view whose every other string had been translated. The twin is
+`T.people.cadenceLine` now; two copies because the table is namespaced per
+screen.
+
+**The calibration is the part worth keeping, and it failed twice before it
+worked.** The rule that came out of the backtick-only sweep was: a search that
+reports zero must first be run against a case where the answer is known not to
+be zero. Applied here, the first attempt failed because the needles were
+*guessed* rather than read out of the file - which looked exactly like a broken
+scanner and was not. Once it passed, it failed again in a subtler way: the
+scanner found `"Partner"` and the *filter* discarded it for being under twelve
+characters and holding no space. A slice made almost entirely of short labels
+would have read as clean. So the filter needs calibrating as much as the
+scanner, and the named files are read unfiltered rather than judged by a
+heuristic.
+
+**The needles now point at strings that stay English on purpose** - a tool
+description, a thrown developer error, an enum guard - plus two Swedish ones.
+Needles that were themselves going to be translated made the calibration go
+stale the moment the work was done, which is the calibration failing for the
+wrong reason; and without a Swedish needle a scanner that could only read ASCII
+would pass every check while skipping half the file.
+
+**Where it lands.** 580 English literals remain. 437 are model prompts, tool
+descriptions and JSON-schema field descriptions. 59 are id-keyed, enum-keyed or
+thrown. The rest is the boundary itself: a contact kind that is not a kind, a
+subject a duty cannot apply to - all behind a select in the window, so only MCP
+can reach them.
+
+**The duty names on his own cards are data, not a string table, and are
+reported rather than fixed.** `dutyLabel()` reads `shortName ?? name` off the
+stored duty row. `seed.js` has been Swedish since the translation, but seeding
+creates rows once and never renames them, so a store built from the English seed
+keeps the English names - and renaming them is the role map's owner's, on the
+card that already asks for their short names. Same boundary as everywhere else
+here: an agent may not rewrite what the user believes the job is.
+
+**Three checks stopped watching wording and started watching structure.** The
+private half's two - which vocabulary the dialog offers - read `PRIVATE_RELATIONS`
+now, and the journal's box check reads `JOURNAL_FIELDS[1].label`. They were
+asserting English sentences about questions that have nothing to do with English.
+About fifty other needles simply followed their strings.
+
 ## 2026-09-04 - His own work gets the card treatment, and gets it first
 
 **Decided.** Mina mål and Mina action points are cards in a two-across grid,
