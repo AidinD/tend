@@ -151,6 +151,25 @@ test("the other three sets answer their own question", async (t) => {
     assert.equal(tileOf(row({ update: { overdue: false } }), "outward").kind, "updatedRecently");
   });
 
+  await t.test("every set answers for somebody who is away", () => {
+    /*
+     * Two of the four had no phrase for it, so a stakeholder on parental leave
+     * read as "Updated recently" and somebody whose work he sees read as "In
+     * step". Both true in the narrow sense and both useless: nothing is
+     * expected of you either way, and the tile said the opposite.
+     *
+     * Asserted across every cluster rather than in the two that were fixed,
+     * because the next set added will have the same gap available to it.
+     */
+    for (const cluster of Object.keys(TILE_SETS)) {
+      assert.equal(
+        tileOf(row({ availability: "away", worstDrift: drift() }), cluster).kind,
+        "away",
+        `${cluster} does not answer for somebody who is away`
+      );
+    }
+  });
+
   await t.test("an owed promise outranks a question, because somebody is waiting", () => {
     const tile = tileOf(row({ promisesOwed: 1, hasQuestion: true }), "outward");
     assert.equal(tile.kind, "promisesOwed");
@@ -181,12 +200,14 @@ test("every declared phrase is reachable, or declared unreachable", async (t) =>
     ],
     ["mandate", "planNotStarted", { plan: { started: false } }],
     ["mandate", "planRunning", { plan: { started: true } }],
+    ["noChannel", "away", { availability: "away" }],
     ["noChannel", "neverSpoken", { worstDrift: drift({ everHappened: false }) }],
     ["noChannel", "feedbackOverdue", { worstDrift: drift({ sinceDays: 40, targetDays: 28 }) }],
     ["noChannel", "inStep", { worstDrift: drift({ sinceDays: 2, targetDays: 28 }) }],
     ["peers", "away", { availability: "away" }],
     ["peers", "daysOver", { worstDrift: drift({ sinceDays: 20, targetDays: 7 }) }],
     ["peers", "inStep", { worstDrift: drift({ sinceDays: 2, targetDays: 7 }) }],
+    ["outward", "away", { availability: "away" }],
     ["outward", "promisesOwed", { promisesOwed: 1 }],
     ["outward", "questionToAsk", { hasQuestion: true }],
     ["outward", "updateOverdue", { update: { overdue: true } }],

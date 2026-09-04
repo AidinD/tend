@@ -68,9 +68,9 @@ export const TILE_SETS = /** @type {const} */ ({
     "directionUntested",
     "noDirection"
   ],
-  noChannel: ["neverSpoken", "feedbackOverdue", "inStep"],
+  noChannel: ["away", "neverSpoken", "feedbackOverdue", "inStep"],
   peers: ["away", "daysOver", "inStep"],
-  outward: ["promisesOwed", "questionToAsk", "updateOverdue", "updatedRecently"]
+  outward: ["away", "promisesOwed", "questionToAsk", "updateOverdue", "updatedRecently"]
 });
 
 /**
@@ -182,6 +182,16 @@ function mandateTile(row) {
  * @param {TileInput} row
  */
 function noChannelTile(row) {
+  /*
+   * Availability first, as in every set. It was missing here and in the
+   * outward set, so somebody on parental leave read as "In step" - which is
+   * true in the sense that nothing is late, and useless: nothing is expected
+   * of you either way and the tile said the opposite of that.
+   */
+  if (row.availability === "away") {
+    return { kind: "away" };
+  }
+
   const drift = row.worstDrift ?? null;
   if (drift !== null && drift.everHappened === false) {
     return { kind: "neverSpoken", duty: String(drift.duty) };
@@ -222,6 +232,16 @@ function peersTile(row) {
  * @param {TileInput} row
  */
 function outwardTile(row) {
+  /*
+   * Above what you owe them, which is the one place this ordering is worth
+   * arguing about: a promise to somebody on leave is still owed. But it is not
+   * owed *now*, and the point of this page is what to do today - the promise
+   * keeps ageing on their own card, where it belongs.
+   */
+  if (row.availability === "away") {
+    return { kind: "away" };
+  }
+
   const owed = Number(row.promisesOwed ?? 0);
   if (owed > 0) {
     return { kind: "promisesOwed", count: owed };
