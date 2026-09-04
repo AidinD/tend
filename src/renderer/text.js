@@ -1149,242 +1149,255 @@ export const T = {
   },
 
   work: {
-    title: "Work",
+    title: "Arbete",
     sub:
-      "Projects to keep an eye on, and the pieces inside them you have handed over to some degree.",
-    addProject: "Add project",
-    addStake: "Add stakeholder",
-    addStream: "Add workstream",
-    readFailedProjects: "the projects",
-    readFailedStreams: "the workstreams",
+      "Projekt att hålla ett öga på, och delarna inuti dem som du lämnat över i någon grad.",
+    addProject: "Lägg till projekt",
+    addStake: "Lägg till stakeholder",
+    addStream: "Lägg till arbetsområde",
+    readFailedProjects: "projekten",
+    readFailedStreams: "arbetsområdena",
 
     /* A project row. */
     /** @param {string} when */
-    lastLookedAt: (when) => `last looked at ${when}`,
-    view: "View",
-    logLook: "Log a look",
-    archive: "Archive",
-    remove: "Remove",
+    lastLookedAt: (when) => `senast tittat på ${when}`,
+    view: "Visa",
+    logLook: "Logga en titt",
+    archive: "Arkivera",
+    remove: "Ta bort",
 
     /* A stakeholder row. The clock is per person AND project. */
     /** @param {string} note */
-    lastTime: (note) => `last time: ${note}`,
+    lastTime: (note) => `senast: ${note}`,
     /** @param {string} every @param {string} last */
-    stakeMeta: (every, last) => `every ${every} &middot; last ${last}`,
-    logUpdate: "Log an update",
-    edit: "Edit",
+    stakeMeta: (every, last) => `var ${every} &middot; senast ${last}`,
+    logUpdate: "Logga en uppdatering",
+    edit: "Ändra",
 
     /* A workstream card. Leaving the level unset is itself flagged, because
        unstated delegation is the failure rather than missing data. */
-    noLevelSet: "no level set",
-    nobodyNamed: "nobody named",
+    noLevelSet: "ingen nivå satt",
+    nobodyNamed: "ingen utpekad",
     /** @param {string} owner @param {string} project @param {string} reviewed */
-    streamMeta: (owner, project, reviewed) => `${owner}${project} · reviewed ${reviewed}`,
+    streamMeta: (owner, project, reviewed) => `${owner}${project} · genomgånget ${reviewed}`,
     /** @param {string} project */
     streamProject: (project) => ` · ${project}`,
-    setLevelButton: "Set the level",
-    changeLevelButton: "Change level",
-    logReview: "Log a review",
+    setLevelButton: "Sätt nivån",
+    changeLevelButton: "Ändra nivå",
+    logReview: "Logga en genomgång",
 
-    noPeopleYet: "Add people first if you want to name an owner on a workstream.",
+    noPeopleYet: "Lägg till personer först om du vill peka ut en ägare på ett arbetsområde.",
 
     /* The three groups, and the two versions of each empty state - "nothing
        yet" and "everything is archived" are different facts. */
-    projectsGroup: "Projects",
+    projectsGroup: "Projekt",
     projectsAllArchived:
-      "No projects active. Every project here is archived - open the group below to bring one back.",
+      "Inga projekt aktiva. Varje projekt här är arkiverat - öppna gruppen nedan för att ta " +
+      "tillbaka ett.",
     projectsNone:
-      "No projects yet. Add the ones you are accountable for without being in the daily work.",
+      "Inga projekt än. Lägg till dem du ansvarar för utan att vara med i det daliga arbetet.",
 
-    stakesGroup: "Waiting to hear from you",
+    stakesGroup: "Väntar på dig",
     stakesNone:
-      "Nobody is down as waiting for a report. A stakeholder is someone who depends on what you " +
-      "deliver without being your report or your peer - the one direction where silence stays " +
-      "invisible until something slips.",
+      "Ingen står som väntande på en rapport. En stakeholder är någon som beror på vad du " +
+      "levererar utan att vara din medarbetare eller din jämlike - den enda riktningen där " +
+      "tystnad förblir osynlig till något glider.",
     stakesNote:
-      "The clock is per person AND project. An update about one project does not answer for " +
-      "another, which is the whole reason this is not a field on a person: a quarter of silence " +
-      "about the thing somebody depends on should not sit behind a fortnight of talk about " +
-      "something else.",
+      "Klockan går per person OCH projekt. En uppdatering om ett projekt svarar inte för ett " +
+      "annat, vilket är hela skälet att det här inte är ett fält på en person: ett kvartals " +
+      "tystnad om det någon beror på ska inte gömmas bakom två veckors prat om något annat.",
 
-    streamsGroup: "Workstreams",
+    streamsGroup: "Arbetsområden",
     streamsAllArchived:
-      "No workstreams active. Every one here is archived - open the group below to bring one back.",
+      "Inga arbetsområden aktiva. Varje ett här är arkiverat - öppna gruppen nedan för att ta " +
+      "tillbaka ett.",
     streamsNone:
-      "Nothing handed over yet. A workstream is a piece of work with an owner and a stated level " +
-      "of hand-over.",
+      "Inget överlämnat än. Ett arbetsområde är en bit arbete med en ägare och en uttalad " +
+      "nivå av överlämning.",
 
-    archivedProjectsGroup: "Archived projects",
-    archivedStreamsGroup: "Archived workstreams",
+    archivedProjectsGroup: "Arkiverade projekt",
+    archivedStreamsGroup: "Arkiverade arbetsområden",
     /** @param {string} date */
-    archivedOn: (date) => `archived ${date}`,
-    unarchive: "Unarchive",
+    archivedOn: (date) => `arkiverat ${date}`,
+    unarchive: "Ta tillbaka",
 
-    /* The delegation level, shared with Now which offers it off an unset one. */
+    /* The delegation level, shared with Läget which offers it off an unset one. */
     /** @param {string} name */
-    levelTitle: (name) => `How far have you stepped back on ${name}?`,
-    levelTitleBare: "Set the delegation level",
+    levelTitle: (name) => `Hur långt har du klivit tillbaka på ${name}?`,
+    levelTitleBare: "Sätt delegeringsnivån",
     levelIntro:
-      "How closely you follow up depends on how experienced this person is at this particular " +
-      "task, not on how good they are in general. The level sets how often Tend expects a review " +
-      "- and the absence of a review is what separates delegating from abdicating.",
-    levelLabel: "Level",
-    levelConfirm: "Set it",
-    levelSetToast: "Level set.",
+      "Hur nära du följer upp beror på hur erfaren den här personen är på just den här " +
+      "uppgiften, inte på hur bra de är i allmänhet. Nivån avgör hur ofta Tend förväntar sig " +
+      "en genomgång - och frånvaron av en genomgång är det som skiljer att delegera från att " +
+      "abdikera.",
+    levelLabel: "Nivå",
+    levelConfirm: "Sätt den",
+    levelSetToast: "Nivå satt.",
 
     /* One project's page. */
-    backToWork: "← Work",
-    readFailedProject: "that project",
-    projectArchivedRole: "Archived. Its history is here; it is out of every forward-looking view.",
-    projectRole: "What has been looked at, and what is inside it.",
-    cadencesBlock: "Cadences",
-    cadencesNone: "No cadence over this project, so nothing here can be late.",
+    backToWork: "← Arbete",
+    readFailedProject: "det projektet",
+    projectArchivedRole:
+      "Arkiverat. Historiken finns här; det är ute ur varje framåtblickande vy.",
+    projectRole: "Vad som tittats på, och vad som finns inuti det.",
+    cadencesBlock: "Takter",
+    cadencesNone: "Ingen takt över det här projektet, så inget här kan bli sent.",
     /** @param {string} duty @param {string} target @param {string} last */
-    cadenceLine: (duty, target, last) => `<strong>${duty}</strong> - target ${target}, last ${last}`,
-    checkInsBlock: "Check-ins",
-    checkInsNone: "Nothing logged against it yet. A look recorded here is what stops the clock.",
-    fromANote: "from a note",
-    notRight: "Not right",
-    streamsInBlock: "Workstreams inside it",
-    streamsInNone: "None. A project with no workstreams has nothing handed over.",
+    cadenceLine: (duty, target, last) =>
+      `<strong>${duty}</strong> - mål ${target}, senast ${last}`,
+    checkInsBlock: "Avstämningar",
+    checkInsNone:
+      "Inget loggat på det än. En titt registrerad här är det som stoppar klockan.",
+    fromANote: "från en anteckning",
+    notRight: "Blev fel",
+    streamsInBlock: "Arbetsområden inuti det",
+    streamsInNone: "Inga. Ett projekt utan arbetsområden har inget överlämnat.",
     /** @param {string} owner */
     streamOwner: (owner) => ` - ${owner}`,
-    streamNoOwner: " - nobody owns it",
-    interestedBlock: "Waiting to hear about it",
-    interestedNone: "Nobody is on the hook for an update about this.",
+    streamNoOwner: " - ingen äger det",
+    interestedBlock: "Väntar på att höra om det",
+    interestedNone: "Ingen står och väntar på en uppdatering om det här.",
     /** @param {string} label */
     interestedLabel: (label) => ` - ${label}`,
 
     /* Taking back a check-in. Same guarantee as a mislogged contact. */
-    unlogTitle: "Take this back?",
+    unlogTitle: "Ta tillbaka det här?",
     /** @param {string} what */
     unlogBody: (what) =>
-      `"${what}" stops counting, so the clock it moved goes back to where it was. The event stays ` +
-      `in the log - nothing here is ever really deleted - it just stops being evidence.`,
-    unlogConfirm: "Take it back",
-    unlogToast: "Taken back.",
+      `"${what}" slutar räknas, så klockan det flyttade går tillbaka dit den var. Händelsen ` +
+      `stannar i loggen - inget här tas någonsin riktigt bort - den slutar bara vara underlag.`,
+    unlogConfirm: "Ta tillbaka",
+    unlogToast: "Tillbakataget.",
 
     /* Adding a stakeholder, in two steps rather than one long form. */
-    noRosterTitle: "Nobody on the roster yet",
+    noRosterTitle: "Ingen på rostern än",
     noRosterBody:
-      "A stakeholder is a person first. Add them under People, then come back - the relationship " +
-      "type to give them is Stakeholder, which inherits none of the duties written for people you " +
-      "lead.",
-    noProjectsTitle: "No projects yet",
+      "En stakeholder är en person först. Lägg till dem under Personer, kom sedan tillbaka - " +
+      "relationstypen att ge dem är Stakeholder, som ärver ingen av plikterna som är skrivna " +
+      "för dem du leder.",
+    noProjectsTitle: "Inga projekt än",
     noProjectsBody:
-      "A stakeholder waits to hear about something specific, so the project has to exist first.",
-    understood: "Right",
-    stakeTitle: "Who is waiting to hear from you?",
+      "En stakeholder väntar på att höra om något specifikt, så projektet måste finnas först.",
+    understood: "Just det",
+    stakeTitle: "Vem väntar på dig?",
     stakeIntro:
-      "Somebody who depends on what you deliver without being your report or your peer. The " +
-      "obligation is per person AND project: telling them about one thing does not answer for " +
-      "another.",
-    stakeWho: "Who",
-    stakeAbout: "About what",
-    stakeCadence: "How often, in days",
+      "Någon som beror på vad du levererar utan att vara din medarbetare eller din jämlike. " +
+      "Skyldigheten går per person OCH projekt: att berätta för dem om en sak svarar inte för " +
+      "en annan.",
+    stakeWho: "Vem",
+    stakeAbout: "Om vad",
+    stakeCadence: "Hur ofta, i dagar",
     stakeCadenceHint:
-      "A month is one reporting cycle. Shorter for someone close to the work, longer for a " +
-      "distant sponsor.",
-    stakeWhat: "What they actually want to know, optional",
-    stakeWhatPlaceholder: "Whether the migration lands before the quarter closes",
-    stakeSince: "Waiting since",
+      "En månad är en rapporteringscykel. Kortare för någon nära arbetet, längre för en " +
+      "avlägsen sponsor.",
+    stakeWhat: "Vad de faktiskt vill veta, frivilligt",
+    stakeWhatPlaceholder: "Om migreringen landar innan kvartalet stänger",
+    stakeSince: "Väntar sedan",
     stakeSinceHint:
-      "Backdate it if they have been in the dark for a while - otherwise the first month of the " +
-      "record flatters you.",
-    add: "Add",
-    addedToast: "Added.",
+      "Bakdatera det om de varit i ovisshet en tid - annars smickrar den första månaden av " +
+      "registret dig.",
+    add: "Lägg till",
+    addedToast: "Tillagt.",
 
     /** @param {string} name */
-    editStakeTitle: (name) => `How often should ${name} hear from you?`,
-    editStakeWhat: "What they want to know, optional",
-    save: "Save",
-    savedToast: "Saved.",
+    editStakeTitle: (name) => `Hur ofta ska ${name} höra från dig?`,
+    editStakeWhat: "Vad de vill veta, frivilligt",
+    save: "Spara",
+    savedToast: "Sparat.",
 
     /** @param {string} what */
-    logUpdateTitle: (what) => `What did you tell them about ${what}?`,
-    logUpdateFallback: "it",
-    logUpdateIntro: "One line is enough. The point of the record is the date, not the report.",
-    logUpdateNote: "What you said, optional",
-    when: "When",
-    logIt: "Log it",
-    loggedToast: "Logged.",
+    logUpdateTitle: (what) => `Vad berättade du för dem om ${what}?`,
+    logUpdateFallback: "det",
+    logUpdateIntro: "En rad räcker. Poängen med anteckningen är datumet, inte rapporten.",
+    logUpdateNote: "Vad du sa, frivilligt",
+    when: "När",
+    logIt: "Logga",
+    loggedToast: "Loggat.",
 
     /** @param {string} name */
-    removeStakeTitle: (name) => `Remove ${name}?`,
+    removeStakeTitle: (name) => `Ta bort ${name}?`,
     removeStakeBody:
-      "They stop appearing as waiting for a report about this project. The updates you already " +
-      "logged stay on record, and being a stakeholder in anything else is untouched.",
-    removedToast: "Removed.",
+      "De slutar dyka upp som väntande på en rapport om det här projektet. Uppdateringarna du " +
+      "redan loggat står kvar, och att vara stakeholder i något annat är orört.",
+    removedToast: "Borttaget.",
 
-    addProjectTitle: "Add a project",
-    projectName: "Name",
-    projectSince: "Since when",
+    addProjectTitle: "Lägg till ett projekt",
+    projectName: "Namn",
+    projectSince: "Sedan när",
     projectSinceHint:
-      "When you took it on. Backdate it and a project you have been ignoring shows as ignored " +
-      "rather than as freshly checked.",
+      "När du tog det på dig. Bakdatera det och ett projekt du ignorerat visas som ignorerat " +
+      "i stället för som nyss kontrollerat.",
     /** @param {string} name */
-    addedNamed: (name) => `${name} added.`,
+    addedNamed: (name) => `${name} tillagt.`,
 
-    addStreamTitle: "Add a workstream",
+    addStreamTitle: "Lägg till ett arbetsområde",
     addStreamIntro:
-      "A piece of work with an owner. Leaving the level unset is itself flagged, because unstated " +
-      "delegation is the failure rather than missing data.",
-    streamName: "What the work is",
-    streamNamePlaceholder: "Renderer rewrite",
-    streamOwnerLabel: "Who owns it",
-    streamNobodyYet: "Nobody yet",
-    streamProjectLabel: "Part of which project",
-    streamNoProject: "None",
-    streamLevelLabel: "How far you have stepped back",
+      "En bit arbete med en ägare. Att lämna nivån osatt flaggas i sig, eftersom outtalad " +
+      "delegering är felet snarare än saknad data.",
+    streamName: "Vad arbetet är",
+    streamNamePlaceholder: "Omskrivning av renderaren",
+    streamOwnerLabel: "Vem äger det",
+    streamNobodyYet: "Ingen än",
+    streamProjectLabel: "Del av vilket projekt",
+    streamNoProject: "Inget",
+    streamLevelLabel: "Hur långt du klivit tillbaka",
 
     /** @param {string} name */
-    reviewTitle: (name) => `Review of ${name}`,
-    reviewIntro: "This is the monitoring half. Logging it resets the clock the level sets.",
-    foundNote: "What you found, optional",
+    reviewTitle: (name) => `Genomgång av ${name}`,
+    reviewIntro:
+      "Det här är den övervakande halvan. Att logga den nollställer klockan nivån sätter.",
+    foundNote: "Vad du fann, frivilligt",
 
     /** @param {string} name */
-    checkInTitle: (name) => `Check-in on ${name}`,
+    checkInTitle: (name) => `Avstämning om ${name}`,
 
     /*
      * Archiving is reversible, unlike removing, so it gets its own gentler
      * dialog rather than reusing the danger-zone one.
      */
     /** @param {string} name */
-    archiveProjectTitle: (name) => `Archive ${name}?`,
+    archiveProjectTitle: (name) => `Arkivera ${name}?`,
     archiveProjectBody:
-      "It stops appearing in this list, in Now and in attention nudges. Every check-in, " +
-      "stakeholder and review already logged against it stays exactly as it is and can be " +
-      "looked at again. Fully " +
-      "reversible from the archived list.",
+      "Det slutar dyka upp i den här listan, i Läget och i uppmärksamhetspåminnelser. Varje " +
+      "avstämning, stakeholder och genomgång som redan loggats på det står kvar precis som det " +
+      "är och kan tittas på igen. Helt återställbart från den arkiverade listan.",
     /** @param {string} name */
-    archivedToast: (name) => `${name} archived.`,
+    archivedToast: (name) => `${name} arkiverat.`,
     /** @param {string} name */
-    unarchivedToast: (name) => `${name} unarchived.`,
+    unarchivedToast: (name) => `${name} tillbaka.`,
     /** @param {string} name */
-    removeProjectTitle: (name) => `Remove ${name}?`,
-    removeBody: "It stops being tracked. The history stays in the log.",
+    removeProjectTitle: (name) => `Ta bort ${name}?`,
+    removeBody: "Det slutar bevakas. Historiken stannar i loggen.",
 
     /** @param {string} name */
-    archiveStreamTitle: (name) => `Archive ${name}?`,
+    archiveStreamTitle: (name) => `Arkivera ${name}?`,
     archiveStreamBody:
-      "It stops appearing in this list, in Now and in attention nudges. Every review already " +
-      "logged against it stays exactly as it is and can be looked at again. Fully reversible from " +
-      "the archived list.",
+      "Det slutar dyka upp i den här listan, i Läget och i uppmärksamhetspåminnelser. Varje " +
+      "genomgång som redan loggats på det står kvar precis som det är och kan tittas på igen. " +
+      "Helt återställbart från den arkiverade listan.",
     /** @param {string} name */
-    removeStreamTitle: (name) => `Remove ${name}?`
+    removeStreamTitle: (name) => `Ta bort ${name}?`
   },
 
   waiting: {
-    /* On the daily page. The note is the whole ethic of the block: not an alarm. */
-    groupTitle: "Waiting on someone",
+    /*
+     * On the daily page. The note is the whole ethic of the block: not an
+     * alarm.
+     *
+     * "Väntar på svar" here and "Väntar på dig" for a stakeholder in the work
+     * section. English said "waiting" for both directions and was ambiguous
+     * about which - one of the three findings in the vocabulary survey - and
+     * Swedish separates them at no cost.
+     */
+    groupTitle: "Väntar på svar",
     groupNote:
-      "Not late on you. Chase it, or decide without it - both are answers, and " +
-      "leaving it open is the only one that is not.",
+      "Inte sena på dig. Påminn, eller besluta utan det - båda är svar, och att " +
+      "lämna det öppet är det enda som inte är det.",
 
     /* On a person's page. */
-    blockTitle: "Waiting on them",
-    addButton: "I am waiting on something",
-    none: "Nothing outstanding from them.",
+    blockTitle: "Väntar på dem",
+    addButton: "Jag väntar på något",
+    none: "Inget utestående från dem.",
 
     /*
      * The counts, always, even at zero. "Asked once, three weeks ago" and
@@ -1397,58 +1410,61 @@ export const T = {
      * @param {string} sinceNudge
      */
     counts: (waitingFor, chases, sinceNudge) =>
-      `waiting ${waitingFor} &middot; chased ${chases}× &middot; last nudge ${sinceNudge}`,
+      `väntat ${waitingFor} &middot; påmint ${chases}× &middot; senaste påminnelsen ${sinceNudge}`,
     /** @param {string} why */
-    blocking: (why) => `Blocking: ${why}`,
-    chaseButton: "I chased it",
-    stopButton: "Stop waiting",
+    blocking: (why) => `Blockerar: ${why}`,
+    chaseButton: "Jag påminde",
+    stopButton: "Sluta vänta",
 
     /* Logging one. */
-    addTitle: "Something you are waiting for",
+    addTitle: "Något du väntar på",
     addIntro:
-      "So a question you sent does not quietly rot. Nothing here is ever treated as late on you - " +
-      "the point is that you remember to chase it, or decide without it.",
-    addWhatLabel: "What you asked for",
-    addWhatPlaceholder: "Two questions about the feedback on the scheduling view",
-    addWhyLabel: "What it is blocking, optional",
-    addWhyHint: "The half that decides whether to chase or route around it.",
-    addAskedLabel: "When you asked",
+      "Så att en fråga du skickat inte ruttnar i tysthet. Inget här behandlas någonsin som " +
+      "sent på dig - poängen är att du kommer ihåg att påminna, eller att besluta utan det.",
+    addWhatLabel: "Vad du bad om",
+    addWhatPlaceholder: "Två frågor om feedbacken på schemavyn",
+    addWhyLabel: "Vad det blockerar, frivilligt",
+    addWhyHint: "Den halvan som avgör om du ska påminna eller gå runt det.",
+    addAskedLabel: "När du frågade",
     addAskedHint:
-      "Backdate it. This usually gets written down the day you notice you are stuck, not the day you asked.",
-    addCadenceLabel: "How long to wait before it is worth a nudge",
-    addCadenceHint: "A week by default. Shorter nags about an ordinary human week.",
-    addConfirm: "Log it",
-    addToast: "Logged.",
+      "Bakdatera det. Det här skrivs oftast ner dagen du märker att du sitter fast, inte dagen " +
+      "du frågade.",
+    addCadenceLabel: "Hur länge att vänta innan det är värt en påminnelse",
+    addCadenceHint: "En vecka som standard. Kortare tjatar om en helt vanlig människovecka.",
+    addConfirm: "Logga",
+    addToast: "Loggat.",
 
     /* Chasing. */
-    chaseTitle: "I chased it",
+    chaseTitle: "Jag påminde",
     chaseIntro:
-      "This resets the clock and adds to the count. The count is the useful part: three reminders " +
-      "with nothing back is a fact about the relationship, and each one on its own felt reasonable.",
-    chaseNoteLabel: "How, in a line, optional",
-    chaseNotePlaceholder: "Reminded him in the Discord thread",
-    chaseWhenLabel: "When",
-    chaseConfirm: "Log it",
-    chaseToast: "Logged.",
+      "Det här nollställer klockan och räknas upp. Räkningen är den användbara delen: tre " +
+      "påminnelser utan svar är ett faktum om relationen, och var och en för sig kändes rimlig.",
+    chaseNoteLabel: "Hur, på en rad, frivilligt",
+    chaseNotePlaceholder: "Påminde honom i Discord-tråden",
+    chaseWhenLabel: "När",
+    chaseConfirm: "Logga",
+    chaseToast: "Loggat.",
 
     /* Closing it, either way. */
-    stopTitle: "Stop waiting",
+    stopTitle: "Sluta vänta",
     stopIntro:
-      "Both endings are ordinary. Deciding without the answer is a legitimate outcome, not a failure.",
-    stopAsLabel: "How it ended",
-    stopWhyLabel: "What came back, or what you did instead",
+      "Båda avsluten är helt vanliga. Att besluta utan svaret är ett fullgott utfall, inget " +
+      "misslyckande.",
+    stopAsLabel: "Hur det slutade",
+    stopWhyLabel: "Vad som kom tillbaka, eller vad du gjorde i stället",
     stopWhyHint:
-      "Worth keeping for the dropped ones especially. It is what you will want when the answer " +
-      "finally arrives and contradicts what you already shipped.",
-    stopConfirm: "Close it",
-    stopToast: "Closed.",
+      "Värt att behålla särskilt för de släppta. Det är det du kommer att vilja ha när svaret " +
+      "till slut kommer och motsäger det du redan skickat.",
+    stopConfirm: "Stäng det",
+    stopToast: "Stängt.",
 
     /* Taking it back entirely. */
-    unlogTitle: "Take this back?",
+    unlogTitle: "Ta tillbaka det här?",
     /** @param {string} what */
-    unlogBody: (what) => `"${what}" stops being tracked, along with every chase logged against it.`,
-    unlogConfirm: "Take it back",
-    unlogToast: "Taken back."
+    unlogBody: (what) =>
+      `"${what}" slutar bevakas, tillsammans med varje påminnelse loggad på det.`,
+    unlogConfirm: "Ta tillbaka",
+    unlogToast: "Tillbakataget."
   },
 
   journal: {
