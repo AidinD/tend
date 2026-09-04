@@ -187,11 +187,36 @@ export function defaultRelationIn(half) {
  * `name` and `hint` live here rather than in the rail markup and again in the
  * palette, which is how the palette ended up offering "Go to Prep" in a half
  * that has no Prep.
+ *
+ * ## `rail: false` - a view you can reach and cannot navigate to
+ *
+ * Läget absorbed Focus. The focus page still exists and still holds the things
+ * only it does - the guarded list, the measured cost, starting and ending one -
+ * but it stopped being somewhere you go looking, because what you need to know
+ * daily is now on the front page and the rest is reached from it.
+ *
+ * Deleting the entry would have been wrong rather than merely blunt: app.js
+ * redirects any route this half does not declare, so the "Focus settings"
+ * button and the palette's "Set a focus" would have bounced back to the home
+ * view. The distinction the declaration needed was "not in the rail", not "not
+ * a view", and it is one property rather than a second list.
  */
 export const VIEWS = /** @type {const} */ ([
-  { id: "now", name: "Now", hint: "what needs you", halves: ["work"] },
+  /*
+   * The front page. Renamed because it stopped being only what deviates: it
+   * now carries the roster as tiles, the unanswered proposals and his own
+   * aims, and "Now" described the deviation list it used to be.
+   *
+   * The Swedish name for it is Läget, and it arrives with the translation
+   * rather than early - this is that name in the language the rest of the app
+   * is currently in.
+   */
+  { id: "now", name: "Where things stand", hint: "the whole picture", halves: ["work"] },
   { id: "prep", name: "Prep", hint: "before a conversation", halves: ["work"] },
-  { id: "focus", name: "Focus", hint: "the current priority", halves: ["work"] },
+  /*
+   * Absorbed by the front page. Reachable, not in the rail - see the header.
+   */
+  { id: "focus", name: "Focus", hint: "the current priority", halves: ["work"], rail: false },
   { id: "people", name: "People", hint: "the roster", halves: ["work", "private"] },
   { id: "work", name: "Work", hint: "projects and delegation", halves: ["work"] },
   { id: "journal", name: "The day", hint: "what the day went into", halves: ["work", "private"] },

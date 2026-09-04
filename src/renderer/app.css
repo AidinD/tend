@@ -2309,3 +2309,14 @@ kbd {
 .owed-block {
   margin-top: var(--sp-block);
 }
+
+/*
+ * No focus running. Deliberately the quietest thing on the page: an offer, not
+ * a deviation, so it must not read as something needing attention.
+ */
+.no-focus {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-item);
+  margin-top: var(--sp-item);
+}

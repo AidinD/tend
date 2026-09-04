@@ -208,12 +208,46 @@ test("the rail and the palette call each view the same thing", async (t) => {
 
   /** @type {[string, string][]} */
   const labels = [];
-  for (const m of html.matchAll(/data-view="([a-z]+)"\s*>\s*([^<\n]+)/g)) {
+  /*
+   * `[^>]*` between the attribute and the bracket, because the front page
+   * button also carries `aria-current` - and without it this regex never
+   * matched that button at all. The check has been silently skipping the
+   * most important label in the rail since it was written, and only said so
+   * when removing Focus dropped the count below its own floor.
+   */
+  for (const m of html.matchAll(/data-view="([a-z]+)"[^>]*>\s*([^<\n]+)/g)) {
     labels.push([m[1], m[2].trim()]);
   }
 
   await t.test("this check found the rail at all", () => {
     assert.ok(labels.length >= 10, `only found ${labels.length} rail buttons`);
+    assert.ok(
+      labels.some(([id]) => id === "now"),
+      "the front page button was not found, which is the one this check most needs"
+    );
+  });
+
+  await t.test("the rail holds every view that asks to be in it, and no other", () => {
+    /*
+     * Both directions, because absorbing Focus made the one-directional
+     * version too weak. A view marked `rail: false` is reachable and not
+     * navigable - Focus, now that the front page carries it - and the failure
+     * to catch is either half of that going wrong: a rail button for a view
+     * that opted out, or a view expecting a button and not having one, which
+     * is a page you can only reach by knowing it is there.
+     */
+    const inRail = new Set(labels.map(([id]) => id));
+    const wrong = [];
+    for (const view of VIEWS) {
+      const wants = /** @type {any} */ (view).rail !== false;
+      if (wants && !inRail.has(view.id)) {
+        wrong.push(`${view.id}: in the vocabulary, missing from the rail`);
+      }
+      if (!wants && inRail.has(view.id)) {
+        wrong.push(`${view.id}: marked rail:false and still has a button`);
+      }
+    }
+    assert.deepEqual(wrong, [], `the rail and the vocabulary disagree:\n  ${wrong.join("\n  ")}`);
   });
 
   await t.test("and every label matches the view's name", () => {

@@ -2639,7 +2639,14 @@ try {
 
   step("Running a focus");
 
-  await page.click('.nav-btn[data-view="focus"]');
+  /*
+   * From the front page, because that is now the only way in. The rail button
+   * went when Läget absorbed Focus, and clicking a control a user cannot reach
+   * would be testing a path that no longer exists.
+   */
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor("document.querySelector('[data-act=\"openFocus\"]') !== null", "the focus strip");
+  await page.click('[data-act="openFocus"]');
   await page.waitFor("document.querySelector('.view-title') !== null", "the focus view");
 
   const focusIntro = await page.texts(".card-why");
@@ -4219,7 +4226,22 @@ try {
   const wantShots = process.argv.includes("--shots");
 
   for (const view of VIEWS) {
-    await page.click(`.nav-btn[data-view="${view}"]`);
+    /*
+     * Focus has no rail button now, so it is reached from the front page like
+     * everywhere else in the app. Kept in the loop rather than dropped: a view
+     * nobody photographs is a view where a layout mistake lives until somebody
+     * trips over it, and being absorbed did not make it invisible.
+     */
+    if (view === "focus") {
+      await page.click('.nav-btn[data-view="now"]');
+      await page.waitFor(
+        "document.querySelector('[data-act=\"openFocus\"]') !== null",
+        "the focus strip"
+      );
+      await page.click('[data-act="openFocus"]');
+    } else {
+      await page.click(`.nav-btn[data-view="${view}"]`);
+    }
     await sleep(350);
 
     /*

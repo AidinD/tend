@@ -1349,6 +1349,18 @@ export const T = {
     /** @param {string} name @param {string} open */
     owedLine: (name, open) => `to ${name}, open ${open}`,
 
+    /*
+     * No focus running. One line rather than a card: it is an offer, not a
+     * deviation, and it must not look like something is wrong.
+     *
+     * It exists because Focus left the rail. Before that, "no focus" needed no
+     * affordance here - you went to the Focus page. Now this is the only way in
+     * apart from Ctrl+K, and a feature reachable only from a command palette
+     * is a feature he will forget he has.
+     */
+    noFocus: "No focus running.",
+    noFocusStart: "Start one",
+
     /* The focus strip. */
     focusEyebrow: "Current focus",
     /** @param {number} held */
@@ -2383,10 +2395,6 @@ export const T = {
 
     /** @param {number} n Proposed duties waiting to be accepted. */
     proposedCount: (n) => `${n} new`,
-
-    /* A focus, in two characters of rail. */
-    focusOn: "on",
-    focusOverrun: "over",
 
     /*
      * The half, spelled out in the title bar. Only the private half is

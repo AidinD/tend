@@ -52,14 +52,19 @@
       <nav class="rail">
         <div class="nav">
           <button class="nav-btn" data-view="now" aria-current="true">
-            Now <span class="nav-count" id="count-now"></span>
+            Where things stand <span class="nav-count" id="count-now"></span>
           </button>
           <button class="nav-btn" data-view="prep">
             Prep <span class="nav-count" id="count-prep"></span>
           </button>
-          <button class="nav-btn" data-view="focus">
-            Focus <span class="nav-count" id="count-focus"></span>
-          </button>
+          <!--
+            No Focus button. The front page absorbed it: the current focus, its
+            cost and what it is holding back are on the page opened every
+            morning, and its settings are one click from there. The view still
+            exists and is still routable - halves.js marks it rail: false,
+            because deleting the entry would have made app.js redirect away
+            from it.
+          -->
           <button class="nav-btn" data-view="people">
             People <span class="nav-count" id="count-people"></span>
           </button>

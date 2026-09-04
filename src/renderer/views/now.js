@@ -74,7 +74,10 @@ export async function render() {
           <button class="act" data-act="openFocus">${words.focusSettings}</button>
         </div>
       </div>`
-    : "";
+    : `<div class="no-focus">
+        <span class="src">${words.noFocus}</span>
+        <button class="act tiny" data-act="openFocus">${words.noFocusStart}</button>
+      </div>`;
 
   const due = (questions ?? []).filter((/** @type {any} */ q) => q.due);
 

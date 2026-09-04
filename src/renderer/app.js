@@ -159,11 +159,15 @@ async function updateCounts() {
     map?.proposed?.length ? words.proposedCount(map.proposed.length) : "",
     map?.proposed?.length ? "new" : ""
   );
-  set(
-    "count-focus",
-    current?.active ? (current.overrun ? words.focusOverrun : words.focusOn) : "",
-    current?.overrun ? "urgent" : ""
-  );
+  /*
+   * No count-focus. The rail button it wrote to went when the front page
+   * absorbed Focus, and `set` returns early on a missing element - so this
+   * was harmless, silent, and exactly the kind of line that stays for years
+   * because nothing complains about it.
+   *
+   * The focus state is not lost with it: the front page carries the focus
+   * strip, which says more than a two-character badge could.
+   */
   set("count-prep", cards?.cards?.length ? String(cards.cards.length) : "");
 
   // Proposals and overdue revisits, together. Both are "this needs a decision
