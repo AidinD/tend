@@ -70,6 +70,70 @@ export const RELATIONS = /** @type {const} */ ({
 /** @typedef {keyof typeof RELATIONS} Relation */
 
 /**
+ * The four clusters the front page lays the roster out in.
+ *
+ * A second grouping of the same six types, which is the thing to be careful
+ * about rather than the thing to avoid: the roster groups one-per-type, and
+ * Läget needs fewer and bigger groups because the point of that page is where
+ * to look first, not who is who.
+ *
+ * ## Why these four
+ *
+ * `mandate` is the two types where you are accountable for the person, and it
+ * owns the vertical space on the page. `manage-remotely` is in it precisely
+ * because it is the blind spot - the mandate without the observation - so it
+ * belongs where the eye goes rather than in a strip at the bottom.
+ *
+ * The other three are one line each. `noChannel` is someone whose work you see
+ * daily with no formal channel to act through; `peers` is influence resting
+ * entirely on goodwill; `outward` is the two directions that are not yours to
+ * lead at all - upward to your own manager, outward to somebody you owe a
+ * picture rather than a conversation.
+ *
+ * ## Order is load-bearing
+ *
+ * The page renders these in declaration order and gives the first one a grid
+ * and the rest a strip. So the order is a design decision recorded here rather
+ * than a loop index in the renderer.
+ *
+ * ## Structure here, words in text.js
+ *
+ * Which types are in which cluster is a fact about the domain and cannot be a
+ * translation question. What the cluster is *called* is the opposite. RELATIONS
+ * above keeps its own three strings for historical reasons; this does not
+ * extend that.
+ *
+ * @type {Record<string, { relations: Relation[] }>}
+ */
+export const RELATION_GROUPS = {
+  mandate: { relations: ["lead-and-manage", "manage-remotely"] },
+  noChannel: { relations: ["lead-only"] },
+  peers: { relations: ["equal-lead"] },
+  outward: { relations: ["own-manager", "stakeholder"] }
+};
+
+/** @typedef {keyof typeof RELATION_GROUPS} RelationGroup */
+
+/**
+ * Which cluster a relationship type is in, or null if it is not a type.
+ *
+ * Null rather than a default cluster. A type with no cluster is a bug in the
+ * declaration above, and putting it somewhere reasonable is how the roster lost
+ * people the first time - present in the data, absent from the page, no error.
+ *
+ * @param {string} relation
+ * @returns {string | null}
+ */
+export function groupOf(relation) {
+  for (const [name, group] of Object.entries(RELATION_GROUPS)) {
+    if (/** @type {string[]} */ (group.relations).includes(relation)) {
+      return name;
+    }
+  }
+  return null;
+}
+
+/**
  * @param {string} v
  * @returns {v is Relation}
  */
