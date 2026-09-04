@@ -4113,6 +4113,121 @@ try {
     }
   });
 
+  /* ------------------------------------------------------------- plan -- */
+
+  step("A plan, which is not a direction");
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row') !== null", "the roster");
+  const openedForPlan = await page.evaluate(
+    `(() => { const row = [...document.querySelectorAll('.row[data-act="open"]')]
+        .find(r => /Testperson/.test(r.textContent || ""));
+      if (!row) { return "no Testperson row"; }
+      row.click();
+      return "ok"; })()`
+  );
+  if (openedForPlan !== "ok") {
+    throw new Error(`could not open a person for the plan: ${openedForPlan}`);
+  }
+  await page.waitFor("document.querySelector('[data-act=\"openPlan\"]') !== null", "the plan block");
+
+  const planEmpty = await page.text(".block:has([data-act='openPlan'])");
+  check("the empty plan block says what a plan is for, not just that there is none", () => {
+    /*
+     * The distinction the whole shape exists for. A block that only said "no
+     * plan" would leave him to work out when to use one, and the answer -
+     * below the bar, a date with a consequence, they cannot decline - is the
+     * thing that keeps it from being used as a gentler direction.
+     */
+    if (!/below the bar/.test(String(planEmpty))) {
+      throw new Error(`the empty block does not say when a plan applies: "${planEmpty}"`);
+    }
+    if (!/cannot decline/.test(String(planEmpty))) {
+      throw new Error("the empty block does not say they cannot decline it");
+    }
+  });
+
+  await page.click('[data-act="openPlan"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the plan dialog");
+
+  const planFieldOrder = await page.evaluate(
+    `(() => [...document.querySelectorAll('.dialog .field')]
+        .map(f => f.getAttribute('data-field')).filter(Boolean).join(","))()`
+  );
+  check("it asks whether they know second, before the goal and the measure", () => {
+    /*
+     * The field the shape was built for. On the real case the answer is no -
+     * the person says he has no technical challenge while the plan's premise
+     * is a toolchain gap - and everything after it is worthless if nothing has
+     * been said. So it is asked second, and the order is asserted.
+     */
+    const order = String(planFieldOrder).split(",");
+    if (order[0] !== "gap") {
+      throw new Error(`the first field is "${order[0]}", not the gap: ${planFieldOrder}`);
+    }
+    if (order[1] !== "theyKnow") {
+      throw new Error(`the second field is "${order[1]}", not whether they know`);
+    }
+  });
+
+  await page.fillDialog({
+    gap: "Bygger inte färdigt utan att bli påmind",
+    theyKnow: "no"
+  });
+  await sleep(400);
+
+  const planDraft = await page.text(".block:has([data-act='editPlan'])");
+  check("an unfinished plan is not ready to start, rather than invalid", () => {
+    /*
+     * Most plans live in this state for a week or two while he works out what
+     * he thinks. Calling it a validation failure would make the app refuse the
+     * thinking.
+     */
+    if (!/not started/.test(String(planDraft))) {
+      throw new Error(`the draft does not say it has not started: "${planDraft}"`);
+    }
+    if (!/still to answer/.test(String(planDraft))) {
+      throw new Error("the draft does not say how much is left");
+    }
+  });
+
+  check("and 'they do not know' is an answer, which the plan acts on", () => {
+    /*
+     * Not an unfilled field. The warning is above the fields on purpose: if
+     * they do not know, the next step is saying it rather than reading the
+     * rest of the plan.
+     */
+    if (!/do not know yet/.test(String(planDraft))) {
+      throw new Error(`no premise warning on a plan they have not been told about: "${planDraft}"`);
+    }
+  });
+
+  await page.click('[data-act="theirCopy"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "their copy");
+
+  const copyText = await page.text(".dialog");
+  await page.click(".dialog [data-cancel]");
+  await sleep(250);
+
+  check("the copy they are handed carries none of what is his alone", () => {
+    /*
+     * The most important assertion in this slice. A goal like "document that
+     * we tried" is a legitimate reason to run a plan, and the split is only
+     * worth anything if it is impossible for it to appear in what the person
+     * is given. The copy is a named subset for exactly this reason - derived
+     * by exclusion, a field added later would be handed over by default.
+     */
+    const text = String(copyText);
+    if (!/What needs to change/.test(text)) {
+      throw new Error(`the copy does not carry the gap: "${text.slice(0, 200)}"`);
+    }
+    for (const secret of ["Do they know", "trying to achieve", "HR involved"]) {
+      if (text.includes(secret)) {
+        throw new Error(`the copy handed over includes "${secret}"`);
+      }
+    }
+  });
+
   /* ------------------------------------------------------------ Läget -- */
 
   step("The front page says where to look");

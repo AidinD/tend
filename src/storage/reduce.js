@@ -90,6 +90,22 @@ export const COLLECTIONS = /** @type {const} */ ([
    */
   "myActions",
   /**
+   * Performance plans: the second shape beside a growth direction.
+   *
+   * Its own collection because a plan is the opposite of a direction in every
+   * way that matters - see `domain/plan.js` for the table. Sharing the growth
+   * rows with a flag would mean a direction could become a plan by an edit,
+   * and a direction that quietly becomes a performance plan is the worst
+   * version of this conversation: the person believes they are being developed
+   * while a decision is being made about them.
+   *
+   * Not in AGENT_WRITABLE and there is no MCP tool. A promise is something
+   * somebody said out loud with a person waiting for it; a plan is a decision
+   * about whether somebody keeps their job in its current shape. Same boundary
+   * as the role map and the decision log.
+   */
+  "plans",
+  /**
    * Decisions about the organisation, with a date to revisit them.
    *
    * Not promises. A promise is given TO a person; a decision is ABOUT the

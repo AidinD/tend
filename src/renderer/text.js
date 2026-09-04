@@ -305,6 +305,113 @@ export const T = {
     removedNamed: (name) => `${name} removed.`
   },
 
+  /*
+   * A plan: the second shape beside a direction, and the opposite of one in
+   * every way that matters. The wording has to carry that difference, because
+   * a direction that quietly reads as a performance plan is the worst version
+   * of this conversation - the person believes they are being developed while
+   * a decision is being made about them.
+   *
+   * So: no softening. "Below the bar", "a date with a consequence", "they
+   * cannot decline". If the words are gentler than the thing, the app is
+   * helping him avoid the conversation.
+   */
+  plan: {
+    blockTitle: "Plan",
+    openButton: "Open a plan",
+    empty:
+      "No plan. A plan is for somebody below the bar - it has a date with a consequence and " +
+      "they cannot decline it, which is what makes it a different thing from a direction.",
+
+    /*
+     * What state it is in. A draft is not a lesser plan: it is where most
+     * plans live for a week or two while he works out what he thinks, so the
+     * word has to say "not started" rather than "unfinished".
+     */
+    draftPill: "not started",
+    runningPill: "running",
+    /** @param {number} n */
+    stillNeeds: (n) => `${n} still to answer before it can start`,
+
+    /*
+     * The finding the whole shape was built for. On the real case the answer
+     * is no: the person says he has no technical challenge while the plan's
+     * premise is a toolchain gap - so the opening sentence assumes something
+     * that is not shared.
+     */
+    premiseWarning:
+      "They do not know yet. The plan's opening assumes a shared understanding that does not " +
+      "exist, so saying it is the next step rather than starting.",
+
+    /* The fields, as they read on the card. */
+    fGap: "What is below the bar",
+    fGapHint: "One thing. Three things is a conversation nobody can act on.",
+    fTheyKnow: "Do they know?",
+    fTheyKnowHint:
+      "The second question on purpose, before the goal and before the measure. Everything after " +
+      "it is worthless if the answer is no and nothing has been said.",
+    fTheyKnowYes: "Yes, I have said it to them",
+    fTheyKnowNo: "No, not yet",
+    fSaidOutLoud: "What you actually said, in your words",
+    fSaidOutLoudHint: "Not a summary. What you said, so you can tell later whether it landed.",
+    fGoal: "What you are trying to achieve by running it",
+    fGoalHint: "Yours alone. This never appears in what they are given.",
+    fDelivery: "The real work it happens through",
+    fDeliveryHint: "Real stakes move people; an exercise does not.",
+    fMeasure: "What will be true at the end",
+    fBaseline: "And what is true now",
+    fBaselineHint:
+      "Without this the measure means nothing, and the plan ends in an argument about whether " +
+      "anything changed.",
+    fDue: "The date",
+    fDueHint: "A date with a consequence, not a horizon. That is what separates this from a direction.",
+    fIfNotMet: "What happens if it is not met",
+    fIfNotMetHint:
+      "Said in the same conversation, not saved for the end. A consequence nobody stated is one " +
+      "that gets sprung on somebody.",
+    fHr: "Is HR involved?",
+    fHrHint: "Answered before the first conversation. Never after it.",
+    fGrowth: "A direction this shares its work with, optional",
+    fGrowthHint: "Link rather than duplicate. The same work can serve both.",
+
+    openTitle: "Open a plan",
+    openIntro:
+      "Fill in what you know. What is missing is what it still needs before it can start - not " +
+      "an error, just a plan that is not ready.",
+    openConfirm: "Save it",
+    openedToast: "Saved.",
+    editTitle: "The plan",
+    editConfirm: "Save",
+    editedToast: "Saved.",
+
+    /* The copy the person is given. */
+    copyTitle: "What they are given",
+    copyIntro:
+      "Five lines, and nothing else. The goal you chose, the HR answer and what you said " +
+      "privately all stay yours.",
+    copyGap: "What needs to change",
+    copyDelivery: "Where it happens",
+    copyMeasure: "How we will both know",
+    copyDue: "By when",
+    copyIfNotMet: "If it is not met",
+    copyButton: "Their copy",
+    copyClose: "Close",
+
+    /* Ending it. */
+    endButton: "End it",
+    endTitle: "How did it end?",
+    endMet: "Met - they are over the bar",
+    endNotMet: "Not met",
+    endDropped: "Dropped - not the right instrument after all",
+    endHowLabel: "How it ended",
+    endWhyLabel: "What decided it",
+    endWhyHint:
+      "Required for anything but met. A plan that ends with no reason turns into a mood in the " +
+      "room six months later that neither of you can name - and this one had a consequence on it.",
+    endConfirm: "Record it",
+    endedToast: "Recorded."
+  },
+
   growth: {
     /*
      * The endings, written out rather than derived: `open` is not an ending, and

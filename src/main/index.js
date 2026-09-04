@@ -256,6 +256,16 @@ const OPERATIONS = {
    */
   keepCommitment: (/** @type {any} */ a) => api.keepCommitment(store, a.id),
   myActions: () => api.myActions(store),
+
+  /*
+   * Plans. No MCP tool for any of these - a plan is a decision about whether
+   * somebody keeps their job in its current shape, which is the same boundary
+   * the role map and the decision log draw.
+   */
+  setPlan: (/** @type {any} */ a) => api.setPlan(store, a),
+  updatePlan: (/** @type {any} */ a) => api.updatePlan(store, a),
+  endPlan: (/** @type {any} */ a) => api.endPlan(store, a),
+  planFor: (/** @type {any} */ a) => api.planFor(store, a.person),
   finishMyAction: (/** @type {any} */ a) => api.finishMyAction(store, a.id),
   indexNib: (/** @type {any} */ a) => nib.indexNib(store, { dry: Boolean(a.dry) }),
 

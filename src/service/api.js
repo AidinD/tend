@@ -134,6 +134,14 @@ export {
 /* Moved to duties.js and re-exported, so the service surface is unchanged. */
 export { decideDuty, proposeDuty, removeRow, updateDuty } from "./duties.js";
 
+/* ---------------------------------------------------------------- plans -- */
+
+/*
+ * The second shape. Deliberately not re-exported into the MCP tool list - see
+ * the collection comment in the reducer.
+ */
+export { endPlan, planFor, setPlan, updatePlan } from "./plans.js";
+
 /* ----------------------------------------------------------- focus edits -- */
 
 /* Moved to focus.js and re-exported, so the service surface is unchanged. */

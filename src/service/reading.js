@@ -22,6 +22,7 @@ import { myAttention } from "../domain/myattention.js";
 import { availability } from "../domain/people.js";
 import { openPromises } from "../domain/promises.js";
 import { isLiveStatus, threadState } from "../domain/growth.js";
+import { planFor } from "./plans.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import { namedStakes } from "../domain/stakes.js";
 import { agoWords, daysSince, driftBadge, humanDays } from "../domain/time.js";
@@ -294,6 +295,14 @@ export function people(store, now, relation) {
          * this stays a roster row rather than becoming a second person page.
          */
         direction,
+        /*
+         * Reduced to whether it has started, which is all a tile needs. The
+         * plan itself carries a gap, what was said out loud and an HR answer -
+         * none of which belongs on a page that shows ten people at once, and
+         * none of which an agent reading the roster over MCP should get for
+         * free.
+         */
+        plan: planSummary(store, String(p.id)),
         promisesOwed: promises.filter((x) => x.person === p.id).length,
         /*
          * Always false until Inför wires `worthRaising` to the "Frågor jag
@@ -339,6 +348,22 @@ export function people(store, now, relation) {
       };
     })
     .sort((a, b) => (b.worstDrift ? 1 : 0) - (a.worstDrift ? 1 : 0));
+}
+
+/**
+ * Whether this person has a live plan, and whether it has begun.
+ *
+ * Null when there is none, which is not the same as one that has not started.
+ * The tile vocabulary has a phrase for each and no phrase for "no plan" - a
+ * person with no plan is described by their direction instead.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} personId
+ * @returns {{ started: boolean } | null}
+ */
+function planSummary(store, personId) {
+  const plan = planFor(store, personId);
+  return plan === null ? null : { started: plan.status === "running" };
 }
 
 /**

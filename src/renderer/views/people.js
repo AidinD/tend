@@ -34,6 +34,7 @@ import {
 import { go, refresh } from "../app.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 import { actions as growthActions, threadsBlock } from "./growth.js";
+import { actions as planActions, planBlock } from "./plan.js";
 import { actions as journalActions } from "./journal.js";
 import { actions as waitingActions, waitingBlock } from "./waiting.js";
 import { T } from "../text.js";
@@ -413,6 +414,12 @@ async function personPage(id) {
   const model = await modelStatus();
   const themesKey = `themes:${p.id}`;
   const growing = blocks.growth ? await threadsBlock(String(p.id)) : "";
+  /*
+   * Gated on the same block flag as growth, so the private side never shows
+   * one. A performance plan is a work-half object by definition - there is no
+   * bar to be below outside a job.
+   */
+  const plan = blocks.growth ? await planBlock(String(p.id)) : "";
   const waitingOn = blocks.waiting ? await waitingBlock(String(p.id)) : "";
 
   /*
@@ -529,6 +536,14 @@ async function personPage(id) {
       ${list(words.promisesBlock, promises, words.promisesNone)}
       ${waitingOn}
       ${growing}
+      ${
+        /*
+         * Directly under the directions, because the two have to be read
+         * together: a plan and a direction can share the same work, and seeing
+         * them apart is how one quietly becomes the other.
+         */
+        plan
+      }
       ${blocks.skips && p.skipPattern ? `<p class="card-why dim">${esc(p.skipPattern)}</p>` : ""}
       ${
         /*
@@ -640,6 +655,7 @@ export const actions = {
   // Both surfaces offer the same six things, and a second copy of any of them is
   // a copy that drifts.
   ...growthActions,
+  ...planActions,
   ...waitingActions,
 
   /** The retry offered when a read failed rather than came back empty. */
