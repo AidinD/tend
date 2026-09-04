@@ -795,17 +795,17 @@ export const T = {
      * each of the three needs a sentence saying what choosing it means. Every
      * option carries its consequence, the way the delegation levels do.
      */
-    endingReached: "Reached - they can do it now",
-    endingDropped: "Let go - not the direction after all",
+    endingReached: "Nådd - de kan det nu",
+    endingDropped: "Släppt - inte riktningen trots allt",
     endingExpectation:
-      "Stated as an expectation - the job needs it whether they want it or not",
+      "Uttalad som ett krav - jobbet behöver det oavsett om de vill eller inte",
 
     /* The block on a person's page. */
-    blockTitle: "Growing",
-    openButton: "Open a direction",
+    blockTitle: "Utveckling",
+    openButton: "Öppna en riktning",
     empty:
-      "Nothing yet. A direction goes here when there is one - not for everybody, and not because " +
-      "the calendar says it is that time of year.",
+      "Inget än. En riktning hamnar här när det finns en - inte för alla, och inte för att " +
+      "kalendern säger att det är den tiden på året.",
     /*
      * Said, not enforced. Attention is the scarce thing this tool exists to be
      * honest about, and a limit imposed on his judgement would be software
@@ -813,47 +813,47 @@ export const T = {
      */
     /** @param {number} live */
     tooMany: (live) =>
-      `${live} live at once. Two is about what anybody can actually hold - the rest tend to ` +
-      `become paperwork.`,
+      `${live} igång samtidigt. Två är ungefär vad någon faktiskt kan hålla - resten brukar ` +
+      `bli pappersarbete.`,
 
-    /* One thread. */
+    /* One direction. */
     /** @param {number} talks @param {number} observations @param {string} last */
     counts: (talks, observations, last) =>
-      `discussed ${talks}×, seen ${observations}× &middot; last talked ${last}`,
-    theirWords: "Their words",
-    through: "Through",
-    iWillSee: "I will see",
-    imPuttingIn: "I am putting in",
-    myGuess: "My guess before asking",
-    ifNothingChanges: "If nothing changes",
-    told: "Told",
-    endedBecause: "Ended because",
+      `diskuterad ${talks}×, sedd ${observations}× &middot; pratade senast ${last}`,
+    theirWords: "Deras ord",
+    through: "Genom",
+    iWillSee: "Jag kommer att se",
+    imPuttingIn: "Jag lägger in",
+    myGuess: "Min gissning innan jag frågade",
+    ifNothingChanges: "Om inget ändras",
+    told: "Berättat för",
+    endedBecause: "Avslutad för att",
     /** @param {string} label @param {string} value */
     detailLine: (label, value) => `${label}: ${value}`,
     /** @param {string} what */
-    stillToPrepare: (what) => `Still to prepare: ${what}`,
+    stillToPrepare: (what) => `Kvar att förbereda: ${what}`,
     /** @param {string} what */
-    stillToAsk: (what) => `Still to ask them: ${what}`,
+    stillToAsk: (what) => `Kvar att fråga dem: ${what}`,
 
     /*
      * Removal belongs to the thread that should never have existed, so it is
      * offered while nothing has happened and withdrawn the moment something has.
      */
-    openedByMistake: "Opened by mistake",
-    afterConversation: "After the conversation",
-    itCameUp: "It came up",
-    iSawIt: "I saw it",
-    prepare: "Prepare",
-    endIt: "End it",
-    iHaveToldThem: "I have told them",
-    reword: "Reword",
+    openedByMistake: "Öppnad av misstag",
+    afterConversation: "Efter samtalet",
+    itCameUp: "Det kom upp",
+    iSawIt: "Jag såg det",
+    prepare: "Förbered",
+    endIt: "Avsluta",
+    iHaveToldThem: "Jag har berättat för dem",
+    reword: "Formulera om",
 
     /* The compact version on a prep card, read minutes before a conversation. */
     /** @param {string} marker */
-    youWillSee: (marker) => `You will see: ${marker}`,
+    youWillSee: (marker) => `Du kommer att se: ${marker}`,
     /** @param {number} talks @param {number} observations @param {string} last */
     cardCounts: (talks, observations, last) =>
-      `Discussed ${talks}×, seen ${observations}× &middot; last talked ${last}.`,
+      `Diskuterad ${talks}×, sedd ${observations}× &middot; pratade senast ${last}.`,
     /*
      * Shown only on a stalled thread. The stall question asks whether the aim is
      * wrong or the support is missing; the second half is something he already
@@ -861,163 +861,164 @@ export const T = {
      * to it. An empty offering is not a gap - it IS the answer.
      */
     stalledNoOffering:
-      "You never wrote down what you were putting in. That is one answer to the question above.",
+      "Du skrev aldrig ner vad du själv lade in. Det är ett svar på frågan ovan.",
     /** @param {string} offering */
-    stalledOffering: (offering) => `You said you would put in: ${offering}`,
+    stalledOffering: (offering) => `Du sa att du skulle lägga in: ${offering}`,
 
     /* Stage A: what he can work out alone, and what he is prepared to put in. */
-    fAim: "What you think the direction is, in one sentence",
-    fAimPlaceholder: "Runs the design review without me in the room",
+    fAim: "Vad du tror riktningen är, i en mening",
+    fAimPlaceholder: "Håller designgenomgången utan mig i rummet",
     fAimHint:
-      "Yours, before you have asked. What they will be able to DO, not an area to improve in - " +
-      'their own answer comes later and is kept beside this. Everything else about this ' +
-      'direction can wait until you use "Prepare" on the card.',
-    fDriver: "Do they want this, or does the job need it?",
+      "Din, innan du frågat. Vad de kommer att kunna GÖRA, inte ett område att bli bättre på - " +
+      'deras eget svar kommer senare och sparas vid sidan av det här. Allt annat om den här ' +
+      'riktningen kan vänta till du använder "Förbered" på kortet.',
+    fDriver: "Vill de det här, eller behöver jobbet det?",
     fDriverHint:
-      "Two different instruments. The development one used on a performance gap reads as a " +
-      "disciplinary process with a smile. Not knowing yet is a real answer.",
-    fNeed: "Whose need is it?",
-    fNeedPlaceholder: "The team stalls whenever I am away",
-    fNeedHint: "Concretely enough that you could say it out loud to them.",
-    fIfNothing: "What happens if nothing changes?",
+      "Två olika instrument. Utvecklingsinstrumentet använt på en prestationsbrist läses som " +
+      "en disciplinär process med ett leende. Att inte veta än är ett riktigt svar.",
+    fNeed: "Vems behov är det?",
+    fNeedPlaceholder: "Teamet stannar av varje gång jag är borta",
+    fNeedHint: "Konkret nog att du skulle kunna säga det rakt ut till dem.",
+    fIfNothing: "Vad händer om inget ändras?",
     fIfNothingHint:
-      'If the honest answer is nothing, this is a wish rather than a need. "You stay where you ' +
-      'are" is a legitimate answer.',
-    fAlreadySeen: "What you have already seen them do",
+      'Om det ärliga svaret är ingenting är det här en önskan snarare än ett behov. "Du står ' +
+      'kvar där du är" är ett fullgott svar.',
+    fAlreadySeen: "Vad du redan sett dem göra",
     fAlreadySeenHint:
-      "Only what has happened. Empty is itself the finding: no evidence under the direction.",
-    fOffering: "What are you putting in?",
-    fOfferingPlaceholder: "The architecture review, and I stop writing the migration plan myself",
+      "Bara det som hänt. Tomt är i sig fyndet: inget underlag under riktningen.",
+    fOffering: "Vad lägger du in?",
+    fOfferingPlaceholder: "Arkitekturgenomgången, och jag slutar skriva migreringsplanen själv",
     fOfferingHint:
-      'Cover, a room to be let into, work you stop doing yourself. Write it as done or dated - ' +
-      '"I could" is not an offering.',
+      'Skydd, ett rum att bli insläppt i, arbete du slutar göra själv. Skriv det som gjort ' +
+      'eller daterat - "jag skulle kunna" är inget du lägger in.',
 
     /* Stage B: what the conversation returned. */
-    fTheirWords: "What they said they want, in their words",
+    fTheirWords: "Vad de sa att de vill, i deras ord",
     fTheirWordsHint:
-      "Theirs, not a tidied version. A plan in your words is one they will read as yours.",
-    fStance: "How did that land against your guess?",
-    fAssignment: "Which real work does this happen through?",
-    fAssignmentPlaceholder: "Owns the migration end to end",
+      "Deras, inte en städad version. En plan i dina ord är en de läser som din.",
+    fStance: "Hur landade det mot din gissning?",
+    fAssignment: "Vilket verkligt arbete sker det här genom?",
+    fAssignmentPlaceholder: "Äger migreringen från början till slut",
     fAssignmentHint:
-      "Name the assignment, not a skill area. Real stakes move people; courses feel like it.",
-    fMarker: "What will you see in three months that you do not see now?",
-    fMarkerPlaceholder: "Chairs the review once with me absent",
+      "Namnge uppdraget, inte ett kompetensområde. Verkliga insatser rör människor; kurser " +
+      "känns som det.",
+    fMarker: "Vad kommer du att se om tre månader som du inte ser nu?",
+    fMarkerPlaceholder: "Håller genomgången en gång utan mig",
     fMarkerHint:
-      'If you cannot finish that sentence the direction is too vague to follow. "Better ' +
-      'communication" is unobservable; "runs it without me" is not.',
-    fWhenTalked: "When you talked",
-    fWhenTalkedHint: "Logged as a conversation too, unless you have already logged one.",
-    fCadence: "How often should it come up?",
-    fCadenceHint: "In the one-to-one, never as its own meeting. A separate meeting kills it.",
-    fHorizon: "When should the direction itself be questioned?",
+      'Om du inte kan avsluta den meningen är riktningen för vag att följa. "Bättre ' +
+      'kommunikation" går inte att se; "kör det utan mig" gör det.',
+    fWhenTalked: "När ni pratade",
+    fWhenTalkedHint: "Loggas som ett samtal också, om du inte redan loggat ett.",
+    fCadence: "Hur ofta ska det komma upp?",
+    fCadenceHint: "I 1-1:an, aldrig som ett eget möte. Ett separat möte dödar det.",
+    fHorizon: "När ska riktningen själv ifrågasättas?",
     fHorizonHint:
-      "Not a deadline. When it passes Tend asks whether this is still the thing.",
+      "Inte en deadline. När det passerar frågar Tend om det här fortfarande är rätt sak.",
 
     /* Opening one. */
-    openTitle: "Open a direction",
+    openTitle: "Öppna en riktning",
     openIntro:
-      "One sentence is enough to open it. The rest - whether they want this or the job needs it, " +
-      'what you have already seen, what you are putting in - comes later, from "Prepare" on the ' +
-      "card, whenever you actually have an answer for it.",
-    openConfirm: "Open it",
-    openedToast: "Opened.",
+      "En mening räcker för att öppna den. Resten - om de vill det här eller om jobbet behöver " +
+      'det, vad du redan sett, vad du lägger in - kommer senare, från "Förbered" på kortet, när ' +
+      "du faktiskt har ett svar på det.",
+    openConfirm: "Öppna",
+    openedToast: "Öppnad.",
 
-    /* Rewording, which is its own concept because the thread is named after it. */
-    rewordTitle: "Reword the direction",
+    /* Rewording, which is its own concept because the card is named after it. */
+    rewordTitle: "Formulera om riktningen",
     rewordIntro:
-      "The card is named after this. Change it once you know what you actually agreed on.",
-    rewordAimLabel: "The direction as it stands",
+      "Kortet är namngivet efter den här. Ändra den när du vet vad ni faktiskt kom överens om.",
+    rewordAimLabel: "Riktningen som den står",
     rewordAimHint:
-      "What they will be able to DO. If it describes what you do for them, you will be " +
-      "measuring the wrong person.",
-    rewordGuessLabel: "What you thought before you asked",
-    rewordGuessHint: "Kept as a record, so it can sit next to what they actually said.",
-    save: "Save",
-    rewordedToast: "Reworded.",
+      "Vad de kommer att kunna GÖRA. Om den beskriver vad du gör för dem kommer du att mäta " +
+      "fel person.",
+    rewordGuessLabel: "Vad du trodde innan du frågade",
+    rewordGuessHint: "Behålls som en anteckning, så den kan stå vid det de faktiskt sa.",
+    save: "Spara",
+    rewordedToast: "Omformulerad.",
 
-    prepareTitle: "Prepare",
-    prepareIntro: "Your side of it. Reopened where you left it rather than asking again.",
-    savedToast: "Saved.",
+    prepareTitle: "Förbered",
+    prepareIntro: "Din sida av det. Öppnad där du lämnade den i stället för att fråga igen.",
+    savedToast: "Sparat.",
 
-    askedTitle: "After the conversation",
-    askedIntro: "What came back. This overwrites nothing you guessed - the guess is kept beside it.",
+    askedTitle: "Efter samtalet",
+    askedIntro:
+      "Vad som kom tillbaka. Det här skriver inte över något du gissade - gissningen sparas " +
+      "vid sidan av.",
 
     /*
      * A declined direction is one of the three normal outcomes, so it is asked
      * about immediately rather than left as a status he has to remember to
      * change. The follow-up is the only question that matters.
      */
-    declinedTitle: "They are not interested. Does the job require it anyway?",
+    declinedTitle: "De är inte intresserade. Kräver jobbet det ändå?",
     declinedBody:
-      "If it does, this stops being development and becomes an expectation - which has to be " +
-      'said once, plainly, including what follows if it is not met. "You stay where you are" ' +
-      "is a legitimate thing for that to be.\n\nIf it does not, the right move is to let it go " +
-      "and tell them you have. Quietly keeping the hope alive is the one option that costs you " +
-      "the relationship.",
-    declinedConfirm: "The job requires it",
-    expectationTitle: "State it as an expectation",
-    letGoTitle: "Let it go",
+      "Om det gör det slutar det här vara utveckling och blir ett krav - som måste sägas en " +
+      'gång, rakt ut, inklusive vad som följer om det inte uppfylls. "Du står kvar där du är" ' +
+      "är en fullgod sådan sak.\n\nOm det inte gör det är rätt drag att släppa det och säga " +
+      "till dem att du gjort det. Att i tysthet hålla hoppet vid liv är det enda alternativ " +
+      "som kostar dig relationen.",
+    declinedConfirm: "Jobbet kräver det",
+    expectationTitle: "Uttala det som ett krav",
+    letGoTitle: "Släpp det",
     expectationIntro:
-      "Write the expectation as you will say it to them. Clarity about whether, encouragement " +
-      "about how.",
+      "Skriv kravet som du kommer att säga det till dem. Tydlighet om huruvida, uppmuntran om hur.",
     letGoIntro:
-      "Write why you let it go. It stays readable, so this cannot become a quiet disappointment " +
-      "nobody named.",
-    expectationWhy: "The expectation, in your words",
-    letGoWhy: "Why you let it go",
-    saidLabel: "I have told them",
-    saidHint: "Leave it unchecked if you have not yet. Tend will keep asking until you have.",
-    recordedToast: "Recorded.",
+      "Skriv varför du släppte det. Det stannar läsbart, så det här kan inte bli en tyst " +
+      "besvikelse som ingen satte ord på.",
+    expectationWhy: "Kravet, i dina ord",
+    letGoWhy: "Varför du släppte det",
+    saidLabel: "Jag har berättat för dem",
+    saidHint: "Lämna den obockad om du inte gjort det än. Tend fortsätter fråga tills du har.",
+    recordedToast: "Registrerat.",
 
-    talkedTitle: "It came up",
+    talkedTitle: "Det kom upp",
     talkedIntro:
-      "This moves the conversation clock and nothing else. Whether they have actually done the " +
-      "thing is a separate answer, because the gap between the two counts is the only useful " +
-      "reading here.",
-    talkedNoteLabel: "One line, optional",
-    talkedNotePlaceholder: "Where it stands",
-    when: "When",
-    logIt: "Log it",
-    loggedToast: "Logged.",
+      "Det här flyttar samtalsklockan och inget annat. Om de faktiskt gjort saken är ett eget " +
+      "svar, för glappet mellan de två räkningarna är den enda användbara läsningen här.",
+    talkedNoteLabel: "En rad, frivilligt",
+    talkedNotePlaceholder: "Var det står",
+    when: "När",
+    logIt: "Logga",
+    loggedToast: "Loggat.",
 
     /*
      * The marker seen, and the only right moment to ask who else needs to hear
      * it. Development nobody outside the one-to-one ever sees converts into
      * nothing: no level, no salary, no next assignment.
      */
-    observedTitle: "I saw it",
+    observedTitle: "Jag såg det",
     observedIntro:
-      "What you said you would see, actually observed rather than discussed. The only " +
-      "evidence in here that any of this is working.",
-    observedNoteLabel: "What you saw",
-    observedNotePlaceholder: "Chaired the review on the 14th, I said nothing",
-    tellLabel: "Who else needs to hear this?",
-    tellNobody: "Nobody, it stays between us",
+      "Det du sa att du skulle se, faktiskt observerat snarare än diskuterat. Det enda " +
+      "underlaget här inne på att något av det här fungerar.",
+    observedNoteLabel: "Vad du såg",
+    observedNotePlaceholder: "Höll genomgången den 14:e, jag sa inget",
+    tellLabel: "Vem mer behöver höra det här?",
+    tellNobody: "Ingen, det stannar mellan oss",
     tellHint:
-      "Growth only you two saw converts into nothing. Picking somebody logs it as a promise, so " +
-      "it cannot quietly not happen.",
-    recordIt: "Record it",
+      "Utveckling som bara ni två sett omvandlas till ingenting. Att välja någon loggar det " +
+      "som ett löfte, så att det inte kan bli av i tysthet.",
+    recordIt: "Registrera",
     /** @param {string} name @param {string} said */
-    tellPromise: (name, said) => `Tell ${name}: ${said}`,
+    tellPromise: (name, said) => `Berätta för ${name}: ${said}`,
     /** @param {string} name */
-    tellPromiseToast: (name) => `Promise to tell ${name} logged.`,
-    them: "them",
+    tellPromiseToast: (name) => `Löfte att berätta för ${name} loggat.`,
+    them: "dem",
 
-    endTitle: "End it",
+    endTitle: "Avsluta",
     endIntro:
-      "Every ending here is a legitimate one, including letting it go. Somebody who is content " +
-      "where they are and doing solid work is not a problem to be fixed.",
-    endHowLabel: "How it ends",
-    endWhyLabel: "Why",
+      "Varje avslut här är ett fullgott avslut, inklusive att släppa det. Någon som är nöjd " +
+      "där de är och gör ett stabilt arbete är inget problem att lösa.",
+    endHowLabel: "Hur den avslutas",
+    endWhyLabel: "Varför",
     endWhyHint:
-      "Kept and readable afterwards. A direction that ends with no reason turns into a mood in " +
-      "the " +
-      "room six months later that neither of you can name.",
+      "Behålls och är läsbart efteråt. En riktning som avslutas utan skäl blir en stämning i " +
+      "rummet ett halvår senare som ingen av er kan sätta ord på.",
     endSaidHint:
-      "Unchecked until you actually have. Letting a direction go silently is worse than either " +
-      "pushing or accepting: they still feel the disappointment and never hear that it is over.",
-    notedToast: "Noted.",
+      "Obockad tills du faktiskt gjort det. Att släppa en riktning i tysthet är sämre än både " +
+      "att driva den och att acceptera: de känner besvikelsen ändå och får aldrig höra att det " +
+      "är över.",
+    notedToast: "Noterat.",
 
     /*
      * The removal wording says which fact it asserts rather than which mechanism
@@ -1026,17 +1027,16 @@ export const T = {
      * subordinate clause, so the sentence a reader took away said nothing was
      * lost.
      */
-    removeTitle: "Was this direction never real?",
+    removeTitle: "Var den här riktningen aldrig verklig?",
     /** @param {string} aim */
     removeBody: (aim) =>
-      `"${aim}" goes, and stops being readable anywhere - the person's page, a prep card, ` +
-      `anything an agent reads. Right for a direction opened against the wrong person or ` +
-      `twice ` +
-      `by accident.\n\nIf it was real and it is over, close it with "End it" instead. That ` +
-      `keeps the direction and the reason it ended, which is what answers "why do we not talk ` +
-      `about this any more" next spring.`,
-    removeConfirm: "It was never real",
-    removedToast: "Removed."
+      `"${aim}" försvinner, och slutar vara läsbar någonstans - personens sida, ett kort i ` +
+      `Inför, allt en agent läser. Rätt för en riktning som öppnats på fel person eller två ` +
+      `gånger av misstag.\n\nOm den var verklig och är över, stäng den med "Avsluta" i ` +
+      `stället. Det behåller riktningen och skälet den avslutades, vilket är det som svarar ` +
+      `på "varför pratar vi inte om det här längre" nästa vår.`,
+    removeConfirm: "Den var aldrig verklig",
+    removedToast: "Borttagen."
   },
 
   /*
@@ -1052,20 +1052,20 @@ export const T = {
    */
   plan: {
     blockTitle: "Plan",
-    openButton: "Open a plan",
+    openButton: "Öppna en plan",
     empty:
-      "No plan. A plan is for somebody below the bar - it has a date with a consequence and " +
-      "they cannot decline it, which is what makes it a different thing from a direction.",
+      "Ingen plan. En plan är för någon under ribban - den har ett datum med en konsekvens och " +
+      "de kan inte tacka nej till den, vilket är det som gör den till något annat än en riktning.",
 
     /*
      * What state it is in. A draft is not a lesser plan: it is where most
      * plans live for a week or two while he works out what he thinks, so the
      * word has to say "not started" rather than "unfinished".
      */
-    draftPill: "not started",
-    runningPill: "running",
+    draftPill: "inte startad",
+    runningPill: "pågår",
     /** @param {number} n */
-    stillNeeds: (n) => `${n} still to answer before it can start`,
+    stillNeeds: (n) => `${n} kvar att svara på innan den kan starta`,
 
     /*
      * The finding the whole shape was built for. On the real case the answer
@@ -1074,76 +1074,78 @@ export const T = {
      * that is not shared.
      */
     premiseWarning:
-      "They do not know yet. The plan's opening assumes a shared understanding that does not " +
-      "exist, so saying it is the next step rather than starting.",
+      "De vet inte än. Planens ingång förutsätter en gemensam förståelse som inte finns, så att " +
+      "säga det är nästa steg snarare än att starta.",
 
     /* The fields, as they read on the card. */
-    fGap: "What is below the bar",
-    fGapHint: "One thing. Three things is a conversation nobody can act on.",
-    fTheyKnow: "Do they know?",
+    fGap: "Vad som ligger under ribban",
+    fGapHint: "En sak. Tre saker är ett samtal ingen kan agera på.",
+    fTheyKnow: "Vet de om det?",
     fTheyKnowHint:
-      "The second question on purpose, before the goal and before the measure. Everything after " +
-      "it is worthless if the answer is no and nothing has been said.",
-    fTheyKnowYes: "Yes, I have said it to them",
-    fTheyKnowNo: "No, not yet",
-    fSaidOutLoud: "What you actually said, in your words",
-    fSaidOutLoudHint: "Not a summary. What you said, so you can tell later whether it landed.",
-    fGoal: "What you are trying to achieve by running it",
-    fGoalHint: "Yours alone. This never appears in what they are given.",
-    fDelivery: "The real work it happens through",
-    fDeliveryHint: "Real stakes move people; an exercise does not.",
-    fMeasure: "What will be true at the end",
-    fBaseline: "And what is true now",
+      "Andra frågan med flit, före målet och före måttet. Allt efter den är värdelöst om svaret " +
+      "är nej och inget har sagts.",
+    fTheyKnowYes: "Ja, jag har sagt det till dem",
+    fTheyKnowNo: "Nej, inte än",
+    fSaidOutLoud: "Vad du faktiskt sa, i dina ord",
+    fSaidOutLoudHint:
+      "Inte en sammanfattning. Vad du sa, så att du senare kan avgöra om det landade.",
+    fGoal: "Vad du försöker uppnå med att köra den",
+    fGoalHint: "Bara din. Det här syns aldrig i det de får.",
+    fDelivery: "Det verkliga arbetet det sker genom",
+    fDeliveryHint: "Verkliga insatser rör människor; en övning gör det inte.",
+    fMeasure: "Vad som ska vara sant i slutet",
+    fBaseline: "Och vad som är sant nu",
     fBaselineHint:
-      "Without this the measure means nothing, and the plan ends in an argument about whether " +
-      "anything changed.",
-    fDue: "The date",
-    fDueHint: "A date with a consequence, not a horizon. That is what separates this from a direction.",
-    fIfNotMet: "What happens if it is not met",
+      "Utan det här betyder måttet ingenting, och planen slutar i ett gräl om huruvida något " +
+      "ändrades.",
+    fDue: "Datumet",
+    fDueHint:
+      "Ett datum med en konsekvens, inte en horisont. Det är det som skiljer det här från en " +
+      "riktning.",
+    fIfNotMet: "Vad som händer om den inte uppfylls",
     fIfNotMetHint:
-      "Said in the same conversation, not saved for the end. A consequence nobody stated is one " +
-      "that gets sprung on somebody.",
-    fHr: "Is HR involved?",
-    fHrHint: "Answered before the first conversation. Never after it.",
-    fGrowth: "A direction this shares its work with, optional",
-    fGrowthHint: "Link rather than duplicate. The same work can serve both.",
+      "Sagt i samma samtal, inte sparat till slutet. En konsekvens ingen uttalat är en som " +
+      "överraskar någon.",
+    fHr: "Är HR inblandad?",
+    fHrHint: "Besvarad före första samtalet. Aldrig efter det.",
+    fGrowth: "En riktning som delar arbete med den här, frivilligt",
+    fGrowthHint: "Länka i stället för att dubblera. Samma arbete kan tjäna båda.",
 
-    openTitle: "Open a plan",
+    openTitle: "Öppna en plan",
     openIntro:
-      "Fill in what you know. What is missing is what it still needs before it can start - not " +
-      "an error, just a plan that is not ready.",
-    openConfirm: "Save it",
-    openedToast: "Saved.",
-    editTitle: "The plan",
-    editConfirm: "Save",
-    editedToast: "Saved.",
+      "Fyll i det du vet. Det som saknas är det den fortfarande behöver innan den kan starta - " +
+      "inget fel, bara en plan som inte är klar.",
+    openConfirm: "Spara",
+    openedToast: "Sparat.",
+    editTitle: "Planen",
+    editConfirm: "Spara",
+    editedToast: "Sparat.",
 
     /* The copy the person is given. */
-    copyTitle: "What they are given",
+    copyTitle: "Vad de får",
     copyIntro:
-      "Five lines, and nothing else. The goal you chose, the HR answer and what you said " +
-      "privately all stay yours.",
-    copyGap: "What needs to change",
-    copyDelivery: "Where it happens",
-    copyMeasure: "How we will both know",
-    copyDue: "By when",
-    copyIfNotMet: "If it is not met",
-    copyButton: "Their copy",
-    copyClose: "Close",
+      "Fem rader, och inget annat. Målet du valde, HR-svaret och vad du sa privat stannar hos dig.",
+    copyGap: "Vad som behöver ändras",
+    copyDelivery: "Var det sker",
+    copyMeasure: "Hur vi båda kommer att veta",
+    copyDue: "Senast när",
+    copyIfNotMet: "Om det inte uppfylls",
+    copyButton: "Deras kopia",
+    copyClose: "Stäng",
 
     /* Ending it. */
-    endButton: "End it",
-    endTitle: "How did it end?",
-    endMet: "Met - they are over the bar",
-    endNotMet: "Not met",
-    endDropped: "Dropped - not the right instrument after all",
-    endHowLabel: "How it ended",
-    endWhyLabel: "What decided it",
+    endButton: "Avsluta",
+    endTitle: "Hur slutade den?",
+    endMet: "Uppfylld - de är över ribban",
+    endNotMet: "Inte uppfylld",
+    endDropped: "Släppt - inte rätt instrument trots allt",
+    endHowLabel: "Hur den slutade",
+    endWhyLabel: "Vad som avgjorde det",
     endWhyHint:
-      "Required for anything but met. A plan that ends with no reason turns into a mood in the " +
-      "room six months later that neither of you can name - and this one had a consequence on it.",
-    endConfirm: "Record it",
-    endedToast: "Recorded."
+      "Krävs för allt utom uppfylld. En plan som avslutas utan skäl blir en stämning i rummet " +
+      "ett halvår senare som ingen av er kan sätta ord på - och den här hade en konsekvens på sig.",
+    endConfirm: "Registrera",
+    endedToast: "Registrerat."
   },
 
   work: {
