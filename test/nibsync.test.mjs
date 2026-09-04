@@ -175,7 +175,7 @@ describe("one pass", () => {
     const state = syncOnce(store, { dir: join(nibDir, "nowhere"), now: NOW });
 
     assert.equal(state.outcome, "failed");
-    assert.match(String(state.error), /No Nib data/);
+    assert.match(String(state.error), /Ingen Nib-data/);
     assert.equal(nibTouches().length, 0);
   });
 
@@ -315,7 +315,7 @@ describe("saying what happened", () => {
     // minute ago" is what makes it trustworthy; a summary that only speaks on
     // changes cannot tell you it is alive.
     const state = { ...idleState("d"), at: NOW - 60_000, outcome: /** @type {const} */ ("clean") };
-    assert.match(describeSync(state, NOW), /1 minute ago and found nothing new/);
+    assert.match(describeSync(state, NOW), /för 1 minut sedan och hittade inget nytt/);
   });
 
   it("names what it brought in", () => {
@@ -327,14 +327,14 @@ describe("saying what happened", () => {
       promises: 1
     };
     const said = describeSync(state, NOW);
-    assert.match(said, /2 contact records/);
-    assert.match(said, /1 promise/);
-    assert.match(said, /just now/);
+    assert.match(said, /2 kontaktposter/);
+    assert.match(said, /1 löfte/);
+    assert.match(said, /just nu/);
   });
 
   it("distinguishes watching from not watching before the first pass", () => {
-    assert.match(describeSync({ ...idleState("d"), watching: true }, NOW), /Watching for changes/);
-    assert.match(describeSync(idleState("d"), NOW), /Not watching/);
+    assert.match(describeSync({ ...idleState("d"), watching: true }, NOW), /Bevakar ändringar/);
+    assert.match(describeSync(idleState("d"), NOW), /Bevakar inte/);
   });
 
   it("carries the skipped folders through, since a skip is why a person looks quiet", () => {
@@ -342,17 +342,17 @@ describe("saying what happened", () => {
       ...idleState("d"),
       at: NOW,
       outcome: /** @type {const} */ ("clean"),
-      skipped: ["Team / Rasmus: no notes"]
+      skipped: ["Team / Rasmus: inga anteckningar"]
     };
-    assert.match(describeSync(state, NOW), /Skipped: Team \/ Rasmus: no notes\./);
+    assert.match(describeSync(state, NOW), /Hoppade över: Team \/ Rasmus: inga anteckningar\./);
   });
 
   it("words a duration in the unit somebody watching the screen thinks in", () => {
-    assert.equal(recentlyWords(null, NOW), "never");
-    assert.equal(recentlyWords(NOW - 5_000, NOW), "just now");
-    assert.equal(recentlyWords(NOW - 120_000, NOW), "2 minutes ago");
-    assert.equal(recentlyWords(NOW - 2 * 60 * 60 * 1000, NOW), "2 hours ago");
+    assert.equal(recentlyWords(null, NOW), "aldrig");
+    assert.equal(recentlyWords(NOW - 5_000, NOW), "just nu");
+    assert.equal(recentlyWords(NOW - 120_000, NOW), "för 2 minuter sedan");
+    assert.equal(recentlyWords(NOW - 2 * 60 * 60 * 1000, NOW), "för 2 timmar sedan");
     // A clock that moved backwards must not produce "in -3 minutes".
-    assert.equal(recentlyWords(NOW + 60_000, NOW), "just now");
+    assert.equal(recentlyWords(NOW + 60_000, NOW), "just nu");
   });
 });

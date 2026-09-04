@@ -148,37 +148,37 @@ export function syncOnce(store, { dir = nibDataDir(), now = Date.now() } = {}) {
 export function describeSync(state, now = Date.now()) {
   if (state.outcome === "never") {
     return state.watching
-      ? "Watching for changes. Nothing has needed importing yet this session."
-      : "Not watching. Nib was not readable when this window opened.";
+      ? "Bevakar ändringar. Inget har behövt importeras än den här sessionen."
+      : "Bevakar inte. Nib gick inte att läsa när det här fönstret öppnades.";
   }
   if (state.outcome === "unbound") {
-    return "Nothing is bound to anybody yet, so there is nothing to import.";
+    return "Inget är bundet till någon än, så det finns inget att importera.";
   }
   if (state.outcome === "failed") {
-    return `Last import failed ${recentlyWords(state.at, now)}: ${state.error ?? "unknown reason"}`;
+    return `Senaste importen misslyckades ${recentlyWords(state.at, now)}: ${state.error ?? "okänd orsak"}`;
   }
 
   /** @type {string[]} */
   const parts = [];
   if (state.contacts > 0) {
-    parts.push(`${state.contacts} contact record${state.contacts === 1 ? "" : "s"}`);
+    parts.push(`${state.contacts} ${state.contacts === 1 ? "kontaktpost" : "kontaktposter"}`);
   }
   if (state.promises > 0) {
-    parts.push(`${state.promises} promise${state.promises === 1 ? "" : "s"}`);
+    parts.push(`${state.promises} ${state.promises === 1 ? "löfte" : "löften"}`);
   }
   if (state.resolved > 0) {
-    parts.push(`${state.resolved} closed by a tick in Nib`);
+    parts.push(`${state.resolved} stängda av en bock i Nib`);
   }
   if (state.retracted > 0) {
-    parts.push(`${state.retracted} withdrawn after a tag changed`);
+    parts.push(`${state.retracted} tillbakadragna efter att en tagg ändrades`);
   }
   if (state.moves > 0) {
-    parts.push(`${state.moves} folder${state.moves === 1 ? "" : "s"} followed to a new place`);
+    parts.push(`${state.moves} ${state.moves === 1 ? "mapp" : "mappar"} följda till en ny plats`);
   }
 
-  const found = parts.length === 0 ? "found nothing new" : `brought in ${parts.join(", ")}`;
-  const skipped = state.skipped.length > 0 ? ` Skipped: ${state.skipped.join("; ")}.` : "";
-  return `Imported ${recentlyWords(state.at, now)} and ${found}.${skipped}`;
+  const found = parts.length === 0 ? "hittade inget nytt" : `hämtade in ${parts.join(", ")}`;
+  const skipped = state.skipped.length > 0 ? ` Hoppade över: ${state.skipped.join("; ")}.` : "";
+  return `Importerade ${recentlyWords(state.at, now)} och ${found}.${skipped}`;
 }
 
 /**
@@ -200,18 +200,21 @@ export function describeSync(state, now = Date.now()) {
  */
 export function recentlyWords(at, now) {
   if (at === null) {
-    return "never";
+    return "aldrig";
   }
   const seconds = Math.max(0, Math.round((now - at) / 1000));
   if (seconds < 45) {
-    return "just now";
+    return "just nu";
   }
+  // "för N minuter sedan" - a circumfix, so the whole phrase is built here
+  // rather than by appending a suffix. Same reason `agoWords` exists in the
+  // domain instead of a "sedan" glued onto `humanDays`.
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) {
-    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+    return `för ${minutes} ${minutes === 1 ? "minut" : "minuter"} sedan`;
   }
   const hours = Math.round(minutes / 60);
-  return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  return `för ${hours} ${hours === 1 ? "timme" : "timmar"} sedan`;
 }
 
 /**
@@ -282,7 +285,7 @@ export function startNibSync({
         ...idleState(dir),
         at: now(),
         outcome: "failed",
-        error: `The import threw: ${describe(error)}`
+        error: `Importen kastade ett fel: ${describe(error)}`
       };
     }
     // Whether the notebook is being watched is a property of this handle rather
@@ -296,7 +299,7 @@ export function startNibSync({
       try {
         onChange();
       } catch (error) {
-        onWarning(`A Nib import finished but the window could not be told: ${describe(error)}`);
+        onWarning(`En Nib-import blev klar men fönstret kunde inte få veta: ${describe(error)}`);
       }
     }
     return state;
@@ -321,7 +324,7 @@ export function startNibSync({
     });
     watcher.on("error", (error) => {
       onWarning(
-        `Stopped watching Nib for new notes, so importing now waits for the periodic check: ${describe(error)}`
+        `Slutade bevaka Nib efter nya anteckningar, så importen väntar nu på den periodiska kontrollen: ${describe(error)}`
       );
       watcher = null;
       state = { ...state, watching: false };
@@ -329,7 +332,7 @@ export function startNibSync({
   } catch (error) {
     watcher = null;
     onWarning(
-      `Could not watch ${dir} for new notes, so notes are imported on a timer instead: ${describe(error)}`
+      `Kunde inte bevaka ${dir} efter nya anteckningar, så anteckningar importeras på en timer i stället: ${describe(error)}`
     );
   }
 

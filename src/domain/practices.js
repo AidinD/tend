@@ -76,7 +76,7 @@ export function forCard(practices, limit = PRACTICES_SHOWN) {
     note:
       more === 0
         ? null
-        : `${practices.length} principles are flagged as active. Showing ${shown.length} - emphasising more than a few at once is emphasising none of them.`
+        : `${practices.length} principer är markerade som aktiva. Visar ${shown.length} - att betona mer än ett fåtal åt gången är att betona inget av dem.`
   };
 }
 

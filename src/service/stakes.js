@@ -56,16 +56,16 @@ export function stakeholders(store, now, project) {
         person: people.get(String(s.person)) ?? "",
         project: projects.get(String(s.project)) ?? "",
         label: String(s.name ?? ""),
-        every: `${interval} days`,
+        every: `${interval} dagar`,
         // "never" and "today" are different facts and neither is a number, so
         // both are words. A card that says "0 days ago" for something that has
         // not happened at all is the reason this is not just a count.
-        lastUpdated: days === null ? "never" : agoWords(days),
+        lastUpdated: days === null ? "aldrig" : agoWords(days),
         behindBy: driftBadge((days ?? 0) - interval),
         note: last?.note ?? null
       };
     })
-    .sort((a, b) => (a.lastUpdated === "never" ? -1 : 0) - (b.lastUpdated === "never" ? -1 : 0));
+    .sort((a, b) => (a.lastUpdated === "aldrig" ? -1 : 0) - (b.lastUpdated === "aldrig" ? -1 : 0));
 }
 
 /**
@@ -101,13 +101,13 @@ export function addStake(store, { person: who, project, cadenceDays, what, since
     .find((s) => String(s.person) === personId && String(s.project) === projectId);
   if (already) {
     return {
-      error: `${foundPerson.person.name} is already a stakeholder in ${foundProject.project.name}. Change the interval on the existing one rather than adding a second.`
+      error: `${foundPerson.person.name} är redan stakeholder i ${foundProject.project.name}. Ändra intervallet på den befintliga i stället för att lägga till en andra.`
     };
   }
 
   const every = Number(cadenceDays);
   if (cadenceDays !== undefined && !(every > 0)) {
-    return { error: "An interval has to be a positive number of days." };
+    return { error: "Ett intervall måste vara ett positivt antal dagar." };
   }
 
   // Backdatable, and the default is deliberately the cautious one. Somebody
@@ -126,7 +126,7 @@ export function addStake(store, { person: who, project, cadenceDays, what, since
   return {
     id,
     added: `${foundPerson.person.name} on ${foundProject.project.name}`,
-    every: `${every > 0 ? every : DEFAULT_STAKE_DAYS} days`
+    every: `${every > 0 ? every : DEFAULT_STAKE_DAYS} dagar`
   };
 }
 
@@ -148,7 +148,7 @@ export function updateStake(store, id, { cadenceDays, what }) {
   const patch = {};
   if (cadenceDays !== undefined) {
     if (!(Number(cadenceDays) > 0)) {
-      return { error: "An interval has to be a positive number of days." };
+      return { error: "Ett intervall måste vara ett positivt antal dagar." };
     }
     patch.cadenceDays = Number(cadenceDays);
   }
@@ -156,7 +156,7 @@ export function updateStake(store, id, { cadenceDays, what }) {
     patch.what = String(what).trim() || null;
   }
   if (Object.keys(patch).length === 0) {
-    return { error: "Nothing to change." };
+    return { error: "Inget att ändra." };
   }
   store.update("stakes", id, patch);
   return { id, changed: Object.keys(patch) };

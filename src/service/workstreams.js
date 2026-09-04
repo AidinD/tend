@@ -44,12 +44,12 @@ export function workstreams(store, now) {
       levelMeans: isLevel(level) ? LEVELS[level].means : "Not stated.",
       // Who decides, as opposed to how closely you follow. The sentence you
       // should be able to read to them.
-      mandate: isLevel(level) ? LEVELS[level].authority : "Nobody has said who decides.",
-      reviewEvery: `${reviewInterval(w.level)} days`,
+      mandate: isLevel(level) ? LEVELS[level].authority : "Ingen har sagt vem som bestämmer.",
+      reviewEvery: `${reviewInterval(w.level)} dagar`,
       // `agoWords`, not `humanDays` plus " ago" - the helper exists because the
       // hand-rolled version says "today ago", and this card said it every day a
       // workstream had just been reviewed. Same fault the project list had.
-      lastReviewed: last ? agoWords(daysSince(last.at, now) ?? 0) : "never",
+      lastReviewed: last ? agoWords(daysSince(last.at, now) ?? 0) : "aldrig",
       unspecified: isUnspecified(w)
     };
   });

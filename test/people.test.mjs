@@ -201,12 +201,12 @@ describe("through the store", () => {
   it("stops surfacing a promise to somebody who has gone, without discarding it", () => {
     ok(api.logPromise(store, { person: "Ada", text: "Send the numbers", madeAt: ago(40), now: NOW }));
     const before = api.attention(store, NOW).needsYou ?? [];
-    assert.ok(before.some((/** @type {any} */ i) => /Ada an answer/.test(String(i.what))));
+    assert.ok(before.some((/** @type {any} */ i) => /Ada ett svar/.test(String(i.what))));
 
     ok(api.updatePerson(store, "Ada", { leftAt: ago(1) }));
     const after = api.attention(store, NOW).needsYou ?? [];
     assert.equal(
-      after.some((/** @type {any} */ i) => /Ada an answer/.test(String(i.what))),
+      after.some((/** @type {any} */ i) => /Ada ett svar/.test(String(i.what))),
       false
     );
     assert.equal(store.rows("promises").length, 1, "the promise itself is untouched");
@@ -234,7 +234,7 @@ describe("through the store", () => {
   it("refuses a date that is not a date", () => {
     assert.match(
       failed(api.updatePerson(store, "Ada", { awayUntil: /** @type {any} */ ("soon") })),
-      /must be a date/
+      /måste vara ett datum/
     );
   });
 });

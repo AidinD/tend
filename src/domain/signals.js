@@ -31,26 +31,26 @@ export const SIGNAL_CADENCE_DAYS = 30;
 export const DEFAULT_SIGNALS = [
   {
     id: "signal-pushback",
-    text: "Has anyone stopped pushing back?",
+    text: "Har någon slutat säga emot?",
     why:
-      "Someone who has withdrawn usually keeps delivering for a while. What goes first is the " +
-      "discretionary part: arguing in design discussions, reviewing other people's work, " +
-      "volunteering for the unpleasant thing. Output is a lagging indicator."
+      "Någon som dragit sig tillbaka fortsätter oftast leverera en tid. Det som går först är " +
+      "det frivilliga: att argumentera i designdiskussioner, granska andras arbete, anmäla " +
+      "sig till det obehagliga. Det som levereras är en eftersläpande indikator."
   },
   {
     id: "signal-quiet-retro",
-    text: "Do your retros end early with nothing resolved?",
+    text: "Slutar era retron tidigt utan att något löses?",
     why:
-      "Polite observations, no tension, no follow-through. A quiet team is usually not a lazy " +
-      "team, it is one that has learned speaking up changes nothing."
+      "Artiga iakttagelser, ingen spänning, ingen uppföljning. Ett tyst team är oftast inte " +
+      "ett lat team, det är ett som lärt sig att det inte ändrar något att säga till."
   },
   {
     id: "signal-unseen-work",
-    text: "Is there anyone whose actual work you have not seen in a month?",
+    text: "Finns det någon vars faktiska arbete du inte sett på en månad?",
     why:
-      "Your own blind spot rather than a general one. You are the formal manager for people " +
-      "whose work you no longer observe, so this is the question most likely to be answered yes " +
-      "and least likely to occur to you unprompted."
+      "Din egen blinda fläck snarare än en allmän. Du har det formella ansvaret för personer " +
+      "vars arbete du inte längre ser, så det här är frågan som mest sannolikt får ett ja och " +
+      "minst sannolikt faller dig in oombedd."
   }
 ];
 

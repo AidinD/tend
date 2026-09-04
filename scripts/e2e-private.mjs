@@ -45,6 +45,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/*
+ * The words, so these checks assert what the private half shows rather than
+ * which language it shows it in. Same reason as the work walkthrough.
+ */
+import { T } from "../src/renderer/text.js";
+
 import { DEFAULT_PORT, describeListener, parsePort, portInUse, refusalMessage } from "./e2e-port.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -232,7 +238,7 @@ try {
   });
 
   await check("the mode is visible without opening anything", () => {
-    if (String(state.badge).trim() !== "private") {
+    if (String(state.badge).trim() !== T.shell.privateBadge) {
       throw new Error(`the badge beside the wordmark reads "${state.badge}"`);
     }
   });
@@ -272,7 +278,7 @@ try {
     // The assertion is about what got DRAWN, not about what the rail offers.
     // Drawing a work view over private data is the failure this whole
     // arrangement exists to prevent.
-    if (!/The day/.test(drawn)) {
+    if (!drawn.includes(T.journal.title)) {
       throw new Error(`the drawn view is "${drawn}"`);
     }
     if (current !== "journal") {
@@ -284,7 +290,7 @@ try {
   await check("and the page states the rule the private half is written under", () => {
     // In the form rather than only in a check afterwards: the rule said while the
     // entry is being written is worth more than any amount of reading it back.
-    if (!/your own part/.test(sub)) {
+    if (!/din egen del/.test(sub)) {
       throw new Error(`the page does not state the rule: ${sub.slice(0, 180)}`);
     }
   });
@@ -318,7 +324,7 @@ try {
         throw new Error(`the palette still offers "${gone}"`);
       }
     }
-    if (!text.includes("Go to The day")) {
+    if (!text.includes(T.palette.goTo(T.journal.title))) {
       throw new Error(`the palette offers nothing from this half: ${text.slice(0, 200)}`);
     }
   });
@@ -398,7 +404,7 @@ try {
     const shown = [...theirPage.buttons, ...theirPage.blocks].join(" | ");
 
     // A promise is owed the same way to somebody you live with.
-    if (!shown.includes("I promised something") || !shown.includes("Open promises")) {
+    if (!shown.includes(T.people.logPromiseButton) || !shown.includes(T.people.promisesBlock)) {
       throw new Error(`promises are missing: ${shown}`);
     }
     // A growth thread is a direction you decided somebody should develop in, with
@@ -474,7 +480,7 @@ try {
   );
 
   await check("his own goals have a page in this half, and it draws", () => {
-    if (!/reflection/i.test(String(reflectionHere.title))) {
+    if (!String(reflectionHere.title).includes(T.reflection.title)) {
       throw new Error(`the view drew "${reflectionHere.title}"`);
     }
     if (reflectionHere.errors > 0) {
@@ -524,7 +530,7 @@ try {
     if (!picker.fitsWithoutScrolling) {
       throw new Error("the dialog still has to be scrolled to reach the bottom");
     }
-    if (!/Nobody chosen/.test(picker.summary)) {
+    if (!picker.summary.includes(T.ui.noneChosen)) {
       throw new Error(`the closed summary reads "${picker.summary}"`);
     }
   });
@@ -592,16 +598,16 @@ try {
     if (patterns.disabled !== true) {
       throw new Error("the button is live on a single moment");
     }
-    if (!/at least four/.test(patterns.why)) {
+    if (!/minst fyra/.test(patterns.why)) {
       throw new Error(`the reason does not say the floor: "${patterns.why}"`);
     }
-    if (!/three separate days/.test(patterns.why)) {
+    if (!/skilda dagar/.test(patterns.why)) {
       throw new Error(`the reason does not say the spread rule: "${patterns.why}"`);
     }
   });
 
   await check("and says outright that nothing is written or sent", () => {
-    if (!/Nothing is written/.test(patterns.saysNothingKept)) {
+    if (!patterns.saysNothingKept.includes(T.journal.patternsNote)) {
       throw new Error(`the card says "${patterns.saysNothingKept}"`);
     }
   });

@@ -22,7 +22,7 @@ export function signals(store, now) {
     question: s.text,
     why: s.why,
     due: s.severity !== "ok",
-    lastAsked: s.everAnswered ? `${s.daysSince} days ago` : "never",
+    lastAsked: s.everAnswered ? `för ${s.daysSince} dagar sedan` : "aldrig",
     lastAnswer: s.lastAnswer
   }));
 }
@@ -50,5 +50,5 @@ export function answerSignal(store, { signal, answer, note, now }) {
     return { error: "A yes needs a note saying what you saw. A bare yes is not actionable later." };
   }
   store.create("signalAnswers", { signal, answer, note: note ?? null, at: now });
-  return { signal, answer, nextAskedIn: answer === "yes" ? "7 days" : "30 days" };
+  return { signal, answer, nextAskedIn: answer === "yes" ? "7 dagar" : "30 dagar" };
 }

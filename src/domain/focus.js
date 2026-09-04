@@ -62,12 +62,12 @@ export function focusStatus(focus, now) {
       daysLeft,
       overrun: true,
       stretch: 1,
-      summary: `"${focus.name}" passed its end date ${-daysLeft} days ago. Thresholds are back to normal. Renew it or close it out.`
+      summary: `"${focus.name}" passerade sitt slutdatum för ${-daysLeft} dagar sedan. Trösklarna är tillbaka till det normala. Förnya det eller avsluta det.`
     };
   }
 
   const stretch = typeof focus.stretch === "number" ? focus.stretch : DEFAULT_STRETCH;
-  const left = daysLeft === Infinity ? "no end date set" : `${daysLeft} days left`;
+  const left = daysLeft === Infinity ? "inget slutdatum satt" : `${daysLeft} dagar kvar`;
   return {
     active: true,
     daysLeft,
@@ -119,7 +119,7 @@ export function focusCost(focus, meanDriftNow) {
     return {
       known: false,
       deltaDays: 0,
-      summary: "No baseline was captured when this focus was set, so its cost cannot be stated."
+      summary: "Ingen utgångspunkt registrerades när det här fokuset sattes, så vad det kostar går inte att säga."
     };
   }
 
@@ -128,7 +128,7 @@ export function focusCost(focus, meanDriftNow) {
     return {
       known: true,
       deltaDays,
-      summary: "Nothing has fallen further behind since this focus started."
+      summary: "Inget har hamnat längre efter sedan det här fokuset började."
     };
   }
 
@@ -137,6 +137,6 @@ export function focusCost(focus, meanDriftNow) {
   return {
     known: true,
     deltaDays,
-    summary: `Average drift has gone from ${from} to ${to} days since this focus started. That is the price so far, not an argument to stop.`
+    summary: `Genomsnittlig eftersläpning har gått från ${from} till ${to} dagar sedan det här fokuset började. Det är priset så här långt, inte ett argument för att sluta.`
   };
 }

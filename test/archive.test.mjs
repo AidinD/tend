@@ -464,10 +464,10 @@ describe("a name held by an archived row", () => {
   const saysArchived = (message, what) => {
     assert.match(
       message,
-      /archiv/i,
+      /arkiverad|arkiverat/i,
       `${what} must say the name belongs to an archived row, said: ${message}`
     );
-    assert.match(message, /unarchive/i, `${what} must name the way out, said: ${message}`);
+    assert.match(message, /ta tillbaka/i, `${what} must name the way out, said: ${message}`);
     assert.doesNotMatch(
       message,
       /setRelation/,
@@ -513,10 +513,10 @@ describe("a name held by an archived row", () => {
     const clash = failed(
       api.addPerson(store, { name: "Nadia Ohlsson", relation: "lead-and-manage", now: NOW })
     );
-    assert.match(clash, /already here/);
+    assert.match(clash, /finns redan här/);
     assert.doesNotMatch(
       clash,
-      /archiv/i,
+      /arkiverad|arkiverat/i,
       "a live clash must not be reported as an archived one"
     );
   });
@@ -527,7 +527,7 @@ describe("a name held by an archived row", () => {
     const clash = failed(
       api.addPerson(store, { name: "Nadia Ohlsson", relation: "lead-and-manage", now: NOW })
     );
-    assert.match(clash, /already here/, "an unarchived row is live again, so its clash is a live one");
+    assert.match(clash, /finns redan här/, "an unarchived row is live again, so its clash is a live one");
   });
 });
 

@@ -134,9 +134,10 @@ function describe(value) {
  * suffix cannot express it and no amount of care at the call site recovers the
  * pieces from the string.
  *
- * So the shape had to change before anything new was written against it. The
- * English composers below are unchanged in what they produce, and they now
- * produce it from these parts.
+ * So the shape had to change before anything new was written against it - and
+ * the composers below now produce Swedish from these parts, which is the thing
+ * the reshaping was for. `agoWords` in particular can no longer be a suffix
+ * on `humanDays`.
  *
  * @param {number} days
  * @returns {Duration}
@@ -164,10 +165,11 @@ export function driftOf(days) {
 /**
  * Render a day count the way a person reads it.
  *
- * The English composer. Kept because the service layer's payload is read by a
- * model over MCP as well as by the window, and that half stays in English
- * until the boundary between copy and payload is drawn properly - while a
- * string is both, every rewording is an API change.
+ * Swedish, and the service layer sends it as-is. That is a translation rather
+ * than the deferred boundary refactor: the field, its type and the payload's
+ * shape are all unchanged, and a model reading it over MCP gets a Swedish
+ * phrase where it got an English one. See the header for why the deferral's
+ * argument does not reach this far.
  *
  * @param {number} days
  * @returns {string}
@@ -175,12 +177,12 @@ export function driftOf(days) {
 export function humanDays(days) {
   const d = durationOf(days);
   if (d.unit === "today") {
-    return "today";
+    return "idag";
   }
   if (d.unit === "day") {
-    return d.n === 1 ? "1 day" : `${d.n} days`;
+    return d.n === 1 ? "1 dag" : `${d.n} dagar`;
   }
-  return `${d.n} weeks`;
+  return `${d.n} ${d.n === 1 ? "vecka" : "veckor"}`;
 }
 
 /**
@@ -200,8 +202,18 @@ export function humanDays(days) {
  * @param {number} days
  */
 export function agoWords(days) {
-  const words = humanDays(days);
-  return words === "today" ? "today" : `${words} ago`;
+  const d = durationOf(days);
+  if (d.unit === "today") {
+    return "idag";
+  }
+  /*
+   * Built from the parts rather than by suffixing `humanDays`, because Swedish
+   * wraps the number: "för 5 veckor sedan" has a word on each side and a
+   * suffix cannot express it. This is the caller `durationOf` was reshaped
+   * for.
+   */
+  const unit = d.unit === "day" ? (d.n === 1 ? "dag" : "dagar") : d.n === 1 ? "vecka" : "veckor";
+  return `för ${d.n} ${unit} sedan`;
 }
 
 /**
@@ -213,9 +225,10 @@ export function agoWords(days) {
 export function driftBadge(days) {
   const d = driftOf(days);
   if (d === null) {
-    return "on time";
+    return "i fas";
   }
-  return d.unit === "day" ? `+${d.n}d` : `+${d.n}w`;
+  /* "v" for vecka, "d" for dag - both single letters, as the badge needs. */
+  return d.unit === "day" ? `+${d.n}d` : `+${d.n}v`;
 }
 
 /**

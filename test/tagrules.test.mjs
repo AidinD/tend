@@ -187,7 +187,7 @@ describe("moving a folder in Nib", () => {
     );
     const after = ok(indexNib(store, { dir: nibDir }));
     assert.equal(after.contacts, 0);
-    assert.match(after.skipped[0], /no such folder/);
+    assert.match(after.skipped[0], /ingen sådan mapp/);
   });
 });
 
@@ -395,7 +395,7 @@ describe("a casual chat", () => {
     assert.equal(seen.recentContact[0].from, "nib");
 
     const oneToOne = seen.cadences.find((/** @type {any} */ c) => c.duty === "1-1");
-    assert.equal(oneToOne?.lastHappened, "never", "but the 1-1 has still never happened");
+    assert.equal(oneToOne?.lastHappened, "aldrig", "but the 1-1 has still never happened");
   });
 
   it("keeps the person out of the people-I-only-heard-about signal", () => {

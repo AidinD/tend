@@ -111,14 +111,14 @@ export function waitFor(store, { person: who, what, why, askedAt, cadenceDays, n
     return { error: found.error };
   }
   if (String(what ?? "").trim() === "") {
-    return { error: "Say what you are waiting for, or there is nothing to chase." };
+    return { error: "Säg vad du väntar på, annars finns det inget att påminna om." };
   }
   const when = typeof askedAt === "number" ? askedAt : now;
   if (isLaterDay(when, now)) {
-    return { error: "That day has not arrived yet. You cannot be waiting on something you have not asked for." };
+    return { error: "Den dagen har inte kommit än. Du kan inte vänta på något du inte har bett om." };
   }
   if (cadenceDays !== undefined && !(Number(cadenceDays) > 0)) {
-    return { error: "How long to wait has to be a positive number of days." };
+    return { error: "Hur länge du ska vänta måste vara ett positivt antal dagar." };
   }
 
   const id = store.create("waiting", {
@@ -154,11 +154,11 @@ export function chase(store, { waiting: waitId, note, at, now }) {
     return { error: `Nothing is being waited for with id "${waitId}".` };
   }
   if (String(row.state ?? "open") !== "open") {
-    return { error: "That one is closed, so there is nothing left to chase." };
+    return { error: "Den är stängd, så det finns inget kvar att påminna om." };
   }
   const when = typeof at === "number" ? at : now;
   if (isLaterDay(when, now)) {
-    return { error: "That day has not arrived yet. A chase is logged after you send it." };
+    return { error: "Den dagen har inte kommit än. En påminnelse loggas efter att du skickat den." };
   }
 
   const id = store.create("chases", {

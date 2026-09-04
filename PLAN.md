@@ -75,8 +75,8 @@ lead, along with the attention signals and the journal.
   prose, so reading what the app says meant reading its markup. Three tests hold
   the line: no renderer file may keep a sentence of its own, no key may go
   unread, and the rail's labels must match the names the palette uses for the
-  same views. The move changed no wording - that is the next pass and a separate
-  one
+  same views. The move changed no wording; the translation was a later pass, and
+  came last
 - Concurrency design: [docs/storage.md](docs/storage.md)
 - Role map research across several books and current practice:
   [docs/role-map-research.md](docs/role-map-research.md) - **needs a review pass
@@ -186,12 +186,43 @@ Tend event log <──┤
    validation errors. The copy the person is handed is a named five-line subset
    rather than everything minus the private fields, so a goal like "document
    that we tried" cannot reach it by default when a field is added later.
-13. **The translation.** Last, by his decision, twice. Everything above is in
-   English and the new screens were built that way on purpose: they had no
-   strings when the order changed, so translating earlier meant writing Swedish
-   twice. `durationOf` and `daysSince` already return parts rather than
-   finished phrases, which is the one thing that had to change first - "för 5
-   veckor sedan" wraps its number and a suffix cannot express it.
+13. ~~**The translation**~~ done. Everything the app says is Swedish: all
+   1214 strings in `src/renderer/text.js`, the option labels that live in the
+   domain beside their values, the three duration composers in
+   `src/domain/time.js`, and the seeded role map, monthly questions and topic
+   seeds. Last by his decision, twice, and the order was right: the new screens
+   had no strings when it was deferred, so translating earlier meant writing
+   Swedish twice.
+
+   Four things it turned out to be about rather than word choice:
+
+   - **`durationOf` had to return parts, not a phrase.** "för 5 veckor sedan"
+     wraps its number and a suffix cannot express it. That went in first, on its
+     own, before any wording moved.
+   - **`const t = T.people` collided with the row variable `t`** in seven of
+     thirteen views. Every collision compiled and would have rendered a text key
+     where a name belonged. The alias is `words` everywhere now.
+   - **Four strings had escaped the extraction pass**, and none of them read
+     like prose to a search: a button label starting with a bare "I", a pill
+     beginning lowercase, a second hardcoded copy of the palette's own composer
+     twenty lines from the one that used the module, and four English nouns
+     handed to `readFailedHtml`, which wraps its argument in "Kunde inte läsa
+     ...". Each was found by a check going red, not by reading.
+   - **Two hundred walkthrough checks matched English literals**, and about
+     seventy unit tests. They read from `T`, `RELATIONS`, `TILE_SETS` and the
+     seeds now, so the next rewording does not break a check about behaviour.
+   - **Swedish adjectives agree and English ones do not**, so a
+     `n === 1 ? "ämne" : "ämnen"` ternary silently produced "1 ämne värda att
+     ta upp". The whole phrase has to branch, not the noun.
+
+   Work jargon he already speaks in English stays English inside the Swedish
+   sentence - `stakeholder`, `casual`, `sideways`, `second hand`,
+   `feedback` - and `drift` is **eftersläpning**, never the English word.
+
+   **Where Swedish stops is a stated rule, not a leftover:** a string a person
+   can put on their own screen is Swedish wherever it is composed; the 81 that
+   are keyed by an id or an enum stay English, because only a caller passing bad
+   arguments can produce one. See DECISIONS.md.
 
 ## Not built, and why
 

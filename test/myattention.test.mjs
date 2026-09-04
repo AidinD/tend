@@ -67,7 +67,7 @@ describe("the line", () => {
     for (const signal of signals) {
       assert.match(
         signal.text,
-        /^(I |My |Everything I |\d+% of my )/,
+        /^(Jag |Min |Mitt |Allt jag |\d+% av min )/,
         `"${signal.text}" is not a sentence about me`
       );
     }
@@ -91,7 +91,7 @@ describe("who I have not spoken to", () => {
       touches: [{ subject: "p0", kind: "one-to-one", at: daysAgo(3) }],
       now: NOW
     });
-    assert.match(signal.text, /^I have not spoken to 3 of 4 people/);
+    assert.match(signal.text, /^Jag har inte pratat med 3 av 4 personer/);
     assert.match(String(signal.detail), /Person 1/);
   });
 
@@ -104,7 +104,7 @@ describe("who I have not spoken to", () => {
       ],
       now: NOW
     });
-    assert.match(signals[0].text, /1 of 2/);
+    assert.match(signals[0].text, /1 av 2/);
   });
 
   it("says nothing about a roster of one", () => {
@@ -126,7 +126,7 @@ describe("where my attention went", () => {
       (s) => s.key === "my-attention-is-concentrated"
     );
     assert.ok(signal, "lopsided contact should be said out loud");
-    assert.match(signal.text, /% of my contact/);
+    assert.match(signal.text, /% av min kontakt/);
     assert.match(String(signal.detail), /Person 0/);
   });
 
@@ -171,7 +171,7 @@ describe("second-hand only", () => {
     }).find((s) => s.key === "i-have-only-heard-about");
 
     assert.ok(signal, "the blind spot Tend exists for");
-    assert.match(signal.text, /came through somebody else/);
+    assert.match(signal.text, /kom genom någon annan/);
     assert.match(String(signal.detail), /Person 1/);
   });
 
@@ -226,7 +226,7 @@ describe("how the week went", () => {
       now: NOW
     }).find((s) => s.key === "i-have-not-reflected");
     assert.ok(signal, "a week's worth of use with nothing reflected on should be noticed");
-    assert.match(signal.text, /^I have not written a weekly reflection yet\.$/);
+    assert.match(signal.text, /^Jag har inte skrivit någon veckoreflektion än\.$/);
     assert.equal("severity" in signal, false, "this signal must never carry a severity - see the module header");
     // The flag Now reads to decide whether it may still call the day quiet.
     // Without it the daily page's headline changed for as long as a week went
@@ -273,7 +273,7 @@ describe("how the week went", () => {
       now: NOW
     }).find((s) => s.key === "i-have-not-reflected");
     assert.ok(signal, "an old reflection is not a current one");
-    assert.match(signal.text, new RegExp(`in ${REFLECTION_CADENCE_DAYS + 1} days`));
+    assert.match(signal.text, new RegExp(`på ${REFLECTION_CADENCE_DAYS + 1} dagar`));
   });
 
   it("never outranks a signal that is about a person rather than a habit", () => {

@@ -119,7 +119,7 @@ describe("progress, as distinct from attention", () => {
     const state = threadState(thread(), notes, person, NOW);
     assert.equal(state.stalled, true);
     assert.equal(state.observations, 0);
-    assert.match(String(state.asks), /aim wrong, or is the support missing/);
+    assert.match(String(state.asks), /riktningen fel, eller saknas stödet/);
   });
 
   it("is not stalled if the marker was seen even once", () => {
@@ -141,12 +141,12 @@ describe("the one question a thread asks", () => {
   it("asks for the marker once they have been asked, ahead of any other reading", () => {
     const notes = Array.from({ length: STALL_AFTER_TALKS }, (_, i) => talk(i + 1));
     const state = threadState(thread({ marker: "", stance: "agreed" }), notes, person, NOW);
-    assert.match(String(state.asks), /see in three months/);
+    assert.match(String(state.asks), /se om tre månader/);
   });
 
   it("asks what they actually said once it has been discussed but their stance is unrecorded", () => {
     const state = threadState(thread({ stance: "unasked" }), [talk(2)], person, NOW);
-    assert.match(String(state.asks), /in their words/);
+    assert.match(String(state.asks), /i sina ord/);
   });
 
   it("asks for the conversation before it asks for anything the conversation produces", () => {
@@ -154,25 +154,25 @@ describe("the one question a thread asks", () => {
     // first, which invites the manager to invent the other person's yardstick
     // alone at a desk - the exact thing the two sittings exist to prevent.
     const state = threadState(thread({ stance: "unasked", marker: "" }), [], person, NOW);
-    assert.match(String(state.asks), /Ask them/);
-    assert.doesNotMatch(String(state.asks), /three months/);
+    assert.match(String(state.asks), /Fråga dem/);
+    assert.doesNotMatch(String(state.asks), /tre månader/);
   });
 
   it("asks what they said once a conversation has happened", () => {
     const state = threadState(thread({ stance: "unasked", marker: "" }), [talk(2)], person, NOW);
-    assert.match(String(state.asks), /in their words/);
+    assert.match(String(state.asks), /i sina ord/);
   });
 
   it("questions the thread itself once the horizon passes", () => {
     const state = threadState(thread({ horizon: ago(1) }), [talk(2)], person, NOW);
     assert.equal(state.pastHorizon, true);
-    assert.match(String(state.asks), /still the thing/);
+    assert.match(String(state.asks), /fortfarande rätt sak/);
   });
 
   it("keeps asking about a dropped thread until he confirms he told them", () => {
     const let_go = thread({ status: "dropped", endedWhy: "he does not want it and the job does not need it" });
     const quiet = threadState(let_go, [talk(3)], person, NOW);
-    assert.match(String(quiet.asks), /told them you let this go/);
+    assert.match(String(quiet.asks), /berättat för dem att du släppt det/);
 
     const said = threadState({ ...let_go, endingSaid: true }, [talk(3)], person, NOW);
     assert.equal(said.asks, null);
@@ -186,20 +186,20 @@ describe("what the form still wants", () => {
     assert.ok(empty.ask.length > 0);
     // His own preparation never asks him what the other person wants: that is
     // the whole reason the form has two stages.
-    assert.ok(!empty.prepare.some((q) => /their words/i.test(q)));
+    assert.ok(!empty.prepare.some((q) => /deras ord/i.test(q)));
   });
 
   it("asks the uncomfortable question only when the driver is a need", () => {
     const needs = missing({ id: "g1", driver: "needs" });
-    assert.ok(needs.prepare.some((q) => /if nothing changes/i.test(q)));
+    assert.ok(needs.prepare.some((q) => /om inget ändras/i.test(q)));
 
     const wants = missing({ id: "g1", driver: "wants" });
-    assert.ok(!wants.prepare.some((q) => /if nothing changes/i.test(q)));
+    assert.ok(!wants.prepare.some((q) => /om inget ändras/i.test(q)));
   });
 
   it("asks which of the two it is before anything else, when it is unset", () => {
     const blank = missing({ id: "g1" });
-    assert.match(blank.prepare[0], /want this, or does the job need it/);
+    assert.match(blank.prepare[0], /Vill de det här, eller behöver jobbet det/);
   });
 
   it("wants nothing at all once the thread has ended", () => {
@@ -243,7 +243,7 @@ describe("what the form still wants", () => {
       assignment: "the design review"
     });
     assert.deepEqual(stated.prepare, []);
-    assert.match(stated.ask.join(" "), /see in three months/);
+    assert.match(stated.ask.join(" "), /se om tre månader/);
   });
 
   it("is satisfied once every field is answered", () => {
@@ -382,7 +382,7 @@ describe("through the service", () => {
     const thread = ok(api.growth(store, "Halvar", NOW)).threads.find((/** @type {any} */ t) => t.id === id);
     assert.ok(thread, "the thread has to be readable or this proves nothing");
     assert.equal(thread.stalled, true, "the fixture has to actually be stalled or this proves nothing");
-    assert.match(String(thread.asks), /aim wrong, or is the support missing/);
+    assert.match(String(thread.asks), /riktningen fel, eller saknas stödet/);
 
     const now = api.attention(store, NOW);
     const named = [...now.needsYou, ...now.nudges].filter((/** @type {any} */ i) =>
@@ -462,7 +462,7 @@ describe("through the service", () => {
     // here. The thread's question has to be the thing that earns the card.
     const card = prep(store, NOW, { jotDir }).cards.find((/** @type {any} */ c) => c.person === "Halvar");
     assert.ok(card, "a thread asking something must be able to earn a prep card on its own");
-    assert.match(String(card.why), /aim wrong, or is the support missing/, "and it must say that is why");
+    assert.match(String(card.why), /riktningen fel, eller saknas stödet/, "and it must say that is why");
   });
 
   it("reports what the form still wants when it opens the thread", () => {
@@ -478,7 +478,7 @@ describe("through the service", () => {
     const opened = ok(api.openThread(store, { person: "Halvar", aim: "Runs the review alone", now: NOW }));
     assert.match(
       opened.missing.prepare.join(" | "),
-      /want this, or does the job need it/i,
+      /Vill de det här, eller behöver jobbet det/i,
       `the driver question must still be waiting: ${JSON.stringify(opened.missing.prepare)}`
     );
   });
@@ -492,7 +492,7 @@ describe("through the service", () => {
     );
     assert.doesNotMatch(
       opened.missing.prepare.join(" | "),
-      /want this, or does the job need it/i,
+      /Vill de det här, eller behöver jobbet det/i,
       "a driver that was deliberately set to unknown is answered, not missing"
     );
   });
@@ -527,7 +527,7 @@ describe("through the service", () => {
     ok(api.endThread(store, id, { status: "dropped", why: "he does not want it" }));
     const asking = api.growthQuestions(store, NOW);
     assert.equal(asking.length, 1);
-    assert.match(String(asking[0].asks), /told them/);
+    assert.match(String(asking[0].asks), /berättat för dem/);
 
     ok(api.updateThread(store, id, { endingSaid: true }));
     assert.equal(api.growthQuestions(store, NOW).length, 0);
@@ -673,7 +673,7 @@ describe("on the prep card", () => {
     ok(api.openThread(store, { person: "Halvar", aim: "Something", now: NOW }));
     const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
     assert.equal(page.cards.length, 1);
-    assert.match(page.cards[0].why, /Ask them/);
+    assert.match(page.cards[0].why, /Fråga dem/);
   });
 
   it("puts somebody on the page for a thread alone", () => {
@@ -694,7 +694,7 @@ describe("on the prep card", () => {
     const page = api.prep(store, NOW, { jotDir: dir, nibDir: dir });
     // Not "1 growth thread" - the question itself, because that is the thing he
     // cannot work out by looking at the row.
-    assert.match(page.cards[0].why, /aim wrong, or is the support missing/);
+    assert.match(page.cards[0].why, /riktningen fel, eller saknas stödet/);
   });
 
   it("carries both counts, since either one alone says nothing", () => {
@@ -880,23 +880,27 @@ describe("how long since a project was looked at", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("says today rather than today ago", () => {
+  it("says idag rather than för 0 dagar sedan", () => {
     // The helper for this exists so nobody hand-rolls "N days" + " ago", and this
     // view had hand-rolled it - so every project looked at that morning read
     // "today ago".
     ok(api.logTouch(store, { subject: "Strandkanten", kind: "check-in", now: NOW }));
     const seen = api.projects(store, NOW).find((p) => p.name === "Strandkanten");
-    assert.equal(seen?.lastLookedAt, "today");
+    assert.equal(seen?.lastLookedAt, "idag");
   });
 
   it("still says how long it has been when it has been a while", () => {
     ok(api.logTouch(store, { subject: "Strandkanten", kind: "check-in", at: ago(20), now: NOW }));
     const seen = api.projects(store, NOW).find((p) => p.name === "Strandkanten");
-    assert.match(String(seen?.lastLookedAt), /ago$/);
+    /*
+     * The circumfix rather than a suffix - Swedish puts a word on each side of
+     * the number, which is why `agoWords` builds the phrase from the parts.
+     */
+    assert.match(String(seen?.lastLookedAt), /^för .* sedan$/);
   });
 
   it("says never when nobody has looked, rather than counting from nothing", () => {
     const seen = api.projects(store, NOW).find((p) => p.name === "Strandkanten");
-    assert.equal(seen?.lastLookedAt, "never");
+    assert.equal(seen?.lastLookedAt, "aldrig");
   });
 });

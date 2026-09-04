@@ -74,25 +74,25 @@ import { daysBetween } from "./time.js";
  */
 export const DRIVERS = /** @type {const} */ ({
   wants: {
-    label: "They want it",
-    means: "Their ambition. Your job is air cover and opportunity, not persuasion.",
+    label: "De vill det",
+    means: "Deras ambition. Ditt jobb är skydd och möjligheter, inte övertalning.",
     /**
      * The question this driver has to answer before anything else, asked in the
      * form rather than left as advice in a conversation somewhere.
      */
-    asks: "What have they said they want, in their own words?"
+    asks: "Vad har de sagt att de vill, i sina egna ord?"
   },
   needs: {
-    label: "The job needs it",
+    label: "Jobbet behöver det",
     means:
-      "An expectation, not an aspiration. Say the 'needs' part once, plainly, and coach every " +
-      "step after that: clarity about whether, encouragement about how.",
-    asks: "Whose need is it, and what happens if nothing changes?"
+      "Ett krav, inte en förhoppning. Säg 'behöver'-delen en gång, rakt ut, och coacha varje " +
+      "steg efter det: tydlighet om huruvida, uppmuntran om hur.",
+    asks: "Vems behov är det, och vad händer om inget ändras?"
   },
   unknown: {
-    label: "I do not know yet",
-    means: "The normal state before you have asked. The next step is a question, not a plan.",
-    asks: "What will you ask them, and when?"
+    label: "Jag vet inte än",
+    means: "Det normala läget innan du frågat. Nästa steg är en fråga, inte en plan.",
+    asks: "Vad kommer du att fråga dem, och när?"
   }
 });
 
@@ -107,10 +107,10 @@ export const DRIVERS = /** @type {const} */ ({
  * single most common way a development plan quietly becomes a burden.
  */
 export const STANCES = /** @type {const} */ ({
-  agreed: { label: "Landed - same direction" },
-  redirected: { label: "They want something else" },
-  declined: { label: "No interest in it" },
-  unasked: { label: "Not put to them yet" }
+  agreed: { label: "Landade - samma riktning" },
+  redirected: { label: "De vill något annat" },
+  declined: { label: "Inget intresse för det" },
+  unasked: { label: "Inte prövat på dem än" }
 });
 
 /** @typedef {keyof typeof STANCES} Stance */
@@ -126,10 +126,10 @@ export const STANCES = /** @type {const} */ ({
  * legitimate outcome you get to choose on purpose".
  */
 export const STATUSES = /** @type {const} */ ({
-  open: { label: "Open" },
-  reached: { label: "Reached" },
-  dropped: { label: "Let go" },
-  expectation: { label: "Stated as an expectation" }
+  open: { label: "Öppen" },
+  reached: { label: "Nådd" },
+  dropped: { label: "Släppt" },
+  expectation: { label: "Uttalad som ett krav" }
 });
 
 /** @typedef {keyof typeof STATUSES} Status */
@@ -414,7 +414,7 @@ export function threadState(row, notes, person, now) {
  */
 function question({ row, status, stalled, pastHorizon, talks }) {
   if (status === "dropped" && row.endingSaid !== true) {
-    return "Have you told them you let this go, and why? A quiet ending is the one that costs you.";
+    return "Har du berättat för dem att du släppt det, och varför? Ett tyst avslut är det som kostar dig.";
   }
   if (!isLiveStatus(status)) {
     return null;
@@ -427,17 +427,17 @@ function question({ row, status, stalled, pastHorizon, talks }) {
   // yardstick alone at a desk.
   if (String(row.stance ?? "unasked") === "unasked") {
     return talks > 0
-      ? "You have discussed this. What did they actually say they want, in their words?"
-      : "Ask them. What you will look for comes out of that conversation rather than before it.";
+      ? "Ni har diskuterat det här. Vad sa de faktiskt att de vill, i sina ord?"
+      : "Fråga dem. Vad du kommer att se efter kommer ur det samtalet snarare än före det.";
   }
   if (String(row.marker ?? "").trim() === "") {
-    return "What will you see in three months that you do not see now? Without that, there is nothing to follow.";
+    return "Vad kommer du att se om tre månader som du inte ser nu? Utan det finns inget att följa.";
   }
   if (pastHorizon) {
-    return "Is this still the thing? The horizon you set has passed.";
+    return "Är det här fortfarande rätt sak? Horisonten du satte har passerat.";
   }
   if (stalled) {
-    return `Discussed ${talks} times and the marker has never been observed. Is the aim wrong, or is the support missing?`;
+    return `Diskuterad ${talks} gånger och det du skulle se har aldrig observerats. Är riktningen fel, eller saknas stödet?`;
   }
   return null;
 }
@@ -594,17 +594,17 @@ export function missing(row) {
 
   const driver = isDriver(String(row.driver)) ? String(row.driver) : "";
   if (driver === "") {
-    prepare.push("Do they want this, or does the job need it?");
+    prepare.push("Vill de det här, eller behöver jobbet det?");
   }
   if (driver === "needs") {
     if (blank(row.need)) {
-      prepare.push("Whose need is it? Name it concretely.");
+      prepare.push("Vems behov är det? Namnge det konkret.");
     }
     if (blank(row.ifNothingChanges)) {
       // The uncomfortable one, and the reason it is in the form rather than in
       // advice: if the honest answer is "nothing", it is a wish, and calling a
       // wish a need is a thing to stop doing before the conversation, not after.
-      prepare.push("What happens if nothing changes? If the answer is nothing, this is a wish.");
+      prepare.push("Vad händer om inget ändras? Om svaret är ingenting är det här en önskan.");
     }
   }
   if (blank(row.hypothesis)) {
@@ -612,26 +612,26 @@ export function missing(row) {
     // fills this from the aim. Worded as the record it is rather than as a
     // second "what is the direction": asking that twice is what made the first
     // version of the form unreadable.
-    prepare.push("Write down what you thought before you asked them, so it survives being wrong.");
+    prepare.push("Skriv ner vad du trodde innan du frågade dem, så att det överlever att ha varit fel.");
   }
   if (blank(row.alreadySeen)) {
-    prepare.push("What have you already seen that supports it? Empty is itself the finding.");
+    prepare.push("Vad har du redan sett som stödjer det? Tomt är i sig fyndet.");
   }
   if (blank(row.offering)) {
-    prepare.push("What are you putting in - cover, a room, work you stop doing yourself?");
+    prepare.push("Vad lägger du in - skydd, ett rum, arbete du slutar göra själv?");
   }
 
   if (blank(row.theirWords)) {
-    ask.push("What do they want to be able to do in a year that they cannot now? Their words.");
+    ask.push("Vad vill de kunna göra om ett år som de inte kan nu? Deras ord.");
   }
   if (String(row.stance ?? "unasked") === "unasked") {
-    ask.push("How did that land against your guess?");
+    ask.push("Hur landade det mot din gissning?");
   }
   if (blank(row.assignment)) {
-    ask.push("Which real work does this happen through? Name the assignment, not a skill area.");
+    ask.push("Vilket verkligt arbete sker det här genom? Namnge uppdraget, inte ett kompetensområde.");
   }
   if (blank(row.marker)) {
-    ask.push("What will you see in three months that you do not see now?");
+    ask.push("Vad kommer du att se om tre månader som du inte ser nu?");
   }
 
   return { prepare, ask };

@@ -199,7 +199,7 @@ export function aims(store, now = Date.now()) {
       ...standing,
       statusLabel: STATUSES[standing.status]?.label ?? standing.status,
       sourceLabel: SOURCES[standing.source]?.label ?? standing.source,
-      lastLogged: standing.lastAt === null ? "never" : agoWords(standing.daysSince),
+      lastLogged: standing.lastAt === null ? "aldrig" : agoWords(standing.daysSince),
       endedWhy: String(row.endedWhy ?? "")
     };
   });

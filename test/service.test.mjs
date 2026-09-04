@@ -104,14 +104,14 @@ describe("reading", () => {
   it("explains what a relationship type means, so an agent need not guess", () => {
     const p = ok(api.person(store, "johan", NOW));
     assert.equal(p.relation, "manage-remotely");
-    assert.match(String(p.relationMeans), /mandate and none of the observation/);
+    assert.match(String(p.relationMeans), /mandatet och ingenting av observationen/);
   });
 
   it("shows each cadence for a person with how far behind it is", () => {
     const p = ok(api.person(store, "johan", NOW));
     const names = p.cadences.map((c) => c.duty).sort();
     assert.deepEqual(names, ["1-1", "Second-hand read"]);
-    assert.equal(p.cadences.find((c) => c.duty === "Second-hand read")?.lastHappened, "never");
+    assert.equal(p.cadences.find((c) => c.duty === "Second-hand read")?.lastHappened, "aldrig");
   });
 
   it("filters the roster by relationship type", () => {
@@ -158,7 +158,7 @@ describe("adding people and projects", () => {
 
   it("refuses a duplicate rather than creating a second row for one person", () => {
     const r = api.addPerson(store, { name: "nadia ohlsson", relation: "lead-only", now: NOW });
-    assert.match(String(r.error), /already here/);
+    assert.match(String(r.error), /finns redan här/);
   });
 
   it("changes a relationship, and the duties that apply change with it", () => {
@@ -171,7 +171,7 @@ describe("adding people and projects", () => {
     assert.deepEqual(after.cadences.map((/** @type {any} */ c) => c.duty).sort(), ["1-1", "Second-hand read"]);
     assert.equal(
       after.cadences.find((/** @type {any} */ c) => c.duty === "1-1")?.behindBy,
-      "on time",
+      "i fas",
       "his history came with him"
     );
   });
@@ -252,7 +252,7 @@ describe("one project's own page", () => {
   it("reports the cadence over the project, and only the project's", () => {
     const p = ok(api.project(store, "tidepool", NOW));
     assert.deepEqual(p.cadences.map((/** @type {any} */ c) => c.duty), ["Project check-in"]);
-    assert.match(String(p.cadences[0].lastHappened), /3 days ago/);
+    assert.match(String(p.cadences[0].lastHappened), /för 3 dagar sedan/);
   });
 
   it("lists the workstreams inside it, and not those of another project", () => {
@@ -336,7 +336,7 @@ describe("writing", () => {
 
   it("resets the right cadence and only the right one", () => {
     const before = ok(api.person(store, "johan", NOW));
-    assert.equal(before.cadences.find((c) => c.duty === "1-1")?.behindBy, "+4w");
+    assert.equal(before.cadences.find((c) => c.duty === "1-1")?.behindBy, "+4v");
 
     api.logTouch(store, { subject: "johan", kind: "second-hand", note: "Nova's lead", now: NOW });
 
@@ -344,10 +344,10 @@ describe("writing", () => {
     // "today", not "today ago". The test used to assert the second, which is
     // how the wording survived on the person page after Prep had already fixed
     // it - a test can pin a bug in place as firmly as it pins a feature.
-    assert.equal(after.cadences.find((c) => c.duty === "Second-hand read")?.lastHappened, "today");
+    assert.equal(after.cadences.find((c) => c.duty === "Second-hand read")?.lastHappened, "idag");
     assert.equal(
       after.cadences.find((c) => c.duty === "1-1")?.behindBy,
-      "+4w",
+      "+4v",
       "hearing about him from someone else does not count as having spoken to him"
     );
   });
@@ -519,7 +519,7 @@ describe("correcting a person", () => {
     const other = ok(api.addPerson(store, { name: "Tom Ek", relation: "lead-and-manage", now: NOW })).id;
     // Two people with one name makes both unreachable from Ctrl+K, which
     // refuses on an ambiguous match rather than guessing.
-    assert.match(failed(api.updatePerson(store, other, { name: "nina berg" })), /already called/);
+    assert.match(failed(api.updatePerson(store, other, { name: "nina berg" })), /heter redan/);
   });
 
   it("moves the date every cadence measures from", () => {

@@ -207,9 +207,9 @@ describe("topics through the store", () => {
 
     const card = prep(store, NOW).cards[0];
     assert.equal(card.person, "Halvar");
-    assert.match(card.why, /topic worth raising/);
+    assert.match(card.why, /ämne värt att ta upp/);
     assert.equal(card.worthRaising.length, 1);
-    assert.equal(card.worthRaising[0].lastRaised, "never");
+    assert.equal(card.worthRaising[0].lastRaised, "aldrig");
   });
 
   it("drops off the card once raised, and says when it was", () => {
@@ -227,7 +227,7 @@ describe("topics through the store", () => {
 
     const view = ok(api.topics(store, "Halvar", NOW));
     assert.equal(view.topics.length, 1);
-    assert.equal(view.topics[0].lastRaised, "today");
+    assert.equal(view.topics[0].lastRaised, "idag");
     assert.equal(view.due.length, 0);
   });
 

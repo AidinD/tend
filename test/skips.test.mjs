@@ -52,7 +52,7 @@ describe("counting skipped meetings", () => {
     // meeting is a card that gets skimmed.
     assert.equal(skipPattern(0, "1-1"), null);
     assert.equal(skipPattern(1, "1-1"), null);
-    assert.match(String(skipPattern(3, "1-1")), /3 times/);
+    assert.match(String(skipPattern(3, "1-1")), /3 gånger/);
   });
 });
 
@@ -103,7 +103,7 @@ describe("recording one", () => {
     const view = api.skips(store, "Ada", NOW);
     assert.ok(!("error" in view));
     assert.equal(view.recent?.[0].why, "I moved it again");
-    assert.equal(view.recent?.[0].when, "today");
+    assert.equal(view.recent?.[0].when, "idag");
   });
 
   it("says nothing until it is a pattern, then says how many", () => {
@@ -111,7 +111,7 @@ describe("recording one", () => {
     assert.equal(/** @type {any} */ (api.skips(store, "Ada", NOW)).pattern, null);
 
     ok(api.logSkip(store, { person: "Ada", kind: "one-to-one", at: ago(15), now: NOW }));
-    assert.match(String(/** @type {any} */ (api.skips(store, "Ada", NOW)).pattern), /2 times/);
+    assert.match(String(/** @type {any} */ (api.skips(store, "Ada", NOW)).pattern), /2 gånger/);
   });
 
   it("refuses a day that has not arrived", () => {

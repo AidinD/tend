@@ -80,7 +80,7 @@ describe("how a wait reads", () => {
     const state = waitState(wait(), chases, NOW);
     assert.equal(state.chases, MANY_CHASES);
     assert.equal(state.stale, true);
-    assert.match(String(state.asks), /is this answer coming/i);
+    assert.match(String(state.asks), /kommer det här svaret/i);
   });
 
   it("stays quiet about one reminder, which is ordinary", () => {
@@ -161,12 +161,12 @@ describe("through the service", () => {
   });
 
   it("refuses one with nothing said about what is being waited for", () => {
-    assert.match(failed(api.waitFor(store, { person: "Halvar", what: "  ", now: NOW })), /what you are waiting for/);
+    assert.match(failed(api.waitFor(store, { person: "Halvar", what: "  ", now: NOW })), /vad du väntar på/);
   });
 
   it("refuses to be waiting on something not yet asked for", () => {
     const err = failed(api.waitFor(store, { person: "Halvar", what: "x", askedAt: NOW + 3 * DAY_MS, now: NOW }));
-    assert.match(err, /has not arrived/);
+    assert.match(err, /har inte kommit än/);
   });
 
   it("carries the person's name and how long it has been", () => {
@@ -174,7 +174,7 @@ describe("through the service", () => {
     assert.equal(rows[0].name, "Halvar");
     assert.equal(rows[0].chases, 0);
     assert.equal(rows[0].daysWaiting, 20);
-    assert.equal(rows[0].waitingFor, "2 weeks");
+    assert.equal(rows[0].waitingFor, "2 veckor");
   });
 
   it("resets the clock when chased, and counts it", () => {
@@ -186,12 +186,12 @@ describe("through the service", () => {
   });
 
   it("refuses a chase dated in the future", () => {
-    assert.match(failed(api.chase(store, { waiting: id, at: NOW + DAY_MS, now: NOW })), /has not arrived/);
+    assert.match(failed(api.chase(store, { waiting: id, at: NOW + DAY_MS, now: NOW })), /har inte kommit än/);
   });
 
   it("refuses to chase something already closed", () => {
     ok(api.stopWaiting(store, id, { as: "answered", why: "he replied" }));
-    assert.match(failed(api.chase(store, { waiting: id, now: NOW })), /closed/);
+    assert.match(failed(api.chase(store, { waiting: id, now: NOW })), /är stängd/);
   });
 
   it("keeps the reason when it is dropped rather than answered", () => {

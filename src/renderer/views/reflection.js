@@ -59,7 +59,7 @@ export async function render() {
   const goals = aimsBlock(aimRows);
 
   if (readFailed(rows)) {
-    return `${head}${goals}${readFailedHtml("the reflections", rows)}`;
+    return `${head}${goals}${readFailedHtml(words.readFailedReflections, rows)}`;
   }
 
   if (reflections.length === 0) {
@@ -82,7 +82,7 @@ export async function render() {
  */
 function aimsBlock(rows) {
   if (readFailed(rows)) {
-    return readFailedHtml("your aims", rows);
+    return readFailedHtml(words.readFailedAims, rows);
   }
   const all = Array.isArray(rows) ? rows : [];
   const live = all.filter((/** @type {any} */ a) => a.status === "open");

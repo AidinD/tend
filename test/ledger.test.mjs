@@ -82,7 +82,7 @@ describe("the revisit date", () => {
 
     const [due] = api.revisitsDue(store, later);
     assert.equal(due.revisitDue, true);
-    assert.match(String(due.revisitOverdueBy), /weeks|days/);
+    assert.match(String(due.revisitOverdueBy), /veckor|vecka|dagar|dag/);
   });
 
   it("does not come due for a proposal, which has not been decided", () => {

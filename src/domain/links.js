@@ -56,7 +56,7 @@ export function webAddress(raw) {
   } catch {
     return {
       ok: false,
-      why: `"${text}" is not a web address. It needs to start with https:// or http://.`
+      why: `"${text}" är inte en webbadress. Den måste börja med https:// eller http://.`
     };
   }
 
@@ -64,9 +64,9 @@ export function webAddress(raw) {
     return {
       ok: false,
       why:
-        `Links open in the browser through the operating system, so only https:// and http:// ` +
-        `are allowed. "${parsed.protocol}" would hand the address to whatever program claims ` +
-        `that scheme.`
+        `Länkar öppnas i webbläsaren genom operativsystemet, så bara https:// och http:// ` +
+        `är tillåtna. "${parsed.protocol}" skulle lämna adressen till vilket program som än ` +
+        `gör anspråk på det schemat.`
     };
   }
 

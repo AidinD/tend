@@ -226,40 +226,41 @@ export const TOPIC_SEEDS = /** @type {const} */ ([
   /* --------------------------------------------------- upward: what I want -- */
   {
     id: "topic-next-level",
-    text: "What does the next level actually require of me?",
+    text: "Vad kräver nästa nivå faktiskt av mig?",
     why:
-      "The criteria are rarely written down anywhere you can read them, so the gap between what " +
-      "you assume is assessed and what is assessed stays invisible until a cycle you have " +
-      "already lost. Asking costs one question and dates the answer.",
+      "Kriterierna står sällan skrivna någonstans du kan läsa dem, så glappet mellan vad du " +
+      "antar bedöms och vad som bedöms förblir osynligt fram till en omgång du redan " +
+      "förlorat. Att fråga kostar en fråga och daterar svaret.",
     relations: ["own-manager"],
     cadenceDays: 90
   },
   {
     id: "topic-say-what-i-want",
-    text: "Say plainly what I want next, without hedging it as a hypothetical.",
+    text: "Säg rakt ut vad jag vill härnäst, utan att linda in det som ett hypotetiskt fall.",
     why:
-      "Nobody advocates for an ambition they have not been told about, and a wish framed as " +
-      "'if something like that ever came up' is not something anyone can act on. This is the " +
-      "one on the list that only you can do.",
+      "Ingen driver en ambition de inte fått höra om, och en önskan formulerad som 'om något " +
+      "sådant nu skulle dyka upp' är inget någon kan agera på. Det här är den på listan som " +
+      "bara du kan göra.",
     relations: ["own-manager"],
     cadenceDays: 180
   },
   {
     id: "topic-what-are-you-hearing",
-    text: "What are you hearing about me that I am not?",
+    text: "Vad hör du om mig som jag inte hör?",
     why:
-      "Your reputation is built in rooms you are not in, and the person most likely to be in " +
-      "them is your manager. Second-hand impressions harden into a shared view long before " +
-      "anyone thinks to tell you about them.",
+      "Ditt rykte byggs i rum du inte är i, och den som mest sannolikt är i dem är din chef. " +
+      "Second hand-intryck stelnar till en gemensam bild långt innan någon kommer på att " +
+      "berätta om dem.",
     relations: ["own-manager"],
     cadenceDays: 90
   },
   {
     id: "topic-am-i-on-the-right-things",
-    text: "Are the things I am spending my weeks on the things that matter to you now?",
+    text: "Är det jag lägger mina veckor på det som betyder något för dig nu?",
     why:
-      "Priorities change above you before they are announced. Asking is cheaper than finding " +
-      "out from a review that the work you were proudest of stopped mattering in March.",
+      "Prioriteringar ändras över dig innan de meddelas. Att fråga är billigare än att få " +
+      "veta i ett utvecklingssamtal att arbetet du var stoltast över slutade spela roll i " +
+      "mars.",
     relations: ["own-manager"],
     cadenceDays: 60
   },
@@ -267,21 +268,21 @@ export const TOPIC_SEEDS = /** @type {const} */ ([
   /* ------------------------------------------- upward: what I am owed -- */
   {
     id: "topic-feedback-near-the-event",
-    text: "Ask for feedback close to the event rather than saved for the review.",
+    text: "Be om feedback nära händelsen i stället för sparad till utvecklingssamtalet.",
     why:
-      "Your own note on this puts it as a minimum: feedback near the event, not gathered up " +
-      "into a development conversation. The same thing you consider reasonable to expect " +
-      "upward is the checklist for what you deliver downward.",
+      "Din egen anteckning om det här sätter det som ett minimum: feedback nära händelsen, " +
+      "inte samlad ihop till ett utvecklingssamtal. Samma sak du tycker är rimligt att " +
+      "förvänta dig uppåt är checklistan för vad du levererar nedåt.",
     relations: ["own-manager"],
     cadenceDays: 60
   },
   {
     id: "topic-bad-news-first",
-    text: "Am I hearing bad news before the rest of the organisation does?",
+    text: "Får jag dåliga nyheter innan resten av organisationen får dem?",
     why:
-      "Also from your own note. Finding out with everyone else is not a slight - it is a " +
-      "signal about where you sit, and it is worth noticing the pattern rather than each " +
-      "instance.",
+      "Också från din egen anteckning. Att få veta samtidigt som alla andra är inget " +
+      "personligt - det är en signal om var du sitter, och mönstret är värt att lägga märke " +
+      "till snarare än varje enskilt fall.",
     relations: ["own-manager"],
     cadenceDays: 90
   },
@@ -289,29 +290,31 @@ export const TOPIC_SEEDS = /** @type {const} */ ([
   /* ----------------------------------------------------------- sideways -- */
   {
     id: "topic-friction-from-my-team",
-    text: "What is landing badly from my team onto yours?",
+    text: "Vad landar dåligt från mitt team hos ert?",
     why:
-      "Friction between two teams reaches the other lead months before it reaches you, and by " +
-      "then it arrives as a complaint rather than a fixable detail. Asking directly is the " +
-      "only channel that does not depend on somebody being annoyed enough to escalate.",
+      "Friktion mellan två team når den andra ledaren månader innan den når dig, och då " +
+      "kommer den som ett klagomål snarare än som en detalj som går att laga. Att fråga " +
+      "direkt är den enda kanalen som inte kräver att någon är tillräckligt irriterad för " +
+      "att eskalera.",
     relations: ["equal-lead"],
     cadenceDays: 60
   },
   {
     id: "topic-solving-twice",
-    text: "Where are we solving the same problem twice?",
+    text: "Var löser vi samma problem två gånger?",
     why:
-      "Two teams with no authority over each other duplicate quietly and neither is doing " +
-      "anything wrong. This is the question that finds it, and it only gets asked on purpose.",
+      "Två team utan bestämmanderätt över varandra dubblerar tyst och ingen av dem gör något " +
+      "fel. Det här är frågan som hittar det, och den ställs bara med avsikt.",
     relations: ["equal-lead"],
     cadenceDays: 90
   },
   {
     id: "topic-cross-feedback",
-    text: "Who on your side should be hearing something from me, and the other way round?",
+    text: "Vem på er sida borde höra något från mig, och åt andra hållet?",
     why:
-      "You lead people you do not manage and are led by people who do not manage you. Feedback " +
-      "across that line has no formal channel, so it does not happen unless somebody opens one.",
+      "Du leder personer du inte ansvarar för och leds av personer som inte ansvarar för dig. " +
+      "Feedback över den linjen har ingen formell kanal, så den blir inte av om inte någon " +
+      "öppnar en.",
     relations: ["equal-lead"],
     cadenceDays: 90
   }

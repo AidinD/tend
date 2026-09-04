@@ -418,17 +418,17 @@ describe("the nudge for material nobody has read", () => {
   it("fires once there is a month of material and nothing has read it", () => {
     const signal = nudge({ entries: evenings(9) });
     assert.ok(signal !== undefined);
-    assert.match(String(signal?.text), /9 evenings and never read them back/);
+    assert.match(String(signal?.text), /9 kvällar och aldrig läst tillbaka dem/);
   });
 
   it("speaks in the first person, like every other signal in that file", () => {
-    assert.match(String(nudge({ entries: evenings(9) })?.text), /^I /);
+    assert.match(String(nudge({ entries: evenings(9) })?.text), /^Jag /);
   });
 
   it("counts from the last reading rather than from the first entry", () => {
     const signal = nudge({ entries: evenings(9), lastReadAt: NOW - 5 * DAY_MS });
     // Four of the nine are older than the reading and have been read.
-    assert.match(String(signal?.text), /4 evenings since I last read them back/);
+    assert.match(String(signal?.text), /4 kvällar sedan jag senast läste tillbaka dem/);
   });
 
   it("goes quiet once a reading has covered the material", () => {

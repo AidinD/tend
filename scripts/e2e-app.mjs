@@ -47,8 +47,25 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TILE_SETS } from "../src/domain/tiles.js";
+/*
+ * The words, so a check asserts what a screen shows rather than which language
+ * it shows it in. Before this, two hundred checks matched English literals and
+ * the translation broke them all at once.
+ */
+import { T } from "../src/renderer/text.js";
 
 import { RELATIONS } from "../src/domain/cadence.js";
+/*
+ * The seeded role map and questions, for the same reason as `T`: these are
+ * words the app shows, and a check that spells one out is a check about the
+ * wording rather than about the behaviour it is named after.
+ */
+import { SEED_DUTIES } from "../src/service/seed.js";
+import { DEFAULT_SIGNALS } from "../src/domain/signals.js";
+import { TOPIC_SEEDS } from "../src/domain/topics.js";
+
+/** @param {string} id */
+const dutyNamed = (id) => String(SEED_DUTIES.find((d) => d.id === id)?.name);
 import {
   DEFAULT_PORT,
   describeListener,
@@ -887,7 +904,7 @@ try {
 
   const emptyTitle = await page.text(".view-title");
   check("an empty app explains what it needs rather than looking serene", () => {
-    if (!/Nothing to watch yet/.test(emptyTitle)) {
+    if (!emptyTitle.includes(T.now.firstTitle)) {
       throw new Error(`expected the first-run view, saw "${emptyTitle}"`);
     }
   });
@@ -895,10 +912,10 @@ try {
   const firstRunActions = await page.texts(".card-foot .act");
   check("and offers both setup steps without mentioning a terminal", () => {
     const all = firstRunActions.join(" ");
-    if (!/Add someone/.test(all) || !/Set up the role map/.test(all)) {
+    if (!all.includes(T.now.firstPeopleButton) || !all.includes(T.now.firstRoleButton)) {
       throw new Error(`missing a setup action: ${all}`);
     }
-    if (/npm|terminal|command|Claude/i.test(all)) {
+    if (/npm|terminal|kommando|Claude/i.test(all)) {
       throw new Error(`a setup action mentions tooling: ${all}`);
     }
   });
@@ -912,7 +929,7 @@ try {
   const proposedCount = await page.evaluate("document.querySelectorAll('.card.sev-proposed').length");
   const activeCount = await page.evaluate("document.querySelectorAll('.card.sev-ok').length");
   check("seeding lands you in the role map with proposals to decide", () => {
-    if (!/Role map/.test(roleTitle)) {
+    if (!roleTitle.includes(T.role.title)) {
       throw new Error(`expected the role map, saw "${roleTitle}"`);
     }
     // Six, not five: the stakeholder duty joined the set. This number is a
@@ -1036,7 +1053,7 @@ try {
   const relationOptions = await page.dialogOptions("relation");
   check("the add form explains what each relationship type means", () => {
     const remote = relationOptions.find((o) => o.value === "manage-remotely");
-    if (!remote || !/without the observation/i.test(remote.label)) {
+    if (!remote || !/utan observationen/i.test(remote.label)) {
       throw new Error(`relationship options are bare: ${JSON.stringify(relationOptions)}`);
     }
   });
@@ -1072,7 +1089,7 @@ try {
 
   const groups = await page.texts(".group-title");
   check("and is grouped by relationship rather than listed flat", () => {
-    if (!groups.some((g) => /Manage, don't see/.test(g))) {
+    if (!groups.some((g) => g.includes(RELATIONS["manage-remotely"].label))) {
       throw new Error(`groups are ${JSON.stringify(groups)}`);
     }
   });
@@ -1090,7 +1107,8 @@ try {
   });
 
   check("so are the monthly questions", () => {
-    if (!nowCards.some((c) => /pushing back|retros|not seen/i.test(c))) {
+    const asked = DEFAULT_SIGNALS.map((q) => String(q.text));
+    if (!nowCards.some((c) => asked.some((q) => String(c).includes(q)))) {
       throw new Error(`no question on Now: ${JSON.stringify(nowCards)}`);
     }
   });
@@ -1150,8 +1168,8 @@ try {
   );
   check("observations come before the contact history, not after it", () => {
     const titles = JSON.parse(String(blockOrder));
-    const obs = titles.indexOf("Observations");
-    const hist = titles.indexOf("Contact history");
+    const obs = titles.indexOf(T.people.observationsBlock);
+    const hist = titles.indexOf(T.people.historyBlock);
     if (obs < 0 || hist < 0) {
       throw new Error(`one of the two blocks is missing: ${blockOrder}`);
     }
@@ -1286,13 +1304,13 @@ try {
   await page.click('[data-act="logSkip"]');
   await page.fillDialog({ kind: "one-to-one", why: "Release week, I moved it" });
   await page.waitFor(
-    "document.body.textContent.includes('did not happen')",
+    `document.body.textContent.includes(${JSON.stringify("blev inte av")})`,
     "the cancellation on the page"
   );
 
   const skipBlock = await page.evaluate(
     `(() => { const blocks = [...document.querySelectorAll('.block')];
-      const b = blocks.find(x => /Booked and did not happen/.test(x.textContent));
+      const b = blocks.find(x => x.textContent.includes("Bokat och blev inte av"));
       return b === undefined ? null : b.querySelectorAll('.line').length; })()`
   );
   check("a cancelled meeting is recorded in its own block, not among the contact", () => {
@@ -1374,7 +1392,7 @@ try {
 
   const panelRole = await page.text(".panel-role");
   check("the person page explains the relationship in plain words", () => {
-    if (!/mandate and none of the observation/.test(panelRole)) {
+    if (!/mandatet och ingenting av observationen/.test(panelRole)) {
       throw new Error(`relationship not explained: "${panelRole}"`);
     }
   });
@@ -1421,7 +1439,7 @@ try {
     // the form's date thrown away says "today" here, which is the failure this
     // catches - and the count is checked rather than just the unit, since "some
     // number of weeks" would pass on any date at all a fortnight or more old.
-    const weeks = /^(\d+) weeks$/.exec(promiseLine.when);
+    const weeks = /^(\d+) veckor$/.exec(promiseLine.when);
     if (weeks === null) {
       throw new Error(`open for "${promiseLine.when}", expected the ${PROMISE_DAYS} days it was backdated by`);
     }
@@ -1440,7 +1458,7 @@ try {
   await page.waitFor("document.querySelector('.card') !== null", "Now");
   const withPromise = await page.texts(".card-title");
   check("and a three-week-old promise escalates on its own", () => {
-    if (!withPromise.some((c) => /You owe/.test(c))) {
+    if (!withPromise.some((c) => /Du är skyldig/.test(c))) {
       throw new Error(`no promise on Now: ${JSON.stringify(withPromise)}`);
     }
   });
@@ -1465,10 +1483,10 @@ try {
 
   const beforeThread = await page.text(".panel");
   check("the person page offers a direction, and says why it is not for everybody", () => {
-    if (!/Open a direction/.test(beforeThread)) {
+    if (!beforeThread.includes(T.growth.openButton)) {
       throw new Error("no way to open a direction from the person page");
     }
-    if (!/not for everybody/.test(beforeThread)) {
+    if (!/inte för alla/.test(beforeThread)) {
       throw new Error("the empty state does not say the feature is selective");
     }
   });
@@ -1481,7 +1499,7 @@ try {
     // second "what do you think the direction is" further down. Reading it, you
     // could not tell whether it wanted his description or the other person's
     // answer - which is exactly the distinction the two sittings exist to keep.
-    if (!/What you think the direction is/.test(openText)) {
+    if (!openText.includes(T.growth.fAim)) {
       throw new Error("the direction field does not say it is his own view");
     }
     if (/What do you think the direction is/.test(openText)) {
@@ -1490,13 +1508,13 @@ try {
     if (/Do they want this, or does the job need it\?/.test(openText)) {
       throw new Error("opening still asks the driver question up front");
     }
-    if (!/can wait/.test(openText)) {
+    if (!/kan vänta/.test(openText)) {
       throw new Error("opening does not say the rest of the preparation can wait");
     }
   });
 
   check("stage one never asks him what the other person wants", () => {
-    if (/in their words/i.test(openText)) {
+    if (/i sina ord/i.test(openText)) {
       throw new Error("the opening form is asking a question only they can answer");
     }
   });
@@ -1546,10 +1564,10 @@ try {
 
   const consequence = await page.text(".dialog");
   check("the needs branch asks what happens if nothing changes", () => {
-    if (!/What happens if nothing changes/.test(consequence)) {
+    if (!consequence.includes(T.growth.fIfNothing)) {
       throw new Error("the consequence question is missing from the form");
     }
-    if (!/this is a wish/.test(consequence)) {
+    if (!/en önskan/.test(consequence)) {
       throw new Error("the form does not say what an empty answer means");
     }
   });
@@ -1567,10 +1585,10 @@ try {
   check("a thread nobody has been asked yet does not offer to log a conversation", () => {
     // The two are not interchangeable, and only one of them is the next step: the
     // first conversation has somewhere better to go than a bare tally.
-    if (/It came up/.test(opened)) {
+    if (opened.includes(T.growth.itCameUp)) {
       throw new Error("offered to count a conversation before their view is on record");
     }
-    if (!/After the conversation/.test(opened)) {
+    if (!opened.includes(T.growth.afterConversation)) {
       throw new Error("the next step is not offered at all");
     }
   });
@@ -1585,7 +1603,7 @@ try {
     // The only place removal belongs: nothing has happened yet, so nothing is
     // lost. It disappears again as soon as a conversation is logged, and the
     // settled-thread check further down is the other half of this pair.
-    if (!/Opened by mistake/.test(opened)) {
+    if (!opened.includes(T.growth.openedByMistake)) {
       throw new Error("a fresh thread offers no way to undo opening it");
     }
   });
@@ -1595,10 +1613,10 @@ try {
   // a panel-wide match cannot tell the two apart.
   const posed = await page.text(".thread .card-why.warn-text");
   check("and asks him to take it to the person, not to invent their yardstick", () => {
-    if (!/Ask them/.test(posed)) {
+    if (!/Fråga dem/.test(posed)) {
       throw new Error(`a fresh thread posed something else: "${posed}"`);
     }
-    if (/see in three months/.test(posed)) {
+    if (/se om tre månader/.test(posed)) {
       throw new Error("it asked for the marker before the conversation that produces it");
     }
   });
@@ -1607,7 +1625,7 @@ try {
     // Read off the rendered text, not the markup: an attribute never appears in
     // textContent, so a check written against `data-act` would pass whatever the
     // page did - which is exactly how a test ends up proving nothing.
-    if (/I saw it/.test(opened)) {
+    if (opened.includes(T.growth.observedTitle)) {
       throw new Error("observing is offered before a marker exists");
     }
   });
@@ -1661,7 +1679,7 @@ try {
   });
 
   check("and observing becomes possible once there is a marker", () => {
-    if (!/I saw it/.test(filled)) {
+    if (!filled.includes(T.growth.observedTitle)) {
       throw new Error("still no way to record an observation");
     }
   });
@@ -1671,7 +1689,7 @@ try {
     // Otherwise the obvious way to use the form leaves the thread believing it
     // was never discussed - clock running, count at zero - and the stall reading
     // can never fire at all.
-    if (!/discussed 1×/.test(afterAsking)) {
+    if (!/diskuterad 1×/.test(afterAsking)) {
       throw new Error(`the conversation was not counted: ${afterAsking.slice(0, 300)}`);
     }
   });
@@ -1686,17 +1704,17 @@ try {
     });
     await sleep(200);
   }
-  await page.waitFor("document.body.textContent.includes('discussed 3')", "the counts");
+  await page.waitFor("document.body.textContent.includes('diskuterad 3')", "the counts");
 
   const stalled = await page.text(".panel");
   check("three conversations and nothing observed reads as stalled, not as late", () => {
-    if (!/aim wrong, or is the support missing/.test(stalled)) {
+    if (!/riktningen fel, eller saknas stödet/.test(stalled)) {
       throw new Error(`no stall question: ${stalled.slice(0, 400)}`);
     }
   });
 
   check("and both counts are shown, since either alone says nothing", () => {
-    if (!/discussed 3×, seen 0×/.test(stalled)) {
+    if (!/diskuterad 3×, sedd 0×/.test(stalled)) {
       throw new Error("the two counts are not shown together");
     }
   });
@@ -1705,7 +1723,7 @@ try {
   await page.waitFor("document.querySelector('.view-title') !== null", "Now");
   const nowText = await page.text("#main");
   check("a stalled direction stays off Now, where everything is a deviation to act on", () => {
-    if (/aim wrong, or is the support missing/.test(nowText)) {
+    if (/riktningen fel, eller saknas stödet/.test(nowText)) {
       throw new Error("the growth question reached Now");
     }
   });
@@ -1714,10 +1732,10 @@ try {
   await page.waitFor("document.querySelector('.view-title') !== null", "Prep");
   const growthOnCard = await page.text("#main");
   check("but it does reach the card you read before talking to them", () => {
-    if (!/Growing/.test(growthOnCard)) {
+    if (!growthOnCard.includes(T.growth.blockTitle)) {
       throw new Error("no growth block on the prep card");
     }
-    if (!/aim wrong, or is the support missing/.test(growthOnCard)) {
+    if (!/riktningen fel, eller saknas stödet/.test(growthOnCard)) {
       throw new Error("the question is not on the card");
     }
   });
@@ -1753,7 +1771,7 @@ try {
   });
 
   check("and keeps asking until he confirms he actually said it", () => {
-    if (!/told them you let this go/.test(ended)) {
+    if (!/berättat för dem att du släppt det/.test(ended)) {
       throw new Error("a silent ending was accepted without a word");
     }
   });
@@ -1762,7 +1780,7 @@ try {
   await sleep(300);
   const settled = await page.text(".panel");
   check("confirming it settles the thread without deleting the decision", () => {
-    if (/told them you let this go/.test(settled)) {
+    if (/berättat för dem att du släppt det/.test(settled)) {
       throw new Error("still asking after he said he told them");
     }
     if (!/han vill inte, och jobbet kräver det inte/.test(settled)) {
@@ -1799,10 +1817,10 @@ try {
 
   const bare = await page.text(".panel");
   check("a live thread with gaps in it says what is still to prepare and to ask", () => {
-    if (!/Still to prepare/.test(bare)) {
+    if (!/Kvar att förbereda/.test(bare)) {
       throw new Error(`nothing was deferred, so an ending cannot be shown to silence it: ${bare}`);
     }
-    if (!/Still to ask them/.test(bare)) {
+    if (!/Kvar att fråga dem/.test(bare)) {
       throw new Error("the questions belonging to the conversation are not on the page at all");
     }
   });
@@ -1867,7 +1885,7 @@ try {
     String(
       await page.evaluate(`JSON.stringify((() => {
         const line = [...document.querySelectorAll('.line')].find(
-          (row) => /Project check-in/.test(row.textContent || '')
+          (row) => (row.textContent || '').includes(${JSON.stringify(dutyNamed('duty-project-check'))})
         );
         if (line === undefined) { return null; }
         return {
@@ -1895,20 +1913,20 @@ try {
     }
     // Nothing has been looked at yet, which is a different fact from a look
     // that happened today, and the row has to say so rather than count zero.
-    if (!/last looked at never/.test(projectRow.meta)) {
+    if (!/senast tittat på aldrig/.test(projectRow.meta)) {
       throw new Error(`the row says "${projectRow.meta}"`);
     }
     if (projectDrift === null) {
       throw new Error("the project's page shows no check-in cadence, so nothing dates it");
     }
-    const target = /target every (\d+) days/.exec(projectDrift.text);
+    const target = /mål var (\d+) dagar/.exec(projectDrift.text);
     if (target === null) {
       throw new Error(`the cadence line names no interval: "${projectDrift.text}"`);
     }
-    const weeks = /^\+(\d+)w$/.exec(projectDrift.behind);
+    const weeks = /^\+(\d+)v$/.exec(projectDrift.behind);
     if (weeks === null) {
       throw new Error(
-        `the drift badge reads "${projectDrift.behind}" - a project taken on today reads "on time", so the backdate was dropped`
+        `the drift badge reads "${projectDrift.behind}" - a project taken on today reads "i fas", so the backdate was dropped`
       );
     }
     // The badge floors to whole weeks and which side of midday the run happens
@@ -1973,10 +1991,10 @@ try {
 
   const waiting = await page.text('[data-group="stakeholders"] .row-meta');
   check("somebody nobody has updated reads as never, not as zero days ago", () => {
-    if (!/last never/.test(waiting)) {
+    if (!/senast aldrig/.test(waiting)) {
       throw new Error(`the row says "${waiting}"`);
     }
-    if (!/every 30 days/.test(waiting)) {
+    if (!/var 30 dagar/.test(waiting)) {
       throw new Error(`the interval is missing: "${waiting}"`);
     }
   });
@@ -1984,7 +2002,7 @@ try {
   await page.click('[data-group="stakeholders"] [data-act="logUpdate"]');
   await page.fillDialog({ note: "Told them the import is done" });
   await page.waitFor(
-    "/last today/.test(document.querySelector('[data-group=\"stakeholders\"] .row-meta').textContent)",
+    "/senast idag/.test(document.querySelector('[data-group=\"stakeholders\"] .row-meta').textContent)",
     "the update to land on the pair"
   );
   const stakeRow = JSON.parse(
@@ -2010,13 +2028,13 @@ try {
     if (!/Testperson Ström, about Bergsklyftan/.test(stakeRow.name)) {
       throw new Error(`the row names "${stakeRow.name}", which is not the pair`);
     }
-    if (!/last today/.test(stakeRow.meta)) {
+    if (!/senast idag/.test(stakeRow.meta)) {
       throw new Error(`the clock did not move: "${stakeRow.meta}"`);
     }
     // What was said, not just that something was. The note is the only record
     // of it, and a write that kept the date and dropped the note leaves the
     // row looking exactly right.
-    if (!/last time: Told them the import is done/.test(stakeRow.name)) {
+    if (!/senast: Told them the import is done/.test(stakeRow.name)) {
       throw new Error(`the note is not on the row: "${stakeRow.name}"`);
     }
   });
@@ -2029,7 +2047,7 @@ try {
   await page.click('[data-act="review"]');
   await page.fillDialog({ note: "Went through it with them" });
   await page.waitFor(
-    "document.body.textContent.includes('reviewed today')",
+    "document.body.textContent.includes('genomgånget idag')",
     "the review to land on the workstream"
   );
   const streamCard = JSON.parse(
@@ -2054,7 +2072,7 @@ try {
     // are both on this view, and a review recorded against either of them
     // would put today's date on screen while the piece of work that was
     // actually reviewed still read "never".
-    if (!/reviewed today/.test(streamCard.src)) {
+    if (!/genomgånget idag/.test(streamCard.src)) {
       throw new Error(`the workstream still reads "${streamCard.src}"`);
     }
     // Not "today ago", which is what appending " ago" to a duration produces
@@ -2081,7 +2099,7 @@ try {
    */
   await page.click('[data-act="checkIn"]');
   await page.fillDialog({ note: "Gick igenom omfattningen, ligger kvar i tid" });
-  await page.waitFor("document.body.textContent.includes('last looked at')", "the look to land");
+  await page.waitFor("document.body.textContent.includes('senast tittat på')", "the look to land");
 
   await page.click('[data-act="openProject"]');
   await page.waitFor("document.querySelector('.panel-name') !== null", "the project page");
@@ -2128,7 +2146,7 @@ try {
   );
 
   check("and the way back is one press, like the person page", () => {
-    if (backOnWork.title !== "Work") {
+    if (backOnWork.title !== T.work.title) {
       throw new Error(`one press landed on "${backOnWork.title}"`);
     }
     // The panel has to be gone rather than merely covered. A back link that
@@ -2160,10 +2178,10 @@ try {
   });
 
   check("and says why the card is there rather than just listing them", () => {
-    if (!/Last spoke/.test(prepText)) {
+    if (!/Pratade senast/.test(prepText)) {
       throw new Error("the card does not say when they last spoke");
     }
-    if (!/behind|promise/i.test(prepText)) {
+    if (!/efter|löfte/i.test(prepText)) {
       throw new Error("the card does not say why it is showing this person");
     }
   });
@@ -2173,14 +2191,14 @@ try {
     // The distinction the whole field rests on. Follow-up closeness implies
     // authority without stating it, which is how "you own this" ends up meaning
     // two different things to the two people in the conversation.
-    if (!prepMandate.some((t) => /You decide|Ask me before|I decide/i.test(String(t)))) {
+    if (!prepMandate.some((t) => /Du bestämmer|Fråga mig innan|Jag bestämmer/i.test(String(t)))) {
       throw new Error(`the mandate does not say who decides: ${prepMandate.join(" | ")}`);
     }
   });
 
   const prepHeads = await page.texts(".prep-head");
   check("open work from the Jot board reaches the card", () => {
-    if (!prepHeads.some((h) => /Open on the board/.test(String(h)))) {
+    if (!prepHeads.some((h) => String(h).includes(T.prep.openWorkTitle))) {
       throw new Error(`no board section: ${prepHeads.join(" | ")}`);
     }
     if (!prepText.includes("Byt ut rasteriseraren")) {
@@ -2214,7 +2232,7 @@ try {
     if (!block.lines.some((/** @type {string} */ l) => /Kritisera inte/.test(l))) {
       throw new Error(`the flagged principle is missing: ${JSON.stringify(block.lines)}`);
     }
-    if (!block.heads.some((/** @type {string} */ h) => /said you would do/.test(h))) {
+    if (!block.heads.some((/** @type {string} */ h) => /sa att du skulle göra/.test(h))) {
       throw new Error(`the unfinished action point has no home: ${JSON.stringify(block.heads)}`);
     }
     if (!block.lines.some((/** @type {string} */ l) => /tre veckor/.test(l))) {
@@ -2394,10 +2412,11 @@ try {
     if (manager.topics !== 1) {
       throw new Error(`expected one topic on the card, saw ${manager.topics}`);
     }
-    if (!/topic worth raising/.test(manager.why)) {
+    if (!/ämne värt att ta upp/.test(manager.why)) {
       throw new Error(`the card does not say why it is there: "${manager.why}"`);
     }
-    if (!/next level/i.test(manager.text)) {
+    const wanted = String(TOPIC_SEEDS.find((x) => x.id === "topic-next-level")?.text);
+    if (!String(manager.text).includes(wanted)) {
       throw new Error(`the wrong topic is on the card: "${manager.text}"`);
     }
   });
@@ -2446,13 +2465,13 @@ try {
 
   const emptyJournal = await page.text("#main");
   check("an empty journal says which questions it asks and why it asks them", () => {
-    if (!/took the day/.test(emptyJournal) || !/avoided/.test(emptyJournal)) {
+    if (!/dagen gick till/.test(emptyJournal) || !/undvek/.test(emptyJournal)) {
       throw new Error(`the empty state names no questions: ${emptyJournal.slice(0, 200)}`);
     }
     // The load-bearing phrase, not a paraphrase of it. The app asks only for
     // what it cannot derive, and the empty state has to say so - otherwise the
     // form reads as three chores rather than three questions worth answering.
-    if (!/only reason it asks/.test(emptyJournal)) {
+    if (!/enda skälet att den frågar/.test(emptyJournal)) {
       throw new Error("it does not say why it is asking rather than deriving");
     }
   });
@@ -2487,10 +2506,10 @@ try {
 
   const coverageLine = await page.text(".prep-dropped");
   check("and the page says how thin the record is, before any summary exists", () => {
-    if (!/1 entry across 1 day/.test(coverageLine)) {
+    if (!/\d+ .* över \d+ (dag|dagar)/.test(coverageLine)) {
       throw new Error(`coverage reads "${coverageLine}"`);
     }
-    if (!/pattern/.test(coverageLine)) {
+    if (!/mönster/.test(coverageLine)) {
       throw new Error("it does not warn that this is too little to read a pattern into");
     }
   });
@@ -2544,7 +2563,7 @@ try {
     // The floor stated before the press rather than as an error after it. A
     // refusal you could have seen coming should have been a disabled button
     // with a reason on it.
-    if (!/four entries/.test(r.why) || !/three separate days/.test(r.why)) {
+    if (!/fyra poster/.test(r.why) || !/tre skilda dagar/.test(r.why)) {
       throw new Error(`it does not say what would make a reading possible: ${r.why.slice(0, 220)}`);
     }
   });
@@ -2556,7 +2575,7 @@ try {
 
   const emptyReflection = await page.text("#main");
   check("an empty reflection page names the two questions it asks", () => {
-    if (!/went well/i.test(emptyReflection) || !/differently/i.test(emptyReflection)) {
+    if (!/gick bra/i.test(emptyReflection) || !/annorlunda/i.test(emptyReflection)) {
       throw new Error(`the empty state does not name the two questions: ${emptyReflection.slice(0, 200)}`);
     }
   });
@@ -2601,7 +2620,7 @@ try {
 
   const ledgerEmpty = await page.text("#main");
   check("an empty log says which decisions are worth recording", () => {
-    if (!/renegotiated/.test(ledgerEmpty)) {
+    if (!/omförhandlas/.test(ledgerEmpty)) {
       throw new Error("the empty state does not say what belongs here");
     }
   });
@@ -2629,13 +2648,13 @@ try {
   });
 
   check("and resolves who was consulted against the roster", () => {
-    if (!/Consulted: Testperson/.test(ledgerText)) {
+    if (!/Rådfrågade: Testperson/.test(ledgerText)) {
       throw new Error(`consulted was not resolved: ${ledgerText.slice(0, 200)}`);
     }
   });
 
   check("and says when it comes back, which is what makes it a tool", () => {
-    if (!/back on \d{4}-\d{2}-\d{2}/.test(ledgerText)) {
+    if (!/tillbaka \d{4}-\d{2}-\d{2}/.test(ledgerText)) {
       throw new Error("no revisit date on the card");
     }
   });
@@ -2664,7 +2683,7 @@ try {
   const focusIntro = await page.texts(".card-why");
   check("the focus view states the contract before you start one", () => {
     const all = focusIntro.join(" ");
-    if (!/never/i.test(all) || !/critical/i.test(all)) {
+    if (!/aldrig/i.test(all) || !/kritisk/i.test(all)) {
       throw new Error(`the contract is not stated: ${all.slice(0, 200)}`);
     }
   });
@@ -2747,7 +2766,7 @@ try {
 
   const settingsText = await page.evaluate("document.body.textContent");
   check("settings finds the Nib folders", () => {
-    if (!/folder\(s\) found in Nib/.test(String(settingsText))) {
+    if (!/(mapp|mappar) hittade i Nib/.test(String(settingsText))) {
       throw new Error("Nib was not readable from the app");
     }
   });
@@ -2755,7 +2774,7 @@ try {
   await page.click('[data-act="bind"]');
   const folderOptions = await page.dialogOptions("folder");
   check("and offers them with their note counts", () => {
-    if (!folderOptions.some((o) => /Testperson/.test(o.label) && /1 note/.test(o.label))) {
+    if (!folderOptions.some((o) => /Testperson/.test(o.label) && /1 anteckning/.test(o.label))) {
       throw new Error(`folders offered: ${JSON.stringify(folderOptions.map((o) => o.label))}`);
     }
   });
@@ -2842,13 +2861,13 @@ try {
 
   const boundRow = String(await page.evaluate("document.body.textContent"));
   check("and the row says what it counts as, which is now the mapping itself", () => {
-    if (!/as second-hand/.test(boundRow)) {
+    if (!/som second-hand/.test(boundRow)) {
       throw new Error("the binding does not report the mapping saved with it");
     }
   });
 
   check("and Settings says which notebook it read", () => {
-    if (!/Reading /.test(boundRow)) {
+    if (!/Läser /.test(boundRow)) {
       throw new Error("no notebook path on screen; two notebooks cannot be told apart");
     }
   });
@@ -2873,7 +2892,7 @@ try {
   await page.waitFor("document.querySelector('.dialog') !== null", "the import result");
   const importResult = await page.text(".dialog-intro");
   check("importing brings in the note and the flagged action point", () => {
-    if (!/1 contact record/.test(importResult) || !/1 promise/.test(importResult)) {
+    if (!/1 kontaktpost/.test(importResult) || !/1 löfte/.test(importResult)) {
       throw new Error(`import said: "${importResult}"`);
     }
   });
@@ -2919,7 +2938,7 @@ try {
     return JSON.stringify(
       rows.map((line) => ({
         text: line.querySelector('.line-text')?.textContent?.replace(/\\s+/g, ' ').trim() ?? '',
-        derived: /from a note/.test(line.textContent ?? '')
+        derived: line.textContent?.includes("från en anteckning") ?? false
       }))
     );
   })()`);
@@ -2964,12 +2983,12 @@ try {
    */
   const findOutText = await page.evaluate(
     `(() => { const blocks = [...document.querySelectorAll('.prep-block')];
-        const b = blocks.find(x => /To find out/.test(x.querySelector('.prep-head')?.textContent || ''));
+        const b = blocks.find(x => x.querySelector('.prep-head')?.textContent?.includes("Att ta reda på"));
         return b ? b.textContent.replace(/\\s+/g, " ").trim() : "NO BLOCK"; })()`
   );
   const findOutItems = await page.evaluate(
     `(() => { const blocks = [...document.querySelectorAll('.prep-block')];
-        const b = blocks.find(x => /To find out/.test(x.querySelector('.prep-head')?.textContent || ''));
+        const b = blocks.find(x => x.querySelector('.prep-head')?.textContent?.includes("Att ta reda på"));
         if (!b) { return "NO BLOCK"; }
         return [...b.querySelectorAll('li')].map(li => li.textContent.trim()).join(" | "); })()`
   );
@@ -3025,7 +3044,7 @@ try {
      * and a block that does not say so is one whose authority he has to guess
      * at.
      */
-    if (!/Your own questions at the end of/.test(String(findOutText))) {
+    if (!/Dina egna frågor i slutet av/.test(String(findOutText))) {
       throw new Error(`no provenance line. read: "${findOutText}". blocks: ${blockShapes}`);
     }
   });
@@ -3081,7 +3100,7 @@ try {
   await page.dismissDialog();
 
   check("one note becomes contact with everybody who was there", () => {
-    if (!/2 contact records/.test(sharedImport)) {
+    if (!/2 kontaktposter/.test(sharedImport)) {
       throw new Error(`the shared note did not reach both people: "${sharedImport}"`);
     }
   });
@@ -3093,7 +3112,7 @@ try {
     if (/[1-9]\d* promise/.test(sharedImport)) {
       throw new Error(`a shared note guessed an owner: "${sharedImport}"`);
     }
-    if (!/2 commitments are waiting/.test(sharedImport)) {
+    if (!/2 åtaganden väntar/.test(sharedImport)) {
       throw new Error(`the commitments were not queued: "${sharedImport}"`);
     }
   });
@@ -3145,7 +3164,7 @@ try {
     if (mine === undefined) {
       throw new Error(`no "mine" option: ${owners.map((o) => o.value).join(", ")}`);
     }
-    if (!/not a promise/i.test(String(mine.label))) {
+    if (!/inget löfte/i.test(String(mine.label))) {
       throw new Error(`the option does not say why it differs: "${mine.label}"`);
     }
   });
@@ -3215,7 +3234,7 @@ try {
   // Nothing in this folder carries that tag, so no evidence changes hands -
   // what changes is what the row says the folder counts as.
   await page.fillDialog({ "kind:second-hand": "tag-second-hand", "kind:one-to-one": "tag-meeting" });
-  await page.waitFor("document.body.textContent.includes('tag rule')", "the saved rule");
+  await page.waitFor("document.body.textContent.includes('taggregl')", "the saved rule");
 
   const rulesRow = String(
     await page.evaluate(
@@ -3238,7 +3257,7 @@ try {
       throw new Error(`one-to-one came back mapped to "${tagPrefill.oneToOne}", which was left unmapped`);
     }
     // The change reached the row, which is where the folder's meaning is read.
-    if (!/as .*one-to-one/.test(rulesRow)) {
+    if (!/som .*one-to-one/.test(rulesRow)) {
       throw new Error(`the row still says "${rulesRow}" after the second kind was mapped`);
     }
     if (!/second-hand/.test(rulesRow)) {
@@ -3272,7 +3291,7 @@ try {
   });
 
   await page.click('.nav-btn[data-view="settings"]');
-  await page.waitFor("document.body.textContent.includes('Drafting')", "the drafting section");
+  await page.waitFor("document.body.textContent.includes('Utkast')", "the drafting section");
   const draftingText = String(await page.evaluate("document.body.textContent"));
   check("settings says what a model may and may not do here", () => {
     /*
@@ -3282,7 +3301,7 @@ try {
      * model boundary is the one thing here that must not be aspirational, so
      * this now asks for the absolute version.
      */
-    if (!/a model writes nothing here/i.test(draftingText)) {
+    if (!/en modell skriver ingenting här/i.test(draftingText)) {
       throw new Error("the boundary is not stated where somebody would look for it");
     }
     if (/may write is a theme/i.test(draftingText)) {
@@ -3354,7 +3373,7 @@ try {
   });
 
   check("and it offers to read them properly rather than doing it unasked", () => {
-    if (!/Read them properly|Reading is off/.test(shortlist)) {
+    if (!shortlist.includes(T.knowledge.readProperly) && !shortlist.includes(T.knowledge.readingOff)) {
       throw new Error("no way to go from the word match to an actual answer");
     }
   });
@@ -3374,7 +3393,7 @@ try {
       // Whitespace-collapsed first: textContent keeps the source's line breaks
       // and indentation, so a sentence wrapped across two lines in the template
       // does not match itself.
-      told: /Only the sentence you typed is sent/.test(
+      told: /Bara meningen du skrev skickas/.test(
         document.body.textContent.replace(/\\s+/g, ' ')
       ),
       ran: document.querySelectorAll('.draft.general').length
@@ -3518,7 +3537,7 @@ try {
 
   const topRow = await page.text(".palette-row");
   check("a name, a colon and the thing becomes a promise, top of the list", () => {
-    if (!/Promise to Testperson Ström/.test(topRow)) {
+    if (!/Löfte till Testperson Ström/.test(topRow)) {
       throw new Error(`the first row said: "${topRow}"`);
     }
     if (!/kolla renderingen/.test(topRow)) {
@@ -3830,7 +3849,7 @@ try {
     if (archiveIntro.trim() === "") {
       throw new Error("the confirmation had no body text at all");
     }
-    if (!/revers|back|stays|any time/i.test(archiveIntro)) {
+    if (!/återställbart|tillbaka|står kvar|när du vill/i.test(archiveIntro)) {
       throw new Error(`nothing in the dialog says this can be undone: "${archiveIntro}"`);
     }
   });
@@ -3976,10 +3995,10 @@ try {
     if (bulkIntro.trim() === "") {
       throw new Error("the bulk confirmation had no body text at all");
     }
-    if (!/not deleted|nothing is deleted/i.test(bulkIntro)) {
+    if (!/inget tas bort|tas inte bort/i.test(bulkIntro)) {
       throw new Error(`it never says nothing is deleted: "${bulkIntro}"`);
     }
-    if (!/brought back|individually|archived list/i.test(bulkIntro)) {
+    if (!/tas tillbaka|individuellt|arkiverade lista/i.test(bulkIntro)) {
       throw new Error(`it never says the items can be brought back: "${bulkIntro}"`);
     }
   });
@@ -4037,10 +4056,10 @@ try {
     if (/Nothing to watch yet/i.test(nowHeadline)) {
       throw new Error("the first-run instructions were shown to a store full of history");
     }
-    if (!/Nothing needs you/i.test(nowHeadline)) {
+    if (!nowHeadline.includes(T.now.quietTitle)) {
       throw new Error(`expected the quiet page, saw "${nowHeadline}"`);
     }
-    if (!/archived/i.test(nowSub) || !/nothing has been deleted|exactly where it was/i.test(nowSub)) {
+    if (!/arkiverad/i.test(nowSub) || !/ligger exakt där det låg/i.test(nowSub)) {
       throw new Error(`the page does not say the record is intact: "${nowSub}"`);
     }
   });
@@ -4078,7 +4097,7 @@ try {
     "String(document.querySelector('[data-act=\"undoBulkArchive\"]')?.closest('.card')?.textContent ?? '')"
   );
   check("the undo says what it will put back, and what it will leave alone", () => {
-    if (!/still archived/i.test(undoText)) {
+    if (!/fortfarande.*arkiverad/i.test(undoText)) {
       throw new Error(`the offer does not say it only restores what is still archived: ${undoText.slice(0, 200)}`);
     }
     if (!/\d+\s+(person|people|project|projects|workstream|workstreams)/i.test(undoText)) {
@@ -4139,10 +4158,10 @@ try {
      * below the bar, a date with a consequence, they cannot decline - is the
      * thing that keeps it from being used as a gentler direction.
      */
-    if (!/below the bar/.test(String(planEmpty))) {
+    if (!/under ribban/.test(String(planEmpty))) {
       throw new Error(`the empty block does not say when a plan applies: "${planEmpty}"`);
     }
-    if (!/cannot decline/.test(String(planEmpty))) {
+    if (!/inte tacka nej/.test(String(planEmpty))) {
       throw new Error("the empty block does not say they cannot decline it");
     }
   });
@@ -4183,10 +4202,10 @@ try {
      * he thinks. Calling it a validation failure would make the app refuse the
      * thinking.
      */
-    if (!/not started/.test(String(planDraft))) {
+    if (!/inte startad/.test(String(planDraft))) {
       throw new Error(`the draft does not say it has not started: "${planDraft}"`);
     }
-    if (!/still to answer/.test(String(planDraft))) {
+    if (!/kvar att svara/.test(String(planDraft))) {
       throw new Error("the draft does not say how much is left");
     }
   });
@@ -4197,7 +4216,7 @@ try {
      * they do not know, the next step is saying it rather than reading the
      * rest of the plan.
      */
-    if (!/do not know yet/.test(String(planDraft))) {
+    if (!/vet inte än/.test(String(planDraft))) {
       throw new Error(`no premise warning on a plan they have not been told about: "${planDraft}"`);
     }
   });
@@ -4218,10 +4237,10 @@ try {
      * by exclusion, a field added later would be handed over by default.
      */
     const text = String(copyText);
-    if (!/What needs to change/.test(text)) {
+    if (!text.includes(T.plan.copyGap)) {
       throw new Error(`the copy does not carry the gap: "${text.slice(0, 200)}"`);
     }
-    for (const secret of ["Do they know", "trying to achieve", "HR involved"]) {
+    for (const secret of [T.plan.fTheyKnow, T.plan.fGoal, T.plan.fHr]) {
       if (text.includes(secret)) {
         throw new Error(`the copy handed over includes "${secret}"`);
       }
@@ -4401,10 +4420,10 @@ try {
     if (aimsHead !== true) {
       throw new Error("no aims block on the front page");
     }
-    if (!/Nothing set/.test(aimsText)) {
+    if (!/Inget satt/.test(aimsText)) {
       throw new Error(`the empty aims block does not explain itself: "${aimsText.slice(0, 120)}"`);
     }
-    if (!/how you will know/.test(aimsText)) {
+    if (!/hur du kommer att veta/.test(aimsText)) {
       throw new Error("the empty aims block does not say what an aim needs");
     }
   });
@@ -4418,7 +4437,7 @@ try {
       throw new Error("no proposed duty on the front page, so this check proved nothing");
     }
     const all = proposedActs.join(" ");
-    if (!/Accept it/.test(all) || !/Not my job/.test(all)) {
+    if (!all.includes(T.now.proposedAccept) || !all.includes(T.now.proposedDecline)) {
       throw new Error(`a proposal offers no answer: ${all}`);
     }
   });

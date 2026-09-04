@@ -56,21 +56,21 @@ import { daysSince } from "./time.js";
  */
 export const SOURCES = {
   record: {
-    label: "The record can count it",
-    means: "Arithmetic over rows already written. No judgement, and no talking yourself round.",
-    asks: "Which number, and what does it have to read?"
+    label: "Registret kan räkna det",
+    means: "Aritmetik över rader som redan skrivits. Ingen bedömning, och inget prat runt det.",
+    asks: "Vilken siffra, och vad måste den visa?"
   },
   asked: {
-    label: "Somebody else says so",
-    means: "It costs a conversation, which is what makes it worth having.",
-    asks: "Who, and when will you ask them?"
+    label: "Någon annan säger det",
+    means: "Det kostar ett samtal, vilket är det som gör det värt att ha.",
+    asks: "Vem, och när kommer du att fråga dem?"
   },
   logged: {
-    label: "You log it when it happens",
+    label: "Du loggar det när det händer",
     means:
-      "A dated occasion each time, so the answer is a count rather than an impression. " +
-      "Occasions you missed count too - the gap between them IS the reading.",
-    asks: "What counts as one instance, plainly enough that you cannot argue with it later?"
+      "Ett daterat tillfälle varje gång, så att svaret är en räkning snarare än ett intryck. " +
+      "Tillfällen du missade räknas också - glappet mellan dem ÄR läsningen.",
+    asks: "Vad räknas som ett tillfälle, tydligt nog att du inte kan argumentera bort det sen?"
   }
 };
 
@@ -111,9 +111,9 @@ export const AT_ONCE = 2;
 
 /** @type {Record<string, { label: string }>} */
 export const STATUSES = {
-  open: { label: "Open" },
-  reached: { label: "Reached" },
-  dropped: { label: "Let go" }
+  open: { label: "Öppet" },
+  reached: { label: "Nått" },
+  dropped: { label: "Släppt" }
 };
 
 /** @param {any} row */
@@ -139,14 +139,14 @@ export function missing(row) {
     gaps.push(
       isSource(row.source)
         ? SOURCES[String(row.source)].asks
-        : "How will you know? Name the source before the test."
+        : "Hur kommer du att veta? Namnge källan innan testet."
     );
   }
   if (String(row.source ?? "") === "asked" && String(row.asksWho ?? "").trim() === "") {
-    gaps.push("Who are you asking, and when?");
+    gaps.push("Vem frågar du, och när?");
   }
   if (String(row.through ?? "").trim() === "") {
-    gaps.push("Which real work does this happen in? Not a habit in the abstract.");
+    gaps.push("Vilket verkligt arbete sker det här i? Ingen vana i det abstrakta.");
   }
   return gaps;
 }

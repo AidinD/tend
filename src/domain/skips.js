@@ -86,5 +86,5 @@ export function skipPattern(count, kind) {
   if (count < 2) {
     return null;
   }
-  return `${kind} did not happen ${count} times in the last ${SKIP_WINDOW_DAYS / 30} months.`;
+  return `${kind} blev inte av ${count} gånger de senaste ${SKIP_WINDOW_DAYS / 30} månaderna.`;
 }

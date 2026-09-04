@@ -267,7 +267,7 @@ describe("contact from a shared note", () => {
 
     const run = ok(nibService.indexNib(store, { dir: nibDir }));
     assert.equal(run.contacts, 0);
-    assert.match(run.skipped.join(" "), /nobody is named/);
+    assert.match(run.skipped.join(" "), /ingen är namngiven/);
   });
 });
 

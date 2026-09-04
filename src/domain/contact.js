@@ -57,27 +57,27 @@ import { DAY_MS } from "./time.js";
  * @type {{ value: string, label: string, subject: SubjectKind }[]}
  */
 export const CONTACT_KINDS = [
-  { value: "one-to-one", label: "1-1 - a conversation with them", subject: "person" },
-  { value: "casual", label: "Casual - you spoke, but it was not a 1-1", subject: "person" },
+  { value: "one-to-one", label: "1-1 - ett samtal med dem", subject: "person" },
+  { value: "casual", label: "Casual - ni pratade, men det var ingen 1-1", subject: "person" },
   {
     value: "meeting",
-    label: "Meeting - a conversation with several of you in it",
+    label: "Möte - ett samtal med flera av er i det",
     subject: "person"
   },
-  { value: "second-hand", label: "Second-hand - heard about them from someone else", subject: "person" },
-  { value: "sideways", label: "Sideways - contact with a peer lead", subject: "person" },
-  { value: "feedback", label: "Feedback - you told them something directly", subject: "person" },
-  { value: "observation", label: "Observation - you saw their work", subject: "person" },
-  { value: "survey", label: "Survey round", subject: "person" },
-  { value: "check-in", label: "Check-in - you looked at a project", subject: "project" },
+  { value: "second-hand", label: "Second hand - hört om dem från någon annan", subject: "person" },
+  { value: "sideways", label: "Sideways - kontakt med en sidoordnad ledare", subject: "person" },
+  { value: "feedback", label: "Feedback - du sa något direkt till dem", subject: "person" },
+  { value: "observation", label: "Observation - du såg deras arbete", subject: "person" },
+  { value: "survey", label: "Enkätrunda", subject: "person" },
+  { value: "check-in", label: "Avstämning - du tittade på ett projekt", subject: "project" },
   {
     value: "delegation-review",
-    label: "Delegation review - you looked at how a handover is going",
+    label: "Delegeringsgenomgång - du tittade på hur en överlämning går",
     subject: "workstream"
   },
   {
     value: "update",
-    label: "Update - you told a stakeholder where it stands",
+    label: "Uppdatering - du berättade för en stakeholder var det står",
     subject: "stake"
   }
 ];
@@ -129,10 +129,10 @@ export function fitsSubject(kind, subjectKind) {
  * @type {{ value: SubjectKind, label: string }[]}
  */
 export const SUBJECT_KINDS = [
-  { value: "person", label: "Each person" },
-  { value: "project", label: "Each project" },
-  { value: "workstream", label: "Each workstream" },
-  { value: "stake", label: "Each stakeholder, per project" }
+  { value: "person", label: "Varje person" },
+  { value: "project", label: "Varje projekt" },
+  { value: "workstream", label: "Varje arbetsområde" },
+  { value: "stake", label: "Varje stakeholder, per projekt" }
 ];
 
 /**

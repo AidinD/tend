@@ -124,8 +124,8 @@ export function person(store, query, now) {
     .filter((c) => c.subject.id === p.id)
     .map((c) => ({
       duty: c.duty.name,
-      target: `every ${c.drift.interval} days`,
-      lastHappened: c.drift.everHappened ? agoWords(c.drift.daysSince) : "never",
+      target: `var ${c.drift.interval} dagar`,
+      lastHappened: c.drift.everHappened ? agoWords(c.drift.daysSince) : "aldrig",
       behindBy: driftBadge(c.drift.driftDays),
       urgency: c.drift.trueSeverity
     }));
@@ -455,7 +455,7 @@ export function roleMap(store, now) {
           source: d.source ?? "yours",
           appliesTo: d.subjectKind,
           relations: d.relations ?? "all",
-          every: d.cadenceDays ? `${d.cadenceDays} days` : "no cadence",
+          every: d.cadenceDays ? `${d.cadenceDays} dagar` : "ingen takt",
           keepWhileLeaving: d.keepWhileLeaving !== false,
           // The number as well as the sentence. The edit form used to recover it
           // by stripping non-digits out of the sentence, which turns "no
@@ -488,7 +488,7 @@ export function projects(store, now) {
       // because the hand-rolled version says "today ago". The prep card has a
       // check against that phrase and this view was saying it every day a
       // project had just been looked at.
-      lastLookedAt: worst ? (worst.drift.everHappened ? agoWords(worst.drift.daysSince) : "never") : "no cadence",
+      lastLookedAt: worst ? (worst.drift.everHappened ? agoWords(worst.drift.daysSince) : "aldrig") : "ingen takt",
       behindBy: worst ? driftBadge(worst.drift.driftDays) : null,
       urgency: worst ? worst.drift.trueSeverity : "ok"
     };
@@ -536,8 +536,8 @@ export function project(store, query, now) {
     .filter((c) => c.subjectKind === "project" && c.subject.id === p.id)
     .map((c) => ({
       duty: c.duty.name,
-      target: `every ${c.drift.interval} days`,
-      lastHappened: c.drift.everHappened ? agoWords(c.drift.daysSince) : "never",
+      target: `var ${c.drift.interval} dagar`,
+      lastHappened: c.drift.everHappened ? agoWords(c.drift.daysSince) : "aldrig",
       behindBy: driftBadge(c.drift.driftDays),
       urgency: c.drift.trueSeverity
     }));

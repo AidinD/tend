@@ -409,7 +409,7 @@ describe("extracting promises from prose", () => {
     const impl = fakeAsk({ promises: [] });
     const message = failed(await extractPromises(store, { noteId: "missing", nibDir, askImpl: impl }));
 
-    assert.match(message, /no note file/i);
+    assert.match(message, /ingen anteckningsfil/i);
     assert.equal(impl.calls.length, 0);
   });
 

@@ -42,8 +42,8 @@ export function setPlan(store, args, now = Date.now()) {
   if (existing) {
     return {
       error:
-        `${found.person.name} already has a live plan. End it before starting another - two at ` +
-        `once means two answers to whether somebody is below the bar.`
+        `${found.person.name} har redan en pågående plan. Avsluta den innan du startar en ny - ` +
+        `två samtidigt betyder två svar på om någon ligger under ribban.`
     };
   }
 

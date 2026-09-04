@@ -44,8 +44,8 @@ export function topics(store, who, now) {
         id: String(t.id),
         text: String(t.text ?? ""),
         why: String(t.why ?? ""),
-        every: `${Number(t.cadenceDays)} days`,
-        lastRaised: last === null ? "never" : agoWords(Math.max(0, daysBetween(last, now))),
+        every: `${Number(t.cadenceDays)} dagar`,
+        lastRaised: last === null ? "aldrig" : agoWords(Math.max(0, daysBetween(last, now))),
         pinned: typeof t.person === "string" && t.person !== "",
         status: String(t.status ?? "active")
       };

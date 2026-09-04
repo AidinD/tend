@@ -211,15 +211,15 @@ export const VIEWS = /** @type {const} */ ([
    * rather than early - this is that name in the language the rest of the app
    * is currently in.
    */
-  { id: "now", name: "Where things stand", hint: "the whole picture", halves: ["work"] },
-  { id: "prep", name: "Prep", hint: "before a conversation", halves: ["work"] },
+  { id: "now", name: "Läget", hint: "hela bilden", halves: ["work"] },
+  { id: "prep", name: "Inför", hint: "före ett samtal", halves: ["work"] },
   /*
    * Absorbed by the front page. Reachable, not in the rail - see the header.
    */
-  { id: "focus", name: "Focus", hint: "the current priority", halves: ["work"], rail: false },
-  { id: "people", name: "People", hint: "the roster", halves: ["work", "private"] },
-  { id: "work", name: "Work", hint: "projects and delegation", halves: ["work"] },
-  { id: "journal", name: "The day", hint: "what the day went into", halves: ["work", "private"] },
+  { id: "focus", name: "Fokus", hint: "den nuvarande prioriteten", halves: ["work"], rail: false },
+  { id: "people", name: "Personer", hint: "rostern", halves: ["work", "private"] },
+  { id: "work", name: "Arbete", hint: "projekt och delegering", halves: ["work"] },
+  { id: "journal", name: "Dagen", hint: "vad dagen gick till", halves: ["work", "private"] },
   /*
    * Both halves, because both of the things on this page mean something here.
    *
@@ -233,11 +233,11 @@ export const VIEWS = /** @type {const} */ ([
    * separate stores and separate attention, and "be more present at home" does
    * not compete for the same slot as anything at work.
    */
-  { id: "reflection", name: "Reflection", hint: "how the week went", halves: ["work", "private"] },
-  { id: "role", name: "Role map", hint: "what the job is", halves: ["work"] },
-  { id: "decisions", name: "Decisions", hint: "the ledger", halves: ["work"] },
-  { id: "knowledge", name: "Knowledge", hint: "ask about a situation", halves: ["work", "private"] },
-  { id: "settings", name: "Settings", hint: "data, Nib, drafting", halves: ["work", "private"] }
+  { id: "reflection", name: "Reflektion", hint: "hur veckan gick", halves: ["work", "private"] },
+  { id: "role", name: "Rollkarta", hint: "vad jobbet är", halves: ["work"] },
+  { id: "decisions", name: "Beslut", hint: "loggboken", halves: ["work"] },
+  { id: "knowledge", name: "Kunskap", hint: "fråga om en situation", halves: ["work", "private"] },
+  { id: "settings", name: "Inställningar", hint: "data, Nib, utkast", halves: ["work", "private"] }
 ]);
 
 /**

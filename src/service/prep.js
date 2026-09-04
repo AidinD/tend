@@ -225,7 +225,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       urgency: worstSeverity(worst, theirPromises),
       lastSpoke:
         lastTouch === undefined
-          ? "never"
+          ? "aldrig"
           : agoWords((daysSince(lastTouch.at, now) ?? 0)),
 
       youPromised: theirPromises.map((x) => ({
@@ -242,10 +242,10 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
         return {
           name: String(w.name ?? ""),
           mandate: isLevel(level) ? LEVELS[level].authority : "nobody has said who decides",
-          reviewEvery: `${reviewInterval(w.level)} days`,
+          reviewEvery: `${reviewInterval(w.level)} dagar`,
           lastReviewed: reviewed
             ? agoWords(daysSince(reviewed.at, now) ?? 0)
-            : "never"
+            : "aldrig"
         };
       }),
 
@@ -270,7 +270,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
         id: t.id,
         text: t.text,
         why: t.why,
-        lastRaised: t.everRaised ? agoWords(t.daysSince) : "never"
+        lastRaised: t.everRaised ? agoWords(t.daysSince) : "aldrig"
       })),
 
       // The direction, and whether it is moving. Two counts rather than one:
@@ -287,7 +287,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
         stance: t.stance,
         talks: t.talks,
         observations: t.observations,
-        lastTalked: t.lastTalked === null ? "never" : agoWords(t.daysSinceTalked),
+        lastTalked: t.lastTalked === null ? "aldrig" : agoWords(t.daysSinceTalked),
         // Carried only to answer the stall question, which asks whether the aim
         // is wrong OR the support is missing. Half of that is a judgement nobody
         // can make for him; the other half is a thing he wrote down, and the
@@ -372,10 +372,10 @@ function practising(dir) {
  */
 function reasonFor({ drift, worst, promises, worthRaising, growing = [] }) {
   if (drift > 0 && worst) {
-    return `${worst.duty.name} is ${humanDays(worst.drift.driftDays)} behind`;
+    return `${worst.duty.name} är ${humanDays(worst.drift.driftDays)} efter`;
   }
   if (promises.length > 0) {
-    return `${promises.length} open promise${promises.length === 1 ? "" : "s"}`;
+    return `${promises.length} ${promises.length === 1 ? "öppet löfte" : "öppna löften"}`;
   }
   // Ahead of topics, because a thread asking a question is asking one specific
   // thing, and "3 topics worth raising" is a count. A named question is the more
@@ -385,9 +385,13 @@ function reasonFor({ drift, worst, promises, worthRaising, growing = [] }) {
     return asking.asks;
   }
   if (growing.length > 0) {
-    return `${growing.length} growth thread${growing.length === 1 ? "" : "s"} not discussed lately`;
+    return growing.length === 1
+      ? "1 riktning inte diskuterad på ett tag"
+      : `${growing.length} riktningar inte diskuterade på ett tag`;
   }
-  return `${worthRaising.length} topic${worthRaising.length === 1 ? "" : "s"} worth raising`;
+  return worthRaising.length === 1
+    ? "1 ämne värt att ta upp"
+    : `${worthRaising.length} ämnen värda att ta upp`;
 }
 
 /**

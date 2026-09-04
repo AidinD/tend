@@ -36,34 +36,34 @@ export const SEVERITY_ORDER = /** @type {const} */ (["ok", "watch", "warn", "cri
  */
 export const RELATIONS = /** @type {const} */ ({
   "lead-and-manage": {
-    label: "Lead and manage",
-    note: "You see their work and you are accountable for them.",
-    choice: "Lead and manage - you see their work and are accountable"
+    label: "Leder och ansvarar för",
+    note: "Du ser deras arbete och du ansvarar för dem.",
+    choice: "Leder och ansvarar för - du ser deras arbete och har ansvaret"
   },
   "lead-only": {
-    label: "Lead, don't manage",
-    note: "You see their work daily but have no formal channel.",
-    choice: "Lead, don't manage - you see their work, no formal channel"
+    label: "Leder utan kanal",
+    note: "Du ser deras arbete dagligen men har ingen formell kanal.",
+    choice: "Leder utan kanal - du ser deras arbete, ingen formell kanal"
   },
   "manage-remotely": {
-    label: "Manage, don't see",
-    note: "You hold the mandate and none of the observation. The blind spot.",
-    choice: "Manage, don't see - the mandate without the observation"
+    label: "Ansvarar för på distans",
+    note: "Du har mandatet och ingenting av observationen. Den blinda fläcken.",
+    choice: "Ansvarar för på distans - mandatet utan observationen"
   },
   "equal-lead": {
-    label: "Equal lead",
-    note: "No authority either way. Influence rests entirely on goodwill.",
-    choice: "Equal lead - no authority either way"
+    label: "Sidoordnad",
+    note: "Ingen bestämmanderätt någon väg. Inflytandet vilar helt på goodwill.",
+    choice: "Sidoordnad - ingen bestämmanderätt någon väg"
   },
   "own-manager": {
-    label: "Your manager",
-    note: "Upward. Different duties apply.",
-    choice: "Your manager"
+    label: "Min chef",
+    note: "Uppåt. Andra plikter gäller.",
+    choice: "Min chef"
   },
   stakeholder: {
     label: "Stakeholder",
-    note: "You deliver to them. You owe them a picture, not a conversation.",
-    choice: "Stakeholder - you deliver to them, they are not yours to lead"
+    note: "Du levererar till dem. Du är skyldig dem en bild, inte ett samtal.",
+    choice: "Stakeholder - du levererar till dem, de är inte dina att leda"
   }
 });
 

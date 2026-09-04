@@ -76,24 +76,25 @@ describe("prep", () => {
     // Every list in this app says why it is showing you something.
     assert.match(card.why, /1-1/);
     assert.ok(card.behindBy, "and how far behind");
-    assert.match(card.lastSpoke, /ago$/);
+    assert.match(card.lastSpoke, /^för .* sedan$/);
   });
 
-  it('says "today" and not "today ago"', () => {
-    // humanDays returns "today" for nought, and appending a suffix to it read
-    // as "Last spoke today ago" on every card of somebody seen this morning.
+  it('says "idag" and not "för 0 dagar sedan"', () => {
+    // `durationOf` answers `today` with no count for nought, and a caller that
+    // treated it as zero days read as "Pratade senast för 0 dagar sedan" on
+    // every card of somebody seen this morning.
     store.create("touches", { id: "t-1", subject: "p-nina", kind: "one-to-one", at: NOW });
     store.create("promises", { id: "pm-1", person: "p-nina", text: "A thing", madeAt: daysAgo(20), status: "open" });
 
     const [card] = prep(store, NOW, { jotDir }).cards;
-    assert.equal(card.lastSpoke, "today");
+    assert.equal(card.lastSpoke, "idag");
   });
 
   it("says never when there is no contact at all, not \"never ago\"", () => {
     store.create("promises", { id: "pm-1", person: "p-nina", text: "A thing", madeAt: daysAgo(20), status: "open" });
 
     const card = prep(store, NOW, { jotDir }).cards.find((c) => c.person === "Nina Berg");
-    assert.equal(card.lastSpoke, "never");
+    assert.equal(card.lastSpoke, "aldrig");
   });
 
   it("finds work in a category named after the workstream, not just the project", () => {
@@ -133,7 +134,7 @@ describe("prep", () => {
     const [card] = prep(store, NOW, { jotDir }).cards;
     assert.equal(card.person, "Nina Berg");
     assert.equal(card.youPromised.length, 1);
-    assert.match(card.why, /promise/);
+    assert.match(card.why, /löfte/);
   });
 
   it("carries what they own and how long since it was reviewed", () => {
@@ -151,7 +152,7 @@ describe("prep", () => {
     assert.equal(card.theyOwn[0].name, "Payout migration");
     // The mandate is the field that makes the tool, so it has to reach the card.
     assert.ok(card.theyOwn[0].mandate && card.theyOwn[0].mandate !== "not stated");
-    assert.equal(card.theyOwn[0].lastReviewed, "never");
+    assert.equal(card.theyOwn[0].lastReviewed, "aldrig");
   });
 
   it("finds open work through a workstream's project, and labels the route", () => {

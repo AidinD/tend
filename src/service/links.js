@@ -44,7 +44,7 @@ export function linkTo(store, { person: who, url, title, note, now }) {
   if (already) {
     return {
       error:
-        `That link is already on ${found.person.name}, added ` +
+        `Den länken finns redan på ${found.person.name}, tillagd ` +
         `${agoWords((daysSince(already.at ?? 0, now) ?? 0))}.`
     };
   }

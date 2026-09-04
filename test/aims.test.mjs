@@ -91,14 +91,14 @@ describe("where an aim's verdict comes from", () => {
     // created in a text file instead. But the gap stays visible.
     const made = set({ measure: "", through: "" });
     assert.ok(made.missing.length >= 2, JSON.stringify(made.missing));
-    assert.match(made.missing.join(" "), /instance/i);
-    assert.match(made.missing.join(" "), /real work/i);
+    assert.match(made.missing.join(" "), /tillfälle/i);
+    assert.match(made.missing.join(" "), /verkligt arbete/i);
   });
 
   it("asks who, but only when the verdict comes from somebody else", () => {
     assert.match(
       missing({ source: "asked", measure: "x", through: "y" }).join(" "),
-      /Who are you asking/
+      /Vem frågar du/
     );
     assert.deepEqual(missing({ source: "logged", measure: "x", through: "y" }), []);
   });
@@ -181,7 +181,7 @@ describe("logging an occasion", () => {
       ["Newer", "Older"]
     );
     assert.equal(one.occasions[0].happened, false);
-    assert.equal(one.occasions[1].when, "9 days ago");
+    assert.equal(one.occasions[1].when, "för 9 dagar sedan");
   });
 });
 
@@ -207,7 +207,7 @@ describe("the nudge", () => {
 
     const quiet = signals(later).find((s) => s.key.startsWith("aim-quiet"));
     assert.ok(quiet, "nothing was said about an aim untouched for three weeks");
-    assert.match(quiet.text, /^I /, "a signal here must have a first-person subject");
+    assert.match(quiet.text, /^Jag /, "a signal here must have a first-person subject");
   });
 
   it("carries where the aim is supposed to happen, not just that it exists", () => {
@@ -221,7 +221,7 @@ describe("the nudge", () => {
   it("names the absence when no work is attached", () => {
     set({ cadenceDays: 21, through: "" });
     const quiet = signals(NOW + 22 * DAY_MS).find((s) => s.key.startsWith("aim-quiet"));
-    assert.match(String(quiet?.detail), /nowhere to happen/);
+    assert.match(String(quiet?.detail), /utan någonstans att hända/);
   });
 
   it("says separately when an aim has no test at all", () => {
@@ -233,7 +233,7 @@ describe("the nudge", () => {
     set({ measure: "" });
     const unmeasured = signals(NOW).find((s) => s.key.startsWith("aim-unmeasured"));
     assert.ok(unmeasured, "an aim with no measure said nothing");
-    assert.match(unmeasured.text, /^I /);
+    assert.match(unmeasured.text, /^Jag /);
     assert.match(String(unmeasured.detail), /kept to next time/);
   });
 

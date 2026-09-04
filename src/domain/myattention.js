@@ -140,7 +140,7 @@ export function myAttention({
   if (unheard.length > 0 && here.length > 1) {
     signals.push({
       key: "i-have-not-spoken-to",
-      text: `I have not spoken to ${unheard.length} of ${here.length} people this month.`,
+      text: `Jag har inte pratat med ${unheard.length} av ${here.length} personer den här månaden.`,
       detail: unheard.join(", "),
       weight: 100 + unheard.length
     });
@@ -162,7 +162,7 @@ export function myAttention({
     if (share >= CONCENTRATION_SHARE) {
       signals.push({
         key: "my-attention-is-concentrated",
-        text: `${Math.round(share * 100)}% of my contact this month went to ${top.length} ${top.length === 1 ? "person" : "people"}.`,
+        text: `${Math.round(share * 100)}% av min kontakt den här månaden gick till ${top.length} ${top.length === 1 ? "person" : "personer"}.`,
         // Named, because "your attention is concentrated" is not actionable and
         // "it all went to these two" is. They are not being judged; the pattern
         // is mine.
@@ -186,7 +186,7 @@ export function myAttention({
       key: "i-have-only-heard-about",
       // The blind spot Tend exists for, stated as mine. Everything I know about
       // them this month came through somebody else.
-      text: `Everything I know about ${onlyHeardAbout.length} ${onlyHeardAbout.length === 1 ? "person" : "people"} this month came through somebody else.`,
+      text: `Allt jag vet om ${onlyHeardAbout.length} ${onlyHeardAbout.length === 1 ? "person" : "personer"} den här månaden kom genom någon annan.`,
       detail: onlyHeardAbout.join(", "),
       weight: 90 + onlyHeardAbout.length
     });
@@ -224,19 +224,19 @@ export function myAttention({
 
   if (backlog.entries >= MIN_ENTRIES && backlog.spread >= MIN_SPREAD) {
     const long = backlog.sinceDays !== null && backlog.sinceDays >= LONG_GAP_DAYS;
-    const evenings = `${backlog.entries} ${backlog.entries === 1 ? "evening" : "evenings"}`;
-    const days = `${backlog.spread} ${backlog.spread === 1 ? "day" : "days"}`;
+    const evenings = `${backlog.entries} ${backlog.entries === 1 ? "kväll" : "kvällar"}`;
+    const days = `${backlog.spread} ${backlog.spread === 1 ? "dag" : "dagar"}`;
 
     signals.push({
       key: "i-have-written-and-not-read",
       text:
         backlog.lastReadAt === null
-          ? `I have written ${evenings} and never read them back.`
-          : `I have written ${evenings} since I last read them back.`,
+          ? `Jag har skrivit ${evenings} och aldrig läst tillbaka dem.`
+          : `Jag har skrivit ${evenings} sedan jag senast läste tillbaka dem.`,
       detail:
         backlog.lastReadAt === null
-          ? `Across ${days}. The pass over them was always the point; the entries were the means.`
-          : `Across ${days}, and ${backlog.sinceDays} days since the last reading.`,
+          ? `Över ${days}. Läsningen av dem var alltid poängen; posterna var medlet.`
+          : `Över ${days}, och ${backlog.sinceDays} dagar sedan den senaste läsningen.`,
       // Under every signal about a person. Somebody being neglected outranks a
       // month of my own evenings going unread, and a list where those two compete
       // on equal terms teaches the wrong order.
@@ -281,9 +281,9 @@ export function myAttention({
         key: "i-have-not-reflected",
         text:
           lastReflectedAt === null
-            ? "I have not written a weekly reflection yet."
-            : `I have not reflected on the week in ${daysSinceLast} days.`,
-        detail: "A short look back: what went well, what I would do differently.",
+            ? "Jag har inte skrivit någon veckoreflektion än."
+            : `Jag har inte reflekterat över veckan på ${daysSinceLast} dagar.`,
+        detail: "En kort blick bakåt: vad som gick bra, vad jag skulle göra annorlunda.",
         // Under everything above - somebody being neglected, or my own
         // journal going unread, both outrank a reminder that is about a
         // habit rather than a fact I already have sitting in front of me.
@@ -330,12 +330,12 @@ export function myAttention({
       key: `aim-quiet:${String(row.id)}`,
       text:
         last === undefined
-          ? `I set out to ${lower(String(row.aim ?? "something"))} and have not logged an occasion yet.`
-          : `I have not logged anything on "${String(row.aim ?? "")}" in ${days} days.`,
+          ? `Jag satte mig för att ${lower(String(row.aim ?? "något"))} och har inte loggat ett tillfälle än.`
+          : `Jag har inte loggat något på "${String(row.aim ?? "")}" på ${days} dagar.`,
       detail:
         through === ""
-          ? "No work is named for this one, which is the part to fix first - a goal with nowhere to happen waits for a free evening."
-          : `Where it happens: ${through}`,
+          ? "Inget arbete är namngivet för det här, vilket är delen att laga först - ett mål utan någonstans att hända väntar på en ledig kväll."
+          : `Var det händer: ${through}`,
       // Below the reflection reminder. That one is about a habit of looking
       // back at everything; this is one thread inside it.
       weight: 15,
@@ -360,7 +360,7 @@ export function myAttention({
     }
     signals.push({
       key: `aim-unmeasured:${String(row.id)}`,
-      text: `I have not said how I would know whether "${String(row.aim ?? "")}" is happening.`,
+      text: `Jag har inte sagt hur jag skulle veta om "${String(row.aim ?? "")}" händer.`,
       detail:
         "Until it has a test, it can only ever be kept to next time - which is what a development " +
         "point with no marker becomes.",

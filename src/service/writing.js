@@ -37,7 +37,7 @@ import { resolvePerson, resolveProject, resolveStake, resolveWorkstream } from "
  */
 export function addPerson(store, { name, relation, since, now }) {
   if (!String(name ?? "").trim()) {
-    return { error: "A person needs a name." };
+    return { error: "En person behöver ett namn." };
   }
   if (!isRelationIn(store.half, String(relation))) {
     // The half's own vocabulary, not the union of both. A store holds one half's
@@ -54,9 +54,9 @@ export function addPerson(store, { name, relation, since, now }) {
   if (clash) {
     return {
       error: isArchived(clash)
-        ? `"${clash.name}" is archived, not gone, and a name may only belong to one row. ` +
-          `Unarchive them from the archived group on People, or add this person under a name that tells the two apart.`
-        : `"${name}" is already here. Use setRelation to change how you relate to them.`
+        ? `"${clash.name}" är arkiverad, inte borta, och ett namn får bara tillhöra en rad. ` +
+          `Ta tillbaka dem från den arkiverade gruppen på Personer, eller lägg till den här personen under ett namn som skiljer de två.`
+        : `"${name}" finns redan här. Använd setRelation för att ändra hur du förhåller dig till dem.`
     };
   }
   const id = store.create("people", {
@@ -131,7 +131,7 @@ export function updatePerson(store, who, { name, relation, since, awayUntil, lef
   if (name !== undefined) {
     const trimmed = String(name).trim();
     if (trimmed === "") {
-      return { error: "A person needs a name." };
+      return { error: "En person behöver ett namn." };
     }
     // A second person with the same name makes both unreachable from Ctrl+K,
     // which refuses on an ambiguous match rather than guessing.
@@ -139,9 +139,9 @@ export function updatePerson(store, who, { name, relation, since, awayUntil, lef
     if (clash) {
       return {
         error: isArchived(clash)
-          ? `"${trimmed}" belongs to somebody archived, and an archived row keeps its name. ` +
-            `Unarchive them if that is who this is, or pick a name that tells the two apart.`
-          : `Somebody else is already called "${trimmed}".`
+          ? `"${trimmed}" tillhör någon arkiverad, och en arkiverad rad behåller sitt namn. ` +
+            `Ta tillbaka dem om det är den personen, eller välj ett namn som skiljer de två.`
+          : `Någon annan heter redan "${trimmed}".`
       };
     }
     patch.name = trimmed;
@@ -160,7 +160,7 @@ export function updatePerson(store, who, { name, relation, since, awayUntil, lef
 
   if (since !== undefined) {
     if (typeof since !== "number" || !Number.isFinite(since)) {
-      return { error: "The start date must be a date." };
+      return { error: "Startdatumet måste vara ett datum." };
     }
     patch.since = since;
   }
@@ -179,7 +179,7 @@ export function updatePerson(store, who, { name, relation, since, awayUntil, lef
       continue;
     }
     if (typeof value !== "number" || !Number.isFinite(value)) {
-      return { error: `${field === "awayUntil" ? "The return date" : "The last day"} must be a date.` };
+      return { error: `${field === "awayUntil" ? "Återkomstdatumet" : "Sista dagen"} måste vara ett datum.` };
     }
     patch[String(field)] = value;
   }
@@ -255,15 +255,15 @@ export function unarchivePerson(store, id) {
  */
 export function addProject(store, { name, since, now }) {
   if (!String(name ?? "").trim()) {
-    return { error: "A project needs a name." };
+    return { error: "Ett projekt behöver ett namn." };
   }
   const clash = nameClash(store, "projects", name);
   if (clash) {
     return {
       error: isArchived(clash)
-        ? `"${clash.name}" is archived, not gone, and a name may only belong to one row. ` +
-          `Unarchive it from the archived group on Work, or use a name that tells the two apart.`
-        : `"${name}" is already here.`
+        ? `"${clash.name}" är arkiverat, inte borta, och ett namn får bara tillhöra en rad. ` +
+          `Ta tillbaka det från den arkiverade gruppen på Arbete, eller använd ett namn som skiljer de två.`
+        : `"${name}" finns redan här.`
     };
   }
   const id = store.create("projects", {
@@ -333,7 +333,7 @@ export function logPromise(store, { person: who, text, due, madeAt, source, now 
     return { error: found.error };
   }
   if (!String(text ?? "").trim()) {
-    return { error: "A promise needs text describing what you said you would do." };
+    return { error: "Ett löfte behöver text som beskriver vad du sa att du skulle göra." };
   }
   const id = store.create("promises", {
     person: found.person.id,
@@ -523,7 +523,7 @@ function findSubject(store, subjectKind, query) {
  */
 export function logEvidence(store, { person: who, text, area, now }) {
   if (!String(text ?? "").trim()) {
-    return { error: "Evidence needs text." };
+    return { error: "En observation behöver text." };
   }
   let personId = null;
   if (who) {

@@ -3,6 +3,67 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-04 - Swedish, and the one line that says where it stops
+
+**Decided.** A string a person can put on their own screen by using the app is
+Swedish, wherever in the code it is composed. What stays English is what only a
+caller passing bad arguments can produce.
+
+**The first version of this decision was wrong, and the number is why.** The
+plan was: translate the renderer, leave the layer below the two clients alone,
+on the argument that translating what `domain/` and `service/` compose is not
+a translation but the refactor that moves composition into the renderer. That
+argument still holds for the refactor. It did not hold as a place to stop,
+because nobody had counted. The count was 147 English literals below the
+clients, and about forty of them are what a card says - starting with
+`1-1 has never happened for X`, which is the first line of the front page.
+"A handful of places" was a guess, and it was off by a factor of ten.
+
+**So the line is drawn by reachability, not by directory.** Translated: every
+sentence a screen shows, including the ones `domain/attention.js`,
+`domain/myattention.js`, `domain/focus.js`, `domain/promises.js`,
+`service/prep.js` and `service/nibsync.js` assemble; every refusal a form can
+produce by ordinary typing - an empty name, a duplicate name, a zero interval,
+a bad URL; and the Nib diagnostics on Settings. Not translated: the 81 literals
+that are keyed by an id or an enum value - `No plan with id "x"`, `An ending
+is one of: ...` - because the UI cannot produce them (its ids come from rows it
+just drew, its enum values from dropdowns derived from the domain), so the
+caller that can is a model over MCP. Model prompts stay English for the same
+reason, and a thrown developer error is not a sentence to a reader at all.
+
+**Two refusals were already Swedish before this pass**, the date validations in
+`writing.js`. That is what settled the rule rather than another argument: a
+form's refusal is part of the form, and half of one form's refusals in each
+language is the state nobody would have chosen.
+
+**Nothing changed shape.** Same payload fields, same keys, same types - which
+is what makes this a translation and not the refactor. A model reads Swedish as
+well as it reads English, so the MCP clients lose nothing.
+
+**The composition refactor is still worth doing and is still not done.** When it
+happens, the sentences move to `text.js` and the payloads carry parts. Until
+then a Swedish sentence assembled in `domain/` is a Swedish sentence in the
+wrong file, which is a tidiness problem rather than a reader's problem.
+
+**The seeded content is data, so an existing store keeps its English.**
+`seedRoleMap` is idempotent by fixed id, which is what makes it safe to press
+twice - and also means a store seeded before today keeps the nine English duty
+names. They are editable rows in the Role map, so this is his to change: renaming
+rows there is exactly the restructuring an agent must never do behind him.
+
+**Work jargon he already speaks in English stays English.** `stakeholder`,
+`casual`, `sideways`, `second hand`, `feedback`. Swedifying a word he says
+every day would make the app more foreign rather than less. `drift` is the
+opposite case and becomes **eftersläpning** everywhere, because there the
+English word was jargon he does *not* say.
+
+**One thing to watch in Swedish that English hid:** adjectives agree. The first
+version of the Inför card's reason line read "1 ämne värda att ta upp" -
+the noun was pluralised and the adjective was not, which a
+`count === 1 ? "ämne" : "ämnen"` ternary cannot express. A test caught it. Any
+count phrase with an adjective in it needs the whole phrase branched, not the
+noun.
+
 ## 2026-09-04 - A plan is not a direction, and the shape says so
 
 **Decided.** Two shapes, not one with a flag. `plans` is its own collection

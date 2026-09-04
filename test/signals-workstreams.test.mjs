@@ -126,7 +126,7 @@ describe("the monthly questions", () => {
       note: "Retro ended in nine minutes and nobody raised the release",
       now: NOW
     });
-    assert.equal(r.nextAskedIn, "7 days");
+    assert.equal(r.nextAskedIn, "7 dagar");
   });
 
   it("rejects an answer that is neither yes nor no", () => {
@@ -135,7 +135,12 @@ describe("the monthly questions", () => {
 
   it("surfaces a due question in the Now view", () => {
     const a = api.attention(store, NOW);
-    const question = [...a.needsYou, ...a.nudges].find((/** @type {any} */ i) => /pushing back/.test(i.what));
+    // Its own text rather than a phrase from it: this test is about whether a
+    // due question reaches the front page, not about how it is worded.
+    const asks = String(DEFAULT_SIGNALS.find((x) => x.id === "signal-pushback")?.text);
+    const question = [...a.needsYou, ...a.nudges].find((/** @type {any} */ i) =>
+      String(i.what).includes(asks)
+    );
     assert.ok(question, "the monthly question should appear like anything else that needs him");
   });
 });
@@ -191,7 +196,7 @@ describe("delegation levels", () => {
     const [w] = api.workstreams(store, NOW);
     assert.equal(w.owner, "Nadia Ohlsson");
     assert.equal(w.project, "Strandkanten");
-    assert.equal(w.reviewEvery, "14 days");
+    assert.equal(w.reviewEvery, "14 dagar");
   });
 
   it("errs towards looking too often when the level is unknown", () => {
@@ -202,9 +207,9 @@ describe("delegation levels", () => {
   it("treats a missing level as a finding, not as missing data", () => {
     api.addWorkstream(store, { name: "Strandkanten physics", owner: "nadia", now: NOW });
     const a = api.attention(store, NOW);
-    const item = [...a.needsYou, ...a.nudges].find((/** @type {any} */ i) => /No delegation level/.test(i.what));
+    const item = [...a.needsYou, ...a.nudges].find((/** @type {any} */ i) => /Ingen delegeringsnivå/.test(i.what));
     assert.ok(item, "unstated delegation is the failure Grove names, so it must surface");
-    assert.match(String(item.why), /responsibility has moved and the information has not/);
+    assert.match(String(item.why), /ansvaret flyttat och informationen inte har/);
   });
 
   it("stops flagging it once a level is set", () => {
@@ -212,7 +217,7 @@ describe("delegation levels", () => {
     api.setDelegationLevel(store, String(id), "theirs");
     const a = api.attention(store, NOW);
     assert.equal(
-      [...a.needsYou, ...a.nudges].some((/** @type {any} */ i) => /No delegation level/.test(i.what)),
+      [...a.needsYou, ...a.nudges].some((/** @type {any} */ i) => /Ingen delegeringsnivå/.test(i.what)),
       false
     );
     assert.equal(isUnspecified(store.rows("workstreams")[0]), false);
@@ -276,7 +281,7 @@ describe("binding Nib folders to people", () => {
   it("says so rather than throwing when Nib has never been opened", () => {
     const r = nibService.listNibFolders(join(nibDir, "nothing-here"));
     assert.equal(r.available, false);
-    assert.match(r.why, /No Nib data/);
+    assert.match(r.why, /Ingen Nib-data/);
   });
 
   it("binds a folder to a person as a kind of contact", () => {
@@ -294,7 +299,7 @@ describe("binding Nib folders to people", () => {
     api.bindSource(store, { person: "nadia", categoryId: "cat-1to1", subId: "sub-nadia" });
     api.addPerson(store, { name: "Johan Lind", relation: "manage-remotely", now: NOW });
     const r = api.bindSource(store, { person: "Johan", categoryId: "cat-1to1", subId: "sub-nadia" });
-    assert.match(String(r.error), /already bound to Nadia Ohlsson/);
+    assert.match(String(r.error), /redan bunden till Nadia Ohlsson/);
   });
 
   it("a category binding covers only its loose notes, not its sub-categories", () => {
@@ -373,7 +378,7 @@ describe("indexing Nib", () => {
   it("dates a contact when the note was written, not when it was indexed", () => {
     nibService.indexNib(store, { dir: nibDir });
     const p = ok(api.person(store, "nadia", NOW));
-    assert.match(String(p.cadences[0]?.lastHappened ?? ""), /13 days ago/);
+    assert.match(String(p.cadences[0]?.lastHappened ?? ""), /för 13 dagar sedan/);
   });
 
   it("keeps Swedish text intact", () => {

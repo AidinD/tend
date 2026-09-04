@@ -116,8 +116,8 @@ describe("linking something to a person", () => {
     // identical rows on a page is the kind of small mess nobody cleans up.
     ok(api.linkTo(store, { person: "Vidar", url: "https://example.com/a", now: daysAgo(3) }));
     const why = failed(api.linkTo(store, { person: "Vidar", url: "https://example.com/a", now: NOW }));
-    assert.match(why, /already/);
-    assert.match(why, /3 days/);
+    assert.match(why, /finns redan/);
+    assert.match(why, /för 3 dagar/);
   });
 
   it("allows the same address on two different people", () => {
@@ -137,10 +137,10 @@ describe("reading links back", () => {
     assert.equal(rows.length, 2);
     // Newest first: the useful question is what the latest reading was.
     assert.equal(rows[0].title, "Today");
-    assert.equal(rows[0].added, "today");
+    assert.equal(rows[0].added, "idag");
     // Weeks, which is what the app counts in everywhere. The number is the
     // point: "28 weeks ago" cannot be mistaken for current advice.
-    assert.equal(rows[1].added, "28 weeks ago");
+    assert.equal(rows[1].added, "för 28 veckor sedan");
   });
 
   it("does not expire anything on its own", () => {
@@ -173,7 +173,7 @@ describe("through the agent surface", () => {
     callTool(store, "tend_link_to", { person: "Vidar", url: "https://claude.ai/x", title: "Prep" }, NOW);
     const read = ok(callTool(store, "tend_links", { person: "Vidar" }, NOW));
     assert.equal(read.length, 1);
-    assert.equal(read[0].added, "today");
+    assert.equal(read[0].added, "idag");
 
     callTool(store, "tend_unlink", { id: read[0].id }, NOW);
     assert.equal(ok(callTool(store, "tend_links", { person: "Vidar" }, NOW)).length, 0);

@@ -20,7 +20,7 @@ import { compareDrift, computeDrift, latestEvidence, SEVERITY_ORDER } from "./ca
 import { focusCost, focusStatus, stretchFor } from "./focus.js";
 import { openPromises } from "./promises.js";
 import { signalsDue } from "./signals.js";
-import { driftBadge, humanDays } from "./time.js";
+import { agoWords, driftBadge, humanDays } from "./time.js";
 import { appliesWhileLeaving, hasLeft, inScope, isLeaving, notBefore } from "./people.js";
 import { namedStakes, stakeInterval } from "./stakes.js";
 import { isUnspecified, reviewInterval } from "./workstreams.js";
@@ -236,15 +236,15 @@ export function buildAttention(state, now) {
       kind: "cadence",
       trueSeverity: drift.trueSeverity,
       title: never
-        ? `${duty.name} has never happened for ${name}`
-        : `${name}: ${humanDays(drift.daysSince)} since ${String(duty.name).toLowerCase()}`,
+        ? `${duty.name} har aldrig hänt för ${name}`
+        : `${name}: ${humanDays(drift.daysSince)} sedan ${String(duty.name).toLowerCase()}`,
       why: never
-        ? `Target is every ${drift.interval} days and there is no record of it yet.`
-        : `Target is every ${drift.interval} days.${drift.stretched ? " Threshold is currently stretched by the active focus." : ""}`,
+        ? `Målet är var ${drift.interval} dagar och det finns ingen registrering av det än.`
+        : `Målet är var ${drift.interval} dagar.${drift.stretched ? " Tröskeln är för tillfället tänjd av det aktiva fokuset." : ""}`,
       severity: drift.severity,
       badge: driftBadge(drift.driftDays),
       guarded: Boolean(duty.guarded),
-      source: `Role map: ${duty.name}`,
+      source: `Rollkarta: ${duty.name}`,
       subject: subject.id,
       subjectKind
     });
@@ -267,17 +267,17 @@ export function buildAttention(state, now) {
     if (person && (hasLeft(person, now) || isArchived(person))) {
       continue;
     }
-    const who = person ? subjectName(person) : "someone";
+    const who = person ? subjectName(person) : "någon";
     items.push({
       key: `promise:${p.id}`,
       kind: "promise",
       trueSeverity: p.status.severity,
-      title: `You owe ${who} an answer`,
-      why: `${p.text ?? "A promise you made"}. ${p.status.why}`,
+      title: `Du är skyldig ${who} ett svar`,
+      why: `${p.text ?? "Ett löfte du gav"}. ${p.status.why}`,
       severity: p.status.severity,
       badge: driftBadge(p.status.ageDays),
       guarded: p.status.guarded,
-      source: "Promise, logged from a note",
+      source: "Löfte, loggat från en anteckning",
       subject: p.person ?? null
     });
   }
@@ -294,8 +294,8 @@ export function buildAttention(state, now) {
       title: s.text,
       why:
         s.lastAnswer === "yes"
-          ? `You answered yes ${humanDays(s.daysSince)} ago. Worth another look sooner than the rest.`
-          : `${s.why}${s.everAnswered ? ` Last asked ${humanDays(s.daysSince)} ago.` : " Never asked."}`,
+          ? `Du svarade ja ${agoWords(s.daysSince)}. Värd en ny titt tidigare än de andra.`
+          : `${s.why}${s.everAnswered ? ` Senast ställd ${agoWords(s.daysSince)}.` : " Aldrig ställd."}`,
       severity: s.severity,
       badge: s.everAnswered ? driftBadge(s.daysSince) : "new",
       guarded: false,
@@ -316,9 +316,9 @@ export function buildAttention(state, now) {
       key: `unspecified:${w.id}`,
       kind: "cadence",
       trueSeverity: "warn",
-      title: `No delegation level set on ${subjectName(w)}`,
+      title: `Ingen delegeringsnivå satt på ${subjectName(w)}`,
       why: owner
-        ? `${subjectName(owner)} is on this and you have not said how far you have stepped back. That gap is where the responsibility has moved and the information has not.`
+        ? `${subjectName(owner)} sitter på det här och du har inte sagt hur långt du klivit tillbaka. Det glappet är där ansvaret flyttat och informationen inte har.`
         : "Nobody is named on this and no level is set, so nothing about it is decided.",
       severity: "warn",
       badge: "unset",

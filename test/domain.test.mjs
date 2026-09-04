@@ -150,7 +150,7 @@ describe("relationship types", () => {
     // Without it the only honest options are wrong: pick any of the five that
     // involve leading and a stakeholder starts owing you 1-1s.
     assert.ok(isRelation("stakeholder"));
-    assert.match(RELATIONS.stakeholder.note, /deliver/);
+    assert.match(RELATIONS.stakeholder.note, /levererar/);
   });
 });
 
@@ -186,17 +186,30 @@ describe("time", () => {
   });
 
   it("reads day counts the way a person would", () => {
-    assert.equal(humanDays(0), "today");
-    assert.equal(humanDays(1), "1 day");
-    assert.equal(humanDays(9), "9 days");
-    assert.equal(humanDays(38), "5 weeks");
+    assert.equal(humanDays(0), "idag");
+    assert.equal(humanDays(1), "1 dag");
+    assert.equal(humanDays(9), "9 dagar");
+    assert.equal(humanDays(38), "5 veckor");
+  });
+
+  it("and wraps the number when saying how long ago", () => {
+    /*
+     * The circumfix that made the parts necessary. English suffixed " ago"
+     * onto the count; Swedish puts a word on each side, so `agoWords` builds
+     * the phrase rather than decorating `humanDays`.
+     */
+    assert.equal(agoWords(0), "idag");
+    assert.equal(agoWords(1), "för 1 dag sedan");
+    assert.equal(agoWords(9), "för 9 dagar sedan");
+    assert.equal(agoWords(38), "för 5 veckor sedan");
   });
 
   it("badges drift compactly", () => {
-    assert.equal(driftBadge(-3), "on time");
-    assert.equal(driftBadge(0), "on time");
+    assert.equal(driftBadge(-3), "i fas");
+    assert.equal(driftBadge(0), "i fas");
     assert.equal(driftBadge(5), "+5d");
-    assert.equal(driftBadge(28), "+4w");
+    /* "v" for vecka, still one letter, which is what the badge has room for. */
+    assert.equal(driftBadge(28), "+4v");
   });
 
   describe("how long since an instant", () => {
@@ -264,33 +277,45 @@ describe("time", () => {
       assert.deepEqual(driftOf(28), { unit: "week", n: 4 });
     });
 
-    it("and the English still comes out of the parts, for every count", () => {
+    it("and the words still come out of the parts, for every count", () => {
       /*
        * The guard that matters. Two ways to say the same thing agree today and
        * nothing would make them agree tomorrow, so the agreement is asserted
        * over the whole range rather than at four sample points - which is how
        * the old shape would have been changed under a passing suite.
+       *
+       * It survived the translation unchanged in intent, which is the point of
+       * having written it against the parts rather than against the words.
        */
       let checked = 0;
       for (let days = -5; days <= 400; days++) {
         const d = durationOf(days);
-        const expected =
+        const unit =
           d.unit === "today"
-            ? "today"
+            ? null
             : d.unit === "day"
-              ? `${d.n} ${d.n === 1 ? "day" : "days"}`
-              : `${d.n} weeks`;
-        assert.equal(humanDays(days), expected, `humanDays(${days})`);
+              ? d.n === 1
+                ? "dag"
+                : "dagar"
+              : d.n === 1
+                ? "vecka"
+                : "veckor";
+
+        assert.equal(
+          humanDays(days),
+          unit === null ? "idag" : `${d.n} ${unit}`,
+          `humanDays(${days})`
+        );
         assert.equal(
           agoWords(days),
-          expected === "today" ? "today" : `${expected} ago`,
+          unit === null ? "idag" : `för ${d.n} ${unit} sedan`,
           `agoWords(${days})`
         );
 
         const drift = driftOf(days);
         assert.equal(
           driftBadge(days),
-          drift === null ? "on time" : `+${drift.n}${drift.unit === "day" ? "d" : "w"}`,
+          drift === null ? "i fas" : `+${drift.n}${drift.unit === "day" ? "d" : "v"}`,
           `driftBadge(${days})`
         );
         checked++;
@@ -470,7 +495,7 @@ describe("focus", () => {
   it("states its cost as a number rather than a feeling", () => {
     const cost = focusCost(focus, 1.8);
     assert.equal(cost.known, true);
-    assert.match(cost.summary, /0\.4 to 1\.8 days/);
+    assert.match(cost.summary, /0\.4 till 1\.8 dagar/);
   });
 
   it("says so when no baseline was captured", () => {
@@ -653,7 +678,7 @@ describe("attention", () => {
       ["people.create", { id: "signe", name: "Signe Wahlström", relation: "manage-remotely", since: daysAgo(120) }]
     ];
     const { needs } = buildAttention(stateFrom(ops), NOW);
-    assert.ok(needs.some((i) => /never happened/.test(i.title) && i.subject === "signe"));
+    assert.ok(needs.some((i) => /aldrig hänt/.test(i.title) && i.subject === "signe"));
   });
 
   it("gives a newly added person the grace of their own start date", () => {

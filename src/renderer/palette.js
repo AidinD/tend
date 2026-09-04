@@ -224,7 +224,7 @@ function build(text) {
     // listed every view in the app, which meant opening Ctrl+K and pressing
     // Enter in the private half went straight to the work radar.
     return currentHalf().views.map((view) =>
-      command(`Go to ${view.name}`, view.hint, () => navigate(view.id))
+      command(words.goTo(view.name), view.hint, () => navigate(view.id))
     );
   }
 

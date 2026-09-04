@@ -192,15 +192,15 @@ export function readNibIndex(dir = nibDataDir(), half = "work") {
   } catch (err) {
     const code = /** @type {NodeJS.ErrnoException} */ (err).code;
     if (code === "ENOENT") {
-      return { available: false, why: `No Nib data at ${path}. Open Nib once, or set NIB_DATA_DIR.` };
+      return { available: false, why: `Ingen Nib-data på ${path}. Öppna Nib en gång, eller sätt NIB_DATA_DIR.` };
     }
-    return { available: false, why: `Could not read ${path}: ${String(err)}` };
+    return { available: false, why: `Kunde inte läsa ${path}: ${String(err)}` };
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed?.categories)) {
-      return { available: false, why: `${path} does not look like a Nib index.` };
+      return { available: false, why: `${path} ser inte ut som ett Nib-index.` };
     }
     return {
       available: true,
@@ -210,7 +210,7 @@ export function readNibIndex(dir = nibDataDir(), half = "work") {
   } catch {
     // Nib writes atomically, so a torn read here is unlikely rather than
     // routine. Still worth not crashing over.
-    return { available: false, why: `${path} could not be parsed. It may be mid-write; try again.` };
+    return { available: false, why: `${path} kunde inte tolkas. Den kan vara mitt i en skrivning; försök igen.` };
   }
 }
 
@@ -768,7 +768,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
      */
     const people = boundPeople(binding);
     if (people.length === 0) {
-      skipped.push(`${binding.label ?? binding.categoryId}: nobody is named on this binding`);
+      skipped.push(`${binding.label ?? binding.categoryId}: ingen är namngiven på den här bindningen`);
       continue;
     }
     const shared = isShared(binding);
@@ -782,8 +782,8 @@ export function indexNib(store, { dir, dry = false } = {}) {
     const folder = folderFor(index.categories, binding);
     if (folder === null) {
       skipped.push(
-        `${binding.label ?? binding.categoryId}: no such folder in Nib any more - ` +
-          `it was deleted, or this is not the notebook it was bound in`
+        `${binding.label ?? binding.categoryId}: ingen sådan mapp i Nib längre - ` +
+          `den togs bort, eller det här är inte den anteckningsbok den bands i`
       );
       continue;
     }
@@ -802,7 +802,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
 
     const notes = notesIn(index.categories, folder.categoryId, folder.subId);
     if (notes.length === 0) {
-      skipped.push(`${folder.label}: no notes`);
+      skipped.push(`${folder.label}: inga anteckningar`);
       continue;
     }
 
@@ -1123,7 +1123,7 @@ export function noteBody(noteId, dir = nibDataDir()) {
     const code = /** @type {NodeJS.ErrnoException} */ (err).code;
     return {
       available: false,
-      why: code === "ENOENT" ? `Nib has no note file for ${noteId}.` : `Could not read ${path}: ${String(err)}`
+      why: code === "ENOENT" ? `Nib har ingen anteckningsfil för ${noteId}.` : `Kunde inte läsa ${path}: ${String(err)}`
     };
   }
 
@@ -1131,7 +1131,7 @@ export function noteBody(noteId, dir = nibDataDir()) {
     const parsed = JSON.parse(raw);
     return { available: true, text: htmlToText(String(parsed?.html ?? "")) };
   } catch {
-    return { available: false, why: `The note file for ${noteId} could not be parsed.` };
+    return { available: false, why: `Anteckningsfilen för ${noteId} kunde inte tolkas.` };
   }
 }
 
@@ -1212,7 +1212,7 @@ export function principlesInNib(dir, half = "work") {
   if (tagId === null) {
     return {
       available: false,
-      why: "This notebook has no Principle tag, so there is nothing to read. Add one in Nib and tag the notes you want to practise."
+      why: "Den här anteckningsboken har ingen Principle-tagg, så det finns inget att läsa. Lägg till en i Nib och tagga de anteckningar du vill öva på."
     };
   }
 

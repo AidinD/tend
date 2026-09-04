@@ -141,7 +141,7 @@ export function waitState(row, chases, now) {
     due: daysSinceNudge > interval,
     stale,
     asks: stale
-      ? `Chased ${mine.length} times with nothing back. Is this answer coming, or is it time to decide without it?`
+      ? `Påmint ${mine.length} gånger utan att få något tillbaka. Kommer det här svaret, eller är det dags att bestämma utan det?`
       : null
   };
 }
@@ -189,8 +189,8 @@ export function waitsDue({ waiting, chases, now }) {
 
 /** How a wait can end. Both endings are ordinary. */
 export const WAIT_ENDINGS = /** @type {const} */ ({
-  answered: { label: "Answered - I got what I asked for" },
-  dropped: { label: "Dropped - I stopped waiting and moved on" }
+  answered: { label: "Besvarat - jag fick vad jag bad om" },
+  dropped: { label: "Släppt - jag slutade vänta och gick vidare" }
 });
 
 /** @typedef {keyof typeof WAIT_ENDINGS} WaitEnding */

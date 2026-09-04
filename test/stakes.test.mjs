@@ -132,11 +132,11 @@ describe("stakeholders through the store", () => {
   it("refuses a second stake for the same pair rather than making two clocks", () => {
     stakeOn("Sjöhästen");
     const why = failed(api.addStake(store, { person: "Nadia", project: "Sjöhästen" }));
-    assert.match(why, /already a stakeholder/);
+    assert.match(why, /redan stakeholder/);
   });
 
   it("refuses an interval that is not a positive number of days", () => {
-    assert.match(failed(api.addStake(store, { person: "Nadia", project: "Vinterlek", cadenceDays: 0 })), /positive/);
+    assert.match(failed(api.addStake(store, { person: "Nadia", project: "Vinterlek", cadenceDays: 0 })), /positivt antal dagar/);
   });
 
   it("says who is waiting and how long, in words rather than a bare count", () => {
@@ -148,9 +148,9 @@ describe("stakeholders through the store", () => {
     assert.ok(Array.isArray(list));
     const byProject = new Map(list.map((s) => [s.project, s]));
 
-    assert.equal(byProject.get("Sjöhästen")?.lastUpdated, "today");
+    assert.equal(byProject.get("Sjöhästen")?.lastUpdated, "idag");
     assert.equal(byProject.get("Sjöhästen")?.note, "shipped the import");
-    assert.equal(byProject.get("Vinterlek")?.lastUpdated, "never", "never is not the same fact as zero days ago");
+    assert.equal(byProject.get("Vinterlek")?.lastUpdated, "aldrig", "never is not the same fact as zero days ago");
     assert.equal(byProject.get("Vinterlek")?.label, "Nadia, about Vinterlek");
   });
 
@@ -177,12 +177,12 @@ describe("stakeholders through the store", () => {
     const id = stakeOn("Sjöhästen");
     ok(api.updateStake(store, id, { cadenceDays: 14 }));
     const list = /** @type {any[]} */ (api.stakeholders(store, NOW));
-    assert.equal(list[0].every, "14 days");
+    assert.equal(list[0].every, "14 dagar");
   });
 
   it("refuses an edit that changes nothing, rather than writing an empty event", () => {
     const id = stakeOn("Sjöhästen");
-    assert.match(failed(api.updateStake(store, id, {})), /Nothing to change/);
+    assert.match(failed(api.updateStake(store, id, {})), /Inget att ändra/);
   });
 
   it("counts an update as having spoken to that person", () => {

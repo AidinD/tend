@@ -545,6 +545,9 @@ export const T = {
     noDuty: "ingen plikt gäller",
 
     archivedGroup: "Arkiverade",
+    /* Handed to `readFailedHtml`, which says "Kunde inte läsa ..." around it. */
+    readFailedRoster: "rostern",
+    readFailedArchived: "de arkiverade personerna",
     /** @param {string} date */
     archivedOn: (date) => `arkiverad ${date}`,
     view: "Visa",
@@ -595,9 +598,12 @@ export const T = {
     logContactButton: "Logga kontakt",
     logSkipButton: "Det blev inte av",
     logMomentButton: "Något hände",
+    logPromiseButton: "Något jag lovade",
     linkButton: "Länka något",
     observationButton: "Registrera en observation",
     readingNotes: "Läser anteckningar…",
+    /* Said only on a row nobody typed. Same pill as the work view's. */
+    fromANote: "från en anteckning",
     themesButton: "Vad som återkommer",
 
     /* The blocks, in the order they answer a question about somebody. */
@@ -1549,8 +1555,16 @@ export const T = {
     /* Kept readings. The second one is where this earns anything: a pattern that
        survived three months is a different fact from one noticed tonight. */
     keptGroup: "Sparade läsningar",
+    /*
+     * Both halves inflect, and both are strings here because the service sends
+     * them worded. Compared as numbers so "1 post över 1 dag" reads right - the
+     * first version said "1 poster över 1 dagar", which a walkthrough check
+     * caught by asserting the sentence rather than its shape.
+     */
     /** @param {string} entries @param {string} spread */
-    keptCoverage: (entries, spread) => `${entries} poster över ${spread} dagar`,
+    keptCoverage: (entries, spread) =>
+      `${entries} ${Number(entries) === 1 ? "post" : "poster"} över ${spread} ` +
+      `${Number(spread) === 1 ? "dag" : "dagar"}`,
     keptAvoided: "Undveks gång på gång",
     keptWentInto: "Vart dagarna gick",
     keptSaidVsDid: "Mot vad du sa att du skulle göra",
@@ -1616,6 +1630,9 @@ export const T = {
       "annorlunda - svara på en av dem, eller båda.",
     writtenBy: "Skrivet av dig.",
     remove: "Ta bort",
+    /* Both handed to `readFailedHtml`, which wraps them in a sentence. */
+    readFailedReflections: "reflektionerna",
+    readFailedAims: "dina mål",
 
     /* The aims block. */
     aimsTitle: "Vad jag jobbar med hos mig själv",
@@ -2028,8 +2045,8 @@ export const T = {
   },
 
   settings: {
-    title: "Settings",
-    sub: "Where things are kept, and how notes reach the rest of the app.",
+    title: "Inställningar",
+    sub: "Var saker sparas, och hur anteckningar når resten av appen.",
 
     /*
      * How the data directory was decided. Spelled out for all three because
@@ -2039,37 +2056,37 @@ export const T = {
      * stores.
      */
     whereFromEnv:
-      "Set by the TEND_DATA_DIR environment variable, inherited when this app started.",
+      "Satt av miljövariabeln TEND_DATA_DIR, ärvd när den här appen startade.",
     whereFromUserEnv:
-      "Set by TEND_DATA_DIR, read from your Windows user environment rather than inherited.",
+      "Satt av TEND_DATA_DIR, läst från din Windows-användarmiljö snarare än ärvd.",
     whereFromDefault:
-      "The default per-user location, because nothing set TEND_DATA_DIR. Set it to keep the data " +
-      "somewhere synced, and somewhere a helper process can reach.",
+      "Standardplatsen per användare, eftersom inget satte TEND_DATA_DIR. Sätt den för att " +
+      "hålla datan någonstans som synkas, och någonstans en hjälpprocess kan nå.",
 
     /* Which half. Two stores rather than one with a filter, because a filter is
        a rule and a rule can be got wrong once. */
-    halfGroup: "Which side",
-    halfPrivate: "private",
-    halfWork: "work",
-    privateTitle: "The private side",
-    workTitle: "The work side",
+    halfGroup: "Vilken sida",
+    halfPrivate: "privat",
+    halfWork: "arbete",
+    privateTitle: "Privata sidan",
+    workTitle: "Arbetssidan",
     privateWhy:
-      "Its own store, read by nothing on the work side and never merged with it. What is " +
-      "behind, cadences, duties, prep and a focus budget are not here - contact with somebody " +
-      "you live with is " +
-      "continuous, so a cadence over it would read as permanently fine and mean nothing.",
+      "Sitt eget lager, läst av inget på arbetssidan och aldrig sammanslaget med det. Vad som " +
+      "släpar efter, takter, plikter, Inför och en fokusbudget finns inte här - kontakt med " +
+      "någon du bor med är kontinuerlig, så en takt över den skulle läsas som permanent bra och " +
+      "betyda ingenting.",
     workWhy:
-      "Everything the app has always been. People you are responsible for, what you owe them, and " +
-      "what has fallen behind.",
+      "Allt appen alltid varit. Personer du ansvarar för, vad du är skyldig dem, och vad som " +
+      "släpat efter.",
     privateNote:
-      "What an entry here records is the interaction and your own part in it - not the other " +
-      "person's state. That is the half you can change, and it is the only version you could show " +
-      "the person it is about.",
+      "Vad en post här registrerar är samspelet och din egen del i det - inte den andra " +
+      "personens tillstånd. Det är den halvan du kan ändra, och den enda versionen du skulle " +
+      "kunna visa personen det handlar om.",
     workNote:
-      "The private side keeps family and everything outside work in a separate store. Switching " +
-      "restarts the app, so it cannot happen while you are half-way through a sentence.",
-    backToWork: "Back to work",
-    switchToPrivate: "Switch to private",
+      "Privata sidan håller familj och allt utanför jobbet i ett separat lager. Att byta " +
+      "startar om appen, så det kan inte hända medan du är halvvägs in i en mening.",
+    backToWork: "Tillbaka till arbetet",
+    switchToPrivate: "Byt till privat",
 
     /*
      * What one import pass did. Every count is printed, including the ones it
@@ -2078,82 +2095,84 @@ export const T = {
      * the natural reading of an unexplained disappearance is that the tool lost
      * something.
      */
-    contactRecordOne: "contact record",
-    contactRecordMany: "contact records",
+    contactRecordOne: "kontaktpost",
+    contactRecordMany: "kontaktposter",
     /** @param {string} counted */
-    importAdded: (counted) => `${counted} added`,
-    promiseOne: "promise",
-    promiseMany: "promises",
-    commitmentIsOne: "commitment is",
-    commitmentAreMany: "commitments are",
+    importAdded: (counted) => `${counted} tillagda`,
+    promiseOne: "löfte",
+    promiseMany: "löften",
+    commitmentIsOne: "åtagande",
+    commitmentAreMany: "åtaganden",
     /** @param {string} counted */
     importWaiting: (counted) =>
-      `${counted} waiting for you to say whose they are - they came out of notes several people ` +
-      `were in, so copying them onto everybody would turn one obligation into several. They are on Now.`,
+      `${counted} väntar på att du säger vems de är - de kom ur anteckningar flera personer var ` +
+      `med i, så att kopiera dem på allihop skulle göra en skyldighet till flera. De ligger i Läget.`,
     /** @param {string} counted */
-    importResolved: (counted) => `${counted} closed, ticked off in Nib.`,
-    unassignedCommitmentOne: "unassigned commitment",
-    unassignedCommitmentMany: "unassigned commitments",
+    importResolved: (counted) => `${counted} stängda, avbockade i Nib.`,
+    unassignedCommitmentOne: "otilldelat åtagande",
+    unassignedCommitmentMany: "otilldelade åtaganden",
     /** @param {string} counted */
-    importDropped: (counted) => `${counted} dropped, settled in Nib before anybody filed them.`,
+    importDropped: (counted) =>
+      `${counted} släppta, klara i Nib innan någon la dem någonstans.`,
     /** @param {string} counted */
     importRetracted: (counted) =>
-      `${counted} withdrawn, because the note no longer carries the tag it was counted under.`,
-    commitmentOne: "commitment",
-    commitmentMany: "commitments",
+      `${counted} tillbakadragna, eftersom anteckningen inte längre bär taggen de räknades under.`,
+    commitmentOne: "åtagande",
+    commitmentMany: "åtaganden",
     /** @param {string} counted */
     importWithdrawn: (counted) =>
-      `${counted} withdrawn, because the note no longer flags them. Marked as retracted rather ` +
-      `than done, and still on the person's page if you need to look.`,
+      `${counted} tillbakadragna, eftersom anteckningen inte längre flaggar dem. Markerade som ` +
+      `återtagna snarare än klara, och kvar på personens sida om du vill titta.`,
 
     /* Nib. The important half: bind a folder to a person, then say which tag
        supplies each kind of contact. */
-    nibGroup: "Notes from Nib",
-    nibUnreadableTitle: "Nib is not readable",
-    nibUnknownReason: "Unknown reason.",
-    nibReadOnly: "Tend only ever reads Nib. It never writes to it.",
+    nibGroup: "Anteckningar från Nib",
+    nibUnreadableTitle: "Nib går inte att läsa",
+    nibUnknownReason: "Okänt skäl.",
+    nibReadOnly: "Tend läser bara Nib. Den skriver aldrig till den.",
     /** @param {number} n */
-    nibBound: (n) => `${n} bound`,
+    nibBound: (n) => `${n} bundna`,
     /** @param {string} dir */
-    nibReading: (dir) => `Reading ${dir}`,
-    nibUnknownFolder: "an unknown folder",
-    nibHowTitle: "How this works",
+    nibReading: (dir) => `Läser ${dir}`,
+    nibUnknownFolder: "en okänd mapp",
+    nibHowTitle: "Så fungerar det",
     nibHowWhy:
-      "Point a Nib folder at a person, then say which of your Nib tags supplies each kind of " +
-      "contact Tend tracks. Writing a tagged note is then the evidence that the contact happened, " +
-      "with nothing to confirm afterwards - and an untagged note counts as nothing, so a folder " +
-      "can hold every sort of note about somebody.",
+      "Peka en Nib-mapp mot en person, säg sedan vilken av dina Nib-taggar som ger varje sorts " +
+      "kontakt Tend bevakar. Att skriva en taggad anteckning är då underlaget för att kontakten " +
+      "ägde rum, med inget att bekräfta efteråt - och en otaggad anteckning räknas som " +
+      "ingenting, så en mapp kan rymma varje sorts anteckning om någon.",
     nibHowNote:
-      "Flagged action points inside those notes become promises here, and ticking one off in Nib " +
-      "closes it here too. Tend only reads Nib.",
-    nibWatching: "Notes import themselves, within a second of being tagged.",
+      "Flaggade action points inne i de anteckningarna blir löften här, och att bocka av en i " +
+      "Nib stänger den här också. Tend läser bara Nib.",
+    nibWatching: "Anteckningar importerar sig själva, inom en sekund efter att de taggats.",
     nibTimerOnly:
-      "Notes import on a timer only - this window is not watching the notebook.",
+      "Anteckningar importeras bara på en timer - det här fönstret bevakar inte anteckningsboken.",
     /** @param {number} n */
-    nibFolderCount: (n) => `${n} folder(s) found in Nib`,
-    bindButton: "Bind a folder",
-    previewButton: "Preview import",
-    importButton: "Import now",
-    nibNoPeople: "Add people first - a binding points a folder at somebody.",
-    nibNothingBound: "Nothing bound yet.",
+    nibFolderCount: (n) => `${n} ${n === 1 ? "mapp" : "mappar"} hittade i Nib`,
+    bindButton: "Bind en mapp",
+    previewButton: "Förhandsgranska import",
+    importButton: "Importera nu",
+    nibNoPeople: "Lägg till personer först - en bindning pekar en mapp mot någon.",
+    nibNothingBound: "Inget bundet än.",
     /** @param {string} person @param {string} as */
     bindingMeta: (person, as) => `→ ${person}${as}`,
-    unknownPerson: "unknown",
+    unknownPerson: "okänd",
     /** @param {string} kind */
-    bindingCountsAs: (kind) => ` as ${kind}`,
-    bindingNoTags: " - no tags mapped, so nothing counts yet",
-    tagsButton: "Tags",
-    unbindButton: "Unbind",
+    bindingCountsAs: (kind) => ` som ${kind}`,
+    bindingNoTags: " - inga taggar mappade, så inget räknas än",
+    tagsButton: "Taggar",
+    unbindButton: "Ta bort bindning",
 
     /* The data directory. */
-    dataGroup: "Your data",
-    dataTitle: "Where it is kept",
+    dataGroup: "Din data",
+    dataTitle: "Var den sparas",
     dataAppendOnly:
-      "Written as an append-only log, one file per writer, so this app and anything else reaching " +
-      "the same folder can write at once without losing each other's changes. Nothing is ever " +
-      "overwritten, which is also why nothing is ever truly lost.",
-    dataNote: "This folder holds notes about named colleagues. It stays on your machine.",
-    openFolder: "Open the folder",
+      "Skriven som en logg som bara läggs till, en fil per skrivare, så att den här appen och " +
+      "allt annat som når samma mapp kan skriva samtidigt utan att tappa varandras ändringar. " +
+      "Inget skrivs någonsin över, vilket också är därför inget någonsin verkligen förloras.",
+    dataNote:
+      "Den här mappen innehåller anteckningar om namngivna kollegor. Den stannar på din maskin.",
+    openFolder: "Öppna mappen",
 
     /*
      * The bulk leaving-a-job action, and the single-press way back. The two
@@ -2161,164 +2180,171 @@ export const T = {
      * thirty decisions to restore it - while the card offered "reversible" as
      * reassurance.
      */
-    leavingGroup: "Leaving a job",
-    archiveAllTitle: "Archive everyone and everything active",
+    leavingGroup: "När ett jobb slutar",
+    archiveAllTitle: "Arkivera alla och allt aktivt",
     archiveAllWhy:
-      "For the moment a job ends. Archives every person, project and workstream that is currently " +
-      "active - all at once, instead of one at a time.",
+      "För det ögonblick ett jobb tar slut. Arkiverar varje person, projekt och arbetsområde som " +
+      "just nu är aktivt - allt på en gång, i stället för ett i taget.",
     archiveAllNote:
-      "Nothing is deleted. Every 1-1, promise, decision and growth direction stays exactly as " +
-      "it is. " +
-      "Each one can be brought back on its own, whenever it is relevant again, from its archived list.",
-    archiveAllSafe: "Safe to run again - anything already archived is left untouched.",
-    archiveAllButton: "Archive everything active",
+      "Inget tas bort. Varje 1-1, löfte, beslut och riktning står kvar precis som det är. Var " +
+      "och en kan tas tillbaka för sig, när den är relevant igen, från sin arkiverade lista.",
+    archiveAllSafe: "Tryggt att köra igen - allt som redan är arkiverat lämnas orört.",
+    archiveAllButton: "Arkivera allt aktivt",
     /** @param {string} when */
-    undoTitle: (when) => `Undo the archive from ${when}`,
-    undoEarlierRun: "an earlier run",
+    undoTitle: (when) => `Ångra arkiveringen från ${when}`,
+    undoEarlierRun: "en tidigare körning",
     /** @param {string} parts */
     undoWhy: (parts) =>
-      `Puts back ${parts} - only what that press archived, and only the ones still archived now. ` +
-      `Anything you have already brought back by hand stays as it is, and nothing archived on its ` +
-      `own before or after is touched.`,
-    undoOffered: "Offered until you use it, or archive everything again.",
-    undoButton: "Undo that archive",
+      `Tar tillbaka ${parts} - bara det den tryckningen arkiverade, och bara de som fortfarande ` +
+      `är arkiverade nu. Allt du redan tagit tillbaka för hand står kvar som det är, och inget ` +
+      `som arkiverats för sig före eller efter rörs.`,
+    undoOffered: "Erbjuds tills du använder den, eller arkiverar allt igen.",
+    undoButton: "Ångra den arkiveringen",
     personOne: "person",
-    personMany: "people",
-    projectOne: "project",
-    projectMany: "projects",
-    workstreamOne: "workstream",
-    workstreamMany: "workstreams",
+    personMany: "personer",
+    projectOne: "projekt",
+    projectMany: "projekt",
+    workstreamOne: "arbetsområde",
+    workstreamMany: "arbetsområden",
 
     /* Drafting. Says what it will never do as prominently as what it does. */
-    draftingGroup: "Drafting",
-    draftingAvailable: "Available",
-    draftingOff: "Off",
-    draftingSignedIn: "signed in through Claude Code",
-    draftingNotSetUp: "not set up",
+    draftingGroup: "Utkast",
+    draftingAvailable: "Tillgängligt",
+    draftingOff: "Av",
+    draftingSignedIn: "inloggad via Claude Code",
+    draftingNotSetUp: "inte uppsatt",
     draftingWhat:
-      "Three buttons use a model: a brief before a conversation, reading one of your notes for a " +
-      "commitment you wrote in passing, and naming what recurs across several notes about the " +
-      "same person. Each one is a button. Nothing runs on a timer and nothing runs when this " +
-      "window opens.",
+      "Tre knappar använder en modell: ett utkast före ett samtal, läsning av en av dina " +
+      "anteckningar efter ett åtagande du skrev i förbigående, och att namnge vad som " +
+      "återkommer över flera anteckningar om samma person. Var och en är en knapp. Inget körs " +
+      "på en timer och inget körs när det här fönstret öppnas.",
     draftingSignIn:
-      "It borrows the sign-in Claude Code already has on this machine, so there is no key to " +
-      "store. A note only ever leaves this machine when you press one of those buttons.",
+      "Den lånar inloggningen Claude Code redan har på den här maskinen, så det finns ingen " +
+      "nyckel att lagra. En anteckning lämnar bara den här maskinen när du trycker på en av de " +
+      "knapparna.",
     draftingWithout:
-      "Everything else works exactly as it does with it on. What is behind, cadences, promises " +
-      "and the focus budget are ordinary arithmetic - a model never decides what needs your " +
-      "attention.",
+      "Allt annat fungerar precis som det gör med den på. Vad som släpar efter, takter, löften " +
+      "och fokusbudgeten är vanlig aritmetik - en modell avgör aldrig vad som behöver din " +
+      "uppmärksamhet.",
     draftingNever:
-      "A model writes nothing here. Everything it produces is a draft, shown and thrown away " +
-      "unless you keep it yourself.",
+      "En modell skriver ingenting här. Allt den producerar är ett utkast, visat och slängt om " +
+      "du inte behåller det själv.",
 
     /* About. */
-    aboutGroup: "About",
+    aboutGroup: "Om",
     /** @param {string} version */
     aboutTitle: (version) => `Tend ${version}`,
-    installed: "installed",
-    development: "development",
-    updatesOn: "Checks for a newer version once at startup and installs it when you quit.",
+    installed: "installerad",
+    development: "utveckling",
+    updatesOn: "Söker efter en nyare version en gång vid start och installerar den när du stänger.",
     updatesOff:
-      "Running from source. Update checks are off, since there is no installed copy to replace.",
-    noUpdateCheck: "No update check has run yet.",
-    checkNow: "Check now",
+      "Kör från källkod. Uppdateringskontroller är av, eftersom det inte finns någon " +
+      "installerad kopia att ersätta.",
+    noUpdateCheck: "Ingen uppdateringskontroll har körts än.",
+    checkNow: "Sök nu",
 
     /*
      * One row per kind of contact Tend tracks, answered with a Nib tag. This way
      * round on purpose: listing Nib's tags and asking what each MEANT put the
      * other app's vocabulary in charge of the question.
      */
-    tagNone: "No tag - Tend never sees this from here",
+    tagNone: "Ingen tagg - Tend ser aldrig det här härifrån",
     /** @param {string} dir */
-    tagsReadFrom: (dir) => `Tags read from ${dir}.`,
+    tagsReadFrom: (dir) => `Taggar lästa från ${dir}.`,
     /** @param {string} folder */
-    tagsTitle: (folder) => `Tags in ${folder}`,
+    tagsTitle: (folder) => `Taggar i ${folder}`,
     tagsIntro:
-      "Tend asks; your notebook answers. For each kind of contact Tend tracks, pick the Nib tag " +
-      "that means it. Leave one blank and Tend simply never sees that kind from this folder - " +
-      "most people will use two or three.",
-    save: "Save",
+      "Tend frågar; din anteckningsbok svarar. För varje sorts kontakt Tend bevakar, välj den " +
+      "Nib-tagg som betyder den. Lämna en tom och Tend ser helt enkelt aldrig den sorten från " +
+      "den här mappen - de flesta använder två eller tre.",
+    save: "Spara",
     /** @param {number} n */
-    tagRulesSaved: (n) => `${n} tag rule${n === 1 ? "" : "s"} saved.`,
-    tagsUnreadable: "Nib's tags could not be read.",
+    tagRulesSaved: (n) => `${n} ${n === 1 ? "taggregel" : "taggregler"} sparade.`,
+    tagsUnreadable: "Nibs taggar kunde inte läsas.",
     /** @param {string} dir */
-    noTagsIn: (dir) => `No tags in the notebook at ${dir}. Make one in Nib first.`,
+    noTagsIn: (dir) => `Inga taggar i anteckningsboken på ${dir}. Skapa en i Nib först.`,
 
     /* Binding a folder. */
-    bindTitle: "Bind a Nib folder",
+    bindTitle: "Bind en Nib-mapp",
     bindIntro:
-      "Notes in this folder become contact with this person. What each note counts AS comes from " +
-      "its tag in Nib - so a folder can hold every sort of note about somebody without one you " +
-      "merely heard resetting the clock on having spoken to them. An untagged note counts as nothing.",
-    bindFolderLabel: "Folder in Nib",
+      "Anteckningar i den här mappen blir kontakt med den här personen. Vad varje anteckning " +
+      "räknas SOM kommer från dess tagg i Nib - så en mapp kan rymma varje sorts anteckning om " +
+      "någon utan att en du bara hört om nollställer klockan på att ha pratat med dem. En " +
+      "otaggad anteckning räknas som ingenting.",
+    bindFolderLabel: "Mapp i Nib",
     /** @param {string} label @param {number} notes */
-    bindFolderOption: (label, notes) => `${label} (${notes} note${notes === 1 ? "" : "s"})`,
-    bindPeopleLabel: "Whose notes these are",
-    bindNameLabel: "What to call it (optional)",
+    bindFolderOption: (label, notes) =>
+      `${label} (${notes} ${notes === 1 ? "anteckning" : "anteckningar"})`,
+    bindPeopleLabel: "Vems anteckningar det är",
+    bindNameLabel: "Vad den ska kallas (frivilligt)",
     bindSharedNote:
-      "Naming more than one person makes this a meeting rather than a person's folder. Each note " +
-      "there becomes contact with every one of them, so all their clocks move. Flagged action " +
-      "points do NOT get copied onto everybody - there is no way to tell whose each is, so they " +
-      "wait on Now until you say.",
+      "Att namnge mer än en person gör det här till ett möte snarare än en persons mapp. Varje " +
+      "anteckning där blir kontakt med var och en av dem, så allas klockor flyttas. Flaggade " +
+      "action points kopieras INTE på allihop - det går inte att avgöra vems var och en är, så " +
+      "de väntar i Läget till du säger.",
     bindConfirm: "Bind",
-    bindNobody: "Pick at least one person - a folder bound to nobody imports nothing.",
-    boundToast: "Bound.",
+    bindNobody: "Välj minst en person - en mapp bunden till ingen importerar ingenting.",
+    boundToast: "Bunden.",
     /** @param {string} dir */
-    boundNoTags: (dir) => `No tags in the notebook at ${dir}, so no note there counts as anything yet.`,
+    boundNoTags: (dir) =>
+      `Inga taggar i anteckningsboken på ${dir}, så ingen anteckning där räknas som något än.`,
     /** @param {string} why */
-    boundTagsUnreadable: (why) => `Could not read Nib's tags: ${why}`,
-    unknownReason: "unknown reason",
+    boundTagsUnreadable: (why) => `Kunde inte läsa Nibs taggar: ${why}`,
+    unknownReason: "okänt skäl",
 
     /** @param {string} name */
-    unbindTitle: (name) => `Unbind ${name}?`,
-    unbindBody: "Notes there stop counting as contact. What has already been imported stays.",
-    unboundToast: "Unbound.",
+    unbindTitle: (name) => `Ta bort bindningen ${name}?`,
+    unbindBody:
+      "Anteckningar där slutar räknas som kontakt. Det som redan importerats står kvar.",
+    unboundToast: "Bindningen borttagen.",
 
-    previewTitle: "What importing would bring in",
+    previewTitle: "Vad en import skulle ta in",
     /** @param {string} summary @param {number} bindings @param {string} skipped */
     previewBody: (summary, bindings, skipped) =>
-      `${summary} From ${bindings} binding(s).${skipped} Nothing has been written.`,
+      `${summary} Från ${bindings} ${bindings === 1 ? "bindning" : "bindningar"}.${skipped} ` +
+      `Inget har skrivits.`,
     /** @param {string} which */
-    previewSkipped: (which) => ` Skipped: ${which}.`,
-    close: "Close",
-    importedTitle: "Imported",
+    previewSkipped: (which) => ` Hoppade över: ${which}.`,
+    close: "Stäng",
+    importedTitle: "Importerat",
     /** @param {string} summary */
-    importedBody: (summary) => `${summary} Safe to run again whenever - nothing is ever duplicated.`,
-    good: "Good",
+    importedBody: (summary) =>
+      `${summary} Tryggt att köra igen när som helst - inget dubbleras någonsin.`,
+    good: "Bra",
 
-    switchPrivateTitle: "Switch to the private side?",
-    switchWorkTitle: "Back to the work side?",
+    switchPrivateTitle: "Byta till privata sidan?",
+    switchWorkTitle: "Tillbaka till arbetssidan?",
     switchPrivateBody:
-      "The app restarts and opens a different store. Nothing from the work side is visible there, " +
-      "and nothing written there is ever read here.",
+      "Appen startar om och öppnar ett annat lager. Inget från arbetssidan är synligt där, och " +
+      "inget som skrivs där läses någonsin här.",
     switchWorkBody:
-      "The app restarts and opens the work store again. Nothing written in the private side comes " +
-      "with it.",
-    switchConfirm: "Switch",
-    switchBackConfirm: "Switch back",
+      "Appen startar om och öppnar arbetslagret igen. Inget som skrivits på privata sidan " +
+      "följer med.",
+    switchConfirm: "Byt",
+    switchBackConfirm: "Byt tillbaka",
 
-    archiveAllAskTitle: "Archive everyone and everything active?",
+    archiveAllAskTitle: "Arkivera alla och allt aktivt?",
     archiveAllAskBody:
-      "Archives every person, project and workstream that is currently active, in one go. " +
-      "Nothing is deleted - every 1-1, promise, decision and growth direction stays exactly as " +
-      "it is, and each one can be brought back individually, whenever it is relevant again, " +
-      "from its archived list.\n\n" +
-      "Afterwards this page offers a single Undo that puts back exactly what this press " +
-      "archived, so you do not have to reverse it one row at a time.",
-    archiveAllConfirm: "Archive everything",
+      "Arkiverar varje person, projekt och arbetsområde som just nu är aktivt, i ett svep. " +
+      "Inget tas bort - varje 1-1, löfte, beslut och riktning står kvar precis som det är, och " +
+      "var och en kan tas tillbaka individuellt, när den är relevant igen, från sin arkiverade " +
+      "lista.\n\n" +
+      "Efteråt erbjuder den här sidan en enda Ångra som tar tillbaka exakt det den här " +
+      "tryckningen arkiverade, så att du inte behöver backa det en rad i taget.",
+    archiveAllConfirm: "Arkivera allt",
     /** @param {number} people @param {number} projects @param {number} workstreams */
     archivedToast: (people, projects, workstreams) =>
-      `${people} people, ${projects} projects, ${workstreams} workstreams archived.`,
+      `${people} personer, ${projects} projekt, ${workstreams} arbetsområden arkiverade.`,
 
-    undoAskTitle: "Undo that archive?",
+    undoAskTitle: "Ångra den arkiveringen?",
     undoAskBody:
-      "Puts back everything that press archived and is still archived now. Rows you have already " +
-      "brought back stay as they are, and anything archived on its own - before or after that " +
-      "press - is left alone.",
-    undoConfirm: "Put them back",
+      "Tar tillbaka allt den tryckningen arkiverade och som fortfarande är arkiverat nu. Rader " +
+      "du redan tagit tillbaka står kvar som de är, och allt som arkiverats för sig - före " +
+      "eller efter den tryckningen - lämnas ifred.",
+    undoConfirm: "Ta tillbaka dem",
     /** @param {number} people @param {number} projects @param {number} workstreams */
     undoneToast: (people, projects, workstreams) =>
-      `${people} people, ${projects} projects, ${workstreams} workstreams back.`,
+      `${people} personer, ${projects} projekt, ${workstreams} arbetsområden tillbaka.`,
 
     checkingToast: "Checking."
   },
@@ -2329,110 +2355,111 @@ export const T = {
    * "Go", "Ask") tells the reader what sort of thing they are about to do.
    */
   palette: {
-    label: "Command palette",
-    placeholder: "Say what happened, or where you want to go",
-    footMove: "move",
-    footDo: "do it",
-    footClose: "close",
+    label: "Kommandopalett",
+    placeholder: "Säg vad som hände, eller vart du vill",
+    footMove: "flytta",
+    footDo: "gör det",
+    footClose: "stäng",
 
     /* Nothing typed yet, so this is the only instruction the palette gives. */
     empty:
-      "Type what just happened - <em>Nina: look at the render pass</em> - and it is logged " +
-      "without leaving this page. Or type a view, or ask a question.",
+      "Skriv vad som just hände - <em>Nina: titta på render-passet</em> - och det loggas utan " +
+      "att du lämnar sidan. Eller skriv en vy, eller ställ en fråga.",
 
     /* The three bands, in the order they are offered. */
-    bandCapture: "Capture",
-    bandGo: "Go",
-    bandAsk: "Ask",
+    bandCapture: "Fånga",
+    bandGo: "Gå",
+    bandAsk: "Fråga",
 
     /* Capture: what typing a name and a sentence offers to do with it. */
     /** @param {string} name @param {string} rest */
-    promiseTo: (name, rest) => `Promise to ${name}: ${rest}`,
-    loggedStraightAway: "logged straight away",
+    promiseTo: (name, rest) => `Löfte till ${name}: ${rest}`,
+    loggedStraightAway: "loggas direkt",
     /** @param {string} name */
-    promiseLoggedToast: (name) => `Promise to ${name} logged.`,
+    promiseLoggedToast: (name) => `Löfte till ${name} loggat.`,
     /** @param {string} name */
-    logContactWith: (name) => `Log contact with ${name}`,
-    spokeToThem: "you spoke to them",
+    logContactWith: (name) => `Logga kontakt med ${name}`,
+    spokeToThem: "du pratade med dem",
     /** @param {string} text */
-    logPromiseOf: (text) => `Log a promise: ${text}`,
-    asksWhoTo: "asks who it was made to",
+    logPromiseOf: (text) => `Logga ett löfte: ${text}`,
+    asksWhoTo: "frågar vem det gavs till",
 
     /* Go: the rail, then the things that would mean finding a view first. */
     /** @param {string} name */
-    goTo: (name) => `Go to ${name}`,
-    addSomeone: "Add someone",
-    addSomeoneHint: "a new person here",
-    setFocus: "Set a focus",
-    setFocusHint: "a time-boxed priority",
-    recordDecision: "Record a decision",
-    recordDecisionHint: "with a date it comes back",
-    importNib: "Import notes from Nib",
-    importNibHint: "contact and flagged action points",
+    goTo: (name) => `Gå till ${name}`,
+    addSomeone: "Lägg till någon",
+    addSomeoneHint: "en ny person här",
+    setFocus: "Sätt ett fokus",
+    setFocusHint: "en tidsbegränsad prioritet",
+    recordDecision: "Registrera ett beslut",
+    recordDecisionHint: "med ett datum det kommer tillbaka",
+    importNib: "Importera anteckningar från Nib",
+    importNibHint: "kontakt och flaggade action points",
     /** @param {number} contacts @param {number} promises @param {number} resolved */
     importedToast: (contacts, promises, resolved) =>
-      `${contacts} contact records, ${promises} promises, ${resolved} closed.`,
-    openDataDir: "Open the data folder",
-    openDataDirHint: "where the log lives",
-    checkUpdates: "Check for updates",
-    checkUpdatesHint: "against the published releases",
-    checkingToast: "Checking.",
+      `${contacts} kontaktposter, ${promises} löften, ${resolved} stängda.`,
+    openDataDir: "Öppna datamappen",
+    openDataDirHint: "där loggen finns",
+    checkUpdates: "Sök efter uppdateringar",
+    checkUpdatesHint: "mot de publicerade släppen",
+    checkingToast: "Söker.",
 
     /* Ask: what Tend can answer from its own data. */
-    whatNeedsYou: "What needs you",
-    whatNeedsYouHint: "from what is behind",
-    allInStep: "Nothing is behind. That is the whole answer.",
+    whatNeedsYou: "Vad som behöver dig",
+    whatNeedsYouHint: "ur det som släpar efter",
+    allInStep: "Inget släpar efter. Det är hela svaret.",
     /** @param {number} needs @param {number} nudges */
-    behindCount: (needs, nudges) => `${needs} need you, ${nudges} worth a nudge.`,
+    behindCount: (needs, nudges) =>
+      `${needs} behöver dig, ${nudges} ${nudges === 1 ? "värd" : "värda"} en påminnelse.`,
     /** @param {string} what @param {string} why */
     behindLine: (what, why) => `${what} - ${why}`,
 
-    notSpokenTo: "Who you have not really spoken to",
-    notSpokenToHint: "this month",
-    nothingStandsOut: "Nothing stands out in how this month went.",
+    notSpokenTo: "Vem du inte pratat med på riktigt",
+    notSpokenToHint: "den här månaden",
+    nothingStandsOut: "Inget sticker ut i hur den här månaden gick.",
 
     /** @param {string} name */
-    whatYouOwe: (name) => `What you owe ${name}`,
-    whatYouOweHint: "open promises",
+    whatYouOwe: (name) => `Vad du är skyldig ${name}`,
+    whatYouOweHint: "öppna löften",
     /** @param {string} name */
-    oweNothing: (name) => `Nothing outstanding to ${name}.`,
+    oweNothing: (name) => `Inget utestående till ${name}.`,
     /** @param {string} text @param {string} openFor */
-    oweLine: (text, openFor) => `${text} - open ${openFor}`,
+    oweLine: (text, openFor) => `${text} - öppet ${openFor}`,
 
     /** @param {string} name */
-    whenYouLastSpoke: (name) => `When you last spoke to ${name}`,
-    whenYouLastSpokeHint: "from the contact log",
+    whenYouLastSpoke: (name) => `När du senast pratade med ${name}`,
+    whenYouLastSpokeHint: "ur kontaktloggen",
     /** @param {string} kind @param {string} when */
     lastSpokeLine: (kind, when) => `${kind}, ${when}.`,
     /** @param {string} name */
-    neverSpoke: (name) => `No contact with ${name} recorded at all.`,
+    neverSpoke: (name) => `Ingen kontakt med ${name} registrerad alls.`,
 
     /*
      * The fallthrough, and only the fallthrough. The hint says what it costs,
      * because this is the one row in the palette that spends money.
      */
-    askModel: "Ask a model instead",
-    askModelHint: "nothing here matched, so this costs a few seconds",
-    thinking: "Thinking…",
+    askModel: "Fråga en modell i stället",
+    askModelHint: "inget här matchade, så det här kostar några sekunder",
+    thinking: "Tänker…",
 
     /* Logging contact from here, which asks less than the person page does. */
     /** @param {string} name */
-    contactTitle: (name) => `Contact with ${name}`,
-    contactIntro: "The kind matters: a 1-1 satisfies the 1-1 cadence and nothing else does.",
-    contactKindLabel: "What kind",
-    contactNoteLabel: "A line about it",
-    when: "When",
-    logIt: "Log it",
-    contactLoggedToast: "Contact logged.",
+    contactTitle: (name) => `Kontakt med ${name}`,
+    contactIntro: "Sorten spelar roll: en 1-1 uppfyller 1-1-takten och inget annat gör det.",
+    contactKindLabel: "Vilken sort",
+    contactNoteLabel: "En rad om det",
+    when: "När",
+    logIt: "Logga",
+    contactLoggedToast: "Kontakt loggad.",
 
     /* And a promise, when the text carried no name to attach it to. */
-    promiseTitle: "Log a promise",
-    promiseIntro: "Who did you say this to?",
-    promiseWhoLabel: "To whom",
-    promiseTextLabel: "What you said you would do",
-    promiseDueLabel: "By when",
-    promiseDueHint: "Optional. How long it has been open is measured either way.",
-    promiseLoggedPlain: "Promise logged."
+    promiseTitle: "Logga ett löfte",
+    promiseIntro: "Vem sa du det här till?",
+    promiseWhoLabel: "Till vem",
+    promiseTextLabel: "Vad du sa att du skulle göra",
+    promiseDueLabel: "Senast när",
+    promiseDueHint: "Frivilligt. Hur länge det varit öppet mäts ändå.",
+    promiseLoggedPlain: "Löfte loggat."
   },
 
   /*
@@ -2442,81 +2469,83 @@ export const T = {
    * saved" is not a nicety and must not be shortened away in the wording pass.
    */
   model: {
-    unknownAvailability: "Could not tell whether Claude Code is available.",
+    unknownAvailability: "Kunde inte avgöra om Claude Code är tillgänglig.",
 
     /* The stamp under anything drafted. */
-    aModel: "a model",
+    aModel: "en modell",
     /** @param {string} model @param {string} cost */
-    draftedBy: (model, cost) => `Drafted by ${model}${cost}. Nothing here was saved.`,
+    draftedBy: (model, cost) => `Utkast av ${model}${cost}. Inget här sparades.`,
     /** @param {string} cents */
     cost: (cents) => ` · ${cents}¢`,
 
-    discard: "Discard",
-    discardAll: "Discard all",
-    close: "Close",
+    discard: "Släng",
+    discardAll: "Släng alla",
+    close: "Stäng",
 
     /* A brief, as read on the way to a room. */
-    briefTitle: "Draft brief",
-    raiseHead: "Raise",
-    askHead: "Ask",
+    briefTitle: "Utkast till underlag",
+    raiseHead: "Ta upp",
+    askHead: "Fråga",
     /** @param {string} watch */
-    watchOut: (watch) => `Careful of: ${watch}`,
+    watchOut: (watch) => `Se upp för: ${watch}`,
 
     /* Promises read out of prose, each still a candidate. */
-    nothingFoundTitle: "Nothing found",
+    nothingFoundTitle: "Inget hittat",
     nothingFoundWhy:
-      "No commitment in that note that Nib's own action points had not already caught. " +
-      "That is the common answer and it is a good one.",
-    candidatesTitle: "Found in what you wrote",
-    truncated: "That note is long, so only its first part was read.",
-    statedOutright: "stated outright",
-    implied: "implied, so check it",
-    keep: "Keep",
-    promiseLoggedToast: "Promise logged.",
+      "Inget åtagande i den anteckningen som Nibs egna action points inte redan fångat. Det " +
+      "är det vanliga svaret och det är ett bra svar.",
+    candidatesTitle: "Hittat i det du skrev",
+    truncated: "Den anteckningen är lång, så bara dess första del lästes.",
+    statedOutright: "sagt rakt ut",
+    implied: "antytt, så kolla det",
+    keep: "Behåll",
+    promiseLoggedToast: "Löfte loggat.",
 
     /* What keeps coming up about somebody. */
     /** @param {string | number} notes */
-    themesTitle: (notes) => `Across ${notes} notes`,
-    themesNone: "Nothing recurs across those notes yet. A pattern needs to appear in at least two.",
+    themesTitle: (notes) => `Över ${notes} anteckningar`,
+    themesNone:
+      "Inget återkommer över de anteckningarna än. Ett mönster måste dyka upp i minst två.",
     /** @param {string | number} times */
     themeTimes: (times) => `${times}×`,
 
     /* A reading of the journal, before it is kept or thrown away. */
     /** @param {string} days */
-    reviewTitle: (days) => `The last ${days} days`,
-    keepReading: "Keep this reading",
-    avoidedHead: "Kept being avoided",
+    reviewTitle: (days) => `De senaste ${days} dagarna`,
+    keepReading: "Behåll den här läsningen",
+    avoidedHead: "Undveks gång på gång",
     avoidedNone:
-      "Nothing recurs in that box across these evenings. Worth noticing rather than " +
-      "celebrating - it is also what an unanswered box looks like.",
-    wentIntoHead: "Where the days went",
-    saidVsDidHead: "Against what you said you would do",
-    questionsHead: "Worth asking yourself",
+      "Inget återkommer i den rutan över de här kvällarna. Värt att notera snarare än att " +
+      "fira - det är också hur en obesvarad ruta ser ut.",
+    wentIntoHead: "Vart dagarna gick",
+    saidVsDidHead: "Mot vad du sa att du skulle göra",
+    questionsHead: "Värt att ställa till dig själv",
     /** @param {string} evenings */
-    eveningsCount: (evenings) => `${evenings} evenings`,
-    ledgerSummary: "What the app recorded over the same days",
+    eveningsCount: (evenings) => `${evenings} kvällar`,
+    ledgerSummary: "Vad appen registrerade över samma dagar",
     /** @param {string} model @param {string} cost */
-    readByKeep: (model, cost) => `Read by ${model}${cost}. Nothing is saved unless you keep it.`,
+    readByKeep: (model, cost) =>
+      `Läst av ${model}${cost}. Inget sparas om du inte behåller det.`,
 
     /*
      * The recorded counts, as lines. The wording is the window's business and
      * the numbers are the contract, which is why these live here and not in
      * the shape the service sends.
      */
-    ledgerDays: "Days with an entry",
+    ledgerDays: "Dagar med en post",
     /** @param {string | number} journalled @param {string | number} days */
-    ledgerDaysValue: (journalled, days) => `${journalled} of ${days}`,
-    ledgerConversations: "Conversations recorded",
-    ledgerPromisesMade: "Promises made",
+    ledgerDaysValue: (journalled, days) => `${journalled} av ${days}`,
+    ledgerConversations: "Registrerade samtal",
+    ledgerPromisesMade: "Givna löften",
     /** @param {string | number} made @param {string | number} kept */
-    ledgerPromisesMadeValue: (made, kept) => `${made}, of which ${kept} closed`,
-    ledgerPromisesOpen: "Promises open right now",
-    ledgerDecisions: "Decisions recorded",
-    ledgerGrowth: "Directions discussed",
+    ledgerPromisesMadeValue: (made, kept) => `${made}, varav ${kept} stängda`,
+    ledgerPromisesOpen: "Löften öppna just nu",
+    ledgerDecisions: "Registrerade beslut",
+    ledgerGrowth: "Diskuterade riktningar",
     /** @param {string | number} notes @param {string | number} observed */
-    ledgerGrowthValue: (notes, observed) => `${notes}, seen happening ${observed}×`,
-    ledgerSkips: "Meetings that did not happen",
-    ledgerChases: "Times you chased somebody",
+    ledgerGrowthValue: (notes, observed) => `${notes}, sett hända ${observed}×`,
+    ledgerSkips: "Möten som inte blev av",
+    ledgerChases: "Gånger du påmint någon",
 
     /*
      * One entry, read back against the rule that keeps it safe to write. The
@@ -2524,19 +2553,19 @@ export const T = {
      * speaks up when something is wrong reads as an accusation waiting to
      * happen.
      */
-    readBackTitle: "Read back",
-    readBackClean: "Nothing here describes them rather than your own part in it.",
-    onePhrase: "One phrase",
+    readBackTitle: "Läst tillbaka",
+    readBackClean: "Inget här beskriver dem snarare än din egen del i det.",
+    onePhrase: "En formulering",
     /** @param {number} n */
-    somePhrases: (n) => `${n} phrases`,
+    somePhrases: (n) => `${n} formuleringar`,
     /** @param {string} count */
     readBackSome: (count) =>
-      `${count} describing them rather than your own part. Nothing has been changed - the ` +
-      `alternative is only an alternative.`,
+      `${count} beskriver dem snarare än din egen del. Inget har ändrats - alternativet är ` +
+      `bara ett alternativ.`,
     /** @param {string} instead */
-    couldBe: (instead) => `Could be: ${instead}`,
+    couldBe: (instead) => `Skulle kunna vara: ${instead}`,
     /** @param {string} model @param {string} cost */
-    readByUntouched: (model, cost) => `Read by ${model}${cost}. Your entry is untouched.`
+    readByUntouched: (model, cost) => `Läst av ${model}${cost}. Din post är orörd.`
   },
 
   /*
@@ -2549,26 +2578,26 @@ export const T = {
   ui: {
     /* A read that failed, which is not a record that is empty. */
     /** @param {string} what */
-    readFailedTitle: (what) => `Could not read ${what}`,
+    readFailedTitle: (what) => `Kunde inte läsa ${what}`,
     readFailedWhy:
-      "Nothing has been lost - this is a failed read, not an empty record. The store may be " +
-      "mid-sync.",
-    retry: "Try again",
+      "Inget har förlorats - det här är en misslyckad läsning, inte en tom post. Lagret kan " +
+      "vara mitt i en synk.",
+    retry: "Försök igen",
 
     /* Every dialog's two buttons, and the two defaults. */
-    cancel: "Cancel",
-    save: "Save",
-    yes: "Yes",
+    cancel: "Avbryt",
+    save: "Spara",
+    yes: "Ja",
 
     /*
      * The one thing a form says on its own behalf. It names the field, so it
      * has to be built from the label rather than written out.
      */
     /** @param {string} label */
-    needed: (label) => `${label} is needed.`,
+    needed: (label) => `${label} behövs.`,
 
     /* A collapsed multiselect with nothing ticked. */
-    noneChosen: "Nobody chosen yet"
+    noneChosen: "Ingen vald än"
   },
 
   /*
@@ -2585,16 +2614,16 @@ export const T = {
    */
   shell: {
     /* A view that threw. Shown in place of the view, so it says what failed. */
-    renderFailed: "This view could not be drawn",
+    renderFailed: "Den här vyn kunde inte ritas",
 
     /** @param {number} n Proposed duties waiting to be accepted. */
-    proposedCount: (n) => `${n} new`,
+    proposedCount: (n) => `${n} nya`,
 
     /*
      * The half, spelled out in the title bar. Only the private half is
      * marked: the work half is the default and naming it would put a label on
      * the state nobody needs telling about.
      */
-    privateBadge: "private"
+    privateBadge: "privat"
   }
 };

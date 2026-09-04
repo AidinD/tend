@@ -21,9 +21,9 @@ export const SEED_DUTIES = [
     status: "active",
     name: "1-1",
     means:
-      "A recurring conversation with a structure, starting with follow-up on what was " +
-      "agreed last time. New action points only when there is something concrete, " +
-      "never to fill the slot.",
+      "Ett återkommande samtal med en struktur, som börjar med uppföljning av det ni kom " +
+      "överens om förra gången. Nya åtgärdspunkter bara när det finns något konkret, " +
+      "aldrig för att fylla luckan.",
     source: "yours",
     subjectKind: "person",
     cadenceDays: 14,
@@ -34,11 +34,11 @@ export const SEED_DUTIES = [
   {
     id: "duty-feedback-rounds",
     status: "active",
-    name: "Producer and peer feedback round",
+    name: "Feedbackrunda från producenter och kollegor",
     means:
-      "Two question sets on a 1-5 scale with behavioural anchors, mapped onto whatever " +
-      "levelling axes your org uses, so the answers feed level-setting rather than " +
-      "only your own impression.",
+      "Två frågeuppsättningar på en 1-5-skala med beteendeankare, mappade mot de nivåaxlar " +
+      "din organisation använder, så att svaren går in i nivåsättningen snarare än bara " +
+      "i ditt eget intryck.",
     source: "yours",
     subjectKind: "person",
     cadenceDays: 90,
@@ -49,11 +49,11 @@ export const SEED_DUTIES = [
   {
     id: "duty-project-check",
     status: "active",
-    name: "Project check-in",
+    name: "Projektavstämning",
     means:
-      "You own the code side without being in the daily work. The question is not whether " +
-      "it ships, it is whether you would hear about a problem before it became a delivery " +
-      "problem.",
+      "Du äger kodsidan utan att vara i det dagliga arbetet. Frågan är inte om det går i " +
+      "produktion, den är om du skulle höra om ett problem innan det blev ett " +
+      "leveransproblem.",
     source: "yours",
     subjectKind: "project",
     cadenceDays: 14,
@@ -65,12 +65,12 @@ export const SEED_DUTIES = [
   {
     id: "duty-second-hand",
     status: "proposed",
-    name: "Second-hand read on people you cannot see",
+    name: "Second hand-läsning på dem du inte ser",
     means:
-      "A short standing exchange with the other teams' leads about each report who sits " +
-      "there. You hold the mandate and none of the observation, and surveys are a " +
-      "quarterly snapshot rather than a channel. Guarded: a focus must never widen this " +
-      "particular blind spot.",
+      "Ett kort stående utbyte med de andra teamens ledare om var och en du ansvarar för " +
+      "som sitter där. Du har mandatet och ingenting av observationen, och enkäter är en " +
+      "kvartalsvis stillbild snarare än en kanal. Skyddad: ett fokus får aldrig vidga just " +
+      "den här blinda fläcken.",
     source: "Resilient Management, The Manager's Path",
     subjectKind: "person",
     cadenceDays: 30,
@@ -81,10 +81,11 @@ export const SEED_DUTIES = [
   {
     id: "duty-feedback-fresh",
     status: "proposed",
-    name: "Feedback close to the event",
+    name: "Feedback nära händelsen",
     means:
-      "Praise and correction within days, not saved for a review. Feedback held until " +
-      "review season arrives too late to act on and lands as a verdict instead of help.",
+      "Beröm och rättelse inom dagar, inte sparat till ett utvecklingssamtal. Feedback som " +
+      "hålls till utvecklingssamtalen kommer för sent för att göra något åt och landar som " +
+      "en dom i stället för som hjälp.",
     source: "The Manager's Path, Resilient Management",
     subjectKind: "person",
     cadenceDays: 28,
@@ -95,12 +96,13 @@ export const SEED_DUTIES = [
   {
     id: "duty-track-record",
     status: "proposed",
-    name: "Running record of what each person delivered",
+    name: "Löpande register över vad var och en levererat",
     means:
-      "Write it down when it happens. Otherwise review season is a memory exercise weighted " +
-      "toward the last few weeks, which is the exact bias the feedback rounds were built to " +
-      "avoid. For the people in other teams this may be the only record that exists.",
-    source: "The Manager's Path, plus practitioner writing on recency bias",
+      "Skriv ner det när det händer. Annars blir utvecklingssamtalen en minnesövning som " +
+      "väger de senaste veckorna tyngst, vilket är precis den skevhet feedbackrundorna " +
+      "byggdes för att undvika. För dem i andra team kan det här vara det enda register " +
+      "som finns.",
+    source: "The Manager's Path, plus praktikerskriverier om recency bias",
     subjectKind: "person",
     cadenceDays: 42,
     evidenceKinds: ["observation"],
@@ -110,13 +112,13 @@ export const SEED_DUTIES = [
   {
     id: "duty-delegation-level",
     status: "proposed",
-    name: "Stated delegation level per workstream",
+    name: "Uttalad delegeringsnivå per arbetsområde",
     means:
-      "Grove's task-relevant maturity: how closely you follow up depends on how experienced " +
-      "someone is at this specific task, not on how good they are generally. Set a level per " +
-      "piece of work - doing it, delegated with close follow-up, or fully theirs. The absence " +
-      "of monitoring is what separates delegating from abdicating, and it is the half the " +
-      "player-coach model does not specify.",
+      "Groves task-relevant maturity: hur nära du följer upp beror på hur erfaren någon är " +
+      "på just den här uppgiften, inte på hur bra de är i allmänhet. Sätt en nivå per " +
+      "arbetsstycke - gör det själv, delegerad med nära uppföljning, eller helt deras. " +
+      "Frånvaron av uppföljning är det som skiljer att delegera från att abdikera, och det " +
+      "är den halvan som player-coach-modellen inte specificerar.",
     source: "High Output Management (task-relevant maturity)",
     // A workstream, not a project. It consumes `delegation-review`, which is
     // about a piece of work, so declared against a project it crossed with
@@ -131,12 +133,12 @@ export const SEED_DUTIES = [
   {
     id: "duty-sideways",
     status: "proposed",
-    name: "Sideways contact with the other leads",
+    name: "Sideways-kontakt med de andra ledarna",
     means:
-      "Coordinating across peers has no authority behind it, so it runs entirely on " +
-      "trust and demonstrated reliability. Peer relationships are the direction leaders " +
-      "neglect first, because nothing in a calendar forces them.",
-    source: "Practice writing on matrix and cross-functional leadership",
+      "Att samordna sidledes har ingen bestämmanderätt bakom sig, så det går helt på " +
+      "tillit och visad pålitlighet. Sidoordnade relationer är den riktning ledare " +
+      "försummar först, eftersom inget i en kalender tvingar fram dem.",
+    source: "Praktikerskriverier om matris- och tvärfunktionellt ledarskap",
     subjectKind: "person",
     cadenceDays: 7,
     evidenceKinds: ["sideways"],
@@ -149,13 +151,15 @@ export const SEED_DUTIES = [
     // active, which would have switched this on without him agreeing to it -
     // the one boundary the role map exists to hold.
     status: "proposed",
-    name: "Keep your stakeholders current",
+    name: "Håll dina stakeholders uppdaterade",
     means:
-      "Somebody who depends on what you deliver should not learn how it is going from " +
-      "the news that it slipped. The interval lives on each stakeholder rather than " +
-      "here, because a sponsor two levels up who wants to know it is moving is a " +
-      "different obligation from someone sitting next to the work.",
-    source: "The gap nothing else covered: a stakeholder is neither a report nor a peer",
+      "Någon som är beroende av det du levererar ska inte få veta hur det går genom " +
+      "beskedet att det försenades. Intervallet ligger på varje stakeholder snarare än " +
+      "här, eftersom en sponsor två nivåer upp som vill veta att det rör sig är en annan " +
+      "skyldighet än någon som sitter intill arbetet.",
+    source:
+      "Glappet inget annat täckte: en stakeholder är varken någon du ansvarar för eller " +
+      "en sidoordnad",
     subjectKind: "stake",
     cadenceDays: DEFAULT_STAKE_DAYS,
     evidenceKinds: ["update"],
@@ -218,7 +222,7 @@ export function seedRoleMap(store) {
         ...topic,
         relations: [...topic.relations],
         person: null,
-        source: "management reading",
+        source: "ledarskapsläsning",
         status: "proposed"
       });
       topics += 1;

@@ -59,7 +59,7 @@ export function bindSource(store, { person: who, people: whom, name, categoryId,
    */
   const asked = Array.isArray(whom) && whom.length > 0 ? whom : who ? [who] : [];
   if (asked.length === 0) {
-    return { error: "A binding needs at least one person." };
+    return { error: "En bindning behöver minst en person." };
   }
 
   /** @type {string[]} */
@@ -77,7 +77,7 @@ export function bindSource(store, { person: who, people: whom, name, categoryId,
   }
 
   if (!String(categoryId ?? "").trim()) {
-    return { error: "A binding needs a Nib category id." };
+    return { error: "En bindning behöver ett Nib-kategori-id." };
   }
 
   /*
@@ -96,12 +96,12 @@ export function bindSource(store, { person: who, people: whom, name, categoryId,
   if (clash) {
     const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name)]));
     const already = boundPeople(clash)
-      .map((p) => names.get(p) ?? "someone")
+      .map((p) => names.get(p) ?? "någon")
       .join(", ");
     return {
-      error: `That Nib folder is already bound to ${
-        already === "" ? "someone" : already
-      }. Unbind it first.`
+      error: `Den Nib-mappen är redan bunden till ${
+        already === "" ? "någon" : already
+      }. Lossa den först.`
     };
   }
 
@@ -373,7 +373,7 @@ export function assignCommitment(store, { id, person, due }) {
   });
   store.remove("pendingPromises", String(row.id));
 
-  return { id: String(row.id), assigned: `Promise to ${found.person.name}: ${row.text}` };
+  return { id: String(row.id), assigned: `Löfte till ${found.person.name}: ${row.text}` };
 }
 
 /**

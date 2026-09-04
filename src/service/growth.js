@@ -66,9 +66,9 @@ export function growth(store, who, now) {
       driverMeans: DRIVERS[state.driver].means,
       stanceLabel: STANCES[state.stance].label,
       statusLabel: STATUSES[state.status].label,
-      lastTalkedWords: state.lastTalked === null ? "never" : agoWords(state.daysSinceTalked),
+      lastTalkedWords: state.lastTalked === null ? "aldrig" : agoWords(state.daysSinceTalked),
       lastObservedWords:
-        state.lastObserved === null ? "never" : agoWords(Math.max(0, daysBetween(state.lastObserved, now))),
+        state.lastObserved === null ? "aldrig" : agoWords(Math.max(0, daysBetween(state.lastObserved, now))),
       // Who has been told, outside the two of them. Listed rather than counted:
       // the useful question next spring is which of them heard it, and a number
       // cannot answer that.
@@ -157,7 +157,7 @@ export function growthQuestions(store, now) {
     pastHorizon: q.pastHorizon,
     talks: q.talks,
     observations: q.observations,
-    lastTalked: q.lastTalked === null ? "never" : agoWords(q.daysSinceTalked)
+    lastTalked: q.lastTalked === null ? "aldrig" : agoWords(q.daysSinceTalked)
   }));
 }
 

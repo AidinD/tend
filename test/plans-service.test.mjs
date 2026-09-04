@@ -102,7 +102,7 @@ describe("writing a plan", () => {
     ok(api.setPlan(store, answers(), NOW));
     /* `failed` hands back the message, not the result. */
     const why = failed(api.setPlan(store, answers(), NOW));
-    assert.match(why, /already has a live plan/);
+    assert.match(why, /har redan en pågående plan/);
   });
 
   it("but two different people may each have one", () => {

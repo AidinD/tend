@@ -98,7 +98,7 @@ export async function render(params) {
   const archivedGroup = archivedGroupHtml(archived);
 
   if (readFailed(roster)) {
-    return `${header}${readFailedHtml("the roster", roster)}${archivedGroup}`;
+    return `${header}${readFailedHtml(words.readFailedRoster, roster)}${archivedGroup}`;
   }
 
   if (!Array.isArray(roster) || roster.length === 0) {
@@ -181,7 +181,7 @@ function archivedGroupHtml(archived) {
   // archived group may be the only content is the most misleading answer
   // available.
   if (readFailed(archived)) {
-    return readFailedHtml("the archived people", archived);
+    return readFailedHtml(words.readFailedArchived, archived);
   }
   const rows = Array.isArray(archived) ? archived : [];
   if (rows.length === 0) {
@@ -292,7 +292,7 @@ async function personPage(id) {
              * needs marking is the row nobody typed, because that is the one
              * whose text and date came from a note rather than from a decision.
              */
-            row.from === "nib" ? `<span class="pill plain">from a note</span>` : ""
+            row.from === "nib" ? `<span class="pill plain">${words.fromANote}</span>` : ""
           }
           <button class="act tiny danger" data-act="unlogContact" data-id="${esc(row.id)}"
             data-what="${esc(row.kind)}${row.note ? ` - ${esc(row.note)}` : ""}">${words.notRight}</button>
@@ -518,7 +518,7 @@ async function personPage(id) {
             ? `<button class="act primary" data-act="logMoment" data-person="${esc(p.id)}">${words.logMomentButton}</button>`
             : ""
         }
-        <button class="act" data-act="logPromise" data-person="${esc(p.id)}">I promised something</button>
+        <button class="act" data-act="logPromise" data-person="${esc(p.id)}">${words.logPromiseButton}</button>
         <button class="act" data-act="link" data-person="${esc(p.id)}">${words.linkButton}</button>
         ${blocks.observations ? `<button class="act" data-act="logEvidence" data-person="${esc(p.id)}">${words.observationButton}</button>` : ""}
         ${

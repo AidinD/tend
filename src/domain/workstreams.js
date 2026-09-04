@@ -36,23 +36,23 @@
  */
 export const LEVELS = /** @type {const} */ ({
   doing: {
-    label: "Doing it myself",
-    means: "Still mine. Nobody else is accountable for this yet.",
+    label: "Gör det själv",
+    means: "Fortfarande min. Ingen annan ansvarar för det här än.",
     authority: "I decide. Nobody is waiting on me for a call they thought was theirs.",
     review: 7
   },
   close: {
-    label: "Delegated, close follow-up",
+    label: "Delegerad, nära uppföljning",
     means:
-      "Theirs to drive, mine to stay close to. New to them, or high enough stakes that " +
-      "finding out late would be expensive.",
-    authority: "Ask me before anything that would be expensive to undo. Everything else is yours.",
+      "Deras att driva, min att hålla mig nära. Nytt för dem, eller höga nog insatser att " +
+      "det skulle bli dyrt att få veta för sent.",
+    authority: "Fråga mig innan något som skulle bli dyrt att göra om. Allt annat är ditt.",
     review: 14
   },
   theirs: {
-    label: "Fully theirs",
-    means: "They own the outcome. I hear about it when they choose to tell me.",
-    authority: "You decide, and tell me afterwards. I will not be checking first.",
+    label: "Helt deras",
+    means: "De äger utfallet. Jag hör om det när de väljer att berätta.",
+    authority: "Du bestämmer, och berättar efteråt. Jag kommer inte att kolla först.",
     review: 60
   }
 });

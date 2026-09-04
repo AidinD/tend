@@ -68,8 +68,8 @@ describe("what a card shows", () => {
     const card = forCard(many(6));
     assert.equal(card.shown.length, PRACTICES_SHOWN);
     assert.equal(card.more, 6 - PRACTICES_SHOWN);
-    assert.match(String(card.note), /6 principles/);
-    assert.match(String(card.note), /emphasising none/);
+    assert.match(String(card.note), /6 principer/);
+    assert.match(String(card.note), /betona inget av dem/);
   });
 });
 
@@ -217,7 +217,7 @@ describe("reading a real notebook", () => {
     const found = principlesInNib(dir);
     assert.equal(found.available, false);
     if (!found.available) {
-      assert.match(found.why, /no Principle tag/);
+      assert.match(found.why, /ingen Principle-tagg/);
     }
   });
 });

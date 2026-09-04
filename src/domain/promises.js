@@ -74,7 +74,7 @@ export function promiseStatus(p, now) {
       pastDueDays,
       severity: "critical",
       guarded: true,
-      why: `Open for ${ageDays} days. Past two weeks a promise escalates regardless.`
+      why: `Öppet i ${ageDays} dagar. Efter två veckor trappas ett löfte upp oavsett.`
     };
   }
 
@@ -85,7 +85,7 @@ export function promiseStatus(p, now) {
         pastDueDays,
         severity: "critical",
         guarded: false,
-        why: `${pastDueDays} days past the date you gave.`
+        why: `${pastDueDays} dagar efter datumet du gav.`
       };
     }
     if (pastDueDays > 0) {
@@ -94,7 +94,7 @@ export function promiseStatus(p, now) {
         pastDueDays,
         severity: "warn",
         guarded: false,
-        why: `Due ${pastDueDays} day(s) ago.`
+        why: `Skulle vara klart för ${pastDueDays} ${pastDueDays === 1 ? "dag" : "dagar"} sedan.`
       };
     }
     return {
@@ -102,7 +102,7 @@ export function promiseStatus(p, now) {
       pastDueDays,
       severity: "ok",
       guarded: false,
-      why: `Due in ${-pastDueDays} day(s).`
+      why: `Klart om ${-pastDueDays} ${-pastDueDays === 1 ? "dag" : "dagar"}.`
     };
   }
 
@@ -112,11 +112,11 @@ export function promiseStatus(p, now) {
       pastDueDays,
       severity: "warn",
       guarded: false,
-      why: `Open for ${ageDays} days with no date attached.`
+      why: `Öppet i ${ageDays} dagar utan något datum satt.`
     };
   }
 
-  return { ageDays, pastDueDays, severity: "ok", guarded: false, why: `Open for ${ageDays} days.` };
+  return { ageDays, pastDueDays, severity: "ok", guarded: false, why: `Öppet i ${ageDays} dagar.` };
 }
 
 /**

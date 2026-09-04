@@ -51,7 +51,7 @@ describe("how much there is to read", () => {
   it("says nothing was written rather than implying zero of something", () => {
     const c = coverage([], REVIEW_WINDOW_DAYS);
     assert.equal(c.spread, 0);
-    assert.match(c.summary, /Nothing written/);
+    assert.match(c.summary, /Inget skrivet/);
   });
 
   it("counts days, not rows", () => {
@@ -153,7 +153,7 @@ describe("through the store", () => {
     const view = api.journal(store, NOW);
     assert.equal(view.coverage.spread, 2);
     assert.equal(view.coverage.thin, true);
-    assert.match(view.coverage.summary, /2 entries across 2 days/);
+    assert.match(view.coverage.summary, /2 poster över 2 dagar/);
   });
 
   it("can be removed", () => {

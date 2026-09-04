@@ -141,7 +141,7 @@ export function coverage(entries, days) {
     thin,
     summary:
       spread === 0
-        ? `Nothing written in the last ${days} days.`
-        : `${written.length} ${written.length === 1 ? "entry" : "entries"} across ${spread} ${spread === 1 ? "day" : "days"}, out of the last ${days}.`
+        ? `Inget skrivet de senaste ${days} dagarna.`
+        : `${written.length} ${written.length === 1 ? "post" : "poster"} över ${spread} ${spread === 1 ? "dag" : "dagar"}, av de senaste ${days}.`
   };
 }

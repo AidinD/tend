@@ -218,5 +218,5 @@ export function stillHolds(store, id, now, days = DEFAULT_REVISIT_DAYS) {
     return { error: "That is a proposal, not a decision. Record it first." };
   }
   store.update("decisions", id, { status: "revisited", revisitAt: revisitAt(now, days) });
-  return { id, revisitIn: `${days} days` };
+  return { id, revisitIn: `${days} dagar` };
 }
