@@ -142,8 +142,8 @@ button {
    the same arrangement as Jot and Nib. */
 /* Proportions and the hairline. The layout is keel's. */
 .app-header {
-  gap: 12px;
-  padding: 9px 14px 9px 18px;
+  gap: var(--sp-item);
+  padding: var(--sp-item) 14px var(--sp-item) 18px;
   background: #191a1d;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -153,7 +153,7 @@ button {
   /* center, not baseline: the mark has no baseline to sit on, and baseline
      alignment drops it below the wordmark. */
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-item);
 }
 
 .brand-mark {
@@ -228,7 +228,7 @@ button {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-item);
   margin-left: auto;
 }
 
@@ -257,7 +257,7 @@ button {
   padding: 14px 12px 18px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: var(--sp-block);
 }
 
 .brand {
@@ -273,7 +273,7 @@ button {
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-sub);
 }
 
 /*
@@ -299,7 +299,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--sp-item);
   width: 100%;
   background: transparent;
   border: 0;
@@ -365,7 +365,7 @@ main {
 .view-head-dated {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--sp-item);
   margin-bottom: 16px;
 }
 
@@ -399,7 +399,7 @@ main {
 }
 
 .view-sub {
-  margin: 5px 0 0;
+  margin: var(--sp-label) 0 0;
   color: var(--text-dim);
   font-size: var(--t-body);
   max-width: 68ch;
@@ -433,7 +433,7 @@ main {
 .group-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-item);
   margin-bottom: 11px;
 }
 
@@ -460,7 +460,7 @@ main {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: var(--sp-item);
 }
 
 /*
@@ -479,7 +479,7 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
   align-items: start;
-  gap: 9px;
+  gap: var(--sp-item);
 }
 
 /*
@@ -496,8 +496,8 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
   align-items: start;
-  gap: 9px;
-  margin-top: 5px;
+  gap: var(--sp-item);
+  margin-top: var(--sp-label);
 }
 
 /* --------------------------------------------------------------- cards -- */
@@ -639,7 +639,7 @@ button.row.sev-warn:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: var(--sp-item);
 }
 
 .card-title {
@@ -696,7 +696,7 @@ button.row.sev-warn:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-item);
   padding: 7px 15px;
   border-top: 1px solid var(--line-soft);
 }
@@ -730,7 +730,7 @@ button.row.sev-warn:hover {
 
 .card-person-acts {
   display: flex;
-  gap: 6px;
+  gap: var(--sp-label);
 }
 
 /*
@@ -765,7 +765,7 @@ button.row.sev-warn:hover {
 }
 
 .card-why {
-  margin: 5px 0 0;
+  margin: var(--sp-label) 0 0;
   color: var(--text-dim);
   font-size: var(--t-body);
   max-width: 76ch;
@@ -776,7 +776,7 @@ button.row.sev-warn:hover {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: var(--sp-item);
   margin-top: 11px;
   padding-top: 10px;
   border-top: 1px solid var(--line-soft);
@@ -816,7 +816,7 @@ button.row.sev-warn:hover {
   margin-right: auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-label);
 }
 
 .src::before {
@@ -871,7 +871,7 @@ button.row.sev-warn:hover {
   font-family: var(--mono);
   font-size: var(--t-micro);
   font-variant-numeric: tabular-nums;
-  padding: 2px 7px;
+  padding: var(--sp-sub) 7px;
   border-radius: 20px;
   white-space: nowrap;
 }
@@ -905,7 +905,7 @@ button.row.sev-warn:hover {
   font-size: var(--t-micro);
   letter-spacing: 0.4px;
   text-transform: uppercase;
-  padding: 2px 7px;
+  padding: var(--sp-sub) 7px;
   border-radius: 4px;
   background: var(--surface-2);
   color: var(--text-faint);
@@ -922,9 +922,9 @@ button.row.sev-warn:hover {
 .focus-line {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--sp-item);
   padding: 8px 13px 8px 15px;
-  margin-bottom: 20px;
+  margin-bottom: var(--sp-block);
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -1017,8 +1017,8 @@ button.row.sev-warn:hover {
 .muted-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 15px 9px 17px;
+  gap: var(--sp-item);
+  padding: var(--sp-item) 15px var(--sp-item) 17px;
   background: var(--surface);
   border: 1px dashed var(--line);
   border-radius: var(--r);
@@ -1031,13 +1031,13 @@ button.row.sev-warn:hover {
 .rows {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-label);
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--sp-item);
   /* Extra on the left for the severity bar to sit in, the way cards do it. */
   padding: 10px 14px 10px 17px;
   background: var(--surface);
@@ -1080,7 +1080,7 @@ button.row:hover {
  */
 .row-name .src {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--sp-sub);
   max-width: 62ch;
   /* The name above carries the weight; this line would inherit it and the
      distinction it exists to make would be gone. */
@@ -1099,7 +1099,7 @@ button.row:hover {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-item);
   flex: none;
 }
 
@@ -1109,14 +1109,14 @@ button.row:hover {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r);
-  padding: 20px 22px;
+  padding: var(--sp-block) 22px;
 }
 
 .panel-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--sp-block);
   padding-bottom: 15px;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -1135,7 +1135,7 @@ button.row:hover {
 }
 
 .block {
-  margin-top: 20px;
+  margin-top: var(--sp-block);
 }
 
 .block-title {
@@ -1144,13 +1144,13 @@ button.row:hover {
   letter-spacing: 0.9px;
   text-transform: uppercase;
   color: var(--text-dim);
-  margin-bottom: 9px;
+  margin-bottom: var(--sp-item);
 }
 
 .line {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--sp-item);
   padding: 8px 11px;
   background: var(--surface-2);
   border-radius: 5px;
@@ -1192,7 +1192,7 @@ button.row:hover {
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-item);
 }
 
 .multi-summary::-webkit-details-marker {
@@ -1246,8 +1246,8 @@ button.row:hover {
 .multi-options {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 2px 10px 10px;
+  gap: var(--sp-sub);
+  padding: var(--sp-sub) 10px 10px;
   max-height: 210px;
   overflow-y: auto;
 }
@@ -1255,8 +1255,8 @@ button.row:hover {
 .multi-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 0;
+  gap: var(--sp-item);
+  padding: var(--sp-label) 0;
   color: var(--text-dim);
   cursor: pointer;
 }
@@ -1276,7 +1276,7 @@ button.row:hover {
  */
 .line-text .src {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--sp-sub);
 }
 
 .line-text .src::before {
@@ -1316,13 +1316,13 @@ button.row:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px;
+  gap: var(--sp-block);
   flex-wrap: wrap;
 }
 
 .button-row {
   display: flex;
-  gap: 7px;
+  gap: var(--sp-item);
   flex-wrap: wrap;
   margin: 16px 0 4px;
 }
@@ -1330,12 +1330,12 @@ button.row:hover {
 .panel-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-item);
   flex: none;
 }
 
 .group-note {
-  margin: 9px 2px 0;
+  margin: var(--sp-item) var(--sp-sub) 0;
   font-size: var(--t-meta);
   color: var(--text-faint);
   max-width: 76ch;
@@ -1363,7 +1363,7 @@ button.row:hover {
   color: var(--text-dim);
   /* Small, because the space after the colon is a real character in the text
      rather than something this rule supplies. */
-  margin-right: 2px;
+  margin-right: var(--sp-sub);
 }
 
 /* One colour, two carriers: a card's reason and the small print under a row.
@@ -1390,7 +1390,7 @@ button.row:hover {
 }
 
 .act.tiny {
-  padding: 2px 8px;
+  padding: var(--sp-sub) 8px;
   font-size: var(--t-micro);
 }
 
@@ -1417,12 +1417,12 @@ button.row:hover {
 .metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 1px;
+  gap: var(--sp-sub);
   background: var(--line-soft);
   border: 1px solid var(--line-soft);
   border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: var(--sp-block);
 }
 
 .metric {
@@ -1454,7 +1454,7 @@ button.row:hover {
 .metric-note {
   font-size: var(--t-micro);
   color: var(--text-faint);
-  margin-top: 2px;
+  margin-top: var(--sp-sub);
 }
 
 /* ------------------------------------------------------------- dialogs -- */
@@ -1485,7 +1485,7 @@ button.row:hover {
 }
 
 .dialog-head {
-  padding: 18px 20px 12px;
+  padding: 18px var(--sp-block) 12px;
   border-bottom: 1px solid var(--line-soft);
 }
 
@@ -1503,11 +1503,11 @@ button.row:hover {
 }
 
 .dialog-body {
-  padding: 16px 20px;
+  padding: 16px var(--sp-block);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--sp-block);
 }
 
 .dialog-body:empty {
@@ -1517,8 +1517,8 @@ button.row:hover {
 .dialog-foot {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 13px 20px;
+  gap: var(--sp-item);
+  padding: 13px var(--sp-block);
   border-top: 1px solid var(--line-soft);
   background: #1e1f23;
   border-radius: 0 0 9px 9px;
@@ -1535,7 +1535,7 @@ button.row:hover {
 .field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--sp-label);
 }
 
 .field-label {
@@ -1589,12 +1589,12 @@ button.row:hover {
 .field-check {
   flex-direction: row;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--sp-item);
   cursor: pointer;
 }
 
 .field-check input {
-  margin-top: 2px;
+  margin-top: var(--sp-sub);
   width: 15px;
   height: 15px;
   accent-color: var(--accent);
@@ -1604,7 +1604,7 @@ button.row:hover {
 .field-check span {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--sp-sub);
 }
 
 /* -------------------------------------------------------------- toasts -- */
@@ -1616,7 +1616,7 @@ button.row:hover {
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--sp-item);
   z-index: 60;
   pointer-events: none;
 }
@@ -1626,7 +1626,7 @@ button.row:hover {
   border: 1px solid var(--line);
   border-left: 3px solid var(--ok);
   border-radius: 6px;
-  padding: 9px 15px;
+  padding: var(--sp-item) 15px;
   font-size: var(--t-body);
   color: var(--text);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
@@ -1701,7 +1701,7 @@ button.row:hover {
      banner. */
   display: inline-block;
   background: var(--surface-2);
-  padding: 2px 8px;
+  padding: var(--sp-sub) 8px;
   border-radius: 4px;
   font-size: var(--t-micro);
   font-weight: 700;
@@ -1749,20 +1749,20 @@ button.row:hover {
  * a second line rather than a tooltip.
  */
 .prep-topics {
-  gap: 10px;
+  gap: var(--sp-item);
 }
 
 .prep-topic {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-sub);
 }
 
 .topic-line {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--sp-item);
 }
 
 .topic-text {
@@ -1784,7 +1784,7 @@ button.row:hover {
 }
 
 .prep-practice .prep-list {
-  gap: 8px;
+  gap: var(--sp-item);
 }
 
 .prep-dropped,
@@ -1871,7 +1871,7 @@ button.row:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 10px;
+  gap: var(--sp-label) var(--sp-item);
   padding: 7px 0;
   border-top: 1px solid var(--line-soft);
   line-height: 1.5;
@@ -1927,7 +1927,7 @@ button.row:hover {
 .draft-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-item);
   margin-bottom: 7px;
 }
 
@@ -1958,7 +1958,7 @@ button.row:hover {
    margin zero read as one. Only the gap between them is added, so a single
    paragraph is unchanged. */
 .draft-opening + .draft-opening {
-  margin-top: 9px;
+  margin-top: var(--sp-item);
 }
 
 .draft-list {
@@ -1966,7 +1966,7 @@ button.row:hover {
   padding-left: 17px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-label);
   line-height: 1.5;
 }
 
@@ -1974,7 +1974,7 @@ button.row:hover {
    evidence read as one thought, and side by side they read as two columns. */
 .draft-list .src {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--sp-sub);
 }
 
 .draft-list .src::before {
@@ -1984,7 +1984,7 @@ button.row:hover {
 .draft-candidate {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--sp-item);
 }
 
 .draft-candidate > span {
@@ -2017,7 +2017,7 @@ button.row:hover {
 .foot-actions {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-item);
   flex-wrap: wrap;
 }
 
@@ -2030,7 +2030,7 @@ button.row:hover {
  */
 .palette-cue {
   display: flex;
-  gap: 3px;
+  gap: var(--sp-sub);
   margin-right: 12px;
   opacity: 0.55;
   -webkit-app-region: no-drag;
@@ -2102,7 +2102,7 @@ kbd {
 .palette-row {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--sp-item);
   width: 100%;
   text-align: left;
   background: transparent;
@@ -2149,14 +2149,14 @@ kbd {
   padding-left: 18px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sp-label);
   color: var(--text-dim);
   font-size: var(--t-meta);
 }
 
 .palette-foot {
   display: flex;
-  gap: 14px;
+  gap: var(--sp-item);
   padding: 8px 14px;
   border-top: 1px solid var(--line-soft);
   font-size: var(--t-micro);
@@ -2166,7 +2166,7 @@ kbd {
 .palette-foot span {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--sp-label);
 }
 
 /* ----------------------------------------------------------- knowledge -- */
@@ -2178,14 +2178,14 @@ kbd {
  */
 .ask-row {
   display: flex;
-  gap: 8px;
+  gap: var(--sp-item);
   align-items: center;
 }
 
 .ask-field {
   flex: 1;
   min-width: 0;
-  padding: 9px 12px;
+  padding: var(--sp-item) 12px;
   font-size: var(--t-body);
   color: var(--text);
   background: var(--surface-2);
@@ -2230,7 +2230,7 @@ kbd {
 .thread-top {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--sp-item);
 }
 
 .thread-aim {
@@ -2242,12 +2242,12 @@ kbd {
 /* The pills sit at the end of the row and never squeeze the aim. */
 .thread-top .line-right {
   display: flex;
-  gap: 5px;
+  gap: var(--sp-label);
 }
 
 /* Tighter than a card's, since several of these stack inside one block. */
 .thread .card-why {
-  margin: 5px 0 0;
+  margin: var(--sp-label) 0 0;
 }
 
 .thread .prep-list {
@@ -2257,7 +2257,7 @@ kbd {
 }
 
 .thread .button-row {
-  margin-top: 9px;
+  margin-top: var(--sp-item);
 }
 
 /*
@@ -2340,7 +2340,7 @@ kbd {
 .block-fold-head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--sp-item);
   cursor: pointer;
   list-style: none;
   margin-bottom: var(--sp-label);
@@ -2474,7 +2474,7 @@ kbd {
 .tile-name {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-label);
   font-size: var(--t-title);
   color: var(--text);
 }
@@ -2580,7 +2580,7 @@ kbd {
 .band {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-item) 24px;
+  gap: var(--sp-item) var(--sp-block);
   align-items: flex-start;
   margin-top: var(--sp-item);
 }
@@ -2623,8 +2623,8 @@ kbd {
 .chip {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
-  padding: 3px 9px;
+  gap: var(--sp-label);
+  padding: 3px var(--sp-item);
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--surface);
@@ -2698,7 +2698,7 @@ kbd {
 .folds {
   display: flex;
   flex-direction: column;
-  margin-top: 9px;
+  margin-top: var(--sp-item);
 }
 
 .fold {
@@ -2712,8 +2712,8 @@ kbd {
 .fold-head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 7px 2px;
+  gap: var(--sp-item);
+  padding: 7px var(--sp-sub);
   cursor: pointer;
   list-style: none;
 }
@@ -2757,7 +2757,7 @@ kbd {
 }
 
 .fold-body {
-  padding: 0 2px 10px 16px;
+  padding: 0 var(--sp-sub) 10px 16px;
 }
 
 /* The foot's own top rule would draw a second line inside an already ruled
@@ -2765,5 +2765,5 @@ kbd {
 .fold-body .card-foot {
   border-top: 0;
   padding-top: 0;
-  margin-top: 9px;
+  margin-top: var(--sp-item);
 }

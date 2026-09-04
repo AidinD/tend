@@ -205,6 +205,91 @@ describe("the spacing scale inside a card", () => {
       );
     }
   });
+
+  /*
+   * The same guard the type scale gets, and it exists for the same measured
+   * reason. Counted 2026-09-04, before this: four declared steps against 239
+   * hardcoded spacing literals - seventeen distinct gap values, seventeen
+   * margin values and twenty-four padding values - with 48 of the literals
+   * being a declared step spelled out. No single commit was wrong. The result
+   * was air that reads as uneven, and the mock reads tight rather than cramped
+   * for the opposite reason: it uses about three values, applied everywhere.
+   */
+  const spacing = () => {
+    const { root, rest } = split();
+    /** @type {Map<number, string>} */
+    const steps = new Map();
+    for (const m of root.matchAll(/--(sp-[a-z]+):\s*([\d.]+)px/g)) {
+      steps.set(Number(m[2]), `--${m[1]}`);
+    }
+    /* Comments out, or a px in a sentence explaining a px gets counted. */
+    return { steps, code: rest.replace(/\/\*[\s\S]*?\*\//g, "") };
+  };
+
+  /** @param {string} code @param {RegExp} prop */
+  const declarations = (code, prop) => {
+    const found = [];
+    for (const raw of code.split("\n")) {
+      const m = raw.trim().match(/^(-?[a-z-]+)\s*:\s*([^;]+);/);
+      if (m && prop.test(m[1])) {
+        found.push({ prop: m[1], value: m[2].trim() });
+      }
+    }
+    return found;
+  };
+
+  it("is the only source of a gap, anywhere in the file", () => {
+    /*
+     * Gaps and nothing else, because a gap is only ever the rhythm between
+     * siblings - which is exactly what the four steps are. There were 57
+     * hardcoded ones across seventeen values, most of them within a pixel or
+     * two of a step: 10px and 8px sixteen and eleven times each, beside a
+     * `var(--sp-item)` that means 9px.
+     */
+    const { code } = spacing();
+    const all = declarations(code, /^(row-|column-)?gap$/);
+    assert.ok(all.length > 20, `only ${all.length} gap declarations found, so this proved nothing`);
+
+    const literals = all.filter((d) => /\d+px/.test(d.value));
+    assert.deepEqual(
+      literals.map((d) => `${d.prop}: ${d.value}`),
+      [],
+      "a gap is a literal, so the scale is decorative again"
+    );
+  });
+
+  it("and no padding or margin spells out a step it already has a name for", () => {
+    /*
+     * Deliberately narrower than the gap rule above. "Round every padding to
+     * the nearest of four steps" is not executable and would not be right if
+     * it were: a card's `13px 15px 12px 17px` is the inside of a box, tuned
+     * against a tinted band and a font size, not the rhythm between things.
+     * Four rhythm steps cannot express it, and inventing a fifth rhythm step
+     * to cover it would be the drift this test exists to catch.
+     *
+     * What IS unambiguous is writing 9px where `--sp-item` already means 9px.
+     * That was 36 declarations, and every one of them was a coincidence
+     * waiting to come apart the day a step moves.
+     *
+     * The remaining ~200 literals with no step for their value are a real
+     * finding and are reported rather than rounded: they want a small set for
+     * the inside of a control, which is a decision and not a cleanup.
+     */
+    const { steps, code } = spacing();
+    const all = declarations(code, /^(padding|margin)(-(top|right|bottom|left))?$/);
+    assert.ok(all.length > 50, `only ${all.length} found, so this proved nothing`);
+
+    const spelled = [];
+    for (const d of all) {
+      for (const m of d.value.matchAll(/(?<![\w.-])(\d+(?:\.\d+)?)px/g)) {
+        const name = steps.get(Number(m[1]));
+        if (name !== undefined) {
+          spelled.push(`${d.prop}: ${d.value}  (${m[1]}px is ${name})`);
+        }
+      }
+    }
+    assert.deepEqual(spelled, [], "a literal was written where a step already names that value");
+  });
 });
 
 describe("the text ladder", () => {
