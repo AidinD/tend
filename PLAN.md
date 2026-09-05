@@ -336,6 +336,31 @@ Tend event log <──┤
    seed keeps the English names. Renaming them is his, in the role map, and it
    belongs with the short names on that same card. Reported, not guessed at.
 
+20. **The composition boundary is measured, named and asserted.** The card
+   called it an open refactor; measuring says most of it is done and the rest is
+   largely not a defect. 157 composed sentences in `domain/` and `service/`, of
+   which 78 are errors (a sentence by nature), ~29 are readiness and coverage
+   prose (an argument decomposed into fields is an argument nobody can read),
+   and ~11 were mis-attributed by the measure's own approximate label walker.
+   The card surface that was the actual complaint is already parts-based on all
+   three screens that had it: the front page draws `who`/`line`/`age`, Prep
+   composes in the renderer through `words.cardWhy`, and a person's page got
+   `words.cadenceLine`.
+
+   The rule, now written down instead of living in a comment: **the service
+   composes the sentence AND hands over its parts, both, always.** `title` and
+   `why` are what `tend_attention` gives a model; `who`, `line` and `age` are
+   what a card lays out. A kind may ship without parts only by being named in a
+   list a test reads - a monthly question and a queue of unfiled commitments
+   have no person and no clock, so two of the three slots have nothing to hold.
+
+   The deliverable is the check rather than the refactor, because the failure
+   mode was never the sentences that exist - it is the next kind added with a
+   composed title and no parts, which costs nothing and fails nothing. Six
+   invariants in `test/composition.test.mjs`, four mutated red. One of them
+   caught this file on its first run: the fixture reached no excepted kind, so
+   the exception clause was asserting against an empty set.
+
 ## Next
 
 **The air, measured rather than felt.** `app.css` declares four spacing steps

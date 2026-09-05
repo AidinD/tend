@@ -3,6 +3,68 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-05 - The composition boundary, and why it was smaller than the card said
+
+**Decided.** The service composes the sentence and also hands over its parts.
+Both, always, for every attention item: `title` and `why` are what
+`tend_attention` gives a model, and `who`, `line` and `age` are what a card
+three slots wide lays out. Neither replaces the other. A kind may ship without
+parts only by being **named** as an exception, in a list a test reads.
+
+**The card called this an open refactor. Measuring says it is mostly already
+done, and the rest is largely not a defect.** 157 composed sentences in
+`domain/` and `service/`, and the breakdown is the answer rather than the
+number:
+
+- **78 are `error`.** An error is a sentence by nature. A window does not
+  reformulate "Den dagen har inte kommit än" into slots; it shows it.
+- **About 29 are readiness and coverage prose** - `moments.js`, `review.js`,
+  `journal.js`. "En genomgång behöver minst 4 - 2 till - för att ett mönster
+  utpekat ur två är en eftermiddag omsagd med självförtroende" is an argument,
+  and an argument decomposed into fields is an argument nobody can read.
+- **About 11 were mis-attributed by my own measure**, which walks backwards to
+  the nearest `name:` label rather than parsing. On `review.js`'s ledger lines
+  it latched onto a word inside the preceding string. Stated because a count
+  quoted without its error bar is the thing that gets repeated.
+- **The card surface that was the actual complaint is already parts-based on
+  every screen that had the problem.** The front page draws `who`/`line`/`age`,
+  Prep composes in the renderer from `c.person`/`c.behindBy`/`c.lastSpoke` via
+  `words.cardWhy`, and a person's page got `words.cadenceLine` tonight.
+
+**Two kinds print the service's sentence, and that is correct rather than
+pending.** A monthly question and a queue of unfiled commitments have no person
+and no clock, so "who / what / how long" has nothing for two of its three
+slots. `service/reading.js` had already reasoned this out in a comment. The
+change is that the reasoning is now a named list a test reads, instead of a
+comment nothing enforces.
+
+**So the deliverable is the check, not the refactor.** The failure mode was
+never the sentences that exist; it is the next kind added with a composed title
+and no parts, which costs nothing at the time, grows another card whose body is
+a paragraph, and fails nothing. Six invariants in `test/composition.test.mjs`,
+four mutated red and restored:
+
+- every item hands a model a non-empty `title` and `why`
+- every kind carries parts **or** is on the named exception list
+- the exception list is refused when the fixture reaches none of it
+- `who` appears inside `title`, so the two cannot be composed from different
+  sources and drift apart
+- the parts survive the service boundary out to the window
+- and so does the sentence
+
+**The third one caught this file on its first run.** The fixture produced no
+signals, so the exception clause was asserting against an empty set - a check
+that would have passed forever while testing nothing. It is the seventh
+green-without-checking found in two days, and the first one found by a test
+written to look for exactly that.
+
+**Considered and rejected: moving composition into `text.js` wholesale.** It
+would read as a boundary and be one file's worth of the same coupling - the
+failure mode is a refactor that moves sentence-building one file to the left.
+It also breaks the MCP contract outright: `title` and `why` are what an agent
+is given, and a service that only emits parts makes every consumer reassemble
+prose it has no vocabulary for.
+
 ## 2026-09-05 - The translation's remainder, and the sweep that was supposed to find it
 
 **Decided.** Everything a form, a date input or a button can produce is Swedish.
