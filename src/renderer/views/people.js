@@ -246,14 +246,46 @@ async function personPage(id) {
           ${body}
         </details>`;
 
+  /*
+   * One row per clock that applies to this person, running or switched off.
+   *
+   * The switched-off one is here rather than absent, which is the whole reason
+   * this list stopped being built from `expandCadences`: a duty he silenced for
+   * one person generates no cadence, so an absence was the only trace of the
+   * decision - and an absence reads as a gap in the setup rather than as a
+   * choice. The pill says which of the three it is, so "the duty's interval",
+   * "his own" and "off" are never guesses from the number.
+   *
+   * The button is on the row rather than in the block head, because the thing
+   * being set is the pair. A control above a list of four duties would have to
+   * ask which one, having just shown them.
+   */
   const cadences = p.cadences
-    .map(
-      (/** @type {any} */ c) => `<div class="line">
-        <span class="line-when">${esc(c.behindBy)}</span>
-        <span class="line-text">${words.cadenceLine(esc(c.duty), esc(c.target), esc(c.lastHappened))}</span>
-        <span class="line-right">${pill(c.urgency)}</span>
-      </div>`
-    )
+    .map((/** @type {any} */ c) => {
+      const state = c.muted
+        ? `<span class="pill plain">${words.cadenceMutedPill}</span>`
+        : c.fromDuty
+          ? pill(c.urgency)
+          : `<span class="pill plain">${words.cadenceOwnPill(Number(c.everyDays))}</span>${pill(c.urgency)}`;
+
+      return `<div class="line">
+        <span class="line-when">${esc(String(c.behindBy ?? ""))}</span>
+        <span class="line-text">${
+          c.muted
+            ? words.cadenceMutedLine(esc(c.duty), esc(c.lastHappened))
+            : words.cadenceLine(esc(c.duty), esc(c.target), esc(c.lastHappened))
+        }${c.why ? `<span class="src">${esc(c.why)}</span>` : ""}</span>
+        <span class="line-right">
+          ${state}
+          <button class="act tiny" data-act="setPersonCadence" data-person="${esc(p.id)}"
+            data-person-name="${esc(p.name)}"
+            data-duty="${esc(c.dutyId)}" data-duty-name="${esc(c.duty)}"
+            data-duty-days="${esc(String(c.dutyDays ?? ""))}"
+            data-every="${esc(c.fromDuty || c.muted ? "" : String(c.everyDays))}"
+            data-muted="${c.muted ? "1" : ""}">${words.cadenceSetButton}</button>
+        </span>
+      </div>`;
+    })
     .join("");
 
   const promises = p.openPromises
@@ -928,6 +960,87 @@ export const actions = {
       return;
     }
     if (await act("logEvidence", { person: d.person, ...values }, words.recordedToast)) {
+      refresh();
+    }
+  },
+
+  /**
+   * How often one duty runs for this one person.
+   *
+   * Three answers from one form rather than two controls, because they are one
+   * decision: follow the duty, run at your own interval, or do not run at all.
+   * An empty days field with the switch left alone means "follow the duty", so
+   * clearing an override is the same gesture as never having set one - and the
+   * service removes the row rather than copying the duty's current number into
+   * it, so changing the duty later still moves this person with everybody else.
+   *
+   * The reason is asked for on the form and enforced in the service, not here.
+   * A rule that lives in a dialog is a rule the other client does not have.
+   *
+   * @param {Record<string, string>} d
+   */
+  setPersonCadence: async (d) => {
+    const dutyDays = Number(d.dutyDays);
+    const values = await form({
+      title: words.cadenceSetTitle(d.dutyName, d.personName),
+      intro: words.cadenceSetIntro,
+      fields: [
+        {
+          /*
+           * Prefilled with the override in force, and empty when the duty's own
+           * interval is what is running. So the field always shows what would
+           * change rather than what the number happens to be right now, and
+           * emptying it is a legible way to say "follow the duty again".
+           */
+          name: "cadenceDays",
+          label: words.cadenceSetDaysLabel,
+          value: String(d.every ?? ""),
+          hint: dutyDays > 0 ? words.cadenceSetDefaultHint(dutyDays) : ""
+        },
+        {
+          name: "off",
+          label: words.cadenceSetOffLabel,
+          type: "select",
+          value: d.muted ? "yes" : "no",
+          options: [
+            { value: "no", label: words.cadenceSetOffNo },
+            { value: "yes", label: words.cadenceSetOffYes }
+          ]
+        },
+        { name: "why", label: words.cadenceSetWhyLabel, hint: words.cadenceSetWhyHint }
+      ],
+      confirm: words.cadenceSetConfirm
+    });
+    if (!values) {
+      return;
+    }
+
+    const off = values.off === "yes";
+    const days = String(values.cadenceDays ?? "").trim();
+
+    /*
+     * Nothing said at all is a request to follow the duty again, which is a
+     * removal rather than a write. Sending it as a write would have to invent a
+     * number, and the invented number is the one that stops following the duty.
+     */
+    if (!off && days === "") {
+      if (await act("clearPersonCadence", { person: d.person, duty: d.duty }, words.cadenceClearedToast)) {
+        refresh();
+      }
+      return;
+    }
+
+    const sent = await act(
+      "setPersonCadence",
+      {
+        person: d.person,
+        duty: d.duty,
+        cadenceDays: off ? null : Number(days),
+        why: values.why
+      },
+      words.cadenceSetToast
+    );
+    if (sent) {
       refresh();
     }
   },

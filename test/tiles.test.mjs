@@ -204,13 +204,16 @@ test("every declared phrase is reachable, or declared unreachable", async (t) =>
     ["noChannel", "neverSpoken", { worstDrift: drift({ everHappened: false }) }],
     ["noChannel", "feedbackOverdue", { worstDrift: drift({ sinceDays: 40, targetDays: 28 }) }],
     ["noChannel", "inStep", { worstDrift: drift({ sinceDays: 2, targetDays: 28 }) }],
+    ["noChannel", "noClock", { worstDrift: null, clocksMuted: 1 }],
     ["peers", "away", { availability: "away" }],
     ["peers", "daysOver", { worstDrift: drift({ sinceDays: 20, targetDays: 7 }) }],
     ["peers", "inStep", { worstDrift: drift({ sinceDays: 2, targetDays: 7 }) }],
+    ["peers", "noClock", { worstDrift: null, clocksMuted: 1 }],
     ["outward", "away", { availability: "away" }],
     ["outward", "promisesOwed", { promisesOwed: 1 }],
     ["outward", "questionToAsk", { hasQuestion: true }],
     ["outward", "updateOverdue", { update: { overdue: true } }],
+    ["outward", "noClock", { update: null, clocksMuted: 1 }],
     ["outward", "updatedRecently", { update: { overdue: false } }]
   ];
 
@@ -257,7 +260,7 @@ test("every declared phrase is reachable, or declared unreachable", async (t) =>
 
 test("what is being asked of you sorts above what is not", async (t) => {
   await t.test("quiet states never outrank asking ones", () => {
-    const quiet = ["away", "inStep", "directionShowing", "updatedRecently"];
+    const quiet = ["away", "inStep", "noClock", "directionShowing", "updatedRecently"];
     const asking = ["needsYou", "neverSpoken", "planNotStarted", "promisesOwed", "daysOver"];
 
     for (const a of asking) {

@@ -3,6 +3,82 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-07 - How often a duty runs for one person, and a clock that does not run
+
+**Decided.** The interval may be overridden on the **pair** (person, duty), and
+an override may say no interval at all. `cadenceOverrides` holds one row per
+pair; the duty's own value is the default; switching a clock off asks for a
+reason and a number does not.
+
+**The obvious model was a field on the person, and it is wrong.** The
+stakeholder precedent looks like it endorses one - `stakeInterval` reads the
+interval off the stake - but a stake's subject IS the pair (person, project) and
+exactly one duty applies to stakes, so that value is already per subject and
+duty. A person is a subject that several duties cross.
+
+Measured against the live role map before building, rather than reasoned about:
+
+| relation | active person duties |
+| --- | --- |
+| `equal-lead` | 1 - sideways contact, 7 days |
+| `lead-and-manage` | 2 - a conversation every 14, a feedback round every 90 |
+| `manage-remotely` | 2 - the same two |
+| `own-manager` | 1 - 21 days |
+
+So a field on the person happens to work for a peer and quietly breaks for
+somebody the user leads: setting "every 30 days" would drag the quarterly round
+to a month. Three of the four duties still awaiting acceptance are person
+duties, so the wrong shape gets worse exactly as the role map fills in. The
+override is therefore the same principle as the stake, one level finer, and not
+a departure from it.
+
+**Two answers existed before this and both were bad.** The case was a peer lead
+whose contact is genuinely event-driven: 7 days is not true of him and 30 is
+closer. Leaving him permanently critical turns the page into noise somebody
+learns to skip, which is the one failure this tool must never have. Removing him
+as a peer makes him invisible again, which is the blind spot it exists to catch.
+
+**A seventh relationship type with no clock lost.** It was the cheaper build and
+says the wrong thing: the relationship type answers what the relationship IS,
+and a peer lead is a peer lead whether or not you speak weekly. Whether a clock
+runs is a different question and it is per duty - and that shape would have
+dropped the sideways duty for him entirely rather than slowing it down. Picking
+180 days instead also lost: that is inventing a number to quieten a feature, and
+it still turns critical in the end.
+
+**"No clock" had to be prevented from reading as "in step".** That is not a
+softer statement than the truth, it is a false one - it claims somebody is on
+top of a cadence nothing is measuring. Two readers could have said it. The
+roster row now carries `clocksMuted` alongside `availability`, which was added
+for the same reason (somebody on parental leave read as "In step"), and the tile
+sets gained `noClock`, weighted quiet and placed low so a person with one clock
+off and one late is still described by the late one. A person's page stopped
+being built from `expandCadences` and is built from `personClocks` instead: a
+switched-off duty produces no cadence, so the only trace of a deliberate
+decision would have been an absence, and an absence reads as a gap in the setup.
+
+**Muting asks why; setting a number does not.** A number says what it means. Six
+months on, a silent clock cannot say whether it was a decision or a mistake, and
+the two want opposite things done about them.
+
+**No MCP tool may set it,** the same boundary as accepting a duty and for a
+stronger reason. A duty arrives as a proposal the user answers; an interval
+would arrive as a fact. How often something is owed is what the job is, so an
+agent able to write one could rewrite what the role map means while every duty
+in it still read as the user wrote it. A test asserts no tool name matches
+cadence, interval or takt.
+
+**Clearing an override removes the row** rather than writing the duty's current
+number into it. A copied interval stops following the duty, so changing the duty
+later would move everybody except the person somebody once "reset".
+
+**Left open, on his own card.** `focusCost` compares a mean over the cadences
+that exist now against a baseline taken over the ones that existed when the
+focus was set - two populations, with the difference reported as the focus's
+price. Adding this peer with a year-old relation start and no contacts moved it
+from 0.1 to 50.9 days, and the focus caused none of that. The drift is real and
+the backdating is deliberate; the comparison is what is wrong. Its own item.
+
 ## 2026-09-05 - The composition boundary, and why it was smaller than the card said
 
 **Decided.** The service composes the sentence and also hands over its parts.

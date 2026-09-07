@@ -109,6 +109,12 @@ export const T = {
     tileNeverSpoken: (duty) => `${duty} har aldrig blivit av.`,
     /** @param {string} duty */
     tileFeedbackOverdue: (duty) => `${duty} är försenad.`,
+    /*
+     * Not "i fas". A switched-off clock is not a person who is up to date, and
+     * saying so is the one thing this state must never read as - the tile says
+     * that nothing is being measured, which is what he decided.
+     */
+    tileNoClock: "Ingen takt satt.",
     tileInStep: "I fas.",
 
     /*
@@ -686,6 +692,40 @@ export const T = {
      */
     /** @param {string} duty @param {string} target @param {string} last */
     cadenceLine: (duty, target, last) => `<strong>${duty}</strong> - mål ${target}, senast ${last}`,
+    /*
+     * One duty, one person, and the interval said per pair.
+     *
+     * The plikten's own value is the default and a person may carry their own,
+     * the same arrangement a stakeholder already has. A clock switched off is
+     * shown rather than hidden: an absence from this list would be the only
+     * trace of a deliberate decision, and an absence reads as a gap in the
+     * setup instead.
+     */
+    /** @param {string} duty @param {string} last */
+    cadenceMutedLine: (duty, last) =>
+      `<strong>${duty}</strong> - ingen takt, senast ${last}`,
+    /** @param {number} days */
+    cadenceOwnPill: (days) => `din takt, ${days} d`,
+    cadenceMutedPill: "avstängd",
+    cadenceSetButton: "Takt",
+    /** @param {string} duty @param {string} person */
+    cadenceSetTitle: (duty, person) => `${duty}: ${person}`,
+    cadenceSetIntro:
+      "Pliktens intervall gäller alla den korsar. Här sätter du det för en enda person, " +
+      "eller stänger av klockan helt när kontakten är händelsedriven och inget intervall är sant.",
+    /** @param {number} days */
+    cadenceSetDefaultHint: (days) => `Plikten går på ${days} dagar. Lämna tomt för att följa den.`,
+    cadenceSetDaysLabel: "Var så här många dagar, för just den här personen",
+    cadenceSetOffLabel: "Eller stäng av klockan för dem",
+    cadenceSetOffNo: "Nej, den ska gå",
+    cadenceSetOffYes: "Ja, kontakten är händelsedriven",
+    cadenceSetWhyLabel: "Varför den stängs av",
+    cadenceSetWhyHint:
+      "Krävs bara när klockan stängs av. Ett intervall säger vad det betyder; en avstängd " +
+      "klocka gör det inte, och om ett halvår går det inte att se om det var ett beslut.",
+    cadenceSetConfirm: "Sätt det",
+    cadenceSetToast: "Takten satt.",
+    cadenceClearedToast: "Tillbaka på pliktens takt.",
     promisesBlock: "Öppna löften",
     promisesNone: "Inget utestående.",
     observationsBlock: "Observationer",

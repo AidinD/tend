@@ -535,6 +535,8 @@ function tilePhrase(tile) {
       return words.tileNeverSpoken(esc(tile.duty));
     case "feedbackOverdue":
       return words.tileFeedbackOverdue(esc(tile.duty));
+    case "noClock":
+      return words.tileNoClock;
     case "inStep":
       return words.tileInStep;
 

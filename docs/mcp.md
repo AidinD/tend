@@ -78,6 +78,15 @@ duty's status, adjusts a cadence, or sets a focus. `decideDuty` exists in the
 service layer and is deliberately not exposed here, and there is a test that
 fails if a tool matching `decide|accept|activate` ever appears in the manifest.
 
+That covers a duty's own interval. It also covers **how often a duty runs for
+one person**, which is the finer version of the same thing: `setPersonCadence`
+and `clearPersonCadence` write a row per (person, duty), and neither is exposed
+here. The reason is stronger rather than weaker than for a duty. A duty arrives
+as a proposal the user answers; an interval per person would arrive as a fact,
+so an agent able to write one could rewrite what the role map means while every
+duty in it still read exactly as the user wrote it. A second test fails if a
+tool name ever matches `cadence|interval|takt`.
+
 The boundary lives in the service layer rather than in the tool definitions, so
 a second client cannot route around it.
 

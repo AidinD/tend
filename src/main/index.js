@@ -160,6 +160,12 @@ const OPERATIONS = {
   logEvidence: (/** @type {any} */ a) => api.logEvidence(store, { ...a, now: a.now ?? Date.now() }),
   proposeDuty: (/** @type {any} */ a) => api.proposeDuty(store, a),
   decideDuty: (/** @type {any} */ a) => api.decideDuty(store, a.id, a.status, a.overrides),
+  // How often a duty runs for one person, and switching its clock off. Here and
+  // deliberately absent from MCP for the same reason as decideDuty: how often
+  // something is owed is what the job is, so an agent able to set it per person
+  // could rewrite the role map's meaning without ever editing the role map.
+  setPersonCadence: (/** @type {any} */ a) => api.setPersonCadence(store, a),
+  clearPersonCadence: (/** @type {any} */ a) => api.clearPersonCadence(store, a),
   logDecision: (/** @type {any} */ a) => api.logDecision(store, { ...a, now: a.now ?? Date.now() }),
   decideDecision: (/** @type {any} */ a) => api.decideDecision(store, a.id, a.fields ?? {}, a.now ?? Date.now()),
   stillHolds: (/** @type {any} */ a) => api.stillHolds(store, a.id, a.now ?? Date.now(), a.days),

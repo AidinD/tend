@@ -239,7 +239,21 @@ export const COLLECTIONS = /** @type {const} */ ([
    * mean "put back what that press changed" rather than "unarchive whatever
    * shares a number".
    */
-  "bulkArchives"
+  "bulkArchives",
+  /**
+   * How often one duty runs for one particular person, when the duty's own
+   * interval is not the right answer for them.
+   *
+   * The pair rather than the person: a person is a subject that several duties
+   * cross, so a field on the person would drag a quarterly feedback round to
+   * whatever was set for a fortnightly conversation. `domain/overrides.js` has
+   * the measurement that settled it.
+   *
+   * A row may say no interval at all, which switches that duty off for that
+   * person. It is the third answer between a permanently critical item nobody
+   * reads any more and changing what somebody is so no duty reaches them.
+   */
+  "cadenceOverrides"
 ]);
 
 /**

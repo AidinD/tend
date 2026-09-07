@@ -21,6 +21,8 @@
 import { RELATIONS, isRelation } from "../domain/cadence.js";
 import { SUBJECT_KINDS, evidenceFor, subjectOf } from "../domain/contact.js";
 import { isKeptRecord } from "../domain/growth.js";
+import { intervalFor, isMuted, overrideFor } from "../domain/overrides.js";
+import { resolvePerson } from "./resolve.js";
 
 /**
  * Can a duty about this sort of subject be satisfied by this evidence?
@@ -235,4 +237,163 @@ export function decideDuty(store, id, status, overrides = {}) {
   }
   store.update("duties", id, { ...overrides, status });
   return { id, status };
+}
+
+/* ------------------------------------------------- one person's cadence -- */
+
+/**
+ * Which duty this override is allowed to be about.
+ *
+ * The same refusal this file already makes for an incoherent duty, one level
+ * down. An override on a duty that does not reach this person at all is not a
+ * quieter setting, it is a row that changes nothing and reads as though it did -
+ * so somebody sets a peer's interval on a duty that only applies to reports,
+ * sees it saved, and believes the clock moved.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} dutyId
+ * @param {Record<string, any>} person
+ * @returns {{ ok: true, duty: any } | { ok: false, error: string }}
+ */
+function dutyOnPerson(store, dutyId, person) {
+  const duty = store.rows("duties").find((d) => String(d.id) === String(dutyId));
+  if (!duty) {
+    return { ok: false, error: `No duty with id "${dutyId}".` };
+  }
+  if (duty.subjectKind !== "person") {
+    return {
+      ok: false,
+      error: `"${duty.name}" handlar inte om personer, så ett intervall per person betyder ingenting där.`
+    };
+  }
+  const relations = Array.isArray(duty.relations) ? duty.relations : [];
+  if (relations.length > 0 && !relations.includes(String(person.relation))) {
+    return {
+      ok: false,
+      error:
+        `"${duty.name}" gäller inte ${person.name} - den plikten korsar bara ` +
+        `${relations.join(", ")}, och ${person.name} är ${String(person.relation)}. ` +
+        "Ett intervall där hade sparats och inte flyttat någon klocka."
+    };
+  }
+  return { ok: true, duty };
+}
+
+/**
+ * Set how often one duty runs for one person, or switch its clock off.
+ *
+ * Deliberately not exposed over MCP, the same boundary as accepting a duty and
+ * for the same reason: how often something is owed is what the job IS, and an
+ * agent that could set it per person could quietly rewrite what the user
+ * believes the role map says. A test asserts the tool name does not exist.
+ *
+ * The reason is required only when the clock is being switched off. A number
+ * says what it means; an absence does not, and six months later the row cannot
+ * say whether it was deliberate. See `domain/overrides.js`.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.person Name or id.
+ * @param {string} args.duty Duty id.
+ * @param {number | null} [args.cadenceDays] Days, or null for no clock at all.
+ * @param {string} [args.why] Required when switching the clock off.
+ */
+export function setPersonCadence(store, { person: who, duty: dutyId, cadenceDays, why }) {
+  const found = resolvePerson(store, who);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  const on = dutyOnPerson(store, dutyId, found.person);
+  if (!on.ok) {
+    return { error: on.error };
+  }
+
+  /*
+   * Only an explicit absence switches the clock off. "0 dagar", a negative and
+   * a typo are all refused rather than read as one - muting a duty on a
+   * mistyped field is exactly the outcome this feature exists to make
+   * deliberate, and it would be indistinguishable from a decision afterwards.
+   */
+  const muting = cadenceDays === null || cadenceDays === undefined;
+  const days = Number(cadenceDays);
+
+  if (!muting && !(days > 0)) {
+    return {
+      error:
+        `"${String(cadenceDays)}" är inget intervall. Ett antal dagar större än noll, eller ` +
+        "inget alls om klockan ska stängas av."
+    };
+  }
+  if (muting && String(why ?? "").trim() === "") {
+    return {
+      error:
+        "Säg varför klockan stängs av. Ett intervall säger vad det betyder; en avstängd klocka " +
+        "gör det inte, och om ett halvår går det inte att se om det var ett beslut eller ett misstag."
+    };
+  }
+
+  const existing = overrideFor(store.rows("cadenceOverrides"), String(found.person.id), String(on.duty.id));
+  const fields = {
+    person: String(found.person.id),
+    duty: String(on.duty.id),
+    cadenceDays: muting ? null : days,
+    why: String(why ?? "").trim() || null
+  };
+
+  if (existing === null) {
+    store.create("cadenceOverrides", fields);
+  } else {
+    store.update("cadenceOverrides", String(existing.id), fields);
+  }
+
+  return {
+    person: found.person.name,
+    duty: on.duty.name,
+    every: muting ? null : days,
+    was: intervalFor(existing, Number(on.duty.cadenceDays)),
+    muted: muting
+  };
+}
+
+/**
+ * Put one person's duty back on the duty's own interval.
+ *
+ * Removing the row rather than writing the duty's current number into it. A
+ * copied interval is an interval that stops following the duty, so changing the
+ * duty later would move everybody except the person somebody once "reset".
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.person Name or id.
+ * @param {string} args.duty Duty id.
+ */
+export function clearPersonCadence(store, { person: who, duty: dutyId }) {
+  const found = resolvePerson(store, who);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+  const on = dutyOnPerson(store, dutyId, found.person);
+  if (!on.ok) {
+    return { error: on.error };
+  }
+
+  const existing = overrideFor(store.rows("cadenceOverrides"), String(found.person.id), String(on.duty.id));
+  if (existing === null) {
+    return {
+      person: found.person.name,
+      duty: on.duty.name,
+      every: Number(on.duty.cadenceDays),
+      changed: false
+    };
+  }
+
+  const wasMuted = isMuted(existing);
+  store.remove("cadenceOverrides", String(existing.id));
+  return {
+    person: found.person.name,
+    duty: on.duty.name,
+    every: Number(on.duty.cadenceDays),
+    wasMuted,
+    changed: true
+  };
 }

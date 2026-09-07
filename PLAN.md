@@ -110,6 +110,12 @@ Tend event log <──┤
   budgets are deterministic code; the model only reads prose and writes drafts.
 - Storage is an append-only event log, one file per writer, safe for concurrent
   writers on a Dropbox-synced folder.
+- **A cadence is generated, never stored** - duties crossed with subjects - and
+  the one thing that may be stored per pair is how often it runs.
+  `cadenceOverrides` holds an interval for one (person, duty), or no interval at
+  all when contact is genuinely event-driven. See DECISIONS.md for why the
+  override is on the pair rather than on the person, and why a clock switched
+  off must never read as somebody being in step.
 
 ## Next steps
 
@@ -402,6 +408,15 @@ block for the part the notes do not answer.
 - **Whether a family of related projects is one row each or one row with
   sub-rows.** When staffing moves between them a fixed schedule per project is
   probably wrong, and "longest untouched" is the better model.
+- **What a focus has actually cost.** `focusCost` subtracts a baseline mean,
+  taken over the cadences that existed when the focus was set, from a mean over
+  the ones that exist now - two populations, with the difference reported as the
+  focus's price. Adding one peer with a year-old relation start and no contacts
+  moved it from 0.1 to 50.9 days, and the focus caused none of that. The drift
+  is real and backdating a relationship is deliberate; the comparison is what is
+  wrong. Three candidates: measure only over subjects present at the baseline,
+  keep the baseline per subject rather than as one mean, or say "unknown" when
+  the population changed - worse, but never wrong.
 - ~~**Nothing has met real data.**~~ It has, and it found things fixtures could
   not: the scope rule that emptied the practice block entirely, and undo buttons
   that squeezed against a long real note. Both are in DECISIONS.md. The paths

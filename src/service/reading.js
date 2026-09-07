@@ -14,7 +14,7 @@
  * Split out of api.js.
  */
 
-import { buildAttention, dutyLabel, expandCadences } from "../domain/attention.js";
+import { buildAttention, dutyLabel, expandCadences, personClocks } from "../domain/attention.js";
 import { archivedIds, isArchived } from "../domain/archive.js";
 import { contactSummary } from "../domain/contact.js";
 import { personBlocksIn, relationsIn } from "../domain/halves.js";
@@ -25,6 +25,7 @@ import { isLiveStatus, threadState } from "../domain/growth.js";
 import { planFor } from "./plans.js";
 import { recentSkips, skipPattern, skipsFor } from "../domain/skips.js";
 import { namedStakes } from "../domain/stakes.js";
+import { mutedDuties } from "../domain/overrides.js";
 import { agoWords, daysSince, driftBadge, humanDays } from "../domain/time.js";
 import { isUnspecified } from "../domain/workstreams.js";
 import { lastReviewRun } from "./reflection.js";
@@ -162,15 +163,32 @@ export function person(store, query, now) {
   const p = found.person;
   const state = store.state();
 
-  const cadences = expandCadences(state, now)
-    .filter((c) => c.subject.id === p.id)
-    .map((c) => ({
-      duty: c.duty.name,
-      target: `var ${c.drift.interval} dagar`,
-      lastHappened: c.drift.everHappened ? agoWords(c.drift.daysSince) : "aldrig",
-      behindBy: driftBadge(c.drift.driftDays),
-      urgency: c.drift.trueSeverity
-    }));
+  /*
+   * `personClocks` rather than `expandCadences`, because a duty whose clock he
+   * switched off for this person produces no cadence at all - which is the
+   * point of switching it off, and would make the only trace of a deliberate
+   * decision an absence from this list. An absence reads as a gap in the setup.
+   *
+   * The duty id rides along so the row can be edited where it is read. Nothing
+   * else on the page can say which duty a line is about: the name is a label
+   * and two duties may share a short one.
+   */
+  const cadences = personClocks(state, p, now).map((c) => ({
+    dutyId: String(c.duty.id),
+    duty: dutyLabel(c.duty),
+    fromDuty: c.fromDuty,
+    muted: c.muted,
+    why: c.why,
+    dutyDays: Number(c.duty.cadenceDays) > 0 ? Number(c.duty.cadenceDays) : null,
+    // The number as well as the sentence. The window says "your rate, 30 d" on
+    // an overridden row, and the alternative was reading the digits back out of
+    // the formatted string with a regex.
+    everyDays: c.interval,
+    target: c.interval === null ? null : `var ${c.interval} dagar`,
+    lastHappened: c.lastAt === null ? "aldrig" : agoWords(daysSince(c.lastAt, now) ?? 0),
+    behindBy: c.drift === null ? null : driftBadge(c.drift.driftDays),
+    urgency: c.drift === null ? null : c.drift.trueSeverity
+  }));
 
   const promises = openPromises(store.rows("promises"), now)
     .filter((x) => x.person === p.id)
@@ -286,6 +304,7 @@ export function people(store, now, relation) {
   const growthNotes = store.rows("growthNotes").filter((n) => !n._deleted);
   const promises = openPromises(store.rows("promises"), now);
   const stakes = store.rows("stakes").filter((x) => !x._deleted);
+  const overrides = store.rows("cadenceOverrides").filter((x) => !x._deleted);
 
   return store
     .rows("people")
@@ -364,6 +383,17 @@ export function people(store, now, relation) {
         // Said on the roster, because "no duty applies" reads as a gap in the
         // setup when the truth is that somebody is on leave or has left.
         availability: availability(p, now),
+        /*
+         * A third reason no duty applies, and it needs saying for exactly the
+         * same reason as the two above.
+         *
+         * Without it a person whose only clock he switched off falls through to
+         * "in step", which is not a softer statement than the truth - it is a
+         * false one, claiming somebody is on top of a cadence that is not
+         * running. Counted rather than listed: the tile needs to know whether
+         * to reach for that phrase, not which duties.
+         */
+        clocksMuted: mutedDuties(overrides, String(p.id)).length,
         /*
          * The two numbers, not only the badge.
          *

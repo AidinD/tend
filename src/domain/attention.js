@@ -23,6 +23,7 @@ import { signalsDue } from "./signals.js";
 import { agoWords, driftBadge, humanDays } from "./time.js";
 import { appliesWhileLeaving, hasLeft, inScope, isLeaving, notBefore } from "./people.js";
 import { namedStakes, stakeInterval } from "./stakes.js";
+import { intervalFor, isMuted, overrideFor } from "./overrides.js";
 import { isUnspecified, reviewInterval } from "./workstreams.js";
 import { isArchived } from "./archive.js";
 
@@ -94,6 +95,7 @@ export function expandCadences(state, now) {
 
   const duties = live("duties");
   const touches = live("touches");
+  const overrides = live("cadenceOverrides");
   const focus = state.focus;
 
   /** @type {{ duty: any, subject: any, subjectKind: string, drift: import("./cadence.js").Drift }[]} */
@@ -119,13 +121,22 @@ export function expandCadences(state, now) {
         // stake's from the stake itself: in both cases how often you look IS
         // the substance of the arrangement, so it belongs on the thing rather
         // than on a duty shared by every one of them.
+        // A person's interval can be overridden per duty, and the override may
+        // say no clock at all - which falls through the same guard below as a
+        // duty with no interval, so a switched-off pair produces no cadence
+        // rather than a cadence that has to be filtered out downstream.
         const interval =
           kind === "workstream"
             ? reviewInterval(subject.level)
             : kind === "stake"
               ? stakeInterval(subject, Number(duty.cadenceDays))
-              : Number(duty.cadenceDays);
-        if (!(interval > 0)) {
+              : kind === "person"
+                ? intervalFor(
+                    overrideFor(overrides, String(subject.id), String(duty.id)),
+                    Number(duty.cadenceDays)
+                  )
+                : Number(duty.cadenceDays);
+        if (interval === null || !(interval > 0)) {
           continue;
         }
         const kinds = Array.isArray(duty.evidenceKinds) ? duty.evidenceKinds : [];
@@ -182,6 +193,92 @@ export function expandCadences(state, now) {
   cross(namedStakes(live("stakes"), activePeople, activeProjects), "stake");
 
   return out.sort((a, b) => compareDrift(a.drift, b.drift));
+}
+
+/**
+ * Every clock that applies to one person, running or switched off.
+ *
+ * `expandCadences` cannot answer this, and deliberately so: a switched-off pair
+ * produces no cadence there, which is the whole point. But a page about one
+ * person has to show the duty that is not running, or the only trace of a
+ * deliberate decision is an absence - and an absence reads as a gap in the
+ * setup, which is the misreading `availability` was added to the roster to
+ * prevent.
+ *
+ * So this crosses the same duties with one subject and reports what each is set
+ * to. Drift is null where no clock runs; nothing else about the person changes.
+ *
+ * @param {import("../storage/reduce.js").TendState} state
+ * @param {Record<string, any>} person
+ * @param {number} now
+ * @returns {{ duty: any, interval: number | null, muted: boolean,
+ *   why: string, fromDuty: boolean, lastAt: number | null,
+ *   drift: import("./cadence.js").Drift | null }[]}
+ */
+export function personClocks(state, person, now) {
+  /** @param {string} name */
+  const live = (name) => Object.values(state.c[name] ?? {}).filter((r) => !r._deleted);
+
+  const overrides = live("cadenceOverrides");
+  const touches = live("touches");
+  const leaving = isLeaving(person);
+  /*
+   * Away, gone or archived: the intervals are still worth showing - they are
+   * what resumes - but no drift is reported, because `expandCadences` reports
+   * none either and a page that showed a number Läget does not have is a page
+   * that disagrees with the front of the app about the same person.
+   */
+  const running = inScope(person, now);
+
+  /** @type {ReturnType<typeof personClocks>} */
+  const out = [];
+
+  for (const duty of dutiesFor(live("duties"), "person", person.relation)) {
+    if (leaving && !appliesWhileLeaving(duty)) {
+      continue;
+    }
+    const override = overrideFor(overrides, String(person.id), String(duty.id));
+    const interval = intervalFor(override, Number(duty.cadenceDays));
+    const kinds = Array.isArray(duty.evidenceKinds) ? duty.evidenceKinds : [];
+    const floor = notBefore(person, now);
+    const last = latestEvidence(touches, String(person.id), kinds);
+
+    out.push({
+      duty,
+      interval,
+      muted: isMuted(override),
+      why: String(override?.why ?? ""),
+      fromDuty: override === null,
+      /*
+       * Carried whether or not a clock runs. A switched-off duty still has an
+       * age since the last contact of its kinds, and that age is the whole
+       * reason switching one off is not the same as hiding somebody: the page
+       * has to be able to say "no clock, last spoke five weeks ago" rather than
+       * going quiet about both.
+       */
+      lastAt: last !== null && last >= floor ? last : null,
+      drift:
+        !running || interval === null || !(interval > 0)
+          ? null
+          : computeDrift({
+              intervalDays: interval,
+              lastAt: last !== null && last >= floor ? last : floor > 0 ? floor : last,
+              since:
+                typeof person.since === "number"
+                  ? person.since
+                  : typeof person._at === "number"
+                    ? person._at
+                    : now,
+              now,
+              stretch: stretchFor(state.focus, now, {
+                id: duty.id,
+                guarded: Boolean(duty.guarded)
+              })
+            })
+    });
+  }
+
+  return out;
 }
 
 /**

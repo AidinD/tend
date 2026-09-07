@@ -45,6 +45,9 @@
  *   set has a phrase for each and none for "no plan", because a person with no
  *   plan is described by their direction instead.
  * @property {number} [promisesOwed] Open promises to this person.
+ * @property {number} [clocksMuted] Duties whose clock he switched off for this
+ *   person. A third reason no duty applies, alongside away and gone, and it
+ *   needs its own phrase for the same reason those do - see `noClock` below.
  * @property {boolean} [hasQuestion] Something in `worthRaising` for them.
  * @property {{ overdue: boolean } | null} [update] Stakeholder update state.
  */
@@ -68,9 +71,16 @@ export const TILE_SETS = /** @type {const} */ ({
     "directionUntested",
     "noDirection"
   ],
-  noChannel: ["away", "neverSpoken", "feedbackOverdue", "inStep"],
-  peers: ["away", "daysOver", "inStep"],
-  outward: ["away", "promisesOwed", "questionToAsk", "updateOverdue", "updatedRecently"]
+  noChannel: ["away", "neverSpoken", "feedbackOverdue", "noClock", "inStep"],
+  peers: ["away", "daysOver", "noClock", "inStep"],
+  outward: [
+    "away",
+    "promisesOwed",
+    "questionToAsk",
+    "updateOverdue",
+    "noClock",
+    "updatedRecently"
+  ]
 });
 
 /**
@@ -97,6 +107,25 @@ export const UNREACHABLE_KINDS = [];
  * needs the threshold.
  */
 export const ADRIFT_MULTIPLE = 2;
+
+/**
+ * Is the only honest thing to say that no clock is running?
+ *
+ * Checked low in every set that has it, and that placement is the whole
+ * subtlety: somebody with two duties, one switched off and one late, is
+ * described by the late one. This only speaks when nothing is running at all
+ * and at least one was silenced deliberately.
+ *
+ * Without it those people fell through to "in step", which is not a softer
+ * statement than the truth but a false one - it claims somebody is on top of a
+ * cadence that is not running. The same mistake the away phrase was added to
+ * fix, arrived at from the other direction.
+ *
+ * @param {TileInput} row
+ */
+function noClockLeft(row) {
+  return (row.worstDrift ?? null) === null && Number(row.clocksMuted ?? 0) > 0;
+}
 
 /**
  * The one thing this person's tile should say.
@@ -199,6 +228,9 @@ function noChannelTile(row) {
   if (drift !== null && Number(drift.sinceDays) > Number(drift.targetDays)) {
     return { kind: "feedbackOverdue", duty: String(drift.duty) };
   }
+  if (noClockLeft(row)) {
+    return { kind: "noClock" };
+  }
   return { kind: "inStep" };
 }
 
@@ -221,6 +253,9 @@ function peersTile(row) {
       days: Number(drift.sinceDays) - Number(drift.targetDays),
       duty: String(drift.duty)
     };
+  }
+  if (noClockLeft(row)) {
+    return { kind: "noClock" };
   }
   return { kind: "inStep" };
 }
@@ -251,6 +286,9 @@ function outwardTile(row) {
   }
   if (row.update !== null && row.update !== undefined) {
     return row.update.overdue ? { kind: "updateOverdue" } : { kind: "updatedRecently" };
+  }
+  if (noClockLeft(row)) {
+    return { kind: "noClock" };
   }
   return { kind: "updatedRecently" };
 }
@@ -295,7 +333,13 @@ export function tileWeight(tile) {
     case "leaving":
       return 1;
     default:
-      /* away, inStep, directionShowing, updatedRecently: nothing is asked. */
+      /*
+       * away, inStep, noClock, directionShowing, updatedRecently: nothing is
+       * asked. `noClock` sits here rather than one above, because a clock he
+       * switched off deliberately is not a request - it is the state he chose,
+       * and weighting it would push the person he decided to stop measuring
+       * above somebody who is actually waiting.
+       */
       return 0;
   }
 }

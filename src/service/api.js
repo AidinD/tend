@@ -132,7 +132,14 @@ export {
 /* --------------------------------------------------------------- duties -- */
 
 /* Moved to duties.js and re-exported, so the service surface is unchanged. */
-export { decideDuty, proposeDuty, removeRow, updateDuty } from "./duties.js";
+export {
+  clearPersonCadence,
+  decideDuty,
+  proposeDuty,
+  removeRow,
+  setPersonCadence,
+  updateDuty
+} from "./duties.js";
 
 /* ---------------------------------------------------------------- plans -- */
 

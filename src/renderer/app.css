@@ -2549,6 +2549,7 @@ kbd {
 
 /* Nothing is being asked of you, so nothing is coloured. */
 .tile-inStep .tile-says,
+.tile-noClock .tile-says,
 .tile-noDuty .tile-says,
 .tile-away .tile-says,
 .tile-leaving .tile-says,

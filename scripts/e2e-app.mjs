@@ -5057,6 +5057,158 @@ try {
     }
   });
 
+  step("How often a duty runs for one person");
+
+  /*
+   * The clock rows on a person's page, and the three states they can be in.
+   *
+   * The one worth driving in the real app rather than only in a unit test is
+   * the switched-off row: it exists precisely so that a deliberate decision is
+   * not represented by an absence, and an absence is exactly what a renderer
+   * gets wrong silently. If the row stopped being drawn, the page would look
+   * perfectly fine and the decision would be invisible.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"setPersonCadence\"]') !== null",
+    "the clock rows"
+  );
+
+  const readClocks = `(() => {
+        const rows = [...document.querySelectorAll('[data-act="setPersonCadence"]')].map((b) => {
+          const line = b.closest('.line');
+          return {
+            duty: b.getAttribute('data-duty-name'),
+            text: (line.querySelector('.line-text')?.textContent ?? '').replace(/\\s+/g, ' ').trim(),
+            pills: [...line.querySelectorAll('.pill')].map((p) => p.textContent.trim()),
+            dutyDays: b.getAttribute('data-duty-days'),
+            every: b.getAttribute('data-every'),
+            muted: b.getAttribute('data-muted')
+          };
+        });
+        return JSON.stringify(rows);
+      })()`;
+
+  const clocksBefore = JSON.parse(String(await page.evaluate(readClocks)));
+  check("every duty that reaches this person is a row with its own control", () => {
+    if (clocksBefore.length < 2) {
+      throw new Error(
+        `${clocksBefore.length} clock rows, so nothing here could prove one duty is left alone: ${JSON.stringify(clocksBefore)}`
+      );
+    }
+    const nameless = clocksBefore.filter((/** @type {any} */ c) => !c.duty);
+    if (nameless.length > 0) {
+      throw new Error("a row's control does not say which duty it is about");
+    }
+    const own = clocksBefore.filter((/** @type {any} */ c) => c.every !== "");
+    if (own.length > 0) {
+      throw new Error(`something already carries its own interval: ${JSON.stringify(own)}`);
+    }
+  });
+
+  const first = clocksBefore[0];
+  const second = clocksBefore[1];
+
+  await page.click('[data-act="setPersonCadence"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the cadence form");
+  await page.fillDialog({ cadenceDays: "30", off: "no" });
+  await sleep(400);
+
+  const afterSet = JSON.parse(String(await page.evaluate(readClocks)));
+  check("one person's interval overrides the duty's, and says it is his own", () => {
+    const row = afterSet.find((/** @type {any} */ c) => c.duty === first.duty);
+    if (!row) {
+      throw new Error(`the row for "${first.duty}" is gone`);
+    }
+    if (!/30 dagar/.test(String(row.text))) {
+      throw new Error(`the row does not carry the new interval: "${row.text}"`);
+    }
+    if (!row.pills.some((/** @type {string} */ x) => /30 d/.test(x))) {
+      throw new Error(`nothing says the interval is his own rather than the duty's: ${JSON.stringify(row.pills)}`);
+    }
+  });
+
+  check("and the person's other duty is left exactly where it was", () => {
+    /*
+     * The whole reason this is not a field on the person. Somebody the user
+     * leads carries a conversation every fortnight and a feedback round every
+     * quarter, and setting the first must not drag the second to a month.
+     */
+    const row = afterSet.find((/** @type {any} */ c) => c.duty === second.duty);
+    if (!row) {
+      throw new Error(`the row for "${second.duty}" is gone`);
+    }
+    if (row.text !== second.text) {
+      throw new Error(`"${second.duty}" changed: "${second.text}" became "${row.text}"`);
+    }
+    if (row.every !== "") {
+      throw new Error(`"${second.duty}" picked up an interval of its own`);
+    }
+  });
+
+  await page.click('[data-act="setPersonCadence"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the cadence form");
+  await page.fillDialog({ off: "yes", why: "kontakten är händelsedriven, inget intervall är sant" });
+  await sleep(400);
+
+  const afterMute = JSON.parse(String(await page.evaluate(readClocks)));
+  check("a switched-off clock stays a row rather than becoming an absence", () => {
+    const row = afterMute.find((/** @type {any} */ c) => c.duty === first.duty);
+    if (!row) {
+      throw new Error(
+        "the switched-off duty is gone from the page, so the only trace of the decision is an absence"
+      );
+    }
+    if (row.muted !== "1") {
+      throw new Error(`the row does not read as switched off: ${JSON.stringify(row)}`);
+    }
+    if (!row.pills.some((/** @type {string} */ x) => x === T.people.cadenceMutedPill)) {
+      throw new Error(`no pill says it is off: ${JSON.stringify(row.pills)}`);
+    }
+  });
+
+  check("and says both why it is off and how long since the last contact", () => {
+    // Going quiet about the clock is not going quiet about the person. Without
+    // the age, switching one off would be indistinguishable from hiding them.
+    const row = afterMute.find((/** @type {any} */ c) => c.duty === first.duty);
+    if (!/händelsedriven/.test(String(row.text))) {
+      throw new Error(`the reason it was switched off is not on the row: "${row.text}"`);
+    }
+    if (!/senast/.test(String(row.text))) {
+      throw new Error(`the row says nothing about the last contact: "${row.text}"`);
+    }
+    if (/\d+ dagar/.test(String(row.text))) {
+      throw new Error(`a switched-off clock is still claiming an interval: "${row.text}"`);
+    }
+  });
+
+  await page.click('[data-act="setPersonCadence"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the cadence form");
+  await page.fillDialog({ cadenceDays: "", off: "no" });
+  await sleep(400);
+
+  const afterClear = JSON.parse(String(await page.evaluate(readClocks)));
+  check("emptying the field puts the person back on the duty's own interval", () => {
+    /*
+     * A removal rather than a write, so changing the duty later still moves
+     * this person with everybody else. A cleared override that had copied the
+     * duty's current number would look identical here and diverge silently
+     * later.
+     */
+    const row = afterClear.find((/** @type {any} */ c) => c.duty === first.duty);
+    if (!row) {
+      throw new Error(`the row for "${first.duty}" is gone`);
+    }
+    if (row.muted === "1" || row.every !== "") {
+      throw new Error(`still overridden: ${JSON.stringify(row)}`);
+    }
+    if (row.text !== first.text) {
+      throw new Error(`did not come back to where it started: "${first.text}" is now "${row.text}"`);
+    }
+  });
+
   step("Finishing up");
 
   /*
