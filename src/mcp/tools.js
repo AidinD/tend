@@ -72,8 +72,10 @@ export const TOOLS = [
     name: "tend_person",
     description:
       "Everything Tend knows about one person: how the user relates to them, every cadence " +
-      "that applies and how far behind it is, open promises, recent contact, and logged " +
-      "observations. Accepts a name or part of one.",
+      "that applies and how far behind it is, open promises, recent contact, logged " +
+      "observations, and how their feedback rounds stand per axis. Accepts a name or part " +
+      "of one. For the individual answers in a round, with who gave each one and how much " +
+      "they are weighed, use tend_assessments.",
     inputSchema: {
       type: "object",
       properties: { person: { type: "string", description: "Name, part of a name, or id." } },
@@ -81,6 +83,38 @@ export const TOOLS = [
       additionalProperties: false
     },
     run: (store, args, now) => api.person(store, args.person, now)
+  },
+  {
+    /*
+     * Read only, and the write side stays absent on purpose.
+     *
+     * A session preparing a 1-1 or a pay conversation has to work from the same
+     * ground the window shows, or it prepares from a different picture of the
+     * same person - which is worse than having nothing, because it reads as
+     * agreement. `tend_person` carries the aggregate; this carries the answers,
+     * which are about the assessors as much as about the subject and are
+     * therefore asked for rather than handed over.
+     *
+     * Nothing here can record one. A number about a named colleague, produced
+     * by anything other than the colleague who gave it, is the
+     * highest-consequence row this app holds - see DECISIONS.md, and the test
+     * that fails if a write tool appears before that is decided.
+     */
+    name: "tend_assessments",
+    description:
+      "One person's feedback rounds, in full: every answer with its date, who assessed, " +
+      "which question set, the score per axis, what they wrote, and how much that assessor " +
+      "is weighed. Plus the aggregate per axis and per set with its own count and spread. " +
+      "There is deliberately no single figure for a person - two assessors who answered " +
+      "different questions never meet in one number. Read this before preparing a review " +
+      "or a pay conversation. Cannot record anything; entering a round is done in the app.",
+    inputSchema: {
+      type: "object",
+      properties: { person: { type: "string", description: "Name, part of a name, or id." } },
+      required: ["person"],
+      additionalProperties: false
+    },
+    run: (store, args, now) => api.assessments(store, args.person, now)
   },
   {
     name: "tend_people",

@@ -99,7 +99,12 @@ export {
 
 /* One assessor's answers about one person. See domain/assessments.js for why
    there is no single figure per person and why the assessor is always named. */
-export { assessments, recordAssessment, removeAssessment } from "./assessments.js";
+export {
+  assessmentSummary,
+  assessments,
+  recordAssessment,
+  removeAssessment
+} from "./assessments.js";
 
 /* ----------------------------------------------------------------- aims -- */
 

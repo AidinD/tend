@@ -3,6 +3,59 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-07 - A round is readable by both clients, writable by one
+
+**Decided.** `tend_person` carries the aggregate of somebody's feedback rounds;
+`tend_assessments` carries the answers, with who gave each one, what they wrote
+and how much they are weighed. Nothing over MCP writes one.
+
+**Why reading had to open.** A round was entered in the window and no read
+outside it could confirm the rows had landed at all. The real cost is downstream
+of that: a session preparing a 1-1 or a pay conversation from a different
+picture of the same person is worse than one preparing from nothing, because it
+reads as agreement rather than as absence.
+
+**Split between the two reads, not at the feature boundary.** An aggregate is
+about the subject. An individual answer is about the assessor as much as about
+them - who said it, how much it is worth and why - so it is asked for through
+its own tool instead of arriving in every payload that asks who somebody is.
+This reverses a note written the same afternoon, which kept assessments out of
+`person()` entirely for that reason; the reason was right about the answers and
+wrong about the aggregate, and the split is what it should have said.
+
+Three tests hold it: the person payload carries no assessor name, no free text
+and no reason anybody is weighed low; and the same three are asserted again over
+the wire in `scripts/e2e-mcp.mjs`.
+
+**The write boundary is now checked on behaviour, not on a name.** The first
+version of that test refused any tool whose name mentioned assessments at all,
+so the read tool this card exists to add tripped it - a check that forbade the
+wrong thing and would have been "fixed" by deleting it. What is actually
+forbidden is a write, and the store can answer that: reading a person and their
+rounds over MCP must leave the event count unchanged.
+
+**Proving the read needed a seeded store.** A round cannot be written over MCP by
+design, so the only honest way to show an agent can read one is to put it there
+another way first - through the service, as the window would, into the same
+scratch directory the server then opens. The store refused an invented writer
+role along the way, which is the right refusal.
+
+**Left to him: when a round counts as run.** Recording an assessment does not
+satisfy the 90-day duty, so it stood as never run after two people's answers
+were entered, and the survey contacts had to be logged by hand for both. The
+plumbing is already complete and that is the finding: the duty declares
+`evidenceKinds: ["survey"]` and `survey` is a real contact kind, so this is one
+call to `logTouch` away. Which is exactly why it must not be made here.
+
+The failure to avoid is specific and nearly happened: one assessor's 5/5/4 with
+every comment box empty, weighed low, would have marked a person as tended for
+a year. Four candidates are on the card - every answer satisfies it; never
+automatic, made deliberate rather than accidental; an offer he accepts, which
+is the shape the rest of the app already uses for cadences and the role map; or
+a threshold on the round, which is the eventual right answer and blocks on the
+pending-request concept that is not built. Recommendation stated, decision not
+taken.
+
 ## 2026-09-07 - An observation is one line that opens, and neither of the obvious fixes
 
 **Decided.** Every observation on a person's page is a scannable line that

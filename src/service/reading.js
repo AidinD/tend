@@ -29,6 +29,7 @@ import { mutedDuties } from "../domain/overrides.js";
 import { agoWords, daysSince, driftBadge, humanDays } from "../domain/time.js";
 import { isUnspecified } from "../domain/workstreams.js";
 import { lastReviewRun } from "./reflection.js";
+import { assessmentSummary } from "./assessments.js";
 import { linksFor } from "./links.js";
 import { resolvePerson, resolveProject } from "./resolve.js";
 
@@ -279,6 +280,19 @@ export function person(store, query, now) {
       return { ...s, lastWords: s.sinceLastDays === null ? null : agoWords(s.sinceLastDays) };
     })(),
     observations: evidence,
+    /*
+     * The aggregate of the feedback rounds, and not the answers.
+     *
+     * `person()` is read by the window and by an agent over MCP, and a session
+     * preparing a 1-1 needs the same ground the window shows or it prepares
+     * from a different picture. But an individual answer is about the assessor
+     * as much as about the subject - who said it, how much it is worth, why -
+     * so those stay behind `tend_assessments`, which has to be asked for.
+     *
+     * Null when nobody has been assessed, which is not the same as a round
+     * having come back empty.
+     */
+    assessments: assessmentSummary(store, String(p.id), now),
     // Material about them that lives elsewhere, newest first and carrying its
     // age. See domain/links.js for why the age is the part that matters.
     links: linksFor(store, p.id, now)

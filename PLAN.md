@@ -110,6 +110,11 @@ Tend event log <──┤
   budgets are deterministic code; the model only reads prose and writes drafts.
 - Storage is an append-only event log, one file per writer, safe for concurrent
   writers on a Dropbox-synced folder.
+- **A round is readable by both clients and writable by only one.**
+  `tend_person` carries the aggregate, `tend_assessments` the answers; nothing
+  over MCP records one. A session preparing a 1-1 works from the same ground the
+  window shows, which is the point - preparing from a different picture reads as
+  agreement.
 - **A round of feedback is stored, and there is no figure per person.**
   `assessments` holds one assessor's answers about one person on one occasion,
   carrying the axis labels it was answered on rather than pointing at an
@@ -426,8 +431,16 @@ block for the part the notes do not answer.
 - **Whether an agent may transcribe a form response into an assessment.** A
   number about a named colleague produced by anything but the colleague who gave
   it is the highest-consequence row in the app, and transcription is also the
-  obvious use for an agent. Closed for now, with a test that fails if a tool
-  appears before the question is answered.
+  obvious use for an agent. Reading is open, writing is closed, with a test that
+  fails if a write tool appears before the question is answered.
+- **When a feedback round counts as run.** Recording an assessment does not
+  satisfy the 90-day duty, so it stood as never run after two people's answers
+  were entered and the survey contacts had to be logged by hand. The mechanism
+  is already there - the duty declares `evidenceKinds: ["survey"]` and `survey`
+  is a real contact kind - so the question is only whether recording should fire
+  it and on what. One careless answer marking somebody as tended for a year is
+  the failure to avoid, and it nearly happened. Alternatives on the card;
+  deliberately not wired.
 - **What the assessor's weight should DO to an aggregate.** The field is stored
   from the first round because the knowledge does not survive six months, and it
   moves nothing until this is decided. Its own card.

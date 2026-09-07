@@ -78,6 +78,26 @@ duty's status, adjusts a cadence, or sets a focus. `decideDuty` exists in the
 service layer and is deliberately not exposed here, and there is a test that
 fails if a tool matching `decide|accept|activate` ever appears in the manifest.
 
+A feedback round is the sharpest case of the same line, and it is drawn between
+reading and writing rather than at the boundary of the feature. `tend_person`
+carries how somebody's rounds stand per axis and `tend_assessments` carries the
+answers themselves - with who gave each one, what they wrote and how much they
+are weighed - because a session preparing a review from a different picture of
+the same person is worse than one preparing from nothing: it reads as agreement.
+
+Nothing writes one. A number about a named colleague, produced by anything other
+than the colleague who gave it, is the highest-consequence row this app holds.
+That is parked rather than settled - transcribing a form response is a real use
+for an agent - and a test fails if a tool named for writing one appears before
+the question is answered, plus a second that reads a person and their rounds
+over MCP and asserts the event log did not grow.
+
+The two reads are also split from each other on purpose. An aggregate is about
+the subject; an individual answer is about the assessor as much as about them,
+so it is asked for rather than arriving in every payload that asks who somebody
+is. A test checks the person payload carries no assessor name, no free text and
+no reason anybody is weighed low.
+
 That covers a duty's own interval. It also covers **how often a duty runs for
 one person**, which is the finer version of the same thing: `setPersonCadence`
 and `clearPersonCadence` write a row per (person, duty), and neither is exposed

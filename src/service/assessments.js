@@ -17,6 +17,7 @@ import {
   occasions
 } from "../domain/assessments.js";
 import { WEIGHTS } from "../domain/assessments.js";
+import { agoWords, daysSince } from "../domain/time.js";
 import { resolvePerson } from "./resolve.js";
 
 /** @param {unknown} value */
@@ -159,6 +160,55 @@ export function removeAssessment(store, id) {
   }
   store.remove("assessments", String(row.id));
   return { removed: `${String(row.assessor ?? "")}, ${String(row.setName ?? "")}` };
+}
+
+/**
+ * What the rounds about one person amount to, without anybody's answer.
+ *
+ * The aggregate and nothing else: how many occasions, how long ago, and the
+ * per-axis figures with their counts. No assessor names, no free text, no
+ * individual rows.
+ *
+ * That split is the point rather than an economy. An aggregate is about the
+ * subject; an individual answer is about the assessor as much as about them -
+ * who said it, how much it is worth and why - and that belongs behind an
+ * explicit ask instead of arriving in every payload that asks who somebody is.
+ * `assessments` below is that ask.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} personId
+ * @param {number} now
+ */
+export function assessmentSummary(store, personId, now) {
+  const rows = store
+    .rows("assessments")
+    .filter((a) => !a._deleted && String(a.person) === String(personId))
+    .map((a) => assessmentStanding(a, now));
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const days = occasions(rows);
+  const last = rows.reduce((newest, r) => Math.max(newest, r.at), 0);
+  return {
+    answers: rows.length,
+    rounds: days.length,
+    lastAt: last,
+    lastAnswered: agoWords(daysSince(last, now) ?? 0),
+    trendPossible: days.length > 1,
+    /*
+     * How many answers came with nothing written. Carried in the summary
+     * because it changes how every figure beside it should be read, and
+     * because it is the one thing a reader would otherwise have to open the
+     * rows to find out. Top marks with every box empty reads as a strong
+     * result and is closer to no answer at all.
+     */
+    saidNothing: rows.filter((r) => !r.saidAnything).length,
+    /* Same reasoning: a colliding pair moves every mean above it. */
+    doubles: doubleAnswers(rows).length,
+    byAxis: byAxis(rows)
+  };
 }
 
 /**

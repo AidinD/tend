@@ -32,7 +32,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import * as api from "../src/service/api.js";
-import { TOOLS } from "../src/mcp/tools.js";
+import { TOOLS, callTool } from "../src/mcp/tools.js";
 import { WEIGHTS, byAxis, doubleAnswers, isScore, occasions } from "../src/domain/assessments.js";
 import { personBlocksIn } from "../src/domain/halves.js";
 import { openStore } from "../src/storage/store.js";
@@ -370,17 +370,53 @@ describe("where these rows may and may not appear", () => {
     assert.equal(personBlocksIn("private").assessments, false);
   });
 
-  it("gives no agent a way to write one", () => {
+  it("lets an agent read a round, so a 1-1 is prepared from the same ground", () => {
     /*
-     * Left closed for now rather than settled: a number about a named colleague
-     * produced by anything other than the colleague who gave it is the
+     * A session preparing a review from a different picture of the same person
+     * is worse than one with nothing, because it reads as agreement.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testproducent" }));
+
+    const read = ok(callTool(store, "tend_assessments", { person: String(who.id) }, NOW));
+    assert.equal(read.answers.length, 1);
+    assert.equal(read.answers[0].assessor, "Testproducent");
+  });
+
+  it("and no agent a way to write one", () => {
+    /*
+     * Left closed rather than settled: a number about a named colleague,
+     * produced by anything other than the colleague who gave it, is the
      * highest-consequence row in this app. Whether an agent may transcribe a
-     * form response is written on the card as a question, and this is what
-     * stops it being answered by quietly adding a tool.
+     * form response is on the card as a question, and this stops it being
+     * answered by quietly adding a tool.
+     *
+     * Checked on behaviour and not only on names, which is the fix to this
+     * check rather than an addition to it. The first version refused any tool
+     * whose name mentioned assessments at all, so the read tool this card
+     * exists to add tripped it - a check that forbade the wrong thing. What is
+     * actually forbidden is a write, and the store can say whether one
+     * happened.
      */
     const names = TOOLS.map((t) => t.name);
-    const found = names.filter((n) => /assess|rating|evaluat/i.test(n));
-    assert.deepEqual(found, [], `an MCP tool can write an assessment: ${found.join(", ")}`);
+    const writers = names.filter((n) =>
+      /(record|log|add|set|write|remove|delete|update)/i.test(n) && /assess|rating|evaluat/i.test(n)
+    );
+    assert.deepEqual(writers, [], `an MCP tool is named as if it writes one: ${writers.join(", ")}`);
+
+    const who = person();
+    ok(record(String(who.id)));
+    const before = store.state().applied;
+
+    for (const name of names.filter((n) => /assess|person/i.test(n))) {
+      callTool(store, name, { person: String(who.id) }, NOW);
+    }
+
+    assert.equal(
+      store.state().applied,
+      before,
+      "reading a person or their rounds over MCP wrote something to the log"
+    );
   });
 });
 
@@ -432,5 +468,73 @@ describe("the pieces underneath", () => {
       { id: "d", at: NOW, assessor: "  ", scores: [] }
     ];
     assert.deepEqual(doubleAnswers(/** @type {any} */ (rows)), []);
+  });
+});
+
+describe("what a person's page carries about a round, and what it does not", () => {
+  it("carries the aggregate so a session sees the same ground as the window", () => {
+    /*
+     * The gap this card exists for: a round was entered in the app and no read
+     * outside it could say the rows had landed at all.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "En" }));
+    ok(record(String(who.id), { assessor: "Två", scores: [{ axis: "Kommunikation", score: 5 }] }));
+
+    const page = ok(api.person(store, String(who.id), NOW));
+    assert.ok(page.assessments, "a person's page says nothing about their rounds");
+    assert.equal(page.assessments.answers, 2);
+    assert.equal(page.assessments.rounds, 1);
+    assert.equal(page.assessments.trendPossible, false);
+    assert.ok(
+      page.assessments.byAxis.some((/** @type {any} */ a) => a.axis === "Kommunikation" && a.n === 2)
+    );
+  });
+
+  it("but not who said what, nor what they wrote", () => {
+    /*
+     * The split is the point rather than an economy. An aggregate is about the
+     * subject; an individual answer is about the assessor as much as about them,
+     * so it is asked for through tend_assessments instead of arriving in every
+     * payload that asks who somebody is.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        note: "en mening som inte ska läcka hit",
+        weighWhy: "slarvig"
+      })
+    );
+
+    const page = ok(api.person(store, String(who.id), NOW));
+    const json = JSON.stringify(page.assessments);
+    assert.doesNotMatch(json, /Testproducent/, "an assessor's name is in the person payload");
+    assert.doesNotMatch(json, /inte ska läcka/, "an assessor's free text is in the person payload");
+    assert.doesNotMatch(json, /slarvig/, "why an assessor is weighed low is in the person payload");
+  });
+
+  it("says nothing rather than zero when nobody has been assessed", () => {
+    // Null and not an empty aggregate: "no round has been run" and "a round came
+    // back empty" are different facts, and one figure of 0 would read as the
+    // second.
+    const who = person();
+    assert.equal(ok(api.person(store, String(who.id), NOW)).assessments, null);
+  });
+
+  it("carries the two facts that change how every figure beside them reads", () => {
+    /*
+     * How many assessors wrote nothing, and whether anybody answered twice in a
+     * day. Both are in the summary because a reader would otherwise have to
+     * open the rows to find out, and both change what the means mean.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testproducent", note: "" }));
+    ok(record(String(who.id), { assessor: "testproducent", note: "" }));
+
+    const summary = ok(api.person(store, String(who.id), NOW)).assessments;
+    assert.ok(summary, "no aggregate at all, so this proved nothing");
+    assert.equal(summary.saidNothing, 2);
+    assert.equal(summary.doubles, 1);
   });
 });
