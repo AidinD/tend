@@ -268,7 +268,16 @@ async function personPage(id) {
           ? pill(c.urgency)
           : `<span class="pill plain">${words.cadenceOwnPill(Number(c.everyDays))}</span>${pill(c.urgency)}`;
 
-      return `<div class="line">
+      /*
+       * The row carries the drift, not only the pill at the far right of it.
+       *
+       * On a wide window the pill is most of a screen away from the sentence it
+       * is about, so a page of these read as one grey field and the late one was
+       * no easier to find than the rest. A switched-off clock gets no bar: there
+       * is no drift to be urgent about, and a coloured edge would be the page
+       * inventing one.
+       */
+      return `<div class="line${c.muted || !c.urgency ? "" : ` sev-${esc(String(c.urgency))}`}">
         <span class="line-when">${esc(String(c.behindBy ?? ""))}</span>
         <span class="line-text">${
           c.muted
@@ -290,7 +299,7 @@ async function personPage(id) {
 
   const promises = p.openPromises
     .map(
-      (/** @type {any} */ x) => `<div class="line">
+      (/** @type {any} */ x) => `<div class="line sev-${esc(String(x.urgency))}">
         <span class="line-when">${esc(x.openFor)}</span>
         <span class="line-text">${esc(x.text)}</span>
         <span class="line-right">

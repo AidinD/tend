@@ -183,19 +183,27 @@ function aimCard(a) {
 /**
  * One logged occasion.
  *
- * Taken is marked and missed is left plain rather than warned about. The gap
- * between the two IS the reading - `domain/aims.js` says so - and a red pill on
- * every miss would turn a log he is supposed to keep honestly into one he has a
- * reason to leave a row out of.
+ * Both kinds are marked, and the first version of this marked only the taken
+ * ones - on the reasoning that the gap between the two IS the reading rather
+ * than a failure, so a red row would read as a telling-off. That was the wrong
+ * conclusion from the right premise. A pattern you cannot scan is not a
+ * pattern, and with the only marker a pill at the far right of a wide window,
+ * eight rows of identical grey were unreadable in exactly the way that makes
+ * the pair of counts worthless.
+ *
+ * So the marks are their own pair - `occ-taken` and `occ-missed`, not the drift
+ * severities - and weighted asymmetrically: taken carries an edge, missed
+ * carries an edge and a faint tint. Nothing here can be sorted or escalated as
+ * though it were late, which is what the original reasoning was protecting.
  *
  * @param {any} o
  */
 function occasionLine(o) {
-  return `<div class="line">
+  return `<div class="line ${o.happened ? "occ-taken" : "occ-missed"}">
     <span class="line-when">${esc(String(o.when))}</span>
     <span class="line-text">${esc(String(o.note))}</span>
     <span class="line-right">
-      <span class="pill ${o.happened ? "ok" : "plain"}">${o.happened ? words.aimTaken : words.aimMissed}</span>
+      <span class="pill ${o.happened ? "ok" : "miss"}">${o.happened ? words.aimTaken : words.aimMissed}</span>
     </span>
   </div>`;
 }

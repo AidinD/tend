@@ -526,7 +526,8 @@ main {
  * severities that want something have one.
  */
 .card::before,
-.row::before {
+.row::before,
+.line::before {
   content: "";
   position: absolute;
   left: 0;
@@ -541,6 +542,26 @@ main {
 .row {
   position: relative;
   overflow: hidden;
+}
+
+/*
+ * And lines, which are the densest surface in the app and were the last one
+ * with no severity vocabulary at all.
+ *
+ * A person's page is almost entirely lines, so a feedback round fifty weeks
+ * overdue and a conversation in step were the same grey slab and the page read
+ * as one field with nothing to scan. The bar is 4px of colour against a row
+ * that is otherwise identical to its neighbours, which is the whole difference
+ * between a list you read and a list you skim past.
+ *
+ * The left padding is set here rather than per severity, so text stays aligned
+ * whether or not a line has a bar. A padding that appeared with the colour
+ * would shift every marked row two pixels out of the column.
+ */
+.line {
+  position: relative;
+  overflow: hidden;
+  padding-left: 13px;
 }
 
 /*
@@ -580,7 +601,8 @@ main {
   border-color: var(--critical-edge);
 }
 .card.sev-critical::before,
-.row.sev-critical::before {
+.row.sev-critical::before,
+.line.sev-critical::before {
   background: var(--critical);
 }
 
@@ -596,7 +618,8 @@ main {
   border-color: var(--warn-edge);
 }
 .card.sev-warn::before,
-.row.sev-warn::before {
+.row.sev-warn::before,
+.line.sev-warn::before {
   background: var(--warn);
 }
 
@@ -612,13 +635,55 @@ main {
 }
 
 .card.sev-watch::before,
-.row.sev-watch::before {
+.row.sev-watch::before,
+.line.sev-watch::before {
   background: var(--warn);
   opacity: 0.55;
 }
 .card.sev-ok::before,
-.row.sev-ok::before {
+.row.sev-ok::before,
+.line.sev-ok::before {
   background: var(--ok);
+}
+
+/*
+ * A line's tint is written separately from a row's because it composites over a
+ * different surface. A row sits on `--surface` and a line on `--surface-2`, so
+ * reusing the row's rule put the tint over the wrong base and the line came out
+ * lighter than the card it sat inside.
+ *
+ * Only the two that want something are tinted. Watch and ok get the bar and no
+ * tint, which is what keeps a list of five lines from becoming a second flat
+ * field in a different colour.
+ */
+.line.sev-critical {
+  background: linear-gradient(var(--critical-soft), var(--critical-soft)), var(--surface-2);
+}
+.line.sev-warn {
+  background: linear-gradient(var(--warn-soft), var(--warn-soft)), var(--surface-2);
+}
+
+/*
+ * An aim's occasions, taken and missed.
+ *
+ * Not the severity classes. Nothing here is late or wrong - the gap between the
+ * two counts IS the reading an aim exists to produce - so these carry their own
+ * pair of names and cannot be sorted, filtered or escalated as drift.
+ *
+ * Marked asymmetrically on purpose. Taken gets the bar alone and missed gets
+ * the bar and a faint tint, so a run of eight rows can be scanned from either
+ * end: the greens read as a column of edges, the misses as the ones that carry
+ * weight. Tinting both would put the list back to one flat field in two
+ * colours, which is the state that made this unreadable.
+ */
+.line.occ-taken::before {
+  background: var(--ok);
+}
+.line.occ-missed::before {
+  background: var(--critical);
+}
+.line.occ-missed {
+  background: linear-gradient(var(--critical-soft), var(--critical-soft)), var(--surface-2);
 }
 .card.sev-proposed::before {
   background: var(--book);
@@ -899,6 +964,21 @@ button.row.sev-warn:hover {
 .pill.plain {
   background: var(--surface-2);
   color: var(--text-faint);
+}
+
+/*
+ * A missed occasion, which is not a severity and must not borrow one.
+ *
+ * Its own name rather than `.pill.critical` even though the colours are the
+ * same family: a missed occasion is half of the reading an aim is for, not
+ * something wrong, and a class called critical on it would be the first step to
+ * somebody sorting or filtering it as though it were. Muted a shade below the
+ * critical pill for the same reason.
+ */
+.pill.miss {
+  background: var(--critical-soft);
+  color: var(--critical-text);
+  opacity: 0.85;
 }
 
 .tag {

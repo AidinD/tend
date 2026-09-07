@@ -41,6 +41,25 @@
  */
 
 export const T = {
+  /*
+   * How urgent something reads, in words.
+   *
+   * `pill()` printed the severity key straight into the markup, so a Swedish
+   * page carried "critical" and "ok" in lowercase English on every row that had
+   * a drift - the one place the translation sweep could not see, because the
+   * string was never written down anywhere to be found.
+   *
+   * Keyed by the domain's own four names so a severity added to
+   * `SEVERITY_ORDER` has to be worded here before it can render, rather than
+   * falling through as its own identifier.
+   */
+  severity: {
+    critical: "kritiskt",
+    warn: "sent",
+    watch: "snart",
+    ok: "i fas"
+  },
+
   now: {
     readFailedTitle: "Kunde inte läsa datan",
 
@@ -1781,9 +1800,14 @@ export const T = {
      *
      * Two numbers with nothing under them is an impression, which is the exact
      * thing an aim is supposed to replace - so the row that carries them is the
-     * thing you click. The two words per occasion do the sorting at a glance;
-     * a miss is deliberately not coloured as a warning, because a missed
-     * occasion is half of the reading rather than a failure.
+     * thing you click.
+     *
+     * Both words are coloured, and the row under them is too. The two words
+     * alone were the whole marker for a while and they sit at the far right of
+     * a wide window, most of a screen from the sentence they are about - so a
+     * run of eight occasions was unscannable, which is the same as having only
+     * the counts. See `occasionLine` in the reflection view for why a missed
+     * one gets weight without being treated as late.
      */
     aimOccasionsOpen: "Öppna dem och läs igenom",
     aimTaken: "Tagen",

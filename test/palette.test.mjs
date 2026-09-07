@@ -26,6 +26,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
+import { SEVERITY_ORDER } from "../src/domain/cadence.js";
+import { T } from "../src/renderer/text.js";
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const css = readFileSync(join(root, "src", "renderer", "app.css"), "utf8");
 
@@ -411,6 +414,57 @@ describe("severity is visible without reading anything", () => {
         new RegExp(`\\.row\\.sev-${sev}(::before)?[,\\s{]`),
         `.row.sev-${sev} should exist, or a row cannot show what a card can`
       );
+    }
+  });
+
+  it("and on a line, which is the surface a person's page is made of", () => {
+    /*
+     * The one that was missing, and the reason a person's page read as one grey
+     * field: a feedback round fifty weeks overdue and a conversation in step
+     * were the same slab, because `.line` was the only surface in this file
+     * with no severity vocabulary at all.
+     */
+    for (const sev of ["critical", "warn", "watch", "ok"]) {
+      // Searched as a string rather than a regex. The row's twin above needs a
+      // regex because it matches two shapes; this one does not, and a dotted
+      // selector inside a template literal is exactly where an escape gets
+      // eaten and the check quietly matches nothing.
+      assert.ok(
+        css.includes(`.line.sev-${sev} {`) || css.includes(`.line.sev-${sev}::before`),
+        `.line.sev-${sev} should exist, or a line cannot show what a row can`
+      );
+    }
+  });
+
+  it("gives a line somewhere to hang a bar, or the bar is not drawn where it belongs", () => {
+    // `position: relative` and `overflow: hidden`, the two a card sets and the
+    // row had to be given when it gained a bar. An absolutely positioned
+    // ::before inside a static parent hangs off the nearest ancestor that is
+    // not, which draws the bar down the side of the whole card instead.
+    const at = css.indexOf(".line {");
+    assert.ok(at >= 0, ".line should exist");
+    const own = css.slice(at, css.indexOf("}", at));
+    assert.match(own, /position:\s*relative/, `.line: ${own.replace(/\s+/g, " ")}`);
+    assert.match(own, /overflow:\s*hidden/, `.line: ${own.replace(/\s+/g, " ")}`);
+  });
+
+  it("words every severity it can paint, rather than printing the key", () => {
+    /*
+     * `pill()` used to render the severity key straight into the markup, so a
+     * Swedish page said "critical" and "ok" in lowercase English on every row
+     * carrying a drift. The translation sweep could not have found it: the
+     * string was never written down anywhere, it WAS the identifier.
+     *
+     * Read from the domain rather than listed here, so a fifth severity has to
+     * be worded before it can reach a page.
+     */
+    for (const sev of SEVERITY_ORDER) {
+      const word = /** @type {Record<string, string>} */ (T.severity)[sev];
+      assert.ok(
+        typeof word === "string" && word.trim() !== "",
+        `severity "${sev}" has no word, so a pill would print the key`
+      );
+      assert.notEqual(word, sev, `severity "${sev}" is worded as its own key`);
     }
   });
 });

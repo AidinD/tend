@@ -45,9 +45,41 @@ export function esc(value) {
   );
 }
 
-/** @param {string} severity */
+/**
+ * How urgent something is, as a pill.
+ *
+ * The class stays the severity key - the palette is keyed on it - and the text
+ * comes from the vocabulary. It used to be the key in both places, so every row
+ * carrying a drift said "critical" or "ok" in lowercase English on a Swedish
+ * page. The translation sweep could not have found it: the string was never
+ * written anywhere, it was the identifier.
+ *
+ * A switch on the four names rather than an index into the vocabulary, and the
+ * difference is what the vocabulary's own test can see. A dynamic lookup reads
+ * no key by name, so the check that fails on a word nothing reads cannot tell a
+ * live phrase from a dead one - and a severity added to `SEVERITY_ORDER` would
+ * then render its own identifier with nothing failing. Written out, both
+ * directions are covered: `test/text.test.mjs` catches a word nobody reads and
+ * `test/palette.test.mjs` catches a severity nobody worded.
+ *
+ * The default returns the key rather than an empty pill. A blank pill is a row
+ * that says nothing about how urgent it is while looking as though it does, and
+ * the key at least names what is missing.
+ *
+ * @param {string} severity
+ */
 export function pill(severity) {
-  return `<span class="pill ${esc(severity)}">${esc(severity)}</span>`;
+  const word =
+    severity === "critical"
+      ? T.severity.critical
+      : severity === "warn"
+        ? T.severity.warn
+        : severity === "watch"
+          ? T.severity.watch
+          : severity === "ok"
+            ? T.severity.ok
+            : severity;
+  return `<span class="pill ${esc(severity)}">${esc(word)}</span>`;
 }
 
 /**
