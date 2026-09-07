@@ -5700,6 +5700,20 @@ try {
           panelWidth: (document.querySelector('.panel') ?? { offsetWidth: null }).offsetWidth,
           cardGaps: gapsUnder('.card'),
           lineGaps: gapsUnder('.line'),
+          /* The gap above a button that ends a block, and above the first row
+             under a block's opening paragraph. Both were zero. */
+          buttonGaps: [...document.querySelectorAll('.block > .act')].map((b) => {
+            const above = b.previousElementSibling;
+            return above === null
+              ? -1
+              : Math.round(b.getBoundingClientRect().top - above.getBoundingClientRect().bottom);
+          }).filter((g) => g >= 0),
+          paragraphGaps: [...document.querySelectorAll('.block > .card-why')].map((para) => {
+            const below = para.nextElementSibling;
+            return below === null || !below.matches('.line, .line-fold, .prep-block')
+              ? -1
+              : Math.round(below.getBoundingClientRect().top - para.getBoundingClientRect().bottom);
+          }).filter((g) => g >= 0),
           widestLineText: Math.round(widest),
           lineTextCap: texts.length === 0 ? '' : getComputedStyle(texts[0]).maxWidth
         });
@@ -5743,6 +5757,33 @@ try {
     }
   });
 
+
+  check("a block's own button is not glued to the content above it", () => {
+    /*
+     * Every block that offers an action put a bare button straight under its
+     * content, so the control read as one more line of the list above it rather
+     * than as the thing you do next. Measured against the row gap, because
+     * "more than a row" is the actual claim - a number would drift when the
+     * scale moves.
+     */
+    if (shape.buttonGaps.length === 0) {
+      throw new Error("no block ends in a button here, so this proved nothing");
+    }
+    const glued = shape.buttonGaps.filter((/** @type {number} */ g) => g < 6);
+    if (glued.length > 0) {
+      throw new Error(`a block's button sits ${glued[0]}px under its content`);
+    }
+  });
+
+  check("and a block's opening paragraph is not flush on the first row it describes", () => {
+    if (shape.paragraphGaps.length === 0) {
+      throw new Error("no block opens with a paragraph over rows here, so this proved nothing");
+    }
+    const flush = shape.paragraphGaps.filter((/** @type {number} */ g) => g < 6);
+    if (flush.length > 0) {
+      throw new Error(`a paragraph sits ${flush[0]}px above the rows under it`);
+    }
+  });
 
   check("consecutive rows are separated, rather than fusing into one slab", () => {
     // Rounded tinted rows at a zero gap meet at the corners and the radius

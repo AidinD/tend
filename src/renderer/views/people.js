@@ -344,7 +344,7 @@ async function personPage(id) {
       return `<div class="block">
         <div class="block-title">${esc(words.assessmentsBlock)}</div>
         <div class="empty">${words.assessmentsNone}</div>
-        <div class="panel-actions">${button}</div>
+        ${button}
       </div>`;
     }
 
@@ -441,7 +441,7 @@ async function personPage(id) {
       ${axes}
       <div class="block-title block-title-second">${esc(words.assessmentsAnswers)}</div>
       ${rows}
-      <div class="panel-actions">${button}</div>
+      ${button}
     </div>`;
   })();
 

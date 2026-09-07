@@ -3,6 +3,52 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-07 - Air is a rule on the surface, not a patch where somebody complained
+
+**Decided.** The content column is held to 1180px, a row's text to 84ch, and the
+gaps between rows, cards, a block's trailing button and a block's opening
+paragraph are named steps rather than absences. All of it lives on the shared
+class, not on the screen that was pointed at.
+
+**Four faults were live at once and none of them was colour.** Nothing capped the
+column, so on a wide monitor every card and row was the full width of the window
+and nothing on a page differed in shape. `.line-text` had no measure at all, so a
+three-hundred-character observation was drawn as one line past every readable
+width. `.line + .line` had no gap, so rounded tinted rows met at the corners and
+a list became one grey field. `.card + .card` had none either outside `.stack`.
+
+**The column is held with padding rather than a max-width and an auto margin,**
+because `main` is the scroll container and capping its width would put the
+scrollbar in the middle of the window. The first version wrote that padding as a
+clamp with a 12vw ceiling to keep the margins from looking absurd, and the
+ceiling defeated the whole thing: on a 3240px window it won at 389px and the
+column came out 2262px, so the cap held on exactly the windows that did not need
+it. The stylesheet's own test now refuses a clamp there.
+
+**The gaps use the named steps and nothing else.** 14px and 5px were literals at
+first and the spacing test refused them, correctly - the ladder is 2/5/9/20 and
+roughly doubles, so a fifth value at 14 would be the drift that test exists to
+catch.
+
+**Then a fourth surface turned up the same evening, and the pattern is the
+finding.** A block's own button sat flush under its content and a block's opening
+paragraph sat flush on the first row it described. Air had only ever been added
+where somebody had complained, which is why the same fault kept reappearing one
+surface at a time. Both are now rules on `.block`, so a plan's "open one" and a
+direction's got the same gap without being mentioned.
+
+**Measured rather than looked at, throughout.** All four original faults were
+live at once and a screenshot of that reads as "busy" without saying which to
+fix. Seven checks in the app harness now, and two of them caught faults in
+themselves first: the gap measurement compared rows in different blocks and
+cards in different grid columns, and the width measurement fell back to `main`
+when it found no card - so on a person's page, which has none, it compared main
+with itself. A later one could never have seen a grid's vertical gap at all,
+because it compared document neighbours and in a three-across grid those sit
+side by side.
+
+**Every one of them was mutated red before being trusted.**
+
 ## 2026-09-07 - A round is offered as run, never counted as run
 
 **Decided, by him.** Recording an assessment does not satisfy the feedback-round

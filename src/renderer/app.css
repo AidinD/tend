@@ -1262,6 +1262,32 @@ button.row:hover {
   margin-top: var(--sp-block);
 }
 
+/*
+ * Air above whatever a block ends with, and under a paragraph it starts with.
+ *
+ * Every block that offers an action put a bare button straight under its
+ * content with nothing between them - a plan's "open one", a direction's, and
+ * the one for entering a round - so the control read as another line of the
+ * list above it rather than as the thing you do next. The same gap was missing
+ * under a block's opening paragraph, which sat flush on the first row it was
+ * describing.
+ *
+ * `--sp-item`, which is the step between the two things it has to separate:
+ * rows sit `--sp-label` apart and blocks `--sp-block` apart, so anything larger
+ * would read as the button having left the block.
+ *
+ * Adjacent margins collapse in normal flow, so a paragraph followed by a button
+ * gets one gap rather than two.
+ */
+.block > .act,
+.block > .card-foot {
+  margin-top: var(--sp-item);
+}
+
+.block > .card-why {
+  margin-bottom: var(--sp-item);
+}
+
 .block-title {
   font-size: var(--t-micro);
   font-weight: 600;
