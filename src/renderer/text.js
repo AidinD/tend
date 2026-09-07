@@ -829,6 +829,53 @@ export const T = {
     promisesBlock: "Öppna löften",
     promisesNone: "Inget utestående.",
     observationsBlock: "Observationer",
+    /*
+     * One line each, opening onto the paragraph.
+     *
+     * Eight of these as full paragraphs was the longest thing on a person's
+     * page by a wide margin, and they are also the most valuable thing on it -
+     * the material a review conversation is built from. So none of them is
+     * hidden and none is summarised by anything: the prose is folded, which is
+     * the same answer the proposed duties on the front page arrived at for the
+     * same reason.
+     *
+     * Not "show only the latest", which was the obvious fix and is the wrong
+     * one here. Review season weighted toward the last few weeks is the exact
+     * bias the feedback rounds exist to counter, and defaulting the record to
+     * recent-only would rebuild it on the page it is read from. The older ones
+     * are one click away, not gone, and the count says how many.
+     *
+     * Not a written summary either. A paragraph about a named colleague
+     * produced by a model is the highest-consequence text this app could draw,
+     * and there is already a labelled, rejectable pass for that behind a button.
+     */
+    /**
+     * The first part of an observation, as its handle.
+     *
+     * Cut at a word rather than mid-word, and only when there is enough left
+     * over to be worth hiding - trimming eight characters off a short note buys
+     * nothing and costs a click.
+     *
+     * @param {string} full
+     */
+    observationHandle: (full) => {
+      const one = full.replace(/\s+/g, " ").trim();
+      /*
+       * 90 and 78, and the numbers are the measure rather than taste. A row's
+       * text is capped at 84ch, so a 120-character handle wrapped to two lines
+       * and "one line each" was not true of anything on the page - which is the
+       * whole claim. 78 plus the ellipsis clears it; 90 is the point below which
+       * hiding the rest saves less than the click costs.
+       */
+      if (one.length <= 90) {
+        return one;
+      }
+      const cut = one.slice(0, 78);
+      const at = cut.lastIndexOf(" ");
+      return `${(at > 40 ? cut.slice(0, at) : cut).replace(/[,.;:-]$/, "")}...`;
+    },
+    /** @param {number} n */
+    observationsOlder: (n) => `${n} äldre`,
     observationsNone:
       "Inget registrerat. Det är det här ett utvecklingssamtal byggs av.",
     historyBlock: "Kontakthistorik",

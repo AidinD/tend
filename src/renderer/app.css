@@ -2569,6 +2569,75 @@ kbd {
   display: none;
 }
 
+/*
+ * An observation as one line that opens onto its paragraph.
+ *
+ * Scoped to these rather than given to every `.line-fold`, because the contact
+ * history's folds already carry a count pill as their affordance and adding a
+ * second marker there would be a change to a surface nobody asked about.
+ *
+ * The marker is part of the flex row rather than the platform triangle, the
+ * same substitution `.fold-head` makes and for the same reason: the default one
+ * sits outside the row and cannot be aligned with the text beside it.
+ */
+.obs-fold > summary.line::before,
+.obs-older > summary.line::before {
+  content: "";
+  flex: none;
+  /* The row aligns on the baseline, and a 0x0 element made of borders has its
+     baseline at the bottom edge - so the marker sat in the ceiling of the row
+     rather than beside the text. Centred instead of baselined. */
+  align-self: center;
+  width: 0;
+  height: 0;
+  border-left: 4px solid var(--text-faint);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transform: translateY(-1px);
+  transition: transform 120ms ease;
+}
+
+.obs-fold[open] > summary.line::before,
+.obs-older[open] > summary.line::before {
+  transform: translateY(-1px) rotate(90deg);
+}
+
+/*
+ * One line, guaranteed rather than hoped for.
+ *
+ * The handle is cut to fit the measure, and this is the net underneath it: a
+ * single unbroken word, a wider glyph set or a narrower window would otherwise
+ * wrap the summary to two lines, and a list of two-line rows is the wall this
+ * whole fold exists to undo. Clipped rather than ellipsised, because the
+ * ellipsis is already in the text and two of them read as a typo.
+ */
+.obs-fold > summary.line > .line-text {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The paragraph behind the line. Indented under it so an opened note reads as
+   belonging to its own row rather than as loose prose in the list. */
+.line-fold-text {
+  margin: var(--sp-label) 0 0;
+  padding: 0 var(--sp-item) 0 26px;
+  color: var(--text-dim);
+  font-size: var(--t-body);
+  max-width: 84ch;
+  user-select: text;
+}
+
+/*
+ * Rows and folded rows space alike. `.line + .line` cannot see a fold, because
+ * a fold is a `<details>` with the line inside it - so a list that mixed the two
+ * had a gap between some pairs and not others.
+ */
+.block > .line-fold + .line-fold,
+.block > .line-fold + .line,
+.block > .line + .line-fold {
+  margin-top: var(--sp-label);
+}
+
 .line-fold-rows {
   display: flex;
   flex-direction: column;

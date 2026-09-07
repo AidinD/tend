@@ -3,6 +3,51 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-07 - An observation is one line that opens, and neither of the obvious fixes
+
+**Decided.** Every observation on a person's page is a scannable line that
+expands to its full text. Nothing is hidden and nothing is summarised. Past six,
+the remainder goes behind one more fold that says how many.
+
+**The complaint was that they grow and grow,** with three suggestions: make the
+block collapsible, show only the latest, or show a summary. All three are worse
+than folding the rows, and the reasons are different in each case.
+
+**Collapsing the block loses.** The contact history is already folded, and the
+reason written there is that it answers "are we in step", which a badge above it
+has already answered - it is folded for being redundant, not for being long.
+Observations are the opposite: they are the material a review conversation is
+built from, which is why they were moved above the history in the first place.
+Putting the most valuable block on the page behind a click by default is a
+different feature.
+
+**Only the latest loses, and this is the interesting one.** It is the obvious fix
+and it would quietly rebuild the exact bias the feedback rounds exist to counter:
+"review season is a memory exercise weighted toward the last few weeks". Making
+the record default to recent-only puts that bias on the page the record is read
+from. The older ones are one click away rather than gone.
+
+**A written summary loses hardest.** A paragraph about a named colleague produced
+by a model is the highest-consequence text this app could draw - `tiles.js`
+already says so about a single tile sentence - and there is a labelled,
+rejectable pass behind a button for anybody who wants one.
+
+**So the prose is folded, not deleted,** which is the answer the proposed duties
+on the front page arrived at for the same problem: four of them as full cards
+made the least urgent thing on the page the largest thing on it.
+
+**A note that already fits gets no fold.** A control over no hidden text does
+nothing, and one of those teaches somebody the others might not either.
+
+**Two of my own faults, found by looking rather than by any test.** The handle
+was cut at 120 characters against a row measure of 84ch, so every "one line"
+wrapped to two and the claim was false of everything on the page. And the
+disclosure marker sat in the ceiling of its row: `.line` aligns on the baseline,
+and a 0x0 element made of borders has its baseline at its bottom edge. The
+height check that now guards the first one calibrates against the short
+unfolded note rather than a number - 34px was picked by hand and failed a
+correct 38px row.
+
 ## 2026-09-07 - A round of feedback, stored so two rounds can be compared
 
 **Decided.** `assessments` holds one assessor's answers about one person on one

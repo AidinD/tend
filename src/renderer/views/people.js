@@ -596,14 +596,66 @@ async function personPage(id) {
     .join("");
 
 
-  const observations = p.observations
-    .map(
-      (/** @type {any} */ e) => `<div class="line">
-        <span class="line-when">${esc(new Date(Number(e.at)).toISOString().slice(0, 10))}</span>
-        <span class="line-text">${esc(e.text)}</span>
-      </div>`
-    )
-    .join("");
+  /*
+   * One line each, opening onto the paragraph.
+   *
+   * These grew to eight dense paragraphs and were the longest thing on the page
+   * by a wide margin - and also the most valuable thing on it, which is why
+   * neither of the obvious fixes is right. Folding the whole block puts the
+   * material a review conversation is built from behind a click by default;
+   * showing only the latest few rebuilds the recency bias the feedback rounds
+   * exist to counter, on the page the record is read from.
+   *
+   * So nothing is hidden and nothing is summarised: every observation is a
+   * scannable line that expands to its full text, exactly the answer the
+   * proposed duties on the front page arrived at for the same problem. Past a
+   * cap the remainder goes behind one more fold with its count, because
+   * fifty short lines is still a wall.
+   */
+  const OBSERVATIONS_SHOWN = 6;
+
+  const observationLine = (/** @type {any} */ e) => {
+    const day = new Date(Number(e.at)).toISOString().slice(0, 10);
+    const full = String(e.text ?? "");
+    const handle = words.observationHandle(full);
+
+    // Nothing to open when the whole note already fits on its line. A fold over
+    // no hidden text is a control that does nothing, and one of those teaches
+    // somebody that the others might not do anything either.
+    if (handle === full.replace(/\s+/g, " ").trim()) {
+      return `<div class="line">
+        <span class="line-when">${esc(day)}</span>
+        <span class="line-text">${esc(full)}</span>
+      </div>`;
+    }
+
+    return `<details class="line-fold obs-fold">
+      <summary class="line">
+        <span class="line-when">${esc(day)}</span>
+        <span class="line-text">${esc(handle)}</span>
+      </summary>
+      <p class="line-fold-text">${esc(full)}</p>
+    </details>`;
+  };
+
+  const observationRows = /** @type {any[]} */ (p.observations ?? []);
+  const observations =
+    observationRows.length === 0
+      ? ""
+      : observationRows.slice(0, OBSERVATIONS_SHOWN).map(observationLine).join("") +
+        (observationRows.length <= OBSERVATIONS_SHOWN
+          ? ""
+          : `<details class="line-fold obs-older">
+              <summary class="line">
+                <span class="line-text">${words.observationsOlder(
+                  observationRows.length - OBSERVATIONS_SHOWN
+                )}</span>
+              </summary>
+              <div class="line-fold-rows">${observationRows
+                .slice(OBSERVATIONS_SHOWN)
+                .map(observationLine)
+                .join("")}</div>
+            </details>`);
 
   /*
    * Material that lives elsewhere.

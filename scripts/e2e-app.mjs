@@ -5357,6 +5357,174 @@ try {
     }
   });
 
+  step("Observations are one line each, not a wall");
+
+  /*
+   * These grew to eight dense paragraphs on a real page and were the longest
+   * thing on it - while also being the most valuable thing on it, which is why
+   * neither obvious fix was taken. Nothing is hidden and nothing is summarised:
+   * each note is a scannable line that opens onto its own text.
+   *
+   * Driven in the app rather than reasoned about, because the failure mode is a
+   * fold that draws but does not open - and the text is in the DOM either way,
+   * so a textContent check would pass over exactly that.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"logEvidence\"]') !== null",
+    "a person's page"
+  );
+
+  const LONG =
+    "Rapporterar arbetsbördan som lugn i båda riktningarna utan att flagga något alls, " +
+    "och samma dag säger att arbetet kan ta slut om några dagar - vilket kom fram först " +
+    "på en direkt fråga om det var för lite att göra. Andra gången samma mönster.";
+
+  await page.click('[data-act="logEvidence"]');
+  await page.fillDialog({ text: "Kort not." });
+  await sleep(250);
+
+  for (const n of [1, 2, 3, 4, 5, 6]) {
+    await page.click('[data-act="logEvidence"]');
+    await page.fillDialog({ text: `${n}. ${LONG}` });
+    await sleep(250);
+  }
+
+  const obs = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Observationer'
+        );
+        if (!block) { return JSON.stringify({ found: false }); }
+        const shown = [...block.children].filter(
+          (n) => n.matches('.line, .line-fold')
+        );
+        return JSON.stringify({
+          found: true,
+          rows: shown.length,
+          folds: shown.filter((n) => n.matches('.obs-fold')).length,
+          plain: shown.filter((n) => n.matches('.line') && !n.matches('.line-fold')).length,
+          /* Anywhere in the block, not only at the top level. The short note is
+             the oldest one entered, so it sits inside the older fold - and the
+             first version of this check looked only at the top level and called
+             a correct page wrong. */
+          plainAnywhere: [...block.querySelectorAll('.line')].filter(
+            (n) => !n.parentElement.matches('.line-fold')
+          ).length,
+          older: block.querySelectorAll('.obs-older').length,
+          olderHolds: block.querySelectorAll('.obs-older .line, .obs-older .line-fold').length,
+          anyOpen: shown.filter((n) => n.open === true).length,
+          height: Math.round(block.getBoundingClientRect().height),
+          summaries: shown
+            .filter((n) => n.matches('.obs-fold'))
+            .map((n) => (n.querySelector('.line-text') || {}).textContent.trim()),
+          /* A row that is one line by construction: the short note, which is
+             not folded because it already fits. Measured so the assertion below
+             calibrates against it instead of against a number somebody picked -
+             34px was picked, and a correct 38px row failed it. */
+          oneLine: (() => {
+            const plain = [...block.querySelectorAll('.line')].find(
+              (n) => !n.parentElement.matches('.line-fold') && !n.matches('.line-fold')
+            );
+            return plain === undefined ? 0 : Math.round(plain.getBoundingClientRect().height);
+          })(),
+          /* The height of each closed summary. "One line each" is the claim, and
+             a handle longer than the measure wrapped every row to two - which
+             looked fine in a screenshot and was the thing being fixed. */
+          summaryHeights: shown
+            .filter((n) => n.matches('.obs-fold'))
+            .map((n) => Math.round(n.querySelector('summary.line').getBoundingClientRect().height))
+        });
+      })()`)));
+
+  check("a long note is one line, closed, with the paragraph behind it", () => {
+    if (!obs.found) {
+      throw new Error("no observations block on the page");
+    }
+    if (obs.folds < 5) {
+      throw new Error(`${obs.folds} folded notes of ${obs.rows} rows: ${JSON.stringify(obs)}`);
+    }
+    if (obs.anyOpen !== 0) {
+      throw new Error("the notes start open, so the block is a wall again on every draw");
+    }
+    const overlong = obs.summaries.filter((/** @type {string} */ t) => t.length > 140);
+    if (overlong.length > 0) {
+      throw new Error(`a summary line is the whole paragraph: "${overlong[0].slice(0, 60)}..."`);
+    }
+    if (!obs.summaries.every((/** @type {string} */ t) => t.endsWith("..."))) {
+      throw new Error(`a truncated line does not say it is truncated: ${JSON.stringify(obs.summaries)}`);
+    }
+    /*
+     * Against the short note's own height rather than a number. It is one line
+     * by construction - it is unfolded precisely because it fits - so it is the
+     * known-good case this calibrates on, and a change to the font or the
+     * padding moves both sides together.
+     */
+    if (!(obs.oneLine > 0)) {
+      throw new Error("no unfolded row to calibrate against, so this proved nothing");
+    }
+    const tall = obs.summaryHeights.filter((/** @type {number} */ h) => h > obs.oneLine + 4);
+    if (tall.length > 0) {
+      throw new Error(
+        `a closed note is ${tall[0]}px against a one-line row of ${obs.oneLine}px, so it wrapped: ${JSON.stringify(obs.summaryHeights)}`
+      );
+    }
+  });
+
+  check("a note that already fits gets no fold that does nothing", () => {
+    // A control over no hidden text teaches somebody that the others might not
+    // do anything either.
+    if (obs.plainAnywhere < 1) {
+      throw new Error(`the short note was folded too: ${JSON.stringify(obs)}`);
+    }
+  });
+
+  check("past six, the rest go behind one fold rather than lengthening the page", () => {
+    if (obs.older !== 1) {
+      throw new Error(`${obs.older} older-folds, expected 1: ${JSON.stringify(obs)}`);
+    }
+    if (obs.olderHolds < 1) {
+      throw new Error("the older fold holds nothing, so it hides nothing");
+    }
+    if (obs.rows > 7) {
+      throw new Error(`${obs.rows} rows drawn at the top level, so the cap does nothing`);
+    }
+  });
+
+  await page.click(".obs-fold > summary.line");
+  await sleep(250);
+
+  const openedNote = JSON.parse(String(await page.evaluate(`(() => {
+        const one = document.querySelector('.obs-fold');
+        const body = one.querySelector('.line-fold-text');
+        return JSON.stringify({
+          open: one.open,
+          height: body === null ? 0 : Math.round(body.getBoundingClientRect().height),
+          width: body === null ? 0 : Math.round(body.getBoundingClientRect().width),
+          text: body === null ? '' : body.textContent.replace(/\\s+/g, ' ').trim().length
+        });
+      })()`)));
+
+  check("clicking a note actually puts its paragraph on screen", () => {
+    if (openedNote.open !== true) {
+      throw new Error("clicking the line did not open it");
+    }
+    if (!(openedNote.height > 0)) {
+      throw new Error("the note opened but its paragraph has no height");
+    }
+    if (openedNote.text < 200) {
+      throw new Error(`the full text is not there: ${openedNote.text} characters`);
+    }
+  });
+
+  check("and the paragraph is held to a measure like every other body text", () => {
+    // The whole point was that these were unreadable at full window width.
+    if (openedNote.width > 780) {
+      throw new Error(`the opened paragraph is ${openedNote.width}px wide`);
+    }
+  });
+
   step("The page has shape rather than one field of grey");
 
   /*
