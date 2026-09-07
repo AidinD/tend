@@ -5321,6 +5321,104 @@ try {
   });
   await sleep(400);
 
+  /*
+   * The offer, and the duty it is about.
+   *
+   * This is the one button on a person's page that makes a ninety-day duty go
+   * quiet for a whole period, so what is driven here is both halves: that
+   * recording answers does NOT silence it, and that accepting the offer does.
+   * The first half is what a wrong wiring would break silently.
+   */
+  const beforeMarking = JSON.parse(String(await page.evaluate(`(() => {
+        const rows = [...document.querySelectorAll('.line')].filter(
+          (r) => /Feedbackrunda/.test(r.textContent)
+        );
+        return JSON.stringify({
+          cadence: rows.length === 0 ? null : rows[0].textContent.replace(/\\s+/g, ' ').trim(),
+          offer: (() => {
+            const head = [...document.querySelectorAll('.prep-head')].find(
+              (h) => h.textContent === 'Räknas ronden som körd?'
+            );
+            return head === undefined
+              ? null
+              : head.parentElement.textContent.replace(/\\s+/g, ' ').trim();
+          })()
+        });
+      })()`)));
+
+  check("recording answers does not silence the duty by itself", () => {
+    if (beforeMarking.cadence === null) {
+      throw new Error("the round duty does not reach this person, so this proved nothing");
+    }
+    if (!/senast aldrig/.test(String(beforeMarking.cadence))) {
+      throw new Error(`the duty was silenced by recording: "${beforeMarking.cadence}"`);
+    }
+  });
+
+  check("it offers to count the round instead, and says what accepting claims", () => {
+    if (beforeMarking.offer === null) {
+      throw new Error("no offer on the page after two answers were entered");
+    }
+    if (!/2 bedömningar/.test(String(beforeMarking.offer))) {
+      throw new Error(`the offer does not say what it covers: "${beforeMarking.offer}"`);
+    }
+    if (!/skrev ingenting/.test(String(beforeMarking.offer))) {
+      throw new Error("the offer does not warn that both assessors wrote nothing");
+    }
+    if (!/Feedbackrunda/.test(String(beforeMarking.offer))) {
+      throw new Error("the offer does not name the duty it would stop the clock on");
+    }
+  });
+
+  await page.click('[data-act="markRoundRun"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the confirmation");
+
+  const warned = await page.text(".dialog");
+  check("and asks before doing it, saying what goes quiet", () => {
+    // The thing easiest to do by reflex right after entering answers is exactly
+    // the thing that should not be done by reflex.
+    if (!/slutar påminna/.test(warned)) {
+      throw new Error(`the confirmation does not say what goes quiet: ${warned.slice(0, 160)}`);
+    }
+  });
+
+  await page.fillDialog({});
+  await sleep(500);
+
+  const afterMarking = JSON.parse(String(await page.evaluate(`(() => {
+        const rows = [...document.querySelectorAll('.line')].filter(
+          (r) => /Feedbackrunda/.test(r.textContent)
+        );
+        return JSON.stringify({
+          cadence: rows.length === 0 ? null : rows[0].textContent.replace(/\\s+/g, ' ').trim(),
+          stillOffered: [...document.querySelectorAll('.prep-head')].some(
+            (h) => h.textContent === 'Räknas ronden som körd?'
+          ),
+          survey: [...document.querySelectorAll('.line')]
+            .map((r) => r.textContent.replace(/\\s+/g, ' ').trim())
+            .filter((t) => /bedömningar från/.test(t))
+        });
+      })()`)));
+
+  check("accepting stops the clock, and the offer goes with it", () => {
+    if (/senast aldrig/.test(String(afterMarking.cadence))) {
+      throw new Error(`the duty is still never run: "${afterMarking.cadence}"`);
+    }
+    if (afterMarking.stillOffered) {
+      throw new Error("the offer is still standing, so it would be accepted twice");
+    }
+  });
+
+  check("and the contact it logged says what the round was", () => {
+    // A bare survey contact in the history a year from now is unreadable.
+    if (afterMarking.survey.length === 0) {
+      throw new Error("no survey contact naming what the round covered");
+    }
+    if (!/2 bedömningar från 1 bedömare/.test(String(afterMarking.survey[0]))) {
+      throw new Error(`the contact does not say what it covered: "${afterMarking.survey[0]}"`);
+    }
+  });
+
   const collided = await page.text("#main");
   check("a second answer from one assessor on one day is reported, not resolved", () => {
     /*
@@ -5552,19 +5650,30 @@ try {
    */
   const measure = `(() => {
         const main = document.querySelector('main');
+        /*
+           Grouped into columns by left edge, then measured down each column.
+
+           The first version walked document order and only compared neighbours,
+           which can never see a grid's vertical gap: in a three-across grid the
+           neighbours are side by side, so every pair was filtered out for having
+           different left edges and the check reported nothing to measure. Columns
+           cover both mechanisms - a flex column is one group, a grid is one group
+           per column - and the two use different CSS to space their children.
+        */
         const gapsUnder = (selector) => {
           const gaps = [];
           for (const parent of new Set([...document.querySelectorAll(selector)].map((n) => n.parentElement))) {
-            const kin = [...parent.children].filter((n) => n.matches(selector));
-            for (let i = 1; i < kin.length; i += 1) {
-              const above = kin[i - 1].getBoundingClientRect();
-              const below = kin[i].getBoundingClientRect();
-              /* Same left edge, or they are side by side in a grid rather than
-                 stacked - and the distance between a card in the second column
-                 and the one below it in the first is a negative number that
-                 means nothing. */
-              if (Math.abs(below.left - above.left) < 1) {
-                gaps.push(Math.round(below.top - above.bottom));
+            const columns = new Map();
+            for (const kin of [...parent.children].filter((n) => n.matches(selector))) {
+              const box = kin.getBoundingClientRect();
+              const key = Math.round(box.left);
+              if (!columns.has(key)) { columns.set(key, []); }
+              columns.get(key).push(box);
+            }
+            for (const boxes of columns.values()) {
+              boxes.sort((a, b) => a.top - b.top);
+              for (let i = 1; i < boxes.length; i += 1) {
+                gaps.push(Math.round(boxes[i].top - boxes[i - 1].bottom));
               }
             }
           }
@@ -5649,15 +5758,29 @@ try {
   });
 
   /*
-   * The card gap is measured on the front page rather than on a person, whose
-   * page has no card at all - which is how the first version of the width check
-   * above came to compare main with itself. Läget always has several, and the
-   * check refuses to pass if it finds fewer than two stacked.
+   * The card gap is measured wherever two cards actually stack, and the search
+   * is the point rather than a convenience.
+   *
+   * A person's page has no card at all, which is how the width check above came
+   * to compare main with itself. Then it was pinned to Läget - and a later step
+   * marked a round as run, which took a critical cadence off that page and left
+   * fewer than two cards there. The check refused to pass rather than passing
+   * vacuously, which is the right failure and a brittle one.
+   *
+   * So it walks the views that draw cards and uses the first that stacks two.
+   * It still refuses to pass if none of them does.
    */
-  await page.click('.nav-btn[data-view="now"]');
-  await page.waitFor("document.querySelector('.card') !== null", "the front page");
-
-  const stacked = JSON.parse(String(await page.evaluate(measure)));
+  /** @type {any} */
+  let stacked = { cardGaps: [] };
+  for (const view of ["now", "decisions", "reflection", "work"]) {
+    await page.click(`.nav-btn[data-view="${view}"]`);
+    await sleep(350);
+    const seen = JSON.parse(String(await page.evaluate(measure)));
+    if (seen.cardGaps.length > 0) {
+      stacked = seen;
+      break;
+    }
+  }
 
   check("consecutive cards are separated, rather than reading as one region", () => {
     // Nine pixels was the old answer inside `.stack` and zero was the answer

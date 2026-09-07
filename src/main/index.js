@@ -174,6 +174,12 @@ const OPERATIONS = {
   recordAssessment: (/** @type {any} */ a) =>
     api.recordAssessment(store, { ...a, now: a.now ?? Date.now() }),
   removeAssessment: (/** @type {any} */ a) => api.removeAssessment(store, a.id),
+  // Accepting the offer that a round has been run. Here and not on MCP: an
+  // agent may log that a contact happened, which tend_log_touch already allows
+  // and this does not change. Saying a ROUND is complete is a judgement about
+  // how much evidence is enough, which is the same boundary as a cadence.
+  markRoundRun: (/** @type {any} */ a) =>
+    api.markRoundRun(store, { person: a.person, now: a.now ?? Date.now() }),
   logDecision: (/** @type {any} */ a) => api.logDecision(store, { ...a, now: a.now ?? Date.now() }),
   decideDecision: (/** @type {any} */ a) => api.decideDecision(store, a.id, a.fields ?? {}, a.now ?? Date.now()),
   stillHolds: (/** @type {any} */ a) => api.stillHolds(store, a.id, a.now ?? Date.now(), a.days),

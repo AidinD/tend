@@ -17,7 +17,18 @@ import {
   occasions
 } from "../domain/assessments.js";
 import { WEIGHTS } from "../domain/assessments.js";
+import { dutyLabel } from "../domain/attention.js";
 import { agoWords, daysSince } from "../domain/time.js";
+import { logTouch } from "./writing.js";
+
+/**
+ * The kind of contact a completed round is.
+ *
+ * Named once rather than spelled at each use, and read from nowhere else: the
+ * duty's own `evidenceKinds` is what decides whether this satisfies anything,
+ * and this only has to agree with the kind that exists in `domain/contact.js`.
+ */
+const ROUND_EVIDENCE = "survey";
 import { resolvePerson } from "./resolve.js";
 
 /** @param {unknown} value */
@@ -163,6 +174,170 @@ export function removeAssessment(store, id) {
 }
 
 /**
+ * Whether there is a round to offer as run, and what accepting would say.
+ *
+ * ## Why an offer and not a write
+ *
+ * Recording an assessment could satisfy the duty by itself - the plumbing is one
+ * call, because the duty already declares `survey` as its evidence and `survey`
+ * is a real contact kind. It deliberately does not, and the reason is a real
+ * case rather than a principle: one assessor answered 5/5/4 with every comment
+ * box empty and is weighed low. Had that silenced a ninety-day duty, the person
+ * would have read as tended for a year on one careless row.
+ *
+ * The other direction was worse in practice. Nothing automatic is what the tool
+ * already did, and two people's rounds were entered and left standing as never
+ * run, with the contacts logged by hand afterwards - so "he will remember" had
+ * already been tested and failed the same afternoon.
+ *
+ * So it is a proposal he accepts, which is the shape the rest of the app uses
+ * for anything that changes what the job is: agents and forms propose, the
+ * window accepts.
+ *
+ * ## Why it is derived and not stored
+ *
+ * A prompt shown once after recording is a prompt that can be missed, and
+ * missing it leaves exactly the state this was built to fix. This is computed
+ * from what is in the store, so it appears on its own, survives a restart, goes
+ * away when acted on - and was already true for the rounds entered before it
+ * existed, which a fire-once prompt could never have covered.
+ *
+ * ## Which duty, and the date
+ *
+ * Never a hardcoded duty. Any duty that reaches this person and consumes
+ * `survey` evidence is what an accepted offer would satisfy; if none does,
+ * there is nothing to offer and this returns null. A round on somebody whose
+ * duties do not ask for one is not a round anybody owed.
+ *
+ * The contact is dated to the newest assessment it covers rather than to today.
+ * The round happened when the answers came in, and stamping it with the day the
+ * offer was accepted would overstate how current the picture is - by exactly
+ * the gap between running a round and getting round to filing it.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} personId
+ * @param {number} now
+ */
+export function roundOffer(store, personId, now) {
+  const person = store.rows("people").find((p) => String(p.id) === String(personId));
+  if (!person) {
+    return null;
+  }
+
+  const duties = store
+    .rows("duties")
+    .filter(
+      (d) =>
+        !d._deleted &&
+        (d.status ?? "active") === "active" &&
+        d.subjectKind === "person" &&
+        Array.isArray(d.evidenceKinds) &&
+        d.evidenceKinds.includes(ROUND_EVIDENCE) &&
+        (!Array.isArray(d.relations) ||
+          d.relations.length === 0 ||
+          d.relations.includes(String(person.relation)))
+    );
+  if (duties.length === 0) {
+    return null;
+  }
+
+  const marked = store
+    .rows("touches")
+    .filter(
+      (t) =>
+        !t._deleted &&
+        String(t.subject) === String(personId) &&
+        String(t.kind) === ROUND_EVIDENCE &&
+        typeof t.at === "number"
+    )
+    .reduce((newest, t) => Math.max(newest, Number(t.at)), 0);
+
+  /*
+   * Only answers newer than the last time a round was marked. Otherwise the
+   * offer would stand for ever on anybody who has ever been assessed, which is
+   * a permanent item on a page whose whole value is that everything on it is
+   * actionable.
+   */
+  const fresh = store
+    .rows("assessments")
+    .filter((a) => !a._deleted && String(a.person) === String(personId))
+    .map((a) => assessmentStanding(a, now))
+    .filter((a) => a.at > marked);
+
+  if (fresh.length === 0) {
+    return null;
+  }
+
+  const coversUpTo = fresh.reduce((newest, a) => Math.max(newest, a.at), 0);
+  return {
+    answers: fresh.length,
+    assessors: [...new Set(fresh.map((a) => a.assessor))].length,
+    /* How many of those said nothing at all, so the offer can be refused on an
+       informed basis rather than accepted because a number looked fine. */
+    saidNothing: fresh.filter((a) => !a.saidAnything).length,
+    coversUpTo,
+    markedBefore: marked === 0 ? null : marked,
+    duties: duties.map((d) => ({ id: String(d.id), name: dutyLabel(d) }))
+  };
+}
+
+/**
+ * Accept it: log the round as run, on the date it was actually answered.
+ *
+ * A contact of the kind the duty already asks for, through the same path a
+ * hand-logged one takes. Nothing here is special-cased into the cadence code -
+ * the duty consumes `survey` evidence and this produces `survey` evidence, and
+ * that is the whole connection.
+ *
+ * Not exposed over MCP. `tend_log_touch` can already log a survey contact and
+ * that is unchanged - an agent may record that something happened. This is a
+ * different claim: that a round is complete, drawn from the answers, which is a
+ * judgement about how much evidence is enough.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.person Name or id.
+ * @param {number} args.now
+ */
+export function markRoundRun(store, { person: who, now }) {
+  const found = resolvePerson(store, who);
+  if (!found.ok) {
+    return { error: found.error };
+  }
+
+  const offer = roundOffer(store, String(found.person.id), now);
+  if (offer === null) {
+    return {
+      error:
+        "Det finns ingen rond att markera. Antingen är den redan markerad, eller så saknar " +
+        "personen någon plikt som en enkätrunda kan uppfylla."
+    };
+  }
+
+  const said = offer.answers - offer.saidNothing;
+  return {
+    ...logTouch(store, {
+      subject: String(found.person.id),
+      kind: ROUND_EVIDENCE,
+      /*
+       * The note says what the round was, because a bare survey contact in the
+       * history a year from now is unreadable. How many answered, from how many
+       * assessors, and how many of them wrote nothing - the last one being the
+       * fact most likely to change what the round is worth.
+       */
+      note:
+        `${offer.answers} bedömningar från ${offer.assessors} bedömare` +
+        (offer.saidNothing > 0 ? `, ${said} med fritext` : ""),
+      at: offer.coversUpTo,
+      now
+    }),
+    person: found.person.name,
+    covered: offer.answers,
+    duties: offer.duties.map((d) => d.name)
+  };
+}
+
+/**
  * What the rounds about one person amount to, without anybody's answer.
  *
  * The aggregate and nothing else: how many occasions, how long ago, and the
@@ -250,6 +425,12 @@ export function assessments(store, who, now = Date.now()) {
     occasions: days,
     byAxis: byAxis(rows),
     doubles: doubleAnswers(rows),
+    /*
+     * Whether there is a round to offer as run. Carried on the read the block
+     * already makes rather than needing its own, so the offer cannot be out of
+     * step with the answers it is derived from.
+     */
+    offer: roundOffer(store, String(found.person.id), now),
     answers: rows
   };
 }

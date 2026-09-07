@@ -348,6 +348,41 @@ async function personPage(id) {
       </div>`;
     }
 
+    /*
+     * The offer, above the figures rather than under them.
+     *
+     * It is a question about what the numbers below it mean - whether a round
+     * counts - so reading them first and then being asked is the wrong order.
+     * It says what accepting claims and what it will write, because a button
+     * that silences a ninety-day duty may not be a button whose effect has to
+     * be remembered.
+     */
+    const offer = rated.offer;
+    const offerBlock =
+      offer === null || offer === undefined
+        ? ""
+        : `<div class="prep-block">
+             <h3 class="prep-head">${words.assessmentOfferTitle}</h3>
+             <p class="prep-note">${words.assessmentOffer(
+               Number(offer.answers),
+               Number(offer.assessors)
+             )}</p>
+             ${
+               Number(offer.saidNothing) === 0
+                 ? ""
+                 : `<p class="card-why warn-text">${words.assessmentOfferSilent(
+                     Number(offer.saidNothing)
+                   )}</p>`
+             }
+             <p class="prep-note">${words.assessmentOfferWhat(
+               esc(offer.duties.map((/** @type {any} */ d) => d.name).join(", "))
+             )}</p>
+             <div class="card-foot">
+               <button class="act primary" data-act="markRoundRun" data-person="${esc(p.id)}"
+                 data-person-name="${esc(p.name)}">${words.assessmentOfferButton}</button>
+             </div>
+           </div>`;
+
     const axes = (Array.isArray(rated.byAxis) ? rated.byAxis : [])
       .map(
         (/** @type {any} */ a) => `<div class="line">
@@ -402,6 +437,7 @@ async function personPage(id) {
         rated.trendPossible ? "" : ` ${words.assessmentsOneOccasion}`
       }</p>
       ${doubles ? `<div class="prep-block"><h3 class="prep-head">${words.assessmentDoubleTitle}</h3>${doubles}</div>` : ""}
+      ${offerBlock}
       ${axes}
       <div class="block-title block-title-second">${esc(words.assessmentsAnswers)}</div>
       ${rows}
@@ -1316,6 +1352,30 @@ export const actions = {
       words.assessmentToast
     );
     if (sent) {
+      refresh();
+    }
+  },
+
+  /**
+   * Accept that the round has been run.
+   *
+   * Confirmed rather than fired on the press. This is the one button on the page
+   * that makes a duty go quiet for a whole period, and the thing it is easiest
+   * to do by reflex after entering answers is exactly the thing that should not
+   * be done by reflex.
+   *
+   * @param {Record<string, string>} d
+   */
+  markRoundRun: async (d) => {
+    const yes = await ask({
+      title: words.assessmentOfferTitle,
+      body: words.assessmentConfirmRound(d.personName),
+      confirm: words.assessmentOfferButton
+    });
+    if (!yes) {
+      return;
+    }
+    if (await act("markRoundRun", { person: d.person }, words.assessmentOfferToast)) {
       refresh();
     }
   },

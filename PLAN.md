@@ -110,6 +110,11 @@ Tend event log <──┤
   budgets are deterministic code; the model only reads prose and writes drafts.
 - Storage is an append-only event log, one file per writer, safe for concurrent
   writers on a Dropbox-synced folder.
+- **A round is offered as run, never counted as run.** Recording an assessment
+  satisfies no cadence. The person's page offers to mark the round as run, and
+  accepting logs a survey contact dated to the newest answer - which is what the
+  duty already consumes. Derived rather than prompted once, so it cannot be
+  missed and clears itself.
 - **A round is readable by both clients and writable by only one.**
   `tend_person` carries the aggregate, `tend_assessments` the answers; nothing
   over MCP records one. A session preparing a 1-1 works from the same ground the
@@ -433,14 +438,11 @@ block for the part the notes do not answer.
   it is the highest-consequence row in the app, and transcription is also the
   obvious use for an agent. Reading is open, writing is closed, with a test that
   fails if a write tool appears before the question is answered.
-- **When a feedback round counts as run.** Recording an assessment does not
-  satisfy the 90-day duty, so it stood as never run after two people's answers
-  were entered and the survey contacts had to be logged by hand. The mechanism
-  is already there - the duty declares `evidenceKinds: ["survey"]` and `survey`
-  is a real contact kind - so the question is only whether recording should fire
-  it and on what. One careless answer marking somebody as tended for a year is
-  the failure to avoid, and it nearly happened. Alternatives on the card;
-  deliberately not wired.
+- ~~**When a feedback round counts as run.**~~ Settled on 2026-09-07: it is
+  offered, never counted. The person's page offers to mark it as run and he
+  accepts; a threshold on the round waits for the pending-request concept. See
+  DECISIONS.md for why both automatic and nothing-automatic lost, each on a case
+  from that day rather than on a principle.
 - **What the assessor's weight should DO to an aggregate.** The field is stored
   from the first round because the knowledge does not survive six months, and it
   moves nothing until this is decided. Its own card.

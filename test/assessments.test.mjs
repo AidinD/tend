@@ -538,3 +538,156 @@ describe("what a person's page carries about a round, and what it does not", () 
     assert.equal(summary.doubles, 1);
   });
 });
+
+describe("when a round counts as run", () => {
+  /** A duty that a survey round can satisfy, which is what makes an offer possible. */
+  const roundDuty = () => {
+    const made = ok(
+      api.proposeDuty(store, {
+        name: "Feedbackrunda",
+        means: "Två frågeuppsättningar på en skala, mappade mot nivåaxlarna",
+        source: "yours",
+        subjectKind: "person",
+        cadenceDays: 90,
+        evidenceKinds: ["survey"],
+        relations: ["lead-and-manage"]
+      })
+    );
+    ok(api.decideDuty(store, String(made.id), "active"));
+    return String(made.id);
+  };
+
+  it("does not count as run just because an answer was recorded", () => {
+    /*
+     * The load-bearing refusal, and it is a real case rather than a principle:
+     * one assessor answered 5/5/4 with every comment box empty and is weighed
+     * low. Had that silenced a ninety-day duty, the person would have read as
+     * tended for a year on one careless row.
+     */
+    roundDuty();
+    const who = person();
+    ok(record(String(who.id), { note: "" }));
+
+    const cadences = api.person(store, String(who.id), NOW);
+    const round = ok(cadences).cadences.find((/** @type {any} */ c) => /Feedbackrunda/.test(c.duty));
+    assert.ok(round, "the round duty does not reach this person, so this proved nothing");
+    assert.equal(round.lastHappened, "aldrig", "recording an answer silenced the duty by itself");
+  });
+
+  it("offers it instead, derived rather than fired once", () => {
+    /*
+     * Derived is the point. A prompt shown once after recording can be missed,
+     * and missing it leaves the state this was built to fix - which had already
+     * happened twice by hand. This appears on its own and was true of the rounds
+     * entered before it existed.
+     */
+    roundDuty();
+    const who = person();
+    ok(record(String(who.id), { assessor: "En", note: "" }));
+    ok(record(String(who.id), { assessor: "Två", note: "skrev något" }));
+
+    const offer = api.roundOffer(store, String(who.id), NOW);
+    assert.ok(offer, "nothing was offered");
+    assert.equal(offer.answers, 2);
+    assert.equal(offer.assessors, 2);
+    assert.equal(offer.saidNothing, 1, "the offer does not say how many wrote nothing");
+    assert.deepEqual(
+      offer.duties.map((/** @type {any} */ d) => d.name),
+      ["Feedbackrunda"]
+    );
+  });
+
+  it("offers nothing when no duty on that person asks for a round", () => {
+    // A round on somebody whose duties do not ask for one is not a round
+    // anybody owed, so there is nothing to satisfy and nothing to offer.
+    const who = person({ name: "Testkollega", relation: "equal-lead" });
+    ok(record(String(who.id)));
+    assert.equal(api.roundOffer(store, String(who.id), NOW), null);
+  });
+
+  it("stops offering once it has been accepted, and starts again on a new answer", () => {
+    /*
+     * Self-clearing, which is what keeps it off a page whose whole value is that
+     * everything on it is actionable. A standing offer on anybody ever assessed
+     * would be a permanent item.
+     */
+    roundDuty();
+    const who = person();
+    ok(record(String(who.id), { assessor: "En" }));
+
+    ok(api.markRoundRun(store, { person: String(who.id), now: NOW }));
+    assert.equal(api.roundOffer(store, String(who.id), NOW), null);
+
+    ok(api.recordAssessment(store, {
+      person: String(who.id),
+      assessor: "Tre",
+      scores: [{ axis: "Kommunikation", score: 4 }],
+      at: NOW + DAY_MS,
+      now: NOW + DAY_MS
+    }));
+    const again = api.roundOffer(store, String(who.id), NOW + DAY_MS);
+    assert.ok(again, "a later answer did not raise the offer again");
+    assert.equal(again.answers, 1, "an accepted round is being counted twice");
+  });
+
+  it("dates the contact to the newest answer, not to the day it was accepted", () => {
+    /*
+     * The round happened when the answers came in. Stamping it with the day the
+     * offer was accepted would overstate how current the picture is, by exactly
+     * the gap between running a round and getting round to filing it.
+     */
+    roundDuty();
+    const who = person();
+    const answered = NOW - 12 * DAY_MS;
+    ok(record(String(who.id), { at: answered }));
+
+    ok(api.markRoundRun(store, { person: String(who.id), now: NOW }));
+    const touch = store.rows("touches").find((t) => String(t.kind) === "survey");
+    assert.ok(touch, "no survey contact was logged");
+    assert.equal(touch.at, answered);
+  });
+
+  it("says in the contact what the round was, so the row reads in a year", () => {
+    roundDuty();
+    const who = person();
+    ok(record(String(who.id), { assessor: "En", note: "" }));
+    ok(record(String(who.id), { assessor: "Två", note: "skrev något" }));
+    ok(api.markRoundRun(store, { person: String(who.id), now: NOW }));
+
+    const touch = store.rows("touches").find((t) => String(t.kind) === "survey");
+    assert.match(String(touch?.note), /2 bedömningar från 2 bedömare/);
+    assert.match(String(touch?.note), /1 med fritext/);
+  });
+
+  it("and then the duty is actually in step, which is the whole point", () => {
+    roundDuty();
+    const who = person();
+    ok(record(String(who.id)));
+    ok(api.markRoundRun(store, { person: String(who.id), now: NOW }));
+
+    const page = ok(api.person(store, String(who.id), NOW));
+    const round = page.cadences.find((/** @type {any} */ c) => /Feedbackrunda/.test(c.duty));
+    assert.ok(round, "the round duty is gone from the page, so this proved nothing");
+    assert.notEqual(round.lastHappened, "aldrig");
+    assert.equal(round.urgency, "ok", `the duty reads ${round.urgency} after being marked`);
+  });
+
+  it("refuses to mark a round nobody has answered", () => {
+    roundDuty();
+    const who = person();
+    const why = failed(api.markRoundRun(store, { person: String(who.id), now: NOW }));
+    assert.match(why, /ingen rond/i);
+  });
+
+  it("gives no agent a way to accept it", () => {
+    /*
+     * `tend_log_touch` can already log a survey contact and that is unchanged -
+     * an agent may record that something happened. This is a different claim:
+     * that a ROUND is complete, drawn from the answers, which is a judgement
+     * about how much evidence is enough. Same boundary as a cadence.
+     */
+    const names = TOOLS.map((t) => t.name);
+    const found = names.filter((n) => /round|rond/i.test(n));
+    assert.deepEqual(found, [], `an MCP tool can mark a round run: ${found.join(", ")}`);
+  });
+});

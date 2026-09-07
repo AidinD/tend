@@ -795,6 +795,42 @@ export const T = {
     assessmentDouble: (who, day) =>
       `${who}, ${day}. Båda räknas, så en åsikt väger dubbelt. Ta bort den som är fel - ` +
       `vilken av dem som gäller är inte verktygets sak att gissa.`,
+    /*
+     * The offer that a round has been run, and why it is an offer.
+     *
+     * Recording a bedömning could satisfy the duty on its own - the plumbing is
+     * one call. It does not, because one assessor's 5/5/4 with every comment box
+     * empty, weighed low, would then have read as a tended person for a year.
+     * And nothing automatic had already been tried by accident: two rounds were
+     * entered and left standing as never run.
+     *
+     * So the wording has to carry what accepting CLAIMS, not just what it does.
+     */
+    assessmentOfferTitle: "Räknas ronden som körd?",
+    /** @param {number} answers @param {number} assessors */
+    assessmentOffer: (answers, assessors) =>
+      `${answers} ${answers === 1 ? "bedömning" : "bedömningar"} från ${assessors} ` +
+      `${assessors === 1 ? "bedömare" : "bedömare"} sedan senast ronden markerades.`,
+    /** @param {number} n */
+    assessmentOfferSilent: (n) =>
+      `${n} av dem skrev ingenting. Ett toppbetyg utan ord är närmare inget svar, och ` +
+      `markerar du ronden går plikten tyst i en hel period.`,
+    /** @param {string} duties */
+    assessmentOfferWhat: (duties) =>
+      `Att markera den loggar en enkätrunda, daterad till det senaste svaret, och det är ` +
+      `vad som stoppar klockan på ${duties}.`,
+    assessmentOfferButton: "Markera ronden som körd",
+    /**
+     * The confirmation says what goes quiet and for how long, because that is
+     * the whole consequence and it is invisible from the button.
+     *
+     * @param {string} who
+     */
+    assessmentConfirmRound: (who) =>
+      `Det loggar en enkätrunda för ${who}, daterad till det senaste svaret. Plikten slutar ` +
+      `påminna fram till nästa period - så om underlaget är tunt är det en period utan ` +
+      `att någon frågar.`,
+    assessmentOfferToast: "Ronden markerad.",
     assessmentRecordButton: "Registrera en bedömning",
     assessmentRemove: "Ta bort",
 

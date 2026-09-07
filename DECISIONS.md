@@ -3,6 +3,64 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-07 - A round is offered as run, never counted as run
+
+**Decided, by him.** Recording an assessment does not satisfy the feedback-round
+duty. The person's page offers to mark the round as run, he accepts, and
+accepting logs a survey contact dated to the newest answer it covers. A
+threshold on the round is the eventual answer and waits for the pending-request
+concept.
+
+**Automatic lost on a real case, not on a principle.** One assessor answered
+5/5/4 with every comment box empty and is weighed low. Had recording silenced a
+ninety-day duty, that person would have read as tended for a year on one careless
+row. The plumbing was already complete - the duty declares
+`evidenceKinds: ["survey"]` and `survey` is a real contact kind - so this was
+one call away, which is exactly why it was a decision rather than a fix.
+
+**Nothing automatic also lost, and it had already been tried by accident.** Two
+people's rounds were entered and left standing as never run, with the survey
+contacts logged by hand afterwards. "He will remember" was tested the same
+afternoon and failed.
+
+**The offer is derived, not fired once.** A prompt after recording can be missed,
+and missing it leaves the state this was built to fix. Computed from the store it
+appears on its own, survives a restart, clears when accepted - and was already
+true of the rounds entered before it existed, which a fire-once prompt could
+never have covered. The condition is answers newer than the last time a round was
+marked, which is what stops it standing for ever on anybody ever assessed.
+
+**Never a hardcoded duty.** Any active duty that reaches this person and consumes
+`survey` evidence is what accepting would satisfy; if none does, there is no
+offer. A round on somebody whose duties do not ask for one is not a round anybody
+owed.
+
+**Dated to the newest answer, not to the day it was accepted.** The round
+happened when the answers came in, and stamping it with the filing date would
+overstate how current the picture is by exactly the gap between running a round
+and getting round to it.
+
+**The offer says what accepting claims,** including how many assessors wrote
+nothing, and there is a confirmation that says the duty stops reminding for a
+whole period. It is the one button on the page that makes something go quiet,
+and pressing it is the easiest reflex right after entering answers.
+
+**Not on MCP.** `tend_log_touch` can already log a survey contact and that is
+unchanged - an agent may record that something happened. Saying a ROUND is
+complete is a judgement about how much evidence is enough, which is the cadence
+boundary.
+
+**Two faults in my own checks, both found by them failing honestly.** The
+card-gap check was pinned to Läget, and marking a round run took a cadence off
+that page and left fewer than two cards - it refused to pass rather than passing
+vacuously, which is the right failure and a brittle one. Underneath that, its
+measurement could never have seen a grid's vertical gap at all: it compared
+document neighbours, and in a three-across grid the neighbours are side by side,
+so every pair was discarded for having different left edges. It now groups
+children into columns by left edge and measures down each one, which covers both
+a flex column and a grid - and those use different CSS to space their children,
+so measuring only one of them was measuring half the rule.
+
 ## 2026-09-07 - A round is readable by both clients, writable by one
 
 **Decided.** `tend_person` carries the aggregate of somebody's feedback rounds;

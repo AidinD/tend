@@ -102,8 +102,10 @@ export {
 export {
   assessmentSummary,
   assessments,
+  markRoundRun,
   recordAssessment,
-  removeAssessment
+  removeAssessment,
+  roundOffer
 } from "./assessments.js";
 
 /* ----------------------------------------------------------------- aims -- */
