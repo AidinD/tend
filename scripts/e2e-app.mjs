@@ -5209,6 +5209,152 @@ try {
     }
   });
 
+  step("The page has shape rather than one field of grey");
+
+  /*
+   * Measured rather than looked at, and it had to be: every one of these was
+   * wrong at once and a screenshot of the result reads as "busy" without saying
+   * which of them to fix. They are also the four that go wrong again silently -
+   * a gap nobody sets, a cap nobody sets - because nothing about the markup
+   * looks incomplete when they are missing.
+   *
+   * A person's page is the subject because it is the densest one: rows, blocks
+   * and cards on the same screen, with observations long enough to show what an
+   * uncapped measure does.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor("document.querySelector('.line') !== null", "a person's page");
+
+  /*
+   * Gaps are measured between siblings under one parent, which is what
+   * "consecutive" means. The first version walked every matching element on the
+   * page and reported the distance from the last row of one block to the first
+   * row of the next - so a correct 5px gap arrived mixed in with a 778px jump
+   * across a section heading and a negative one from a row inside a fold.
+   */
+  const measure = `(() => {
+        const main = document.querySelector('main');
+        const gapsUnder = (selector) => {
+          const gaps = [];
+          for (const parent of new Set([...document.querySelectorAll(selector)].map((n) => n.parentElement))) {
+            const kin = [...parent.children].filter((n) => n.matches(selector));
+            for (let i = 1; i < kin.length; i += 1) {
+              const above = kin[i - 1].getBoundingClientRect();
+              const below = kin[i].getBoundingClientRect();
+              /* Same left edge, or they are side by side in a grid rather than
+                 stacked - and the distance between a card in the second column
+                 and the one below it in the first is a negative number that
+                 means nothing. */
+              if (Math.abs(below.left - above.left) < 1) {
+                gaps.push(Math.round(below.top - above.bottom));
+              }
+            }
+          }
+          return gaps;
+        };
+
+        const texts = [...document.querySelectorAll('.line-text')];
+        const widest = texts.reduce(
+          (w, t) => Math.max(w, t.getBoundingClientRect().width),
+          0
+        );
+
+        return JSON.stringify({
+          mainWidth: main.offsetWidth,
+          /* From the padding rather than from whatever element happens to be
+             on screen. The first version read a card and fell back to main when
+             there was none, and a person's page has no card - so it compared
+             main with itself and could only ever agree. No backticks in here:
+             this whole block is inside a template literal. */
+          contentWidth:
+            main.offsetWidth -
+            parseFloat(getComputedStyle(main).paddingLeft) -
+            parseFloat(getComputedStyle(main).paddingRight),
+          panelWidth: (document.querySelector('.panel') ?? { offsetWidth: null }).offsetWidth,
+          cardGaps: gapsUnder('.card'),
+          lineGaps: gapsUnder('.line'),
+          widestLineText: Math.round(widest),
+          lineTextCap: texts.length === 0 ? '' : getComputedStyle(texts[0]).maxWidth
+        });
+      })()`;
+
+  const shape = JSON.parse(String(await page.evaluate(measure)));
+
+
+  check("the content column is held to a readable width on a wide window", () => {
+    /*
+     * Nothing capped it, so on a wide monitor every card was the full width of
+     * the window and no two things on the page differed in shape. The check is
+     * conditional on the window actually being wider than the cap, because on a
+     * narrow one the correct answer is the full width and asserting otherwise
+     * would fail for being right.
+     */
+    if (shape.mainWidth <= 1180) {
+      return;
+    }
+    if (shape.contentWidth > 1240) {
+      throw new Error(
+        `main is ${shape.mainWidth}px and the column inside it is ${shape.contentWidth}px, so nothing holds it`
+      );
+    }
+    if (shape.panelWidth !== null && shape.panelWidth > 1240) {
+      throw new Error(`the person panel is ${shape.panelWidth}px wide`);
+    }
+  });
+
+  check("a row's text is capped at a measure, not run across the window", () => {
+    /*
+     * The worst of the four. An observation is often two or three hundred
+     * characters and was drawn as one line across the whole window, past every
+     * readable measure - so a block of seven was a wall rather than a record.
+     */
+    if (!/ch|px/.test(String(shape.lineTextCap))) {
+      throw new Error(`.line-text has no measure: max-width is "${shape.lineTextCap}"`);
+    }
+    if (shape.widestLineText > 780) {
+      throw new Error(`a row's text is ${shape.widestLineText}px wide, which is past reading`);
+    }
+  });
+
+
+  check("consecutive rows are separated, rather than fusing into one slab", () => {
+    // Rounded tinted rows at a zero gap meet at the corners and the radius
+    // stops reading as a boundary, so a list became one grey field with text
+    // in it.
+    if (shape.lineGaps.length === 0) {
+      throw new Error("no two rows were stacked in a block, so this proved nothing");
+    }
+    const tight = shape.lineGaps.filter((/** @type {number} */ g) => g < 3);
+    if (tight.length > 0) {
+      throw new Error(`row gaps of ${JSON.stringify(shape.lineGaps)}px`);
+    }
+  });
+
+  /*
+   * The card gap is measured on the front page rather than on a person, whose
+   * page has no card at all - which is how the first version of the width check
+   * above came to compare main with itself. Läget always has several, and the
+   * check refuses to pass if it finds fewer than two stacked.
+   */
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor("document.querySelector('.card') !== null", "the front page");
+
+  const stacked = JSON.parse(String(await page.evaluate(measure)));
+
+  check("consecutive cards are separated, rather than reading as one region", () => {
+    // Nine pixels was the old answer inside `.stack` and zero was the answer
+    // everywhere else, which drew three cards as one tall bordered box.
+    if (stacked.cardGaps.length === 0) {
+      throw new Error("no two cards were stacked here, so this proved nothing");
+    }
+    const tight = stacked.cardGaps.filter((/** @type {number} */ g) => g < 10);
+    if (tight.length > 0) {
+      throw new Error(`card gaps of ${JSON.stringify(stacked.cardGaps)}px`);
+    }
+  });
+
   step("Finishing up");
 
   /*

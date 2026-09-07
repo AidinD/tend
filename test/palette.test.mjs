@@ -467,4 +467,34 @@ describe("severity is visible without reading anything", () => {
       assert.notEqual(word, sev, `severity "${sev}" is worded as its own key`);
     }
   });
+
+  it("holds the content column, and does not let a ceiling defeat the cap", () => {
+    /*
+     * Nothing capped the column, so on a wide monitor every card, row and block
+     * was the full width of the window and no two things on a page differed in
+     * shape. It also put the two halves of one mistake side by side: prose
+     * capped at 68ch sat as a narrow strip in a mostly empty box while a row's
+     * text had no cap at all and ran the whole width in a single line.
+     *
+     * Asserted in the source rather than in the window because the rendered
+     * check can only run when the window happens to be wider than the cap, and
+     * a check that skips is not a check. This is also the exact shape of the
+     * bug it is guarding: the first version wrote the padding as a `clamp` with
+     * a 12vw ceiling, and on a 3240px window the ceiling won - so the cap held
+     * on every window that did not need it and on none that did.
+     */
+    const at = css.indexOf("main {");
+    assert.ok(at >= 0, "main should exist");
+    const own = css.slice(at, css.indexOf("}", at));
+
+    assert.match(
+      own,
+      /padding:[^;]*calc\(\(100% - \d+px\) \/ 2\)/,
+      `main does not hold the column: ${own.replace(/\s+/g, " ")}`
+    );
+    assert.ok(
+      !/clamp\(/.test(own),
+      `a clamp puts a ceiling on the padding, which caps the column only on narrow windows: ${own.replace(/\s+/g, " ")}`
+    );
+  });
 });

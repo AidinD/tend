@@ -335,8 +335,31 @@ button {
  * The right column scrolls, not the window and not the rail. Seven nav buttons
  * do not need to leave the screen because a list below them is long.
  */
+/*
+ * The column is held to a readable width, and the space a wide monitor gives
+ * goes into the margins rather than into every card.
+ *
+ * Nothing capped it before, so on a two-thousand-pixel window every card, row
+ * and block was nineteen hundred pixels of surface - and a page where
+ * everything is the same width, edge to edge, has no shape to look at. It also
+ * put the two ends of the same mistake side by side: prose capped at 68ch sat
+ * as a narrow column in a mostly empty box, while a row's text had no cap at
+ * all and ran the full width in one unreadable line.
+ *
+ * Padding rather than `max-width` with an auto margin: this element is the
+ * scroll container, so capping its width would move the scrollbar into the
+ * middle of the window and leave a dead strip beside it. `max` collapses to the
+ * plain 30px on anything narrower than the cap, because the other term goes
+ * negative there.
+ *
+ * No upper bound on the padding, and the first version had one - a `clamp` with
+ * a 12vw ceiling, meant to stop the margins looking absurd. It defeated the
+ * whole thing: on a 3240px window the ceiling won at 389px and the column came
+ * out 2262px instead of 1180, so the cap held on exactly the windows that did
+ * not need it. The padding is whatever is left over; that is the point of it.
+ */
 main {
-  padding: 26px 30px 60px;
+  padding: 26px max(30px, calc((100% - 1180px) / 2)) 60px;
   min-width: 0;
   overflow-y: auto;
 }
@@ -460,7 +483,7 @@ main {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-item);
+  gap: var(--sp-block);
 }
 
 /*
@@ -479,7 +502,7 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
   align-items: start;
-  gap: var(--sp-item);
+  gap: var(--sp-block);
 }
 
 /*
@@ -496,7 +519,7 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr));
   align-items: start;
-  gap: var(--sp-item);
+  gap: var(--sp-block);
   margin-top: var(--sp-label);
 }
 
@@ -525,6 +548,27 @@ main {
  * detail. Now the presence of a bar is itself the message, and only the
  * severities that want something have one.
  */
+/*
+ * Air between cards, which they had none of.
+ *
+ * `.stack` gives its children a gap and the views that use it were fine; every
+ * view that just joins cards together - the decision log, his own aims - drew
+ * them flush, so three cards read as one tall bordered region. Nine pixels was
+ * not enough either: these are 1px-bordered surfaces on a background a few
+ * shades from their own, so the gap has to be big enough to read as a gap.
+ *
+ * Written as adjacency and cancelled inside `.stack`, so a container that
+ * already spaces its children does not get both.
+ */
+.card + .card {
+  margin-top: var(--sp-block);
+}
+
+.stack > .card + .card,
+.stack > .stack > .card + .card {
+  margin-top: 0;
+}
+
 .card::before,
 .row::before,
 .line::before {
@@ -1238,6 +1282,26 @@ button.row:hover {
   user-select: text;
 }
 
+/*
+ * And air between them, which they had none of either.
+ *
+ * Rounded tinted rows stacked with a zero gap fuse into one continuous slab -
+ * the corners meet and the radius stops reading as a row boundary at all. Seven
+ * observations were a single grey field with text in it, which is most of why
+ * a person's page had nothing to focus on.
+ *
+ * Adjacency again, and cancelled inside the containers that space their own
+ * children, so nothing gets both.
+ */
+.line + .line {
+  margin-top: var(--sp-label);
+}
+
+.line-fold-rows > .line + .line,
+.fold-body > .line + .line {
+  margin-top: 0;
+}
+
 .line-when {
   font-family: var(--mono);
   font-size: var(--t-micro);
@@ -1246,9 +1310,26 @@ button.row:hover {
   min-width: 74px;
 }
 
+/*
+ * A row's text is held to a measure, which it never was.
+ *
+ * This is the single worst thing on a person's page. An observation is often
+ * two or three hundred characters, and with no cap it was drawn as ONE line
+ * across the whole window - past every readable measure, so seven of them in a
+ * block were a wall nobody reads rather than a record. 84ch is a little wider
+ * than the 68ch a card's reason gets, because a row is one fact rather than an
+ * argument and wrapping it early makes a list taller than it needs to be.
+ *
+ * `flex: 1` so short rows still push what is on their right out to the edge:
+ * the cap is on the text, not on where the row ends, and a pill that moved in
+ * to meet a two-word note would put the right-hand column in a different place
+ * on every line.
+ */
 .line-text {
   color: var(--text-dim);
   min-width: 0;
+  flex: 1;
+  max-width: 84ch;
 }
 
 /*
