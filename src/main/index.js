@@ -166,6 +166,14 @@ const OPERATIONS = {
   // could rewrite the role map's meaning without ever editing the role map.
   setPersonCadence: (/** @type {any} */ a) => api.setPersonCadence(store, a),
   clearPersonCadence: (/** @type {any} */ a) => api.clearPersonCadence(store, a),
+  // A round of feedback about one person. Entered in the window and not over
+  // MCP: an assessment is a named colleague's answer, and the open question of
+  // whether an agent may transcribe one is on the card rather than settled by
+  // quietly adding a tool. See src/service/assessments.js.
+  assessments: (/** @type {any} */ a) => api.assessments(store, a.person, a.now ?? Date.now()),
+  recordAssessment: (/** @type {any} */ a) =>
+    api.recordAssessment(store, { ...a, now: a.now ?? Date.now() }),
+  removeAssessment: (/** @type {any} */ a) => api.removeAssessment(store, a.id),
   logDecision: (/** @type {any} */ a) => api.logDecision(store, { ...a, now: a.now ?? Date.now() }),
   decideDecision: (/** @type {any} */ a) => api.decideDecision(store, a.id, a.fields ?? {}, a.now ?? Date.now()),
   stillHolds: (/** @type {any} */ a) => api.stillHolds(store, a.id, a.now ?? Date.now(), a.days),

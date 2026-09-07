@@ -29,9 +29,12 @@ import {
   pill,
   readFailed,
   readFailedHtml,
-  tend
+  tend,
+  toast
 } from "../ui.js";
 import { go, refresh } from "../app.js";
+import { personBlocksIn } from "../../domain/halves.js";
+import { WEIGHTS } from "../../domain/assessments.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 import { actions as growthActions, threadsBlock } from "./growth.js";
 import { actions as planActions, planBlock } from "./plan.js";
@@ -216,6 +219,28 @@ async function personPage(id) {
       <div class="card-foot"><button class="act" data-act="back">${words.allPeople}</button></div></div>`;
   }
 
+  /*
+   * Which blocks this page may show. From the service, which reads the store's
+   * own half.
+   *
+   * The fallback is derived rather than written out, and the hand-written one it
+   * replaces had gone stale exactly as this file's own header warns: it still
+   * said `themes: true`, a flag renamed to `observations` some time ago, and it
+   * had never gained `moments`. So the one path that used it - a payload with no
+   * blocks at all - would have hidden two blocks and shown neither.
+   */
+  const blocks = p.blocks ?? personBlocksIn("work");
+
+  /*
+   * A second read, the same shape as `momentsFor` below and gated the same way.
+   * Kept out of `person()` because the aggregate is its own thing with its own
+   * refusals, and folding it in would have put a colleague's ratings into every
+   * payload that asks who somebody is.
+   */
+  const rated = blocks.assessments
+    ? await tend.invoke("assessments", { person: String(p.id) })
+    : null;
+
   const list = (/** @type {string} */ title, /** @type {string} */ body, /** @type {string} */ emptyText) =>
     `<div class="block"><div class="block-title">${esc(title)}</div>${body || `<div class="empty">${esc(emptyText)}</div>`}</div>`;
 
@@ -296,6 +321,93 @@ async function personPage(id) {
       </div>`;
     })
     .join("");
+
+  /*
+   * A round of feedback, in three parts: what the answers amount to per axis,
+   * the answers themselves, and any collision.
+   *
+   * There is no figure for the person anywhere in here, and the service does
+   * not send one. The reference implementation this was ported from shows a 3.4
+   * averaged over one assessor answering about technical quality and another
+   * about delivery, and that number is not a weak signal - nothing was measured
+   * twice. Per axis and per set, each with its own n.
+   */
+  const assessed = (() => {
+    if (rated === null || rated.error) {
+      return "";
+    }
+    const answers = Array.isArray(rated.answers) ? rated.answers : [];
+    const button = `<button class="act" data-act="recordAssessment" data-person="${esc(p.id)}"
+        data-person-name="${esc(p.name)}">${words.assessmentRecordButton}</button>`;
+
+    if (answers.length === 0) {
+      return `<div class="block">
+        <div class="block-title">${esc(words.assessmentsBlock)}</div>
+        <div class="empty">${words.assessmentsNone}</div>
+        <div class="panel-actions">${button}</div>
+      </div>`;
+    }
+
+    const axes = (Array.isArray(rated.byAxis) ? rated.byAxis : [])
+      .map(
+        (/** @type {any} */ a) => `<div class="line">
+          <span class="line-when">${words.assessmentAxisMean(a.mean.toFixed(1), a.n)}</span>
+          <span class="line-text">${words.assessmentAxis(esc(a.axis), esc(a.setName))}</span>
+          <span class="line-right"><span class="pill plain">${
+            a.spread === 0 ? words.assessmentNoSpread : words.assessmentAxisSpread(a.low, a.high)
+          }</span></span>
+        </div>`
+      )
+      .join("");
+
+    const rows = answers
+      .map(
+        (/** @type {any} */ r) => `<div class="line">
+          <span class="line-when">${esc(new Date(r.at).toISOString().slice(0, 10))}</span>
+          <span class="line-text">
+            <strong>${esc(words.assessmentBy(r.assessor, r.assessorRole))}</strong>
+            <span class="src">${esc(r.setName)} - ${r.scores
+              .map((/** @type {any} */ x) => `${esc(x.axis)} ${x.score}`)
+              .join(", ")}</span>
+            ${r.note ? `<span class="src">${esc(r.note)}</span>` : `<span class="src">${words.assessmentSaidNothing}</span>`}
+            ${r.weighWhy ? `<span class="src">${words.assessmentWeighed(esc(r.weighWhy))}</span>` : ""}
+          </span>
+          <span class="line-right">
+            ${r.assessorWeight === "unset" ? "" : `<span class="pill plain">${esc(r.assessorWeightLabel)}</span>`}
+            <button class="act tiny" data-act="removeAssessment" data-id="${esc(r.id)}"
+              data-who="${esc(r.assessor)}">${words.assessmentRemove}</button>
+          </span>
+        </div>`
+      )
+      .join("");
+
+    /*
+     * A collision is reported and never resolved. Two answers from one assessor
+     * on one day counts one opinion twice and moves every mean, but picking one
+     * of them is the tool deciding which of two things somebody said is the one
+     * they meant.
+     */
+    const doubles = (Array.isArray(rated.doubles) ? rated.doubles : [])
+      .map(
+        (/** @type {any} */ d) => `<p class="card-why warn-text">${words.assessmentDouble(
+          esc(d.assessor),
+          esc(d.day)
+        )}</p>`
+      )
+      .join("");
+
+    return `<div class="block">
+      <div class="block-title">${esc(words.assessmentsBlock)}</div>
+      <p class="card-why dim">${words.assessmentsSummary(Number(rated.rounds), answers.length)}${
+        rated.trendPossible ? "" : ` ${words.assessmentsOneOccasion}`
+      }</p>
+      ${doubles ? `<div class="prep-block"><h3 class="prep-head">${words.assessmentDoubleTitle}</h3>${doubles}</div>` : ""}
+      ${axes}
+      <div class="block-title block-title-second">${esc(words.assessmentsAnswers)}</div>
+      ${rows}
+      <div class="panel-actions">${button}</div>
+    </div>`;
+  })();
 
   const promises = p.openPromises
     .map(
@@ -442,16 +554,6 @@ async function personPage(id) {
    * journal's one rule forbids. Contact and cancellations feed cadences, and
    * there are none here.
    */
-  const blocks = p.blocks ?? {
-    cadences: true,
-    promises: true,
-    waiting: true,
-    growth: true,
-    topics: true,
-    skips: true,
-    themes: true
-  };
-
   const model = await modelStatus();
   const themesKey = `themes:${p.id}`;
   const growing = blocks.growth ? await threadsBlock(String(p.id)) : "";
@@ -599,6 +701,16 @@ async function personPage(id) {
         blocks.observations
           ? list(words.observationsBlock, observations, words.observationsNone)
           : ""
+      }
+      ${
+        /*
+         * Under the observations and above the contact history, for the same
+         * reason the observations sit there: both are material a review
+         * conversation is built from, and a round of somebody else's ratings is
+         * the most of that on the page. The history answers "are we in step",
+         * which the cadence block has already answered in a badge.
+         */
+        assessed
       }
       ${
         blocks.cadences
@@ -1050,6 +1162,123 @@ export const actions = {
       words.cadenceSetToast
     );
     if (sent) {
+      refresh();
+    }
+  },
+
+  /**
+   * Record one assessor's answers about somebody.
+   *
+   * The axes are typed as lines rather than as a fixed set of fields, because
+   * this is step one and the stored question sets are a later card - and
+   * hard-coding three axes now would have to come out again. Parsed here and
+   * validated in the service, which is where the refusals live so the other
+   * client cannot route around them.
+   *
+   * @param {Record<string, string>} d
+   */
+  recordAssessment: async (d) => {
+    const values = await form({
+      title: words.assessmentTitle,
+      intro: words.assessmentIntro,
+      fields: [
+        {
+          name: "assessor",
+          label: words.assessmentWhoLabel,
+          hint: words.assessmentWhoHint,
+          required: true
+        },
+        {
+          name: "assessorRole",
+          label: words.assessmentRoleLabel,
+          placeholder: words.assessmentRolePlaceholder
+        },
+        {
+          name: "set",
+          label: words.assessmentSetLabel,
+          placeholder: words.assessmentSetPlaceholder
+        },
+        {
+          name: "axes",
+          label: words.assessmentAxesLabel,
+          type: "textarea",
+          hint: words.assessmentAxesHint,
+          required: true
+        },
+        { name: "note", label: words.assessmentNoteLabel, type: "textarea" },
+        {
+          name: "assessorWeight",
+          label: words.assessmentWeightLabel,
+          type: "select",
+          value: "unset",
+          options: Object.entries(WEIGHTS).map(([value, w]) => ({ value, label: w.label }))
+        },
+        {
+          name: "weighWhy",
+          label: words.assessmentWeighWhyLabel,
+          hint: words.assessmentWeighWhyHint
+        },
+        { name: "at", label: words.assessmentDateLabel, type: "date" }
+      ],
+      confirm: words.assessmentConfirm
+    });
+    if (!values) {
+      return;
+    }
+
+    /*
+     * One axis per line, "name: score". Refused here rather than shrugged at,
+     * because a line that does not parse would otherwise be silently dropped -
+     * and a round entered with two of its three axes missing looks complete.
+     */
+    /** @type {{ axis: string, score: number }[]} */
+    const scores = [];
+    for (const line of String(values.axes ?? "").split(/\r?\n/)) {
+      if (line.trim() === "") {
+        continue;
+      }
+      const at = line.lastIndexOf(":");
+      const axis = at < 0 ? "" : line.slice(0, at).trim();
+      const score = at < 0 ? NaN : Number(line.slice(at + 1).trim().replace(",", "."));
+      if (axis === "" || !Number.isFinite(score)) {
+        toast(words.assessmentBadAxis(line.trim()), "bad");
+        return;
+      }
+      scores.push({ axis, score });
+    }
+
+    const sent = await act(
+      "recordAssessment",
+      {
+        person: d.person,
+        assessor: values.assessor,
+        assessorRole: values.assessorRole,
+        assessorWeight: values.assessorWeight,
+        weighWhy: values.weighWhy,
+        set: values.set,
+        setName: values.set,
+        scores,
+        note: values.note,
+        at: values.at ? Date.parse(String(values.at)) : undefined
+      },
+      words.assessmentToast
+    );
+    if (sent) {
+      refresh();
+    }
+  },
+
+  /**
+   * Take back a mis-entered assessment.
+   *
+   * Removed rather than edited, and only just: an assessment is somebody else's
+   * answer, so correcting one in place is putting words in their mouth. A wrong
+   * row goes and gets typed again from the form it came from.
+   *
+   * @param {Record<string, string>} d
+   */
+  removeAssessment: async (d) => {
+    if (await act("removeAssessment", { id: d.id }, words.assessmentRemovedToast)) {
       refresh();
     }
   },

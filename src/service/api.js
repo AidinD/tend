@@ -95,6 +95,12 @@ export {
   workstreams
 } from "./workstreams.js";
 
+/* ---------------------------------------------------------- assessments -- */
+
+/* One assessor's answers about one person. See domain/assessments.js for why
+   there is no single figure per person and why the assessor is always named. */
+export { assessments, recordAssessment, removeAssessment } from "./assessments.js";
+
 /* ----------------------------------------------------------------- aims -- */
 
 /* Moved to aims.js and re-exported, so the service surface is unchanged. */

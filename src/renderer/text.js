@@ -745,6 +745,87 @@ export const T = {
     cadenceSetConfirm: "Sätt det",
     cadenceSetToast: "Takten satt.",
     cadenceClearedToast: "Tillbaka på pliktens takt.",
+    /*
+     * A round of feedback about somebody.
+     *
+     * The aggregate is per axis and per set, never one figure for the person -
+     * see `domain/assessments.js` for the 3.4 that was averaged over two
+     * assessors answering different questions. So there is no word here for a
+     * person's score, because there is no such thing to say.
+     */
+    assessmentsBlock: "Bedömningar",
+    assessmentsNone:
+      "Ingen rond registrerad. Siffrorna från en feedbackrond ligger i formuläret tills " +
+      "de skrivs in här, och då går de inte att jämföra med nästa rond.",
+    /**
+     * Ends in a full stop, because the one-occasion note is appended to it and
+     * the two ran together as "från 1 tillfälle En trend behöver". "Svar" is
+     * the same in both numbers, so it is not inflected.
+     *
+     * @param {number} rounds
+     * @param {number} answers
+     */
+    assessmentsSummary: (rounds, answers) =>
+      `${answers} svar från ${rounds} ${rounds === 1 ? "tillfälle" : "tillfällen"}.`,
+    /*
+     * Said without repeating the count the line before it already gave. The
+     * first version began "Ett tillfälle." straight after "från 1 tillfälle",
+     * which read as a stutter and buried the part that matters.
+     */
+    assessmentsOneOccasion:
+      "En trend behöver mer än ett datum - en kurva genom svar från samma dag ser ut som " +
+      "rörelse där ingen finns.",
+    /* The answers themselves, under the aggregate. Its own word: the block's
+       title was reused here at first and the page said BEDÖMNINGAR twice. */
+    assessmentsAnswers: "Svaren",
+    /** @param {string} axis @param {string} set */
+    assessmentAxis: (axis, set) => `<strong>${axis}</strong> <span class="src">${set}</span>`,
+    /** @param {string} mean @param {number} n */
+    assessmentAxisMean: (mean, n) => `${mean} av 5, n=${n}`,
+    /** @param {number} low @param {number} high */
+    assessmentAxisSpread: (low, high) => `${low}-${high}`,
+    assessmentNoSpread: "alla lika",
+    /** @param {string} who @param {string} role */
+    assessmentBy: (who, role) => (role ? `${who}, ${role}` : who),
+    assessmentSaidNothing: "Skrev ingenting",
+    /** @param {string} why */
+    assessmentWeighed: (why) => `Vägd: ${why}`,
+    assessmentDoubleTitle: "Samma bedömare två gånger samma dag",
+    /** @param {string} who @param {string} day */
+    assessmentDouble: (who, day) =>
+      `${who}, ${day}. Båda räknas, så en åsikt väger dubbelt. Ta bort den som är fel - ` +
+      `vilken av dem som gäller är inte verktygets sak att gissa.`,
+    assessmentRecordButton: "Registrera en bedömning",
+    assessmentRemove: "Ta bort",
+
+    /* Recording one. The assessor is asked first and cannot be skipped. */
+    assessmentTitle: "En bedömning av någon",
+    assessmentIntro:
+      "Ett svar från en bedömare, som ronden ställde det. Axlarnas namn sparas på raden, så " +
+      "att ett omskrivet frågeset inte ändrar vad någon svarade i våras.",
+    assessmentWhoLabel: "Vem bedömde",
+    assessmentWhoHint:
+      "Krävs. Ett betyg utan namn går inte att väga, och att väga det är mestadels hur det läses.",
+    assessmentRoleLabel: "Vad de är till arbetet",
+    assessmentRolePlaceholder: "producent på projektet",
+    assessmentWeightLabel: "Hur tungt det väger",
+    assessmentWeighWhyLabel: "Varför det väger så",
+    assessmentWeighWhyHint:
+      "Skriv det nu om du vet det. Om ett halvår är raden allt som finns kvar, och att en " +
+      "bedömare är slarvig står ingenstans i den.",
+    assessmentSetLabel: "Vilket frågeset",
+    assessmentSetPlaceholder: "producentrond",
+    assessmentAxesLabel: "Axlarna och poängen",
+    assessmentAxesHint:
+      "En per rad: axelns namn, kolon, poängen 1-5. Till exempel \"Leverans och ägarskap: 4\".",
+    assessmentNoteLabel: "Vad de skrev",
+    assessmentDateLabel: "När det besvarades",
+    assessmentConfirm: "Registrera det",
+    assessmentToast: "Registrerat.",
+    assessmentRemovedToast: "Borttaget.",
+    /** @param {string} line */
+    assessmentBadAxis: (line) =>
+      `"${line}" är inte en axel och en poäng. En per rad, som "Kommunikation: 4".`,
     promisesBlock: "Öppna löften",
     promisesNone: "Inget utestående.",
     observationsBlock: "Observationer",

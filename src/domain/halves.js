@@ -287,7 +287,7 @@ export function homeViewIn(half) {
  * discovering later that it renders drift over a picture of your family.
  *
  * @param {string} half
- * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, observations: boolean, moments: boolean }}
+ * @returns {{ cadences: boolean, promises: boolean, waiting: boolean, growth: boolean, topics: boolean, skips: boolean, observations: boolean, assessments: boolean, moments: boolean }}
  */
 export function personBlocksIn(half) {
   const isPrivate = half === "private";
@@ -318,6 +318,15 @@ export function personBlocksIn(half) {
      * longer exists and that it never actually gated.
      */
     observations: !isPrivate,
+    /*
+     * A round of feedback about somebody, answered by named colleagues.
+     *
+     * The work half only, and less arguably than anything else on this list.
+     * These rows are other people's ratings of a third person, gathered because
+     * he owes a recurring round; run over a family it is not a tool that has
+     * become something else, it is a thing with no meaning at all.
+     */
+    assessments: !isPrivate,
     /*
      * Moments: one thing that happened, and his own part in it.
      *

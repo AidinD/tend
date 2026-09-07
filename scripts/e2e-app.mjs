@@ -5209,6 +5209,154 @@ try {
     }
   });
 
+  step("A round of feedback about one person");
+
+  /*
+   * The block exists because the numbers from a round used to land in a form and
+   * be gone by the next one. What is driven here is the part a unit test cannot
+   * see: that the answers are enterable at all, and that the page shows the
+   * aggregate per axis rather than the one figure per person the reference
+   * implementation shows.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"recordAssessment\"]') !== null",
+    "the assessment block"
+  );
+
+  const beforeRound = await page.text("#main");
+  check("an empty block says where the numbers are until they are entered", () => {
+    if (!/formuläret/.test(beforeRound)) {
+      throw new Error("the empty state does not say why an unentered round is a problem");
+    }
+  });
+
+  await page.click('[data-act="recordAssessment"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the assessment form");
+  await page.fillDialog({
+    assessor: "Testproducent",
+    assessorRole: "producent på projektet",
+    set: "Producentrond",
+    axes: "Leverans och ägarskap: 5\nProblemlösning: 5\nKommunikation: 4",
+    note: "",
+    assessorWeight: "low",
+    weighWhy: "slarvig, toppbetyg utan att skriva något"
+  });
+  await page.waitFor(
+    "document.body.textContent.includes('Testproducent')",
+    "the recorded answer"
+  );
+
+  const round = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Bedömningar'
+        );
+        if (!block) { return JSON.stringify({ found: false }); }
+        return JSON.stringify({
+          found: true,
+          text: block.textContent.replace(/\\s+/g, ' ').trim(),
+          rows: [...block.querySelectorAll('.line')].map((r) => ({
+            when: (r.querySelector('.line-when') || {}).textContent.trim(),
+            text: (r.querySelector('.line-text') || {}).textContent.replace(/\\s+/g, ' ').trim(),
+            pills: [...r.querySelectorAll('.pill')].map((x) => x.textContent.trim())
+          }))
+        });
+      })()`)));
+
+  check("the aggregate is per axis with its own n, and there is no figure for the person", () => {
+    /*
+     * The whole reason this was a port rather than a copy. The reference shows
+     * one number per person averaged over answers to different questions, which
+     * is not a weak signal - nothing was measured twice.
+     */
+    if (!round.found) {
+      throw new Error("no assessment block on the page");
+    }
+    const axes = round.rows.filter((/** @type {any} */ r) => /n=/.test(String(r.when)));
+    if (axes.length !== 3) {
+      throw new Error(`${axes.length} axis rows, expected 3: ${JSON.stringify(round.rows)}`);
+    }
+    if (!axes.every((/** @type {any} */ r) => /n=1/.test(String(r.when)))) {
+      throw new Error(`an axis has the wrong count: ${JSON.stringify(axes.map((/** @type {any} */ a) => a.when))}`);
+    }
+  });
+
+  check("a single occasion says a trend is not possible, rather than drawing one", () => {
+    // Three answers from one afternoon drawn as a curve reads as movement where
+    // there is none, which is what the reference does today.
+    if (!/mer än ett datum/.test(String(round.text))) {
+      throw new Error("the block does not say why there is no trend yet");
+    }
+  });
+
+  check("the answer says the assessor wrote nothing, and how much they weigh", () => {
+    /*
+     * The pair that started the card: 5/5/4 with every comment box empty, from
+     * somebody known to be careless. Both facts have to survive to the page or
+     * the row outlives the only person who knew how to read it.
+     */
+    const answer = round.rows.find((/** @type {any} */ r) => /Testproducent/.test(String(r.text)));
+    if (!answer) {
+      throw new Error(`the answer is not listed: ${JSON.stringify(round.rows)}`);
+    }
+    if (!/Skrev ingenting/.test(String(answer.text))) {
+      throw new Error(`silence is not reported: "${answer.text}"`);
+    }
+    if (!/slarvig/.test(String(answer.text))) {
+      throw new Error(`the reason it is weighed low is gone: "${answer.text}"`);
+    }
+    if (!answer.pills.some((/** @type {string} */ x) => /tvekan/i.test(x))) {
+      throw new Error(`nothing says how much it weighs: ${JSON.stringify(answer.pills)}`);
+    }
+  });
+
+  await page.click('[data-act="recordAssessment"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the assessment form");
+  await page.fillDialog({
+    assessor: "Testproducent",
+    set: "Producentrond",
+    axes: "Kommunikation: 2"
+  });
+  await sleep(400);
+
+  const collided = await page.text("#main");
+  check("a second answer from one assessor on one day is reported, not resolved", () => {
+    /*
+     * Both are kept and both count, so one opinion weighs twice - and that is
+     * said out loud rather than fixed, because picking one of them is the tool
+     * deciding which of two things somebody said is the one they meant.
+     */
+    if (!/väger dubbelt/.test(collided)) {
+      throw new Error("the collision is not reported on the page");
+    }
+  });
+
+  const spread = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Bedömningar'
+        );
+        const row = [...block.querySelectorAll('.line')].find(
+          (r) => /Kommunikation/.test(r.textContent) && /n=/.test(r.textContent)
+        );
+        return JSON.stringify({
+          when: (row.querySelector('.line-when') || {}).textContent.trim(),
+          pills: [...row.querySelectorAll('.pill')].map((x) => x.textContent.trim())
+        });
+      })()`)));
+
+  check("and the mean carries its spread, because a mean alone is what gets quoted", () => {
+    // 4 and 2 average to 3, and so do 3 and 3. Without the range the two are
+    // the same number on the page and they mean different things.
+    if (!/3\.0 av 5, n=2/.test(String(spread.when))) {
+      throw new Error(`the axis reads "${spread.when}"`);
+    }
+    if (!spread.pills.some((/** @type {string} */ x) => x === "2-4")) {
+      throw new Error(`the spread is missing: ${JSON.stringify(spread.pills)}`);
+    }
+  });
+
   step("The page has shape rather than one field of grey");
 
   /*

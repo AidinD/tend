@@ -1,0 +1,436 @@
+/**
+ * A round of feedback about one person.
+ *
+ * Most of this file is about the three faults in the implementation this was
+ * ported from, because each of them is the kind that produces a plausible
+ * number rather than an error:
+ *
+ *   One figure per person, averaged over answers to different questions. A 3.4
+ *   from one assessor answering about technical quality and another about
+ *   delivery is not a weak signal - nothing was measured twice. Refused by
+ *   there being no code path that could produce it, and asserted here as an
+ *   absence in what the service returns.
+ *
+ *   A trend over one date. Three answers from one afternoon drawn as a curve
+ *   reads as movement where there is none, so the service says whether a trend
+ *   is possible at all rather than leaving a view to work it out.
+ *
+ *   Two answers from one assessor on one day, both counted. Reported and never
+ *   resolved: dropping one is the tool deciding which of two things somebody
+ *   said is the one they meant.
+ *
+ * And one fault that was not on the list. The reference stores answers as
+ * question ids pointing into an editable set, so rewording a question changes
+ * the meaning of every historical answer to it. The record copies the axis
+ * label instead, and the last test here is what says so.
+ */
+
+import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
+
+import * as api from "../src/service/api.js";
+import { TOOLS } from "../src/mcp/tools.js";
+import { WEIGHTS, byAxis, doubleAnswers, isScore, occasions } from "../src/domain/assessments.js";
+import { personBlocksIn } from "../src/domain/halves.js";
+import { openStore } from "../src/storage/store.js";
+import { DAY_MS } from "../src/domain/time.js";
+import { failed, ok } from "./helpers.mjs";
+
+const NOW = 1_800_000_000_000;
+/** @param {number} n */
+const daysAgo = (n) => NOW - n * DAY_MS;
+
+/** @type {string} */
+let dir;
+/** @type {import("../src/storage/store.js").TendStore} */
+let store;
+
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), "tend-assess-"));
+  let t = NOW - 1_000_000;
+  store = openStore({ dataDir: dir, role: "app", host: "test", now: () => t++ });
+});
+
+afterEach(() => {
+  rmSync(dir, { recursive: true, force: true });
+});
+
+/** @param {object} [over] */
+function person(over = {}) {
+  return ok(
+    api.addPerson(store, {
+      name: "Testkodare",
+      relation: "lead-and-manage",
+      since: daysAgo(400),
+      now: NOW,
+      ...over
+    })
+  );
+}
+
+/** @param {string} who @param {object} [over] */
+function record(who, over = {}) {
+  return api.recordAssessment(store, {
+    person: who,
+    assessor: "Testproducent",
+    set: "producentrond",
+    setName: "Producentrond",
+    scores: [
+      { axis: "Leverans och ägarskap", score: 4 },
+      { axis: "Kommunikation", score: 3 }
+    ],
+    note: "Driver sitt eget arbete, hörs sällan av sig själv",
+    now: NOW,
+    ...over
+  });
+}
+
+describe("what a record has to carry", () => {
+  it("keeps the date, the assessor, the set, a score per axis and the free text", () => {
+    const who = person();
+    const made = ok(record(String(who.id)));
+    assert.equal(made.axes, 2);
+    assert.equal(made.said, true);
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    const [row] = read.answers;
+    assert.equal(row.assessor, "Testproducent");
+    assert.equal(row.setName, "Producentrond");
+    assert.equal(row.at, NOW);
+    assert.deepEqual(
+      row.scores.map((/** @type {any} */ s) => `${s.axis} ${s.score}`),
+      ["Leverans och ägarskap 4", "Kommunikation 3"]
+    );
+    assert.match(row.note, /Driver sitt eget arbete/);
+  });
+
+  it("refuses one with nobody's name on it", () => {
+    /*
+     * The load-bearing refusal. A rating cannot be weighed without knowing who
+     * gave it, and weighing it is most of how it gets read - top marks with
+     * every comment box empty from somebody careless says more about the
+     * assessor than the subject.
+     */
+    const who = person();
+    const why = failed(record(String(who.id), { assessor: "  " }));
+    assert.match(why, /vem som bedömde/i);
+    assert.equal(store.rows("assessments").length, 0);
+  });
+
+  it("refuses a score off the scale or split between two points", () => {
+    const who = person();
+    for (const bad of [0, 6, 3.5, "fyra", null]) {
+      failed(
+        record(String(who.id), {
+          scores: [{ axis: "Kommunikation", score: /** @type {any} */ (bad) }]
+        })
+      );
+    }
+    assert.equal(store.rows("assessments").length, 0);
+  });
+
+  it("refuses a score with no axis to compare it against", () => {
+    const who = person();
+    const why = failed(record(String(who.id), { scores: [{ axis: "  ", score: 4 }] }));
+    assert.match(why, /axel/i);
+  });
+
+  it("refuses the same axis twice in one answer", () => {
+    // Two answers to one question from one assessor is an input mistake, and
+    // stored it is one voice counted twice inside a single row.
+    const who = person();
+    const why = failed(
+      record(String(who.id), {
+        scores: [
+          { axis: "Kommunikation", score: 4 },
+          { axis: "kommunikation", score: 2 }
+        ]
+      })
+    );
+    assert.match(why, /två gånger/);
+  });
+
+  it("takes a backdated answer, because a round is entered after it is run", () => {
+    const who = person();
+    ok(record(String(who.id), { at: daysAgo(6) }));
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.answers[0].at, daysAgo(6));
+    assert.equal(read.answers[0].daysSince, 6);
+  });
+
+  it("says when an assessor wrote nothing at all, as its own fact", () => {
+    /*
+     * The shape that started the whole card: 5/5/4 with every comment box
+     * empty. It reads as a strong result and is closer to no answer, so silence
+     * is reported and never folded into the scores as a low one.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        note: "",
+        scores: [
+          { axis: "Leverans och ägarskap", score: 5 },
+          { axis: "Problemlösning", score: 5 },
+          { axis: "Kommunikation", score: 4 }
+        ]
+      })
+    );
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.answers[0].saidAnything, false);
+    // By axis name rather than by position: `byAxis` sorts alphabetically, so
+    // an assertion on the order was really an assertion about the sort.
+    assert.deepEqual(
+      Object.fromEntries(read.byAxis.map((/** @type {any} */ a) => [a.axis, a.mean])),
+      { "Kommunikation": 4, "Leverans och ägarskap": 5, "Problemlösning": 5 },
+      "silence was scored rather than reported"
+    );
+  });
+});
+
+describe("the assessor's weight is stored from the first round", () => {
+  it("takes the weight and the reason, and keeps them on the row", () => {
+    /*
+     * The knowledge that an assessor is careless lives in one person's head
+     * until the row outlives their memory of it. If the field arrives later, the
+     * first round is the one it is missing from - which is the round that
+     * prompted the card.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessorWeight: "low",
+        weighWhy: "slarvig, satte toppbetyg utan att skriva något"
+      })
+    );
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.answers[0].assessorWeight, "low");
+    assert.equal(read.answers[0].assessorWeightLabel, WEIGHTS.low.label);
+    assert.match(read.answers[0].weighWhy, /slarvig/);
+  });
+
+  it("defaults to unset rather than to normal, so an unweighed row stays a gap", () => {
+    // "Nobody has said anything about this assessor" and "weighed and found
+    // ordinary" are different facts, and a default of normal would erase the
+    // first into the second.
+    const who = person();
+    ok(record(String(who.id)));
+    assert.equal(ok(api.assessments(store, String(who.id), NOW)).answers[0].assessorWeight, "unset");
+  });
+
+  it("refuses a weight nobody declared", () => {
+    const who = person();
+    failed(record(String(who.id), { assessorWeight: "tungt" }));
+  });
+
+  it("does not let the weight touch the aggregate yet", () => {
+    /*
+     * Deliberate, and the reason it is a test rather than a comment: a
+     * weighting applied before anybody decided what weight MEANS would be worse
+     * than not having the field, because the resulting numbers would look
+     * considered. Two answers, one dismissed and one heavy, still average
+     * plainly.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "En", assessorWeight: "low", scores: [{ axis: "Kommunikation", score: 2 }] }));
+    ok(record(String(who.id), { assessor: "Två", assessorWeight: "high", scores: [{ axis: "Kommunikation", score: 4 }] }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    const axis = read.byAxis.find((/** @type {any} */ a) => a.axis === "Kommunikation");
+    assert.ok(axis, "the axis is missing, so this proved nothing");
+    assert.equal(axis.mean, 3, "the weight has started moving the mean without a decision");
+    assert.equal(axis.n, 2);
+  });
+});
+
+describe("the three faults it was ported without", () => {
+  it("never produces one figure for a person", () => {
+    /*
+     * The most important assertion in the file. Two assessors answering about
+     * different things, and the reference implementation shows their average.
+     * Checked as an absence in the whole payload rather than by inspecting one
+     * field, so a helpful addition of `average` later fails here.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "En", scores: [{ axis: "Teknisk kvalitet", score: 4 }] }));
+    ok(record(String(who.id), { assessor: "Två", scores: [{ axis: "Leverans och ägarskap", score: 3 }] }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    const named = Object.keys(read);
+    assert.deepEqual(
+      named.filter((k) => /average|mean|score|overall|total/i.test(k)),
+      [],
+      `a figure for the person appeared in the payload: ${named.join(", ")}`
+    );
+
+    // And the two answers stay apart, one axis each with n=1.
+    assert.deepEqual(
+      read.byAxis.map((/** @type {any} */ a) => `${a.axis} ${a.mean} n=${a.n}`),
+      ["Leverans och ägarskap 3 n=1", "Teknisk kvalitet 4 n=1"]
+    );
+  });
+
+  it("keeps two sets apart even when they share an axis name", () => {
+    /*
+     * The same fault one level down. A producer's set and a lead's set can both
+     * have an axis called Kommunikation and mean different things by it, so
+     * merging on the label alone rebuilds the cross-set average one axis at a
+     * time.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "En", set: "producent", setName: "Producentrond", scores: [{ axis: "Kommunikation", score: 5 }] }));
+    ok(record(String(who.id), { assessor: "Två", set: "lead", setName: "Leadrond", scores: [{ axis: "Kommunikation", score: 1 }] }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.byAxis.length, 2, JSON.stringify(read.byAxis));
+    for (const a of read.byAxis) {
+      assert.equal(a.n, 1, `${a.setName} merged two sets into one figure`);
+    }
+  });
+
+  it("says a trend is not possible over a single occasion", () => {
+    const who = person();
+    ok(record(String(who.id), { assessor: "En" }));
+    ok(record(String(who.id), { assessor: "Två" }));
+    ok(record(String(who.id), { assessor: "Tre" }));
+
+    const one = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(one.rounds, 1, "three answers from one day counted as three occasions");
+    assert.equal(one.trendPossible, false);
+
+    ok(record(String(who.id), { assessor: "Fyra", at: daysAgo(95) }));
+    const two = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(two.rounds, 2);
+    assert.equal(two.trendPossible, true);
+  });
+
+  it("reports two answers from one assessor on one day, and counts both", () => {
+    /*
+     * Both, on purpose. Keeping them counts one opinion twice and moves the
+     * mean; dropping one is the tool deciding which of two things somebody said
+     * is the one they meant. So the collision is surfaced for a person.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testproducent", scores: [{ axis: "Kommunikation", score: 4 }] }));
+    ok(record(String(who.id), { assessor: "testproducent ", scores: [{ axis: "Kommunikation", score: 3 }] }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.doubles.length, 1, JSON.stringify(read.doubles));
+    assert.equal(read.doubles[0].ids.length, 2);
+    assert.equal(read.byAxis[0].n, 2, "a colliding answer was silently dropped");
+  });
+
+  it("and a mis-entered row can be taken back", () => {
+    const who = person();
+    const made = ok(record(String(who.id)));
+    ok(api.removeAssessment(store, String(made.id)));
+    assert.equal(ok(api.assessments(store, String(who.id), NOW)).answers.length, 0);
+  });
+});
+
+describe("a record survives its question set being rewritten", () => {
+  it("carries the axis labels it was answered on, not a pointer to them", () => {
+    /*
+     * The fault that was not on the list. Answers stored as question ids into
+     * an editable set mean that rewording a question changes what everybody
+     * answered last spring, with nothing failing. So the label - and the prompt
+     * if there was one - is copied onto the row when it is written.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        scores: [
+          {
+            axis: "Leverans och ägarskap",
+            asked: "När Testkodare får en uppgift, hur upplever du deras förmåga att driva den i mål?",
+            score: 4
+          }
+        ]
+      })
+    );
+
+    const row = store.rows("assessments")[0];
+    assert.equal(row.scores[0].axis, "Leverans och ägarskap");
+    assert.match(String(row.scores[0].asked), /driva den i mål/);
+    assert.equal(
+      Object.keys(row.scores[0]).some((k) => /questionId|question$/.test(k)),
+      false,
+      "the row points at a question row instead of carrying what was asked"
+    );
+  });
+});
+
+describe("where these rows may and may not appear", () => {
+  it("is a work-half block and never a private one", () => {
+    // Other people's ratings of a third person. Run over a family it is not a
+    // tool that has become something else, it has no meaning at all.
+    assert.equal(personBlocksIn("work").assessments, true);
+    assert.equal(personBlocksIn("private").assessments, false);
+  });
+
+  it("gives no agent a way to write one", () => {
+    /*
+     * Left closed for now rather than settled: a number about a named colleague
+     * produced by anything other than the colleague who gave it is the
+     * highest-consequence row in this app. Whether an agent may transcribe a
+     * form response is written on the card as a question, and this is what
+     * stops it being answered by quietly adding a tool.
+     */
+    const names = TOOLS.map((t) => t.name);
+    const found = names.filter((n) => /assess|rating|evaluat/i.test(n));
+    assert.deepEqual(found, [], `an MCP tool can write an assessment: ${found.join(", ")}`);
+  });
+});
+
+describe("the pieces underneath", () => {
+  it("accepts whole points on the scale and nothing else", () => {
+    assert.equal(isScore(1), true);
+    assert.equal(isScore(5), true);
+    assert.equal(isScore(0), false);
+    assert.equal(isScore(6), false);
+    assert.equal(isScore(3.5), false);
+    assert.equal(isScore("4"), false);
+  });
+
+  it("carries the spread beside the mean", () => {
+    // Three assessors at 2, 3 and 5 average to the same place as three at 3, 3
+    // and 4 and mean something entirely different. A mean shown without the
+    // spread is the figure that gets quoted.
+    const rows = [2, 3, 5].map((score, i) => ({
+      id: `a${i}`,
+      set: "s",
+      setName: "S",
+      at: NOW,
+      assessor: `nummer ${i}`,
+      scores: [{ axis: "Kommunikation", asked: "", score }]
+    }));
+    const [axis] = byAxis(/** @type {any} */ (rows));
+    assert.ok(axis, "byAxis returned nothing, so this proved nothing");
+    assert.equal(axis.mean, 10 / 3);
+    assert.equal(axis.n, 3);
+    assert.equal(axis.low, 2);
+    assert.equal(axis.high, 5);
+    assert.equal(axis.spread, 3);
+  });
+
+  it("counts occasions as days, not as rows", () => {
+    const rows = [
+      { id: "a", at: NOW, assessor: "en", scores: [] },
+      { id: "b", at: NOW + 1000, assessor: "två", scores: [] },
+      { id: "c", at: daysAgo(90), assessor: "tre", scores: [] }
+    ];
+    assert.equal(occasions(/** @type {any} */ (rows)).length, 2);
+  });
+
+  it("ignores an unnamed or undated row when looking for collisions", () => {
+    const rows = [
+      { id: "a", at: 0, assessor: "en", scores: [] },
+      { id: "b", at: 0, assessor: "en", scores: [] },
+      { id: "c", at: NOW, assessor: "  ", scores: [] },
+      { id: "d", at: NOW, assessor: "  ", scores: [] }
+    ];
+    assert.deepEqual(doubleAnswers(/** @type {any} */ (rows)), []);
+  });
+});

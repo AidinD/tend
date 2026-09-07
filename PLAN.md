@@ -110,6 +110,13 @@ Tend event log <──┤
   budgets are deterministic code; the model only reads prose and writes drafts.
 - Storage is an append-only event log, one file per writer, safe for concurrent
   writers on a Dropbox-synced folder.
+- **A round of feedback is stored, and there is no figure per person.**
+  `assessments` holds one assessor's answers about one person on one occasion,
+  carrying the axis labels it was answered on rather than pointing at an
+  editable question set. The aggregate is per axis and per set with its own
+  count - see DECISIONS.md for the 3.4 that was averaged across two assessors
+  answering different questions, and for the three other faults left behind in
+  the port.
 - **A cadence is generated, never stored** - duties crossed with subjects - and
   the one thing that may be stored per pair is how often it runs.
   `cadenceOverrides` holds an interval for one (person, duty), or no interval at
@@ -408,6 +415,22 @@ block for the part the notes do not answer.
 - **Whether a family of related projects is one row each or one row with
   sub-rows.** When staffing moves between them a fixed schedule per project is
   probably wrong, and "longest untouched" is the better model.
+- **What happens to a colleague's ratings the day he leaves the job.** His
+  reading of how he leads is his; named colleagues' scores from an employer are
+  not as obviously his. The rows are separable by construction - their own
+  collection, with `archiveEverythingActive` as the existing hook - and the
+  three candidates are written on the epic rather than chosen: they go with him
+  as his own record of judgement calls; the scores go and the fact a round
+  happened stays; or the whole collection goes and the method is what he keeps.
+  His call.
+- **Whether an agent may transcribe a form response into an assessment.** A
+  number about a named colleague produced by anything but the colleague who gave
+  it is the highest-consequence row in the app, and transcription is also the
+  obvious use for an agent. Closed for now, with a test that fails if a tool
+  appears before the question is answered.
+- **What the assessor's weight should DO to an aggregate.** The field is stored
+  from the first round because the knowledge does not survive six months, and it
+  moves nothing until this is decided. Its own card.
 - **What a focus has actually cost.** `focusCost` subtracts a baseline mean,
   taken over the cadences that existed when the focus was set, from a mean over
   the ones that exist now - two populations, with the difference reported as the

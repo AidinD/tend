@@ -3,6 +3,94 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-07 - A round of feedback, stored so two rounds can be compared
+
+**Decided.** `assessments` holds one assessor's answers about one person on one
+occasion: the date, who answered, which set was used, a score per axis, the free
+text, and how much the assessor weighs. Ported from a working implementation in
+a sibling tool rather than designed here, with four things deliberately left
+behind.
+
+**Why here and not there.** The reference lives in the company's tool, which is
+not in use and is not the user's. If he changes job the method should follow him
+and the tool should not, which is the whole reason a second copy is worth
+building.
+
+**No figure for a person, and it is the most important thing in this entry.**
+The reference shows one number per person, averaged across every response about
+them - so a 3.4 came from one assessor answering about technical quality and
+another about delivery. That is not a weak signal. Nothing was measured twice.
+The aggregate is per axis AND per set, each with its own `n`, and there is no
+code path that could produce a single figure. Asserted as an absence in the
+payload rather than by inspecting a field, so adding a helpful `average` later
+fails a test.
+
+Per set as well as per axis, because two sets can both have an axis called
+Kommunikation and mean different things by it - a producer's set and a lead's
+set being the obvious pair. Merging on the label alone rebuilds the same average
+one axis at a time.
+
+**No trend over one date.** The reference draws a curve through three answers
+from a single afternoon, which reads as movement where there is none. Occasions
+are counted as days rather than rows, and the service says whether a trend is
+possible at all instead of leaving a view to work it out. The trend view is a
+later card and now has something honest to ask.
+
+**A collision is reported and never resolved.** Two answers from one assessor on
+one day - the reference has a real pair, 4.3 and 3.0 - are both kept and both
+counted, with the collision surfaced. Dropping one is the tool deciding which of
+two things somebody said is the one they meant; keeping both silently counts one
+opinion twice. Only a person can settle it.
+
+**A fourth fault, which was not on the list.** The reference stores answers as
+question ids pointing into an editable set, so rewording a question changes the
+meaning of every historical answer to it, with nothing failing. The record
+copies the axis label - and the prompt, when there was one - onto itself. A set
+may be renamed, reworded or deleted and last spring stays what it was. This is
+the difference between a comparison across rounds and the appearance of one.
+
+**The assessor's weight is stored now and used for nothing.** Its own card
+covers what weight should DO; the field could not wait for it. A 5/5/4 with
+every comment box empty, from somebody known to be careless, says more about the
+assessor than the subject - and that knowledge lives in one head until the row
+outlives the memory of it, which is about six months. The first round is the one
+the field would be missing from if it arrived later, and that is the round that
+prompted the card. `unset` is the default rather than `normal`, so an unweighed
+row stays a visible gap instead of being recorded as ordinary. A test asserts
+the weight does not move a mean, because a weighting applied before anybody
+decided what it means would produce numbers that merely look considered.
+
+Three levels and no coefficient, for the same reason: a number invites a
+weighted mean, and the weight is a judgement about a colleague made in a moment.
+
+**Silence is a fact and never a score.** Whether the assessor wrote anything is
+carried separately. Top marks with every box empty reads as a strong result and
+is closer to no answer, and folding it in as a low score would be the tool
+inventing an opinion nobody gave.
+
+**Whole points only.** A 3.5 on a five-point scale is a misread form or somebody
+splitting a difference the scale does not have. Refused at the write rather than
+averaged into a round in six months.
+
+**No MCP tool writes one, and that is parked rather than settled.** A number
+about a named colleague, produced by anything other than the colleague who gave
+it, is the highest-consequence row in this app. Transcribing a form response is
+a real use for an agent and the store records which writer created every row, so
+the question is genuinely open - it is written on the card, and a test fails if a
+tool named for assessments, ratings or evaluations appears in the manifest
+before it is answered.
+
+**Work half only,** less arguably than anything else on that list. These are
+other people's ratings of a third person; run over a family the feature has no
+meaning at all.
+
+**Left to him, on the epic.** What happens to these rows the day he leaves the
+job. His reading of how he leads is his; named colleagues' ratings from an
+employer are not as obviously his. The rows are separable by construction - they
+are their own collection, and `archiveEverythingActive` is the existing hook for
+"I left this job" - but which of the three answers is right is his call and the
+alternatives are written on the card rather than chosen here.
+
 ## 2026-09-07 - How often a duty runs for one person, and a clock that does not run
 
 **Decided.** The interval may be overridden on the **pair** (person, duty), and

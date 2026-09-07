@@ -1271,6 +1271,12 @@ button.row:hover {
   margin-bottom: var(--sp-item);
 }
 
+/* A second heading inside one block - the aggregate above, the answers under
+   it. Needs the air a block gets, which the first one gets from `.block`. */
+.block-title-second {
+  margin-top: var(--sp-block);
+}
+
 .line {
   display: flex;
   align-items: baseline;

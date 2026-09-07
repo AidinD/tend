@@ -253,7 +253,20 @@ export const COLLECTIONS = /** @type {const} */ ([
    * person. It is the third answer between a permanently critical item nobody
    * reads any more and changing what somebody is so no duty reaches them.
    */
-  "cadenceOverrides"
+  "cadenceOverrides",
+  /**
+   * One assessor's answers about one person, on one occasion.
+   *
+   * The numbers from a recurring feedback round, which used to land in a form
+   * and be gone by the next one. Stored so two rounds can be compared, which is
+   * the only reason to keep them at all.
+   *
+   * A row carries the axis labels it was answered on rather than pointing at an
+   * editable question set, so rewording a set cannot change what somebody
+   * answered last spring. `domain/assessments.js` has that and the rest of the
+   * reasoning - in particular why there is no single figure per person.
+   */
+  "assessments"
 ]);
 
 /**
