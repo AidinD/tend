@@ -158,6 +158,13 @@ export function missing(row) {
  * evaluation: logged eight times and seen twice says something no single number
  * says. The same reasoning as a growth thread's talked-versus-observed.
  *
+ * The occasions themselves come back with the counts rather than only from
+ * `aim(id)`, because a pair of numbers with nothing behind it is the thing an
+ * aim exists to avoid. "Four taken, three missed" is an impression until the
+ * seven rows are readable, and reading them is how he tells a real gap from a
+ * fortnight where the occasions simply did not come up. The formatting of
+ * `when` stays in the service, the same split as `lastLogged`.
+ *
  * @param {any} row
  * @param {any[]} notes
  * @param {number} now
@@ -186,6 +193,16 @@ export function aimStanding(row, notes, now) {
     logged: mine.length,
     seen: seen.length,
     missed: missed.length,
+    occasions: mine
+      .slice()
+      .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
+      .map((n) => ({
+        id: String(n.id),
+        note: String(n.note ?? ""),
+        happened: n.happened === true,
+        at: Number(n.at ?? 0),
+        daysSince: daysSince(n.at ?? 0, now) ?? 0
+      })),
     lastAt: last ?? null,
     daysSince: sinceDays,
     cadenceDays: cadence,

@@ -1736,6 +1736,18 @@ export const T = {
      * @param {string} last
      */
     aimCounts: (seen, missed, last) => `${seen} tagna, ${missed} missade, senast ${last}`,
+    /*
+     * The counts open onto the occasions behind them.
+     *
+     * Two numbers with nothing under them is an impression, which is the exact
+     * thing an aim is supposed to replace - so the row that carries them is the
+     * thing you click. The two words per occasion do the sorting at a glance;
+     * a miss is deliberately not coloured as a warning, because a missed
+     * occasion is half of the reading rather than a failure.
+     */
+    aimOccasionsOpen: "Öppna dem och läs igenom",
+    aimTaken: "Tagen",
+    aimMissed: "Missad",
     aimLogButton: "Logga ett tillfälle",
     aimCloseButton: "Stäng det",
 

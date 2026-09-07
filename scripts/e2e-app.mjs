@@ -4941,6 +4941,122 @@ try {
     }
   });
 
+  step("An aim, and the occasions behind its two counts");
+
+  /*
+   * The counts were the whole complaint. "4 tagna, 3 missade" sat in the foot
+   * with nothing behind it, and there is no way to tell a real gap from a
+   * fortnight where the occasions did not come up - which is the reading the
+   * pair of numbers is supposed to be for. So the counts are now the summary of
+   * a fold, and what is checked is that the rows are reachable from them.
+   */
+  /*
+   * On the aim the front page already set, rather than a second one. Two is the
+   * limit and the checks above read the first card in the block, so setting
+   * another here would be this step quietly deciding what those assert on.
+   */
+  await page.click('.nav-btn[data-view="reflection"]');
+  await page.waitFor("document.querySelector('[data-act=\"logAim\"]') !== null", "the aim's card");
+
+  const aimBeforeLogging = await page.text("#main");
+  check("an aim with nothing logged says so rather than showing an empty fold", () => {
+    if (!/Inget loggat än/.test(aimBeforeLogging)) {
+      throw new Error("a fresh aim does not say that nothing is logged yet");
+    }
+    if (/aim-log/.test(String(aimBeforeLogging))) {
+      throw new Error("a fold was drawn over no occasions");
+    }
+  });
+
+  await page.click('[data-act="logAim"]');
+  await page.fillDialog({ note: "Sa det i rummet om bemanningen", happened: "yes" });
+  await sleep(400);
+  await page.click('[data-act="logAim"]');
+  await page.fillDialog({ note: "Lät första svaret stå och tog det efteråt", happened: "no" });
+  await page.waitFor(
+    "document.body.textContent.includes('Lät första svaret stå')",
+    "the second occasion"
+  );
+
+  const fold = JSON.parse(String(await page.evaluate(`(() => {
+        const d = document.querySelector('.fold.aim-log');
+        if (d === null) { return JSON.stringify({ found: false }); }
+        return JSON.stringify({
+          found: true,
+          open: d.open,
+          summary: (d.querySelector('.fold-head')?.textContent ?? '').trim(),
+          rows: [...d.querySelectorAll('.fold-body .line')].map((r) => ({
+            when: (r.querySelector('.line-when')?.textContent ?? '').trim(),
+            note: (r.querySelector('.line-text')?.textContent ?? '').trim(),
+            mark: (r.querySelector('.pill')?.textContent ?? '').trim()
+          }))
+        });
+      })()`)));
+
+  check("the counts are the thing you open, and they still say what they said", () => {
+    if (!fold.found) {
+      throw new Error("no fold was drawn over the logged occasions");
+    }
+    if (!/1 tagna, 1 missade/.test(String(fold.summary))) {
+      throw new Error(`the summary does not carry the counts: ${JSON.stringify(fold.summary)}`);
+    }
+    if (fold.open !== false) {
+      throw new Error("the occasions start open, so the card grows without being asked");
+    }
+  });
+
+  check("and every occasion is behind them, newest first, marked taken or missed", () => {
+    /*
+     * Both kinds and in order, because a list of only the good days is the
+     * scrapbook `logAim` refuses to keep. The marks are what let him read the
+     * gap at a glance, which is the thing he wanted the rows for.
+     */
+    if (fold.rows.length !== 2) {
+      throw new Error(`${fold.rows.length} occasions in the fold, expected 2`);
+    }
+    if (!/Lät första svaret stå/.test(fold.rows[0].note) || fold.rows[0].mark !== "Missad") {
+      throw new Error(`newest row is wrong: ${JSON.stringify(fold.rows[0])}`);
+    }
+    if (!/Sa det i rummet/.test(fold.rows[1].note) || fold.rows[1].mark !== "Tagen") {
+      throw new Error(`older row is wrong: ${JSON.stringify(fold.rows[1])}`);
+    }
+    if (!/idag/.test(fold.rows[0].when)) {
+      throw new Error(`no when on the row: ${JSON.stringify(fold.rows[0])}`);
+    }
+  });
+
+  await page.click(".fold.aim-log > .fold-head");
+  await sleep(200);
+
+  const openedFold = JSON.parse(String(await page.evaluate(`(() => {
+        const d = document.querySelector('.fold.aim-log');
+        const body = d?.querySelector('.fold-body');
+        const hint = d?.querySelector('.fold-meta');
+        return JSON.stringify({
+          open: d?.open ?? null,
+          height: body === null || body === undefined ? 0 : body.getBoundingClientRect().height,
+          hintShown: hint === null || hint === undefined ? false : hint.getBoundingClientRect().height > 0
+        });
+      })()`)));
+
+  check("clicking the counts actually puts the occasions on screen", () => {
+    // The rows are in the DOM whether or not the fold is open, so a text check
+    // would pass over a fold that never opens. The height is what says a person
+    // can see them.
+    if (openedFold.open !== true) {
+      throw new Error("clicking the counts did not open them");
+    }
+    if (!(Number(openedFold.height) > 0)) {
+      throw new Error("the fold opened but its rows have no height");
+    }
+  });
+
+  check("and the hint to open them goes once they are open", () => {
+    if (openedFold.hintShown !== false) {
+      throw new Error("the page still says to open occasions that are already open");
+    }
+  });
+
   step("Finishing up");
 
   /*

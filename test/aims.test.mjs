@@ -183,6 +183,38 @@ describe("logging an occasion", () => {
     assert.equal(one.occasions[0].happened, false);
     assert.equal(one.occasions[1].when, "för 9 dagar sedan");
   });
+
+  it("carries them on the list too, not only when one aim is asked for", () => {
+    /*
+     * The card folds the occasions out of the two counts, and it reads the list.
+     * Counts with nothing behind them is the state an aim exists to replace: he
+     * could see four taken and three missed with no way to tell a real gap from
+     * a fortnight where the occasions did not come up. If this goes back to
+     * numbers only, the fold silently renders empty and the page looks fine.
+     */
+    const made = set();
+    ok(api.logAim(store, { aim: String(made.id), note: "Said it in the room", happened: true, at: daysAgo(2), now: NOW }));
+    ok(api.logAim(store, { aim: String(made.id), note: "Let the first answer stand", happened: false, at: NOW, now: NOW }));
+
+    const listed = api.aims(store, NOW).find((/** @type {any} */ a) => a.id === String(made.id));
+    assert.ok(listed, "the aim was not in the list at all");
+    assert.deepEqual(
+      listed.occasions.map((/** @type {any} */ o) => `${o.happened ? "+" : "-"} ${o.note} (${o.when})`),
+      ["- Let the first answer stand (idag)", "+ Said it in the room (för 2 dagar sedan)"]
+    );
+    assert.equal(listed.seen + listed.missed, listed.occasions.length);
+  });
+
+  it("words an occasion the same way whichever reader asks", () => {
+    // Two readers wording the same row differently is drift nothing fails on,
+    // so both go through one helper and this is what says so.
+    const made = set();
+    ok(api.logAim(store, { aim: String(made.id), note: "Said it in the room", happened: true, at: daysAgo(4), now: NOW }));
+
+    const one = ok(api.aim(store, String(made.id), NOW));
+    const listed = api.aims(store, NOW).find((/** @type {any} */ a) => a.id === String(made.id));
+    assert.deepEqual(listed?.occasions, one.occasions);
+  });
 });
 
 describe("the nudge", () => {

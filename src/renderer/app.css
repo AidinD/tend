@@ -2767,3 +2767,46 @@ kbd {
   padding-top: 0;
   margin-top: var(--sp-item);
 }
+
+/*
+ * An aim's two counts, opening onto the occasions behind them.
+ *
+ * The fold's own rule is dropped and its head unindented, because this one is
+ * not a row in a list of folds - it is the card's own count line with a
+ * triangle in front of it. Left as-is it drew a second line a single row above
+ * the foot's, which read as a box around the counts, and the padding pushed
+ * them in from every other line in the card.
+ *
+ * The summary keeps the small faint type the counts already had. Promoting
+ * them to body size made his own goals the loudest thing on the page, which is
+ * the opposite of what a fold is for.
+ */
+.card > .fold.aim-log {
+  border-top: 0;
+}
+
+.card > .fold.aim-log > .fold-head {
+  padding: var(--sp-item) 0 var(--sp-sub);
+}
+
+.card > .fold.aim-log > .fold-head:hover {
+  background: none;
+}
+
+.card > .fold.aim-log > .fold-head > .fold-title {
+  font-size: var(--t-micro);
+  color: var(--text-faint);
+}
+
+/* The hint says to open them, so it goes when they are open. A label that
+   still reads "open them" above the opened rows is a label that lies. */
+.card > .fold.aim-log[open] > .fold-head > .fold-meta {
+  display: none;
+}
+
+.card > .fold.aim-log > .fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sub);
+  padding: 0 0 var(--sp-sub) 12px;
+}

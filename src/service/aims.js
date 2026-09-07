@@ -15,7 +15,7 @@ import {
   isLive,
   isSource
 } from "../domain/aims.js";
-import { DAY_MS, agoWords, daysSince } from "../domain/time.js";
+import { DAY_MS, agoWords } from "../domain/time.js";
 
 /** @param {unknown} value */
 const text = (value) => String(value ?? "").trim();
@@ -186,7 +186,25 @@ export function logAim(store, { aim: aimId, note, happened, now, at }) {
 }
 
 /**
+ * The occasions with their ago-words.
+ *
+ * One helper for both readers, because the list and the single aim showing the
+ * same occasion worded two different ways is the kind of drift nothing fails
+ * on. The domain does the filtering, the sorting and the day arithmetic; this
+ * only puts the days into words.
+ *
+ * @param {ReturnType<typeof aimStanding>["occasions"]} occasions
+ */
+function worded(occasions) {
+  return occasions.map((o) => ({ ...o, when: agoWords(o.daysSince) }));
+}
+
+/**
  * The aims as they stand, live first.
+ *
+ * Each one carries its occasions, not just the two counts. The card folds them
+ * away until he asks, so the cost is a few short rows per aim and the win is
+ * that the pair of numbers can be read rather than only believed.
  *
  * @param {import("../storage/store.js").TendStore} store
  * @param {number} [now]
@@ -197,6 +215,7 @@ export function aims(store, now = Date.now()) {
     const standing = aimStanding(row, notes, now);
     return {
       ...standing,
+      occasions: worded(standing.occasions),
       statusLabel: STATUSES[standing.status]?.label ?? standing.status,
       sourceLabel: SOURCES[standing.source]?.label ?? standing.source,
       lastLogged: standing.lastAt === null ? "aldrig" : agoWords(standing.daysSince),
@@ -224,18 +243,6 @@ export function aim(store, id, now = Date.now()) {
   if (!row) {
     return { error: `No aim with id "${id}".` };
   }
-  const notes = store.rows("aimNotes");
-  return {
-    ...aimStanding(row, notes, now),
-    occasions: notes
-      .filter((n) => String(n.aim) === String(row.id))
-      .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
-      .map((n) => ({
-        id: String(n.id),
-        note: String(n.note ?? ""),
-        happened: n.happened === true,
-        at: Number(n.at ?? 0),
-        when: agoWords((daysSince(n.at ?? 0, now) ?? 0))
-      }))
-  };
+  const standing = aimStanding(row, store.rows("aimNotes"), now);
+  return { ...standing, occasions: worded(standing.occasions) };
 }

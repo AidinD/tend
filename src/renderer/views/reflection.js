@@ -118,10 +118,32 @@ function aimCard(a) {
            <ul class="prep-list">${a.missing.map((/** @type {string} */ m) => `<li>${esc(m)}</li>`).join("")}</ul>
          </div>`;
 
-  const counts =
-    a.logged === 0
-      ? `<span class="src">${words.aimNothingLogged}</span>`
-      : `<span class="src">${words.aimCounts(a.seen, a.missed, esc(String(a.lastLogged)))}</span>`;
+  /*
+   * The two counts, opening onto the occasions they are counting.
+   *
+   * The numbers used to sit in the foot with nothing behind them, which is the
+   * state an aim is meant to replace: he could see four taken and three missed
+   * and had no way to tell a real gap from a fortnight where the occasions did
+   * not come up. So the counts moved out of the foot and became the summary of
+   * a fold - the row carrying the numbers is the row you click, rather than a
+   * separate "show occasions" button beside them.
+   *
+   * `<details>` and not a scripted toggle, the same choice as the archived
+   * groups and the proposed duties: opening it is not a change to his data, so
+   * it must not cost a `refresh()` that loses his place on the page.
+   */
+  const occasions = Array.isArray(a.occasions) ? a.occasions : [];
+
+  const log =
+    occasions.length === 0
+      ? ""
+      : `<details class="fold aim-log">
+           <summary class="fold-head">
+             <span class="fold-title">${words.aimCounts(a.seen, a.missed, esc(String(a.lastLogged)))}</span>
+             <span class="fold-meta">${words.aimOccasionsOpen}</span>
+           </summary>
+           <div class="fold-body">${occasions.map(occasionLine).join("")}</div>
+         </details>`;
 
   const live = a.status === "open";
 
@@ -143,8 +165,9 @@ function aimCard(a) {
     }
     ${a.asksWho ? `<div class="prep-block"><h3 class="prep-head">${words.aimAsking}</h3><p class="prep-note">${esc(String(a.asksWho))}</p></div>` : ""}
     ${gaps}
+    ${log}
     <div class="card-foot">
-      ${counts}
+      ${a.logged === 0 ? `<span class="src">${words.aimNothingLogged}</span>` : ""}
       ${
         live
           ? `<span class="foot-actions">
@@ -155,6 +178,26 @@ function aimCard(a) {
       }
     </div>
   </article>`;
+}
+
+/**
+ * One logged occasion.
+ *
+ * Taken is marked and missed is left plain rather than warned about. The gap
+ * between the two IS the reading - `domain/aims.js` says so - and a red pill on
+ * every miss would turn a log he is supposed to keep honestly into one he has a
+ * reason to leave a row out of.
+ *
+ * @param {any} o
+ */
+function occasionLine(o) {
+  return `<div class="line">
+    <span class="line-when">${esc(String(o.when))}</span>
+    <span class="line-text">${esc(String(o.note))}</span>
+    <span class="line-right">
+      <span class="pill ${o.happened ? "ok" : "plain"}">${o.happened ? words.aimTaken : words.aimMissed}</span>
+    </span>
+  </div>`;
 }
 
 /** @param {any} r */
