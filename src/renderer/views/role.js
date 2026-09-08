@@ -6,7 +6,7 @@
  * or removable, including the duties that came from a book - especially those.
  */
 
-import { act, ask, esc, form, RELATION_OPTIONS, SUBJECT_KINDS, tend } from "../ui.js";
+import { act, ask, esc, form, OWN_SOURCE, RELATION_OPTIONS, SUBJECT_KINDS, tend } from "../ui.js";
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
@@ -297,7 +297,7 @@ export const actions = {
       {
         name: values.name,
         means: values.means ?? "-",
-        source: "yours",
+        source: OWN_SOURCE,
         subjectKind: values.subjectKind,
         cadenceDays: values.cadenceDays,
         relations,

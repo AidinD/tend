@@ -948,15 +948,45 @@ try {
     if (!roleTitle.includes(T.role.title)) {
       throw new Error(`expected the role map, saw "${roleTitle}"`);
     }
-    // Six, not five: the stakeholder duty joined the set. This number is a
-    // deliberate tripwire - a duty that arrives already active rather than
-    // proposed is a duty the user never agreed to, and a missing status field
-    // reads as active.
-    if (proposedCount !== 6) {
-      throw new Error(`expected 6 proposals, saw ${proposedCount}`);
+    /*
+     * Seven, not six: the upward duty joined the set on 2026-09-08. It existed
+     * in real data with no source in the repository, so its English text could
+     * not be translated from anything - and it is seeded proposed rather than
+     * active, because three active is what this file's own header specifies and
+     * a fresh install must not owe something nobody agreed to.
+     *
+     * The literals stay hand-written on purpose. They are a tripwire: a duty
+     * that arrives already active rather than proposed is a duty the user never
+     * agreed to, a missing status field reads as active, and somebody has to
+     * change a number consciously for that to pass. Deriving them from the seed
+     * would make the check agree with whatever the seed says.
+     */
+    if (proposedCount !== 7) {
+      throw new Error(`expected 7 proposals, saw ${proposedCount}`);
     }
     if (activeCount !== 3) {
       throw new Error(`expected 3 active duties, saw ${activeCount}`);
+    }
+  });
+
+  check("and the seed itself declares those same numbers", () => {
+    /*
+     * The other half of the tripwire, and it catches the case the literals
+     * cannot: a duty seeded active while the page happens to render it
+     * elsewhere, or a status that never reaches the store. Both sides have to
+     * agree, and the hand-written numbers above are what one of them is
+     * measured against.
+     */
+    const active = SEED_DUTIES.filter((d) => (d.status ?? "active") === "active").length;
+    const proposed = SEED_DUTIES.filter((d) => d.status === "proposed").length;
+    if (active !== 3) {
+      throw new Error(`SEED_DUTIES declares ${active} active duties, not 3`);
+    }
+    if (proposed !== 7) {
+      throw new Error(`SEED_DUTIES declares ${proposed} proposals, not 7`);
+    }
+    if (active + proposed !== SEED_DUTIES.length) {
+      throw new Error("a seeded duty is neither active nor proposed");
     }
   });
 

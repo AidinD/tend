@@ -110,6 +110,15 @@ real places, and a title can carry a claim the user has not made.
 **Swedish keeps its å, ä and ö**, including inside code, fixtures and quoted
 notes. Deliverables are otherwise in English.
 
+**A translation of something that is also data does not reach the data.**
+`seed.js` creates a row once and never renames an existing one, so translating
+it changes nothing on a store that was already seeded: the Swedish sits in the
+repository and the rows keep the English, with nothing failing anywhere. That
+stood for months - seven English duty names and ten English descriptions in
+live data after the translation was called finished.
+`scripts/translate-duties.mjs` closes it for duties and dry-runs by default.
+Check the store, not the seed, before calling a translation done.
+
 ## Verifying a change in the running app
 
 ```bash

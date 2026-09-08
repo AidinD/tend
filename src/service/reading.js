@@ -15,6 +15,7 @@
  */
 
 import { buildAttention, dutyLabel, expandCadences, personClocks } from "../domain/attention.js";
+import { OWN_SOURCE } from "../domain/cadence.js";
 import { archivedIds, isArchived } from "../domain/archive.js";
 import { contactSummary } from "../domain/contact.js";
 import { personBlocksIn, relationsIn } from "../domain/halves.js";
@@ -544,7 +545,7 @@ export function roleMap(store, now) {
           id: d.id,
           name: d.name,
           means: d.means ?? null,
-          source: d.source ?? "yours",
+          source: d.source ?? OWN_SOURCE,
           appliesTo: d.subjectKind,
           relations: d.relations ?? "all",
           every: d.cadenceDays ? `${d.cadenceDays} dagar` : "ingen takt",

@@ -3,6 +3,66 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-08 - The translation reached the seed and never reached the rows
+
+**Decided.** `scripts/translate-duties.mjs` copies the Swedish already in
+`seed.js` onto duty rows that never got it, keyed by id. Names require an
+explicit flag and named exceptions; prose containing any Swedish is left alone.
+Nothing in it is new writing.
+
+**The fault, and why it looked finished.** `seedRoleMap` creates a row once and
+never touches an existing one - correct behaviour, since a seeding pass that
+rewrote his wording would be the tool overruling him. The consequence nobody
+drew: translating `seed.js` changed nothing on an already-seeded store. Every
+live duty went on holding the English original with the Swedish sitting three
+files away, for months after the translation was called done.
+
+**Measured, and it was five times what the card said.** Seven English names, ten
+English descriptions and four English source lines - against a card describing
+three short names to type. The card had been written from the code rather than
+from the store.
+
+**I had said I could not do it, and that was wrong.** The claim was that
+`updateDuty` is not on the MCP surface, which is true, and the conclusion was
+that it was therefore his to type, which does not follow: this session has a
+shell and `TEND_DATA_DIR`. "Not exposed to agents" is not "impossible for me",
+and conflating them handed him an hour of typing that a script does correctly.
+
+The rule that does apply is narrower than I made it: an agent must not quietly
+change what the job IS - the interval, the evidence kinds, whether it is
+guarded. Applying a translation he wrote and committed himself changes the
+language and not the meaning.
+
+**Two refusals in the script, and the first is why it is a script.** A name he
+changed by hand is never overwritten: he had shortened two of them, and the
+seed's longer versions would have silently undone that. Names are short enough
+that no heuristic can tell "Project check-in" from a name somebody chose, so
+`--names` opts in and `--keep` lists the ids that are his. Prose is different -
+any å, ä or ö in a `means` means it is his - so that one is automatic.
+
+**`OWN_SOURCE`, because three literals is why one word stayed English.** A
+duty's source read "yours" in the seed, in the role map's form and in a
+fallback in the reader. One word in three places, too short for the prose sweep
+to see, and translating any one of them would have left the other two.
+
+**The duty with no source in the repository** existed in real data, written by a
+seeding job that no longer exists, with a random id. It is now in `SEED_DUTIES`
+under *that* id rather than a tidy `duty-own-manager`, because `seedRoleMap`
+writes any duty whose id it cannot find - a neat id would have seeded a second
+copy onto his store the next time the button was pressed.
+
+**And it is seeded proposed, not active,** which the harness caught rather than
+me. Its live row is active because a job made it so; seeding it active would
+have contradicted `seed.js`'s own opening - three active, the rest proposed -
+and put an obligation on a fresh install nobody agreed to. Translating a row
+never touches whether it is switched on.
+
+**The proposal count in the harness went 6 to 7 by hand,** and stays
+hand-written. It is a tripwire: a duty arriving active rather than proposed is
+one the user never agreed to, and deriving the number from the seed would make
+the check agree with whatever the seed says. A second check now asserts the seed
+declares those same numbers, which catches the half the literals cannot.
+
 ## 2026-09-08 - A focus states a price over the same set, or states nothing
 
 **Decided.** The cost is measured only over the cadences that already existed

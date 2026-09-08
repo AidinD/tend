@@ -70,6 +70,21 @@ export const RELATIONS = /** @type {const} */ ({
 /** @typedef {keyof typeof RELATIONS} Relation */
 
 /**
+ * Where a duty came from, when the answer is that he decided it himself.
+ *
+ * Written into the row rather than derived, because a duty's source is what
+ * makes the role map readable a year later: "yours" and "The Manager's Path,
+ * ch. 4" are different kinds of claim and the difference matters when deciding
+ * whether to keep one.
+ *
+ * Named here because it was three separate string literals - the seed, the form
+ * in the role map view, and a fallback in the reader - and that is exactly why
+ * it stayed English through a translation pass that touched everything around
+ * it. One word, in three places, too short for the prose sweep to see.
+ */
+export const OWN_SOURCE = "ditt eget";
+
+/**
  * The four clusters the front page lays the roster out in.
  *
  * A second grouping of the same six types, which is the thing to be careful

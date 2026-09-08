@@ -11,6 +11,7 @@
  * Reasoning and sources: docs/role-map-research.md.
  */
 
+import { OWN_SOURCE } from "../domain/cadence.js";
 import { DEFAULT_SIGNALS, SIGNAL_CADENCE_DAYS } from "../domain/signals.js";
 import { DEFAULT_STAKE_DAYS } from "../domain/stakes.js";
 import { TOPIC_SEEDS } from "../domain/topics.js";
@@ -24,7 +25,7 @@ export const SEED_DUTIES = [
       "Ett återkommande samtal med en struktur, som börjar med uppföljning av det ni kom " +
       "överens om förra gången. Nya åtgärdspunkter bara när det finns något konkret, " +
       "aldrig för att fylla luckan.",
-    source: "yours",
+    source: OWN_SOURCE,
     subjectKind: "person",
     cadenceDays: 14,
     evidenceKinds: ["one-to-one"],
@@ -39,7 +40,7 @@ export const SEED_DUTIES = [
       "Två frågeuppsättningar på en 1-5-skala med beteendeankare, mappade mot de nivåaxlar " +
       "din organisation använder, så att svaren går in i nivåsättningen snarare än bara " +
       "i ditt eget intryck.",
-    source: "yours",
+    source: OWN_SOURCE,
     subjectKind: "person",
     cadenceDays: 90,
     evidenceKinds: ["survey"],
@@ -54,7 +55,7 @@ export const SEED_DUTIES = [
       "Du äger kodsidan utan att vara i det dagliga arbetet. Frågan är inte om det går i " +
       "produktion, den är om du skulle höra om ett problem innan det blev ett " +
       "leveransproblem.",
-    source: "yours",
+    source: OWN_SOURCE,
     subjectKind: "project",
     cadenceDays: 14,
     evidenceKinds: ["check-in"],
@@ -166,6 +167,48 @@ export const SEED_DUTIES = [
     // Empty on purpose. A stake is its own subject and carries no relationship
     // type, so a duty that filtered on one would never apply to any of them.
     relations: [],
+    guarded: false
+  },
+  {
+    /*
+     * The upward duty, and the odd id in this table is deliberate.
+     *
+     * This one existed in real data before it existed here - written by a
+     * seeding job that no longer exists, with a random id - so it had no source
+     * in the repository and its English text could not be translated from
+     * anything. Adding it under a tidy `duty-own-manager` would have seeded a
+     * SECOND copy onto that store the next time the button was pressed, because
+     * `seedRoleMap` writes any duty whose id it cannot find. Carrying the id it
+     * already has is what makes re-seeding a no-op there instead.
+     *
+     * Every other field matches that row exactly, so a fresh install and the
+     * store this came from hold the same duty rather than two that merely look
+     * alike.
+     */
+    id: "102a88db-4dbe-4e2b-b4d3-ef72d0af3be4",
+    /*
+     * Proposed here even though the row this came from is active.
+     *
+     * Seeding it active would have contradicted this file's own opening - three
+     * active, the rest proposed - and put an obligation on a fresh install that
+     * nobody had agreed to. The harness caught exactly that: four active duties
+     * where the check specifies three.
+     *
+     * The store it came from keeps its own status; nothing about translating a
+     * row touches whether it is switched on. So this is only what a new install
+     * is offered, and it is offered rather than assumed.
+     */
+    status: "proposed",
+    name: "1-1 med din egen chef",
+    means:
+      "Ett återkommande samtal uppåt som inte ställs in i samma stund som en vecka blir " +
+      "hektisk. Allt du själv tycker är rimligt att förvänta dig av din chef är checklistan " +
+      "för vad du levererar nedåt.",
+    source: "din egen läsanteckning",
+    subjectKind: "person",
+    cadenceDays: 21,
+    evidenceKinds: ["one-to-one"],
+    relations: ["own-manager"],
     guarded: false
   }
 ];

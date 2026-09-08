@@ -566,7 +566,7 @@ export async function act(op, args, success) {
  * be hand-copied here, and a type added to the domain was then unpickable in the
  * window with nothing failing anywhere.
  */
-export { RELATIONS, RELATION_OPTIONS, RELATION_GROUPS, groupOf } from "../domain/cadence.js";
+export { OWN_SOURCE, RELATIONS, RELATION_OPTIONS, RELATION_GROUPS, groupOf } from "../domain/cadence.js";
 
 /*
  * The tile rule and the day-count wording, from the domain for the same reason
