@@ -446,15 +446,11 @@ block for the part the notes do not answer.
 - **What the assessor's weight should DO to an aggregate.** The field is stored
   from the first round because the knowledge does not survive six months, and it
   moves nothing until this is decided. Its own card.
-- **What a focus has actually cost.** `focusCost` subtracts a baseline mean,
-  taken over the cadences that existed when the focus was set, from a mean over
-  the ones that exist now - two populations, with the difference reported as the
-  focus's price. Adding one peer with a year-old relation start and no contacts
-  moved it from 0.1 to 50.9 days, and the focus caused none of that. The drift
-  is real and backdating a relationship is deliberate; the comparison is what is
-  wrong. Three candidates: measure only over subjects present at the baseline,
-  keep the baseline per subject rather than as one mean, or say "unknown" when
-  the population changed - worse, but never wrong.
+- ~~**What a focus has actually cost.**~~ Settled on 2026-09-08: the cost is
+  measured only over the cadences that existed when the focus was set, and the
+  focus stores how many that was. A count that no longer matches means something
+  has left the population, and then the answer is that it cannot be said. See
+  DECISIONS.md, including why the newcomer's drift stays real everywhere else.
 - ~~**Nothing has met real data.**~~ It has, and it found things fixtures could
   not: the scope rule that emptied the practice block entirely, and undo buttons
   that squeezed against a long real note. Both are in DECISIONS.md. The paths

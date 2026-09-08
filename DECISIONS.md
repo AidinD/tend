@@ -3,6 +3,54 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-08 - A focus states a price over the same set, or states nothing
+
+**Decided.** The cost is measured only over the cadences that already existed
+when the focus was set, and the focus stores how many that was. If the count
+still matches, the difference is a price and the sentence says what it is over.
+If it does not, the answer is that it cannot be said.
+
+**The defect.** `focusCost` subtracted a mean captured at focus-set time from a
+mean taken now, and those were two different populations with the difference
+reported as the focus's price. Entering one peer with a year-old relation start
+and no contact moved it from 0.1 to 50.9 days. The focus had caused none of it.
+
+**The drift was never the fault,** which is what made this worth care. Somebody
+whose relation began a year ago with no contact since is genuinely a year
+behind, and backdating is deliberate - `addStake` writes out why in plain words:
+otherwise the first month of the record is a lie in the flattering direction. So
+the newcomer stays critical on the roster; they are only kept out of a
+subtraction they were never part of.
+
+**One step past the option he chose, and it cost the same.** He picked "say
+unknown when the population changed" over measuring properly, accepting a worse
+answer for safety. But both halves of a cadence carry `_at`, so filtering to
+what existed at the focus's start needed no new stored field and gives a real
+number in the ordinary case instead of a refusal. The refusal is still there and
+still reachable - it is now the answer to a genuinely different question rather
+than the answer to every question.
+
+**Both halves of a cadence have to predate it,** and the second is the easy one
+to miss: a cadence is a duty crossed with a subject, so a duty accepted last
+week produces brand new cadences on people who have been on the roster for a
+year. Filtering on the subject alone would have let those straight into the
+cost. There is a test for exactly that.
+
+**The count is what the age filter cannot replace.** Archiving somebody shrinks
+the set the baseline was taken over, and no filter on age can see that - the
+remaining mean is over a subset, which is a different question rather than a
+smaller price. So the count comparison stays as a second, independent guard, and
+each was mutated red on its own: removing the filter fails the newcomer test and
+leaves the archive test passing, removing the count comparison does the reverse.
+
+**A focus set before the count existed reports unknown,** and that is the
+feature rather than a gap. There is no comparable baseline for it, and a price
+nobody can stand behind is worse than no price because it gets quoted.
+
+**The sentence now says what the price is over** - "over the same 6 cadences" -
+because a mean quoted without its population is how this went wrong in the first
+place.
+
 ## 2026-09-07 - Air is a rule on the surface, not a patch where somebody complained
 
 **Decided.** The content column is held to 1180px, a row's text to 84ch, and the

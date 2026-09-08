@@ -482,7 +482,8 @@ describe("focus", () => {
     budget: 0.5,
     stretch: DEFAULT_STRETCH,
     guarded: ["d-remote"],
-    baselineDrift: 0.4
+    baselineDrift: 0.4,
+    baselineCount: 6
   };
 
   it("reports how long is left", () => {
@@ -493,13 +494,42 @@ describe("focus", () => {
   });
 
   it("states its cost as a number rather than a feeling", () => {
-    const cost = focusCost(focus, 1.8);
+    const cost = focusCost(focus, { mean: 1.8, count: 6 });
     assert.equal(cost.known, true);
     assert.match(cost.summary, /0\.4 till 1\.8 dagar/);
+    assert.match(cost.summary, /samma 6 takter/, "the price does not say what it is over");
   });
 
   it("says so when no baseline was captured", () => {
-    assert.equal(focusCost({ id: "f", name: "x" }, 3).known, false);
+    assert.equal(focusCost({ id: "f", name: "x" }, { mean: 3, count: 6 }).known, false);
+  });
+
+  it("refuses a price when the population it was measured over has changed", () => {
+    /*
+     * The defect this replaced. The cost subtracted a mean captured when the
+     * focus was set from a mean taken now, and those were two different
+     * populations - so adding one peer with a year-old relation start and no
+     * contact moved the reported price from 0.1 to 50.9 days, none of which the
+     * focus had caused.
+     *
+     * Five of six left is not a smaller price, it is a different question, and
+     * a number nobody can stand behind is worse than none because it gets
+     * quoted.
+     */
+    const gone = focusCost(focus, { mean: 40, count: 5 });
+    assert.equal(gone.known, false);
+    assert.equal(gone.deltaDays, 0, "a delta was still reported alongside the refusal");
+    assert.match(gone.summary, /6 takter/);
+    assert.match(gone.summary, /1 har fallit bort/);
+  });
+
+  it("and refuses one for a focus set before the count was stored", () => {
+    // Reachable rather than an error path: any focus set before this existed
+    // has no comparable baseline, and saying so is the point.
+    const old = { ...focus, baselineCount: undefined };
+    const cost = focusCost(old, { mean: 1.8, count: 6 });
+    assert.equal(cost.known, false);
+    assert.match(cost.summary, /Sätt om det/);
   });
 
   it("reverts every stretch on the end date, done or not", () => {

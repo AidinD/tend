@@ -299,6 +299,42 @@ export function meanDrift(cadences) {
 }
 
 /**
+ * The same mean, and how many cadences it was taken over.
+ *
+ * The count is what makes a cost statable at all. `focusCost` subtracts a mean
+ * captured when a focus was set from a mean taken now, and until this existed
+ * those were two different populations with the difference reported as the
+ * focus's price - so adding one person with a year-old relation start and no
+ * contact moved it from 0.1 to 50.9 days, none of which the focus caused.
+ *
+ * @param {ReturnType<typeof expandCadences>} cadences
+ * @returns {{ mean: number, count: number }}
+ */
+export function driftMeasure(cadences) {
+  return { mean: meanDrift(cadences), count: cadences.filter((c) => !c.duty.guarded).length };
+}
+
+/**
+ * The cadences that already existed at a given instant.
+ *
+ * Both halves of a cadence have to predate it, and the second half is the one
+ * that is easy to forget: a cadence is a duty crossed with a subject, so a duty
+ * accepted last week produces brand new cadences on people who have been on the
+ * roster for a year. Filtering only on the subject would have let those in.
+ *
+ * Read off `_at`, which the store stamps on every row, rather than off anything
+ * this feature would have to remember to write.
+ *
+ * @param {ReturnType<typeof expandCadences>} cadences
+ * @param {number} at
+ */
+export function existingAt(cadences, at) {
+  return cadences.filter(
+    (c) => Number(c.subject._at ?? 0) <= at && Number(c.duty._at ?? 0) <= at
+  );
+}
+
+/**
  * @param {any} subject
  * @returns {string}
  */
@@ -338,7 +374,16 @@ export function dutyLabel(duty) {
 export function buildAttention(state, now) {
   const cadences = expandCadences(state, now);
   const status = focusStatus(state.focus, now);
-  const cost = focusCost(state.focus, meanDrift(cadences));
+  /*
+   * The cost is measured over the cadences that existed when the focus was set,
+   * not over everything that exists now. See `existingAt` and `focusCost` for
+   * why the difference between those two was being reported as a price.
+   */
+  const startedAt = Number(state.focus?.startedAt ?? 0);
+  const cost = focusCost(
+    state.focus,
+    driftMeasure(startedAt > 0 ? existingAt(cadences, startedAt) : cadences)
+  );
 
   /** @param {string} name */
   const live = (name) => Object.values(state.c[name] ?? {}).filter((r) => !r._deleted);

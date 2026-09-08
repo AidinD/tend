@@ -11,7 +11,7 @@
  * so it belongs beside them rather than in the section it was filed under.
  */
 
-import { buildAttention, expandCadences, meanDrift } from "../domain/attention.js";
+import { buildAttention, driftMeasure, expandCadences } from "../domain/attention.js";
 import { DEFAULT_STRETCH, focusStatus } from "../domain/focus.js";
 
 /**
@@ -64,7 +64,13 @@ export function setFocus(store, { name, endsAt, budget, stretch, guarded, now })
     return { error: "Budgeten är en andel av veckan mellan 0 och 1." };
   }
 
-  const baselineDrift = meanDrift(expandCadences(store.state(), now));
+  /*
+   * The count as well as the mean. Without it the cost is a difference between
+   * means over two different populations, which is what it was: adding one
+   * person after the fact moved the reported price by fifty days. See
+   * `domain/focus.js`.
+   */
+  const baseline = driftMeasure(expandCadences(store.state(), now));
 
   store.emit("focus.set", {
     id: randomId(),
@@ -74,10 +80,15 @@ export function setFocus(store, { name, endsAt, budget, stretch, guarded, now })
     budget: budget ?? null,
     stretch: stretch ?? DEFAULT_STRETCH,
     guarded: guarded ?? [],
-    baselineDrift
+    baselineDrift: baseline.mean,
+    baselineCount: baseline.count
   });
 
-  return { name, baselineDrift: Number(baselineDrift.toFixed(2)) };
+  return {
+    name,
+    baselineDrift: Number(baseline.mean.toFixed(2)),
+    baselineCount: baseline.count
+  };
 }
 
 /**

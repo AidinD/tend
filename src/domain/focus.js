@@ -28,6 +28,10 @@ export const DEFAULT_STRETCH = 1.5;
  * @property {string[]} [guarded] Duty ids that are never stretched.
  * @property {number} [baselineDrift] Mean drift in days when the focus was set,
  *   captured so the cost can be stated as a number rather than a feeling.
+ * @property {number} [baselineCount] How many cadences that mean was taken
+ *   over. Without it the cost cannot be stated at all - see `focusCost`. Absent
+ *   on any focus set before this existed, which is why an unknown answer has to
+ *   stay reachable rather than being treated as a bug.
  */
 
 /**
@@ -110,11 +114,32 @@ export function stretchFor(focus, now, duty) {
  * What the focus has cost so far, in the only currency that matters here:
  * how much further behind everything else has fallen since it started.
  *
+ * ## Why this takes a count and not just a mean
+ *
+ * It subtracts a mean captured when the focus was set from a mean taken now,
+ * and until this was fixed those two were taken over different populations
+ * with the difference reported as the focus's price. Adding one peer with a
+ * year-old relation start and no contact moved it from 0.1 to 50.9 days. The
+ * drift was entirely real and the focus had caused none of it.
+ *
+ * So the caller measures only over cadences that already existed when the focus
+ * started, and passes how many that was. If the number matches the count the
+ * baseline was taken over, the two means describe the same set and the
+ * difference is a price. If it does not - somebody archived, somebody left, a
+ * duty withdrawn - then something has left the population as well, and the
+ * honest answer is that it cannot be said.
+ *
+ * Refusing to answer is a real outcome here rather than an error path. Any
+ * focus set before the count was stored has no baseline to compare against,
+ * and saying so is the whole point: a price nobody can stand behind is worse
+ * than no price, because it gets quoted.
+ *
  * @param {FocusRow | null} focus
- * @param {number} meanDriftNow Mean drift across non-guarded cadences, in days.
+ * @param {{ mean: number, count: number }} now Mean drift across the non-guarded
+ *   cadences that existed when the focus started, and how many there were.
  * @returns {{ known: boolean, deltaDays: number, summary: string }}
  */
-export function focusCost(focus, meanDriftNow) {
+export function focusCost(focus, now) {
   if (!focus || typeof focus.baselineDrift !== "number") {
     return {
       known: false,
@@ -123,7 +148,31 @@ export function focusCost(focus, meanDriftNow) {
     };
   }
 
-  const deltaDays = meanDriftNow - focus.baselineDrift;
+  if (typeof focus.baselineCount !== "number") {
+    return {
+      known: false,
+      deltaDays: 0,
+      summary:
+        "Det här fokuset sattes innan Tend började spara hur många takter utgångspunkten " +
+        "räknades över, så en differens mot den kan inte tillskrivas fokuset. Sätt om det " +
+        "för att få kostnaden mätt."
+    };
+  }
+
+  if (now.count !== focus.baselineCount) {
+    const fewer = focus.baselineCount - now.count;
+    return {
+      known: false,
+      deltaDays: 0,
+      summary:
+        `Utgångspunkten räknades över ${focus.baselineCount} takter och ` +
+        `${now.count} av dem finns kvar, så skillnaden mot den är inte fokusets pris - ` +
+        `${fewer > 0 ? `${fewer} har fallit bort` : "populationen har ändrats"} sedan dess. ` +
+        "Vad fokuset kostat går inte att säga för den här perioden.",
+    };
+  }
+
+  const deltaDays = now.mean - focus.baselineDrift;
   if (deltaDays <= 0) {
     return {
       known: true,
@@ -133,10 +182,13 @@ export function focusCost(focus, meanDriftNow) {
   }
 
   const from = focus.baselineDrift.toFixed(1);
-  const to = meanDriftNow.toFixed(1);
+  const to = now.mean.toFixed(1);
   return {
     known: true,
     deltaDays,
-    summary: `Genomsnittlig eftersläpning har gått från ${from} till ${to} dagar sedan det här fokuset började. Det är priset så här långt, inte ett argument för att sluta.`
+    summary:
+      `Genomsnittlig eftersläpning har gått från ${from} till ${to} dagar över samma ` +
+      `${now.count} takter sedan det här fokuset började. Det är priset så här långt, ` +
+      "inte ett argument för att sluta."
   };
 }
