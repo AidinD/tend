@@ -158,6 +158,17 @@ const OPERATIONS = {
   resolvePromise: (/** @type {any} */ a) => api.resolvePromise(store, a.id, a.as),
   logTouch: (/** @type {any} */ a) => api.logTouch(store, { ...a, now: a.now ?? Date.now() }),
   logEvidence: (/** @type {any} */ a) => api.logEvidence(store, { ...a, now: a.now ?? Date.now() }),
+  /*
+   * Both here and deliberately not in `mcp/tools.js`. An agent that can mark a
+   * row as superseded can quietly retract a reading that turned out to be
+   * inconvenient, and one that can erase a row leaves nothing in any view to
+   * notice. Whether either ever crosses is a question on the epic, alongside
+   * writing an assessment.
+   */
+  replaceObservation: (/** @type {any} */ a) =>
+    api.replaceObservation(store, { ...a, now: a.now ?? Date.now() }),
+  forgetObservation: (/** @type {any} */ a) =>
+    api.forgetObservation(store, { ...a, now: a.now ?? Date.now() }),
   proposeDuty: (/** @type {any} */ a) => api.proposeDuty(store, a),
   decideDuty: (/** @type {any} */ a) => api.decideDuty(store, a.id, a.status, a.overrides),
   // How often a duty runs for one person, and switching its clock off. Here and

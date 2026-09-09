@@ -19,6 +19,7 @@
 
 import { boundPeople, isShared, sourceName } from "../domain/sources.js";
 import { daysSince, humanDays } from "../domain/time.js";
+import { superseded } from "../domain/observations.js";
 import { resolvePerson } from "./resolve.js";
 
 /**
@@ -259,8 +260,15 @@ export function observations(store, { person, area } = {}) {
   }
 
   const wanted = String(area ?? "").trim();
-  const rows = store
-    .rows("evidence")
+  /*
+   * Superseding is resolved over EVERY row and the filters are applied after,
+   * because a correction does not have to share the original's area. Moving a
+   * row onto the axis it actually belongs on is one of the likeliest reasons to
+   * file one, and resolving the pointers inside a single area's rows would then
+   * show the original as current under the old axis - the correction being
+   * invisible in exactly the read that was asked for.
+   */
+  const rows = superseded(store.rows("evidence"))
     .filter((e) => (personId === null ? true : String(e.person ?? "") === personId))
     .filter((e) => (wanted === "" ? true : String(e.area ?? "") === wanted))
     .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0));
@@ -277,7 +285,15 @@ export function observations(store, { person, area } = {}) {
       // optional on the way in.
       person: row.person ? (names.get(String(row.person)) ?? "unknown") : null,
       text: String(row.text ?? ""),
-      at: Number(row.at ?? 0)
+      at: Number(row.at ?? 0),
+      /*
+       * Carried on the row rather than left to the reader to infer, because a
+       * session preparing a review reads this and nothing else. A corrected row
+       * that arrives looking current is worse than one that does not arrive: it
+       * gets quoted back to the person it was wrong about.
+       */
+      replaces: row.replaces,
+      replacedBy: row.replacedBy
     });
     byArea.set(key, group);
   }

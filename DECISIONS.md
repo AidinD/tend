@@ -3,6 +3,89 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-09 - An observation is replaced, and only a paste error is erased
+
+**Decided.** An observation can carry a `replaces` pointer at the row it
+corrects. Both rows stay; the corrected one renders struck through with a stamp
+saying when, and the correction renders saying it is one. Separately, a row can
+be erased outright, but only inside fifteen minutes and only while it is in no
+replacement chain. Both operations are in the window and neither is on MCP.
+
+**The fault.** Correcting a wrong observation meant filing a second one whose
+prose said not to read the first as evidence. Nothing in the data connected
+them, so the correction only worked on a reader who happened to read both rows
+in order. Done by hand three times between 7 and 9 September.
+
+**Why not deletion, which is the obvious fix.** Deletion removes exactly the
+rows worth the most. An early reading of somebody that later changed is the most
+useful thing in the record on the day it changes: it is the evidence that they
+changed, and the evidence that the first reading was mistakable. Delete it and
+the record says they were always like this - which is both wrong and the more
+flattering story about whoever wrote the first row. The app already reasons this
+way: a let-go growth thread keeps its reason, two answers from one assessor are
+both counted with the collision reported, and `Let go` exists in order not to be
+`Remove`.
+
+**The one case deletion is right, and what keeps it there.** The row that was
+never true and was never a judgment - the marker text of a growth thread pasted
+into the observation field, so Tend claimed a behaviour was observed when the
+text was the test for whether it ever would be. The app already draws that line
+in its own words: a thread carries "Öppnad av misstag" beside "Avsluta".
+
+Two gates, and both have to allow it. The clock is short because the two errors
+are not symmetric: too long lets a changed judgment be erased, which is the harm
+this exists to prevent, while too short only means a paste error is corrected by
+replacement instead, leaving a struck line and no lost record. So it errs short.
+The state gate is that a row in a chain is never a mistake - if something
+replaced it, that is a judgment about it; if it replaced something, erasing it
+would leave the row underneath struck through with nothing attached.
+
+**Considered and rejected: a state gate alone**, on the model of
+`openedByMistake`, which is offered while a thread has no conversations on it and
+withdrawn the moment it has. That is the better mechanism where it applies,
+because it asks what has happened rather than how long ago. An observation is
+inert - nothing happens to it - so there is no state to read, and a clock was
+the only thing left.
+
+**Fifteen minutes is a default and not a decision.** It is one named constant
+with the asymmetry written beside it, and the number is a question on the card.
+A test holds it under a quarter of a day so it cannot be widened into a delete
+button by increments.
+
+**The subject cannot move, the axis can.** A row about the wrong person was never
+true of them, so it is the erasure case; a replacement that could move the
+subject would relabel a judgment as being about somebody who was never judged.
+The axis is the opposite - filing it under the axis it belonged on is a likely
+reason to correct one - so it moves, and defaults to the original's rather than
+to nothing.
+
+**Neither operation is on MCP, left closed rather than settled.** An agent that
+can mark a row as superseded can retract a reading that turned out to be
+inconvenient, and one that can erase a row leaves nothing in any view to notice.
+Writing an assessment is parked on the same epic for the same reason. Guarded by
+a name check and a behaviour check in both the unit suite and the protocol
+harness. An agent DOES see the correction on every read, which is the half that
+had to work: a session preparing a 1-1 reads observations and nothing else, and
+a corrected row arriving as current gets quoted back to the person it was wrong
+about.
+
+**Two defects found while building it, neither in the feature.**
+
+The disclosure marker on these rows had been absolutely positioned in the row's
+top-left corner since `.line::before` was added for the severity bars. That rule
+declares `position: absolute` and the marker rule never won it back, which also
+made the `align-self: center` above it dead - so the comment credited it with
+fixing a bug that had come back. Caught by reading the pseudo-element's computed
+style in the running app. Now held by a CSS test and an app check.
+
+The first check written for the new stamp passed over the real fault. It measured
+horizontal overflow, and `.line-text .src` is `display: block` - so the stamp
+landed on a second line and made the row two lines tall instead of running off
+the side. One line per observation is the entire reason these are folded, so the
+check was replaced by one that measures both axes and the row's height against
+an unreplaced row. The stamp is now a flex sibling of the text rather than a
+child of it.
+
 ## 2026-09-08 - The translation reached the seed and never reached the rows
 
 **Decided.** `scripts/translate-duties.mjs` copies the Swedish already in

@@ -2609,9 +2609,26 @@ kbd {
 .obs-fold > summary.line::before,
 .obs-older > summary.line::before {
   content: "";
+  /*
+   * Back into the flex row, and this line is the whole rule working.
+   *
+   * `.line::before` is the severity bar, and it is `position: absolute` with
+   * `left: 0; top: 0`. It was added after this marker, for the bars on a
+   * person's page, and it silently took the marker out of the flow: the
+   * overrides below win the size and the borders but nothing declared a
+   * position, so the triangle was pinned to the row's top-left corner. The
+   * `align-self` beneath had been dead ever since, because it cannot apply to
+   * an absolutely positioned box at all - so the comment credited it with
+   * fixing a bug that had come back.
+   *
+   * Caught by measuring the pseudo-element in the running app while adding the
+   * replacement actions to these same rows. Nothing in the markup looks wrong
+   * when this breaks, which is why it survived a screenshot review.
+   */
+  position: static;
   flex: none;
   /* The row aligns on the baseline, and a 0x0 element made of borders has its
-     baseline at the bottom edge - so the marker sat in the ceiling of the row
+     baseline at the bottom edge - so the marker sits in the ceiling of the row
      rather than beside the text. Centred instead of baselined. */
   align-self: center;
   width: 0;
@@ -2671,6 +2688,92 @@ kbd {
   /* Indented under the row that stands for them, so an opened run still reads
      as belonging to its summary rather than as loose rows in the list. */
   margin: var(--sp-sub) 0 0 14px;
+}
+
+/*
+ * An observation that has been corrected, and the correction over it.
+ *
+ * ## Struck through rather than dimmed
+ *
+ * Dimming says "less important" and this row is not less important - it is the
+ * evidence that a reading changed, which is the most useful thing in the record
+ * on the day it changes. What has to be unmistakable is that it is not CURRENT,
+ * and a line through the words is the one convention that reads as that at a
+ * glance, from across the page, before anything is read.
+ *
+ * The strike is on the text and not on the row, so the date and the "Ersatt"
+ * label stay readable. A struck-through timestamp is a puzzle.
+ *
+ * ## The correction is marked too
+ *
+ * Without it the pair only reads in one direction: from the corrected row you
+ * can see something replaced it, and from the correction you could not see it
+ * was one - which is exactly the asymmetry of the prose convention this feature
+ * replaces. See the rule further down for why that mark is a label and not a
+ * bar.
+ */
+/*
+ * The stamp saying a row is not current, on the row rather than under it.
+ *
+ * Its own flex item at a fixed size, so it survives the two things that clip a
+ * folded summary: the text is `nowrap` inside `overflow: hidden` so the handle
+ * can be cut to the measure, and `.line-text .src` is a block, which would put
+ * the stamp on a second line that either disappears or makes the row twice as
+ * tall. One line per observation is what the fold is for.
+ *
+ * Not struck through, unlike the words it labels: it says when, and a
+ * struck-through date is a puzzle.
+ */
+.line-note {
+  flex: none;
+  color: var(--text-faint);
+  font-size: var(--t-meta);
+}
+
+.obs-line.correction > .line-note,
+.obs-line.correction > summary.line > .line-note {
+  color: var(--ok-text);
+}
+
+.obs-line.replaced > .line-text,
+.obs-line.replaced > summary.line > .line-text {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-faint);
+  text-decoration-thickness: 1px;
+  color: var(--text-dim);
+}
+
+/*
+ * The correction says so in words rather than in a bar.
+ *
+ * A bar was the first answer and it cannot work on both variants of the row: on
+ * a plain line `::before` is the severity bar, and on a folded one the same
+ * pseudo-element is the disclosure triangle - so the mark would be a bar on
+ * short corrections and a green triangle on long ones, which is two
+ * vocabularies for one fact. The stamp reads the same on either, and it is what
+ * makes the pair legible from the correction's end as well as from the corrected
+ * row's. It is coloured with `.line-note` above.
+ */
+
+/*
+ * The two buttons under an opened observation.
+ *
+ * Indented to the paragraph's own measure rather than the row's, so they read as
+ * belonging to the text just read instead of to the list. Right-aligned for the
+ * same reason every other row's actions are: the left edge is where the record
+ * is, and an action that starts where a sentence starts gets clicked by somebody
+ * who was reading.
+ */
+.line-fold-act {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-label);
+  margin-top: var(--sp-label);
+  padding: 0 var(--sp-item) 0 26px;
+}
+
+.line-fold-act:empty {
+  display: none;
 }
 
 /* ----------------------------------------------------------------- Läget -- */

@@ -16,6 +16,7 @@
 import { isArchived } from "../domain/archive.js";
 import { CONTACT_KINDS, kindsFor, subjectOf } from "../domain/contact.js";
 import { isRelationIn, relationsIn } from "../domain/halves.js";
+import { MISTAKE_WINDOW_MS, removableAsMistake } from "../domain/observations.js";
 import { namedStakes } from "../domain/stakes.js";
 import { isLaterDay } from "../domain/time.js";
 import { badArchiveInstant, nameClash } from "./guards.js";
@@ -540,4 +541,95 @@ export function logEvidence(store, { person: who, text, area, now }) {
     at: now
   });
   return { id, logged: text };
+}
+
+/**
+ * Correct an observation by filing the right one over it.
+ *
+ * The correction is a full observation in its own right - its own text, its own
+ * area, its own date - that additionally points at the row it supersedes. That
+ * shape is the point: the record now holds both readings and the fact that the
+ * first one was revised, which is the most useful thing in it on the day it
+ * changes. See `domain/observations.js` for why this is not a delete.
+ *
+ * `person` is not a parameter. A correction lands on whoever the original was
+ * about, because a row about the wrong person is not something this fixes: that
+ * row was never true of them and belongs to `forgetObservation`, and letting a
+ * replacement move the subject would quietly relabel a judgment as being about
+ * somebody who was never judged.
+ *
+ * The area IS allowed to move, and defaults to the original's rather than to
+ * nothing. Filing a correction should not silently drop the axis a review is
+ * held against, which is what an omitted field meaning "clear it" would do.
+ *
+ * App only. There is no MCP tool, deliberately - see the note on
+ * `forgetObservation`.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.id The observation being corrected.
+ * @param {string} args.text What is true instead.
+ * @param {string} [args.area]
+ * @param {number} args.now
+ */
+export function replaceObservation(store, { id, text, area, now }) {
+  const row = store.rows("evidence").find((e) => String(e.id) === String(id));
+  if (!row) {
+    return { error: `Ingen observation med id "${id}".` };
+  }
+  if (!String(text ?? "").trim()) {
+    return { error: "En rättelse behöver text. Utan den vore raden bara borttagen." };
+  }
+
+  const newId = store.create("evidence", {
+    person: row.person ?? null,
+    area: area === undefined ? (row.area ?? null) : (String(area).trim() || null),
+    text: String(text).trim(),
+    at: now,
+    replaces: String(row.id)
+  });
+  return { id: newId, replaced: String(row.id), logged: String(text).trim() };
+}
+
+/**
+ * Remove an observation that was never true and was never a judgment.
+ *
+ * The paste error, and nothing else. Both gates in `removableAsMistake` have to
+ * allow it, and this refuses in words that name the other mechanism rather than
+ * just saying no - a refusal that does not tell you what to do instead reads as
+ * a broken button.
+ *
+ * App only, and this is the half of the pair where that matters most. An agent
+ * that can mark a row as superseded can silence a row that was inconvenient, and
+ * an agent that can remove one can do it without leaving a trace in any view.
+ * Writing assessments is already parked on the same epic for the same reason.
+ * Whether either of these ever reaches MCP is a question on the card, and it is
+ * left closed rather than settled.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.id
+ * @param {number} args.now
+ */
+export function forgetObservation(store, { id, now }) {
+  const rows = store.rows("evidence");
+  const row = rows.find((e) => String(e.id) === String(id));
+  if (!row) {
+    return { error: `Ingen observation med id "${id}".` };
+  }
+
+  const allowed = removableAsMistake(row, rows, now);
+  if (!allowed.ok) {
+    const minutes = Math.round(MISTAKE_WINDOW_MS / 60_000);
+    return {
+      error:
+        allowed.why === "chained"
+          ? "Den här raden hör till en rättelse, så den är historik nu. Rätta rättelsen i stället."
+          : `Bara en rad som blev fel av misstag tas bort, och bara inom ${minutes} minuter. ` +
+            "Den här är äldre, så det är ett ändrat omdöme och inte ett misstag: ersätt den i stället."
+    };
+  }
+
+  store.remove("evidence", String(row.id));
+  return { id: String(row.id), forgotten: String(row.text ?? "") };
 }

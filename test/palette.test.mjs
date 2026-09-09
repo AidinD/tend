@@ -448,6 +448,31 @@ describe("severity is visible without reading anything", () => {
     assert.match(own, /overflow:\s*hidden/, `.line: ${own.replace(/\s+/g, " ")}`);
   });
 
+  it("does not let the bar's own positioning capture the fold marker", () => {
+    /*
+     * Two rules share `.line::before`, and they want opposite things from it.
+     * The severity bar needs `position: absolute` to stretch down the row's
+     * left edge; the observation fold marker needs to sit IN the flex row so it
+     * lines up with the text beside it. The bar was written second, so the
+     * marker inherited absolute positioning it never asked for and got pinned
+     * to the row's top-left corner - with the `align-self: center` above it
+     * dead, since that cannot apply to an absolutely positioned box.
+     *
+     * Nothing about the markup looks wrong when this happens, and it survived a
+     * screenshot review once. The running app measures it too (e2e-app.mjs
+     * reads the pseudo-element's computed position); this is the cheap copy
+     * that fails in a second rather than in four minutes.
+     */
+    const at = css.indexOf(".obs-fold > summary.line::before");
+    assert.ok(at >= 0, "the fold marker rule should exist");
+    const own = css.slice(at, css.indexOf("}", at));
+    assert.match(
+      own,
+      /position:\s*static/,
+      `the fold marker does not win back its position: ${own.replace(/\s+/g, " ")}`
+    );
+  });
+
   it("words every severity it can paint, rather than printing the key", () => {
     /*
      * `pill()` used to render the severity key straight into the markup, so a

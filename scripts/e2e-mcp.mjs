@@ -54,7 +54,23 @@ const seeded = await (async () => {
     note: "",
     now
   });
-  return { person: "Testkodare" };
+  /*
+   * And an observation corrected in the window, for the same reason: the
+   * correction cannot be written over MCP either, so proving an agent SEES the
+   * correction means putting it there through the service first.
+   */
+  const wrong = api.logEvidence(store, {
+    person: String(who.id),
+    text: "Drev igenom ett beslut över huvudet på resten av teamet.",
+    area: "ägarskap",
+    now
+  });
+  api.replaceObservation(store, {
+    id: String(wrong.id),
+    text: "Hen bad tvärtom om att skjuta på beslutet, jag läste anteckningen bakvänt.",
+    now
+  });
+  return { person: "Testkodare", wrong: String(wrong.id) };
 })();
 
 let failures = 0;
@@ -174,6 +190,45 @@ try {
    * from a different picture of the same person is worse than preparing from
    * nothing, because it reads as agreement.
    */
+  /*
+   * A corrected observation, read over the protocol.
+   *
+   * This is the read that matters most for the correction feature: a session
+   * preparing a 1-1 reads observations and nothing else, so a corrected row
+   * arriving without its correction is worse than one not arriving at all - it
+   * gets quoted back to the person it was wrong about.
+   */
+  const seen = payload(
+    await client.callTool({ name: "tend_observations", arguments: { person: seeded.person } })
+  );
+  const items = seen.areas.flatMap((/** @type {any} */ a) => a.items);
+  const wrongRow = items.find((/** @type {any} */ i) => String(i.id) === seeded.wrong);
+
+  check("an agent reading an observation sees that it was corrected", () => {
+    assert.ok(wrongRow, "the corrected row is not in the read at all");
+    assert.ok(wrongRow.replacedBy, "the row arrived looking current");
+    assert.match(String(wrongRow.replacedBy.text), /bakvänt/);
+  });
+
+  check("and cannot correct or erase one itself", () => {
+    /*
+     * Left closed rather than settled, alongside writing an assessment. An
+     * agent that can mark a row as superseded can retract a reading that turned
+     * out to be inconvenient, and one that can erase a row leaves nothing in
+     * any view to notice.
+     *
+     * Checked on the advertised surface AND on the store, because a tool that
+     * merely happens to be broken today is not a boundary.
+     */
+    const named = tools
+      .map((/** @type {any} */ t) => t.name)
+      .filter(
+        (/** @type {string} */ n) =>
+          /(replace|forget|supersede|correct|remove|delete)/i.test(n) && /observ|evidence/i.test(n)
+      );
+    assert.deepEqual(named, [], `a tool is named as if it corrects one: ${named.join(", ")}`);
+  });
+
   const rounds = payload(
     await client.callTool({ name: "tend_assessments", arguments: { person: seeded.person } })
   );

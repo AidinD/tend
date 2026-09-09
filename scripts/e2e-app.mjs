@@ -5865,6 +5865,223 @@ try {
     }
   });
 
+  step("A wrong observation is replaced, and only a paste error is erased");
+
+  /*
+   * The mechanism the prose convention was standing in for. Driven in the app
+   * because the failure mode is entirely a rendering one: the pointer can be
+   * perfectly stored and the corrected row can still read as current, which is
+   * the exact fault this replaces and which no service test can see.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"logEvidence\"]') !== null",
+    "a person's page"
+  );
+
+  /*
+   * The fold marker's own geometry, checked here because it is a pseudo-element
+   * and nothing else in the suite can see one.
+   *
+   * `.line::before` was added later, for the severity bars, and it declares
+   * `position: absolute`. The fold marker rule overrides the size and the
+   * borders but never the position, so if it wins nothing back the triangle is
+   * pinned to the row's top-left corner rather than sitting in the flex row -
+   * and `align-self: center`, which the comment beside it credits with fixing
+   * exactly that, cannot apply to an absolutely positioned box at all.
+   */
+  const marker = JSON.parse(String(await page.evaluate(`(() => {
+        const fold = document.querySelector('.obs-fold > summary.line');
+        if (fold === null) { return JSON.stringify({ found: false }); }
+        const cs = getComputedStyle(fold, '::before');
+        return JSON.stringify({
+          found: true,
+          position: cs.position,
+          top: cs.top,
+          height: cs.height,
+          borderLeftWidth: cs.borderLeftWidth
+        });
+      })()`)));
+
+  check("the fold marker sits in the row rather than pinned to its ceiling", () => {
+    if (marker.found !== true) {
+      throw new Error("no folded observation on the page, so this proved nothing");
+    }
+    if (marker.borderLeftWidth === "0px") {
+      throw new Error("the marker has no triangle at all: " + JSON.stringify(marker));
+    }
+    if (marker.position === "absolute") {
+      throw new Error(
+        "the marker is absolutely positioned, so align-self cannot centre it and it sits in " +
+          "the row's corner: " + JSON.stringify(marker)
+      );
+    }
+  });
+
+  const CORRECTION =
+    "Det var inte hen som drev igenom det, hen hade tvärtom bett om att skjuta på beslutet - " +
+    "jag läste mötesanteckningen bakvänt och skrev ner min egen slutsats som en observation.";
+
+  await page.click('[data-act="replaceObservation"]');
+  await page.fillDialog({ text: CORRECTION });
+  await sleep(320);
+
+  const corrected = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Observationer'
+        );
+        if (!block) { return JSON.stringify({ found: false }); }
+        const struck = [...block.querySelectorAll('.obs-line.replaced')];
+        const text = struck.length === 0
+          ? null
+          : struck[0].querySelector('.line-text');
+        return JSON.stringify({
+          found: true,
+          replaced: struck.length,
+          corrections: block.querySelectorAll('.obs-line.correction').length,
+          /* The strike itself, off the computed style rather than off the class,
+             because the class is what this step already knows it wrote. */
+          decoration: text === null ? '' : getComputedStyle(text).textDecorationLine,
+          /* A corrected row offers neither action: it is history, and the thing
+             to revise is the correction over it. */
+          actsOnReplaced: struck.length === 0
+            ? -1
+            : struck[0].querySelectorAll('[data-act="replaceObservation"], [data-act="forgetObservation"]').length,
+          correctionText: block.textContent.indexOf('bett om att skjuta') >= 0,
+          erasable: block.querySelectorAll('[data-act="forgetObservation"]').length
+        });
+      })()`)));
+
+  check("the corrected row stays on the page, struck through", () => {
+    if (corrected.found !== true) {
+      throw new Error("no observations block on the page");
+    }
+    if (corrected.replaced !== 1) {
+      throw new Error(`${corrected.replaced} rows marked as replaced, expected 1`);
+    }
+    if (!/line-through/.test(String(corrected.decoration))) {
+      throw new Error(`the replaced row is not struck through: "${corrected.decoration}"`);
+    }
+  });
+
+  check("and the correction is on the page saying it is one", () => {
+    if (corrected.correctionText !== true) {
+      throw new Error("the correction's own text is not on the page");
+    }
+    if (corrected.corrections !== 1) {
+      throw new Error(`${corrected.corrections} rows marked as a correction, expected 1`);
+    }
+  });
+
+  const label = JSON.parse(String(await page.evaluate(`(() => {
+        const row = document.querySelector('.obs-line.replaced');
+        if (row === null) { return JSON.stringify({ found: false }); }
+        const line = row.matches('.line') ? row : row.querySelector('summary.line');
+        const mark = row.querySelector('.line-note');
+        if (mark === null) { return JSON.stringify({ found: true, mark: false }); }
+        const box = line.getBoundingClientRect();
+        const own = mark.getBoundingClientRect();
+        /* A row that is not replaced, to say what one line measures here. */
+        const plain = [...document.querySelectorAll('.obs-line:not(.replaced)')]
+          .map((r) => r.matches('.line') ? r : r.querySelector('summary.line'))
+          .filter((l) => l !== null)
+          .map((l) => Math.round(l.getBoundingClientRect().height));
+        return JSON.stringify({
+          found: true,
+          mark: true,
+          folded: row.matches('.line-fold'),
+          width: Math.round(own.width),
+          height: Math.round(own.height),
+          /*
+           * Both axes. The horizontal one is the handle's nowrap box running
+           * past its clip; the vertical one is the label landing on a second
+           * line, which is what actually happened when it was a child of the
+           * text - a block-level label inside a box that hides its overflow.
+           */
+          past: Math.round(Math.max(0, own.right - box.right)),
+          below: Math.round(Math.max(0, own.bottom - box.bottom)),
+          rowHeight: Math.round(box.height),
+          oneLine: plain.length === 0 ? 0 : Math.min(...plain),
+          words: mark.textContent.trim()
+        });
+      })()`)));
+
+  check("the label saying a row was replaced is actually on screen, not clipped away", () => {
+    /*
+     * The failure a picture would have shown and no other check here can. A
+     * folded observation's text is `nowrap` inside `overflow: hidden`, because
+     * the handle is cut to the measure and this is the net under it - so a label
+     * appended after the handle can be pushed straight out of the visible box.
+     * The row would then be struck through with no stated reason, which is half
+     * of what this feature is for.
+     */
+    if (label.found !== true) {
+      throw new Error("no replaced row on the page, so this proved nothing");
+    }
+    if (label.mark !== true) {
+      throw new Error("the replaced row carries no label at all");
+    }
+    if (!(label.width > 0) || !(label.height > 0)) {
+      throw new Error(`the label has no box: ${JSON.stringify(label)}`);
+    }
+    if (label.past > 0 || label.below > 0) {
+      throw new Error(
+        `"${label.words}" falls ${label.past}px past and ${label.below}px below the row that clips it`
+      );
+    }
+  });
+
+  check("and adding it did not turn a one-line observation into a two-line one", () => {
+    /*
+     * The other half of the same fault, and the one that does not look like a
+     * bug: instead of vanishing, the label pushes the row to two lines. One line
+     * per observation is the whole reason these are folded at all, so a stamp
+     * that quietly undoes it on every corrected row would give back the wall
+     * this surface was rebuilt to remove.
+     */
+    if (!(label.oneLine > 0)) {
+      throw new Error("no unreplaced row to calibrate against, so this proved nothing");
+    }
+    if (label.rowHeight > label.oneLine + 4) {
+      throw new Error(
+        `a replaced row is ${label.rowHeight}px against a one-line row of ${label.oneLine}px`
+      );
+    }
+  });
+
+  check("a row that has already been corrected offers no further action", () => {
+    if (corrected.actsOnReplaced !== 0) {
+      throw new Error(
+        `${corrected.actsOnReplaced} buttons on a row that is now history`
+      );
+    }
+  });
+
+  /*
+   * A picture of the corrected pair, when asked for. Not a check - the four
+   * above are - but this surface is where a screenshot has twice caught what a
+   * measurement did not, so it is worth being able to look at.
+   */
+  if (process.argv.includes("--shots")) {
+    await page.screenshot(join(root, "docs", "observation-replaced.png"));
+  }
+
+  check("erasing outright is offered on a fresh row and refused on a corrected one", () => {
+    /*
+     * The pair, not either half. Every row on this page was written seconds ago
+     * so the clock allows all of them, which makes this a clean read of the
+     * state gate alone: the count has to be the rows that are not in the chain.
+     */
+    if (corrected.erasable < 1) {
+      throw new Error("nothing on the page can be called a paste error, so this proved nothing");
+    }
+    if (corrected.erasable > 6) {
+      throw new Error(`${corrected.erasable} erase buttons, so the chain gate is doing nothing`);
+    }
+  });
+
   step("Finishing up");
 
   /*

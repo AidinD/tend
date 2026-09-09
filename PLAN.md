@@ -438,6 +438,18 @@ block for the part the notes do not answer.
   it is the highest-consequence row in the app, and transcription is also the
   obvious use for an agent. Reading is open, writing is closed, with a test that
   fails if a write tool appears before the question is answered.
+- **How short the window for "av misstag" should be.** Fifteen minutes today, in
+  one named constant with the reasoning beside it. A row can be erased outright
+  only inside it and only while nothing has replaced it; past that it is a
+  changed judgment and gets replaced instead. The asymmetry sets the direction -
+  too long lets a judgment be erased, too short only costs a struck-through line -
+  and a test holds it under a quarter of a day. The number is his.
+- **Whether an agent may mark an observation as replaced, or erase one.** Both
+  are in the window today and neither is on MCP, for the same reason writing an
+  assessment is not: an agent that can supersede a row can retract a reading that
+  turned out to be inconvenient, and one that can erase a row leaves nothing in
+  any view to notice. An agent DOES see every correction on read. Left closed
+  rather than settled, guarded by a name check and a behaviour check.
 - ~~**When a feedback round counts as run.**~~ Settled on 2026-09-07: it is
   offered, never counted. The person's page offers to mark it as run and he
   accepts; a threshold on the round waits for the pending-request concept. See

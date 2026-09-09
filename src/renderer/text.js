@@ -912,6 +912,34 @@ export const T = {
     },
     /** @param {number} n */
     observationsOlder: (n) => `${n} äldre`,
+
+    /*
+     * A corrected observation, and the two buttons that get there.
+     *
+     * "Ersätt" is offered on every row and "Inklistrad av misstag" only inside
+     * the short window, which is the whole distinction the feature rests on: a
+     * changed omdöme is always available, an erasure almost never is. The
+     * mistake wording says how the row got there rather than what it is worth,
+     * because "ta bort" on a row about a colleague reads as an invitation to
+     * tidy away a reading that turned out to be unflattering.
+     */
+    replaceObservation: "Ersätt",
+    pastedByMistake: "Inklistrad av misstag",
+    /** @param {string} when */
+    replacedOn: (when) => `Ersatt ${when}`,
+    replacesRow: "Ersätter en tidigare rad",
+    replaceTitle: "Ersätt den här observationen",
+    replaceIntro:
+      "Den gamla raden blir kvar, överstruken, med den här vidhängande. Att en läsning ändrades " +
+      "är det mest användbara som finns i underlaget den dagen den ändras, så den raderas inte.",
+    replaceTextLabel: "Vad som stämmer i stället",
+    replacedToast: "Ersatt.",
+    forgetTitle: "Blev den här raden fel av misstag?",
+    forgetBody:
+      "Bara för raden som aldrig var sann - text i fel fält. Den försvinner helt. Har du ändrat " +
+      "uppfattning om något som faktiskt hände är \"Ersätt\" rätt: då blir båda läsningarna kvar.",
+    forgetConfirm: "Ja, ta bort den",
+    forgotToast: "Borttagen.",
     observationsNone:
       "Inget registrerat. Det är det här ett utvecklingssamtal byggs av.",
     historyBlock: "Kontakthistorik",

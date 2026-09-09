@@ -19,6 +19,7 @@ import { OWN_SOURCE } from "../domain/cadence.js";
 import { archivedIds, isArchived } from "../domain/archive.js";
 import { contactSummary } from "../domain/contact.js";
 import { personBlocksIn, relationsIn } from "../domain/halves.js";
+import { removableAsMistake, superseded } from "../domain/observations.js";
 import { myAttention } from "../domain/myattention.js";
 import { availability } from "../domain/people.js";
 import { openPromises } from "../domain/promises.js";
@@ -229,12 +230,47 @@ export function person(store, query, now) {
       from: t.from ?? null
     }));
 
-  const evidence = store
-    .rows("evidence")
-    .filter((e) => e.person === p.id)
+  /*
+   * Annotated with what replaced what BEFORE the slice, not after.
+   *
+   * A correction and the row it corrects are usually adjacent, but nothing makes
+   * them so - a reading revised eight months later sits twenty rows away. If the
+   * pointers were resolved over the visible twenty, the strike-through would
+   * appear and disappear depending on how much else had been filed since, which
+   * is the sort of bug that looks like a rendering glitch for months.
+   *
+   * The id goes out too, because both actions on the row need it.
+   */
+  const evidenceRows = store.rows("evidence");
+  const evidence = superseded(evidenceRows.filter((e) => e.person === p.id))
     .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
     .slice(0, 20)
-    .map((e) => ({ text: e.text, at: e.at, by: e._by }));
+    .map((e) => ({
+      id: String(e.id),
+      text: e.text,
+      // Carried so a correction can default to the axis the original was filed
+      // under. An omitted field would mean "clear it", and dropping the axis a
+      // review is held against is not what filing a correction is for.
+      area: e.area ?? null,
+      at: e.at,
+      by: e._by,
+      replaces: e.replaces,
+      replacedBy: e.replacedBy,
+      /*
+       * Whether the erase button is offered at all, answered here rather than
+       * in the renderer.
+       *
+       * The renderer could subtract two numbers, and then the rule about what
+       * counts as a paste error would live in two places - the one that decides
+       * whether to show the button and the one that decides whether to honour
+       * it. They would agree until one of them was edited, and the visible
+       * failure would be a button that errors when pressed.
+       *
+       * Checked against every evidence row and not just this person's, because
+       * the chain gate has to see a correction wherever it sits.
+       */
+      forgettable: removableAsMistake(e, evidenceRows, now).ok
+    }));
 
   const relation = String(p.relation ?? "");
 

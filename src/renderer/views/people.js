@@ -650,27 +650,106 @@ async function personPage(id) {
    */
   const OBSERVATIONS_SHOWN = 6;
 
+  /*
+   * The two actions on an observation, and why they are not one.
+   *
+   * Replace is offered on every row that is still current. Erase is offered
+   * only while the row could still be a paste error, and the service decides
+   * that - see `forgettable`. A row that has already been corrected offers
+   * neither: it is history, and the thing to revise is the correction sitting
+   * above it.
+   *
+   * @param {any} e
+   */
+  const observationActions = (/** @type {any} */ e) => {
+    if (e.replacedBy) {
+      return "";
+    }
+    return `<span class="line-right">
+      <button class="act tiny" data-act="replaceObservation" data-id="${esc(e.id)}"
+        data-area="${esc(e.area ?? "")}"
+        data-was="${esc(String(e.text ?? ""))}">${words.replaceObservation}</button>
+      ${
+        e.forgettable
+          ? `<button class="act tiny danger" data-act="forgetObservation" data-id="${esc(e.id)}"
+              data-what="${esc(words.observationHandle(String(e.text ?? "")))}">${
+                words.pastedByMistake
+              }</button>`
+          : ""
+      }
+    </span>`;
+  };
+
   const observationLine = (/** @type {any} */ e) => {
     const day = new Date(Number(e.at)).toISOString().slice(0, 10);
     const full = String(e.text ?? "");
     const handle = words.observationHandle(full);
 
+    /*
+     * What a corrected row says about itself.
+     *
+     * Struck through, and labelled with when it was corrected. Both, because
+     * either alone fails: a strike-through with no date is a row somebody has to
+     * go looking for the reason for, and a label with no strike-through is a
+     * sentence at the end of a line that still reads as current at a glance -
+     * which is the failure mode of the prose convention this replaces.
+     *
+     * The correction itself is a row in this same list, in date order, saying
+     * that it replaces one. Nothing needs to be nested for the pair to read.
+     */
+    const state = e.replacedBy
+      ? ` replaced`
+      : e.replaces
+        ? ` correction`
+        : "";
+    /*
+     * A sibling of the text rather than a child of it, which is not a detail.
+     *
+     * `.line-text .src` is `display: block` - context prose belongs under its
+     * line - and a folded summary's text is `nowrap` inside `overflow: hidden`
+     * so the handle can be cut to the measure. Put together, a label inside the
+     * text on a folded row lands on a second line that is either clipped away or
+     * makes the row two lines tall, and one line per observation is the whole
+     * point of the fold. As its own flex item at `flex: none` it stays on the
+     * row and the handle shrinks around it.
+     */
+    const note = e.replacedBy
+      ? `<span class="line-note">${words.replacedOn(
+          esc(new Date(Number(e.replacedBy.at)).toISOString().slice(0, 10))
+        )}</span>`
+      : e.replaces
+        ? `<span class="line-note">${words.replacesRow}</span>`
+        : "";
+
     // Nothing to open when the whole note already fits on its line. A fold over
     // no hidden text is a control that does nothing, and one of those teaches
     // somebody that the others might not do anything either.
     if (handle === full.replace(/\s+/g, " ").trim()) {
-      return `<div class="line">
+      return `<div class="line obs-line${state}">
         <span class="line-when">${esc(day)}</span>
         <span class="line-text">${esc(full)}</span>
+        ${note}
+        ${observationActions(e)}
       </div>`;
     }
 
-    return `<details class="line-fold obs-fold">
+    /*
+     * The buttons sit under the opened text rather than on the summary row.
+     *
+     * Partly because a button inside a `<summary>` also toggles the fold, so the
+     * two controls fight. Mostly because this is where they belong: replacing a
+     * reading of somebody should follow reading the whole of it, and a row whose
+     * visible third is a handle is not the whole of it. On a short row the text
+     * IS the line, so the buttons on the line are the same position.
+     */
+    return `<details class="line-fold obs-fold obs-line${state}">
       <summary class="line">
         <span class="line-when">${esc(day)}</span>
         <span class="line-text">${esc(handle)}</span>
+        ${note}
       </summary>
       <p class="line-fold-text">${esc(full)}</p>
+      <div class="line-fold-act">${observationActions(e)}</div>
     </details>`;
   };
 
@@ -1169,6 +1248,75 @@ export const actions = {
       return;
     }
     if (await act("logEvidence", { person: d.person, ...values }, words.recordedToast)) {
+      refresh();
+    }
+  },
+
+  /**
+   * File the right observation over a wrong one.
+   *
+   * The old text is shown as a `note` rather than prefilled into the textarea.
+   * A correction is a new reading, and handing back the sentence being corrected
+   * as an editable draft invites it to be tidied into agreement with the new one
+   * - which is the outcome this whole mechanism exists to prevent, arrived at
+   * one word at a time.
+   *
+   * Written through `attempt` so a refusal keeps the dialog open with the
+   * paragraph still in it.
+   *
+   * @param {Record<string, string>} d
+   */
+  replaceObservation: async (d) => {
+    const values = await form({
+      title: words.replaceTitle,
+      intro: words.replaceIntro,
+      fields: [
+        { name: "was", label: words.observationsBlock, type: "note", value: d.was ?? "" },
+        { name: "text", label: words.replaceTextLabel, type: "textarea", required: true },
+        {
+          name: "area",
+          label: words.observationAreaLabel,
+          placeholder: words.observationAreaPlaceholder,
+          value: d.area ?? ""
+        }
+      ],
+      confirm: words.recordIt,
+      attempt: async (v) => {
+        const result = await tend.invoke("replaceObservation", {
+          id: d.id,
+          text: v.text,
+          area: v.area
+        });
+        return result?.error ? String(result.error) : null;
+      }
+    });
+    if (values) {
+      toast(words.replacedToast);
+      refresh();
+    }
+  },
+
+  /**
+   * Erase a row that was never true.
+   *
+   * The dialog names the other mechanism instead of only warning, because the
+   * decision being made here is which of the two happened - and somebody who
+   * reaches for this button having changed their mind about a colleague needs to
+   * be told that the thing they want is the other button, not that this one is
+   * dangerous.
+   *
+   * @param {Record<string, string>} d
+   */
+  forgetObservation: async (d) => {
+    const sure = await ask({
+      title: words.forgetTitle,
+      body: `${d.what ? `"${d.what}"
+
+` : ""}${words.forgetBody}`,
+      confirm: words.forgetConfirm,
+      tone: "danger"
+    });
+    if (sure && (await act("forgetObservation", { id: d.id }, words.forgotToast))) {
       refresh();
     }
   },
