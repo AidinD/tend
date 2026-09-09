@@ -35,6 +35,7 @@ import * as api from "../src/service/api.js";
 import { TOOLS, callTool } from "../src/mcp/tools.js";
 import {
   WEIGHTS,
+  axisSeries,
   byAxis,
   doubleAnswers,
   isScore,
@@ -232,24 +233,14 @@ describe("the assessor's weight is stored from the first round", () => {
     failed(record(String(who.id), { assessorWeight: "tungt" }));
   });
 
-  it("does not let the weight touch the aggregate yet", () => {
-    /*
-     * Deliberate, and the reason it is a test rather than a comment: a
-     * weighting applied before anybody decided what weight MEANS would be worse
-     * than not having the field, because the resulting numbers would look
-     * considered. Two answers, one dismissed and one heavy, still average
-     * plainly.
-     */
-    const who = person();
-    ok(record(String(who.id), { assessor: "En", assessorWeight: "low", scores: [{ axis: "Kommunikation", score: 2 }] }));
-    ok(record(String(who.id), { assessor: "Två", assessorWeight: "high", scores: [{ axis: "Kommunikation", score: 4 }] }));
-
-    const read = ok(api.assessments(store, String(who.id), NOW));
-    const axis = read.byAxis.find((/** @type {any} */ a) => a.axis === "Kommunikation");
-    assert.ok(axis, "the axis is missing, so this proved nothing");
-    assert.equal(axis.mean, 3, "the weight has started moving the mean without a decision");
-    assert.equal(axis.n, 2);
-  });
+  /*
+   * What the weight DOES is settled now, and lives in its own block below - see
+   * "what the assessor's weight does to a figure". A check called "does not
+   * touch the aggregate yet" stood here while that was undecided; it has been
+   * folded into that block, which asserts the same untouched mean and also the
+   * discounted figure beside it. Two tests narrating opposite stories about one
+   * fact is how a reader ends up believing the wrong one.
+   */
 });
 
 describe("the three faults it was ported without", () => {
@@ -546,6 +537,164 @@ describe("what a person's page carries about a round, and what it does not", () 
   });
 });
 
+describe("what the assessor's weight does to a figure", () => {
+  it("never changes the mean - every answer counts once", () => {
+    /*
+     * The thing that was NOT built, asserted so nobody builds it. A weighted
+     * average is one number silently containing a judgement about the assessors:
+     * the figure quoted in a review is then neither what people answered nor
+     * anything anybody can check, and the multipliers would be invented - there
+     * is no sense in which a careless producer's answer is worth 0.6 of a
+     * careful one.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        assessorWeight: "low",
+        weighWhy: "slarvig, toppbetyg utan att skriva något",
+        scores: [{ axis: "Kommunikation", score: 5 }],
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        assessorWeight: "high",
+        scores: [{ axis: "Kommunikation", score: 1 }],
+        now: NOW
+      })
+    );
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    const [axis] = read.byAxis;
+    assert.equal(axis.n, 2, "an answer was dropped from the count");
+    assert.equal(axis.mean, 3, `the mean was weighted: ${axis.mean}`);
+  });
+
+  it("reports the same axis again with the low-weighted answers set aside", () => {
+    /*
+     * The case this card comes from, 2026-09-07: 5/5/4 with every comment box
+     * empty, from one of the weaker producers. The question that needed
+     * answering was whether the axis was being carried by the answer he did not
+     * trust, and now the row answers it.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        assessorWeight: "low",
+        weighWhy: "slarvig",
+        scores: [{ axis: "Kommunikation", score: 5 }],
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        scores: [{ axis: "Kommunikation", score: 3 }],
+        now: NOW
+      })
+    );
+
+    const [axis] = ok(api.assessments(store, String(who.id), NOW)).byAxis;
+    assert.equal(axis.mean, 4);
+    assert.equal(axis.discounted, 1);
+    assert.equal(axis.nDiscounting, 1);
+    assert.equal(axis.meanDiscounting, 3, "the discounted figure still holds the low answer");
+  });
+
+  it("says nothing extra when nothing was weighed low", () => {
+    // A second number that always equals the first teaches somebody to stop
+    // reading either.
+    const who = person();
+    ok(record(String(who.id), { scores: [{ axis: "Kommunikation", score: 4 }], now: NOW }));
+    const [axis] = ok(api.assessments(store, String(who.id), NOW)).byAxis;
+    assert.equal(axis.discounted, 0);
+    assert.equal(axis.meanDiscounting, 4, "the pair should still agree when nothing is set aside");
+  });
+
+  it("has no figure at all when every answer on the axis is one he distrusts", () => {
+    /*
+     * Null and not zero. Zero would print as a score on the scale; the finding
+     * is that the axis rests entirely on answers he does not trust, which is
+     * worth more than any mean on the row.
+     */
+    const who = person();
+    for (const assessor of ["Testproducent", "Testregissör"]) {
+      ok(
+        record(String(who.id), {
+          assessor,
+          assessorWeight: "low",
+          weighWhy: "båda slarviga",
+          scores: [{ axis: "Kommunikation", score: 5 }],
+          now: NOW
+        })
+      );
+    }
+
+    const [axis] = ok(api.assessments(store, String(who.id), NOW)).byAxis;
+    assert.equal(axis.mean, 5);
+    assert.equal(axis.discounted, 2);
+    assert.equal(axis.nDiscounting, 0);
+    assert.equal(axis.meanDiscounting, null, "a mean was invented over no answers");
+  });
+
+  it("weighs somebody high without making their answer count for more", () => {
+    /*
+     * The asymmetry, deliberate. Distrust is actionable - "what does this look
+     * like without them" has a real answer. Confidence is not: counting an
+     * answer twice because it is a good one invents precision nobody measured.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        assessorWeight: "high",
+        scores: [{ axis: "Kommunikation", score: 1 }],
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Kommunikation", score: 5 }],
+        now: NOW
+      })
+    );
+
+    const [axis] = ok(api.assessments(store, String(who.id), NOW)).byAxis;
+    assert.equal(axis.mean, 3, "a high weight moved the mean");
+    assert.equal(axis.discounted, 0, "a high weight set an answer aside");
+  });
+
+  it("carries into a single round's figures too, not only the whole record's", () => {
+    // `rounds` figures each occasion through the same helper, so the round rows
+    // answer the same question about themselves.
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        assessorWeight: "low",
+        weighWhy: "slarvig",
+        scores: [{ axis: "Kommunikation", score: 5 }],
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        scores: [{ axis: "Kommunikation", score: 3 }],
+        now: NOW
+      })
+    );
+
+    const [round] = ok(api.assessments(store, String(who.id), NOW)).roundHistory;
+    assert.equal(round.byAxis[0].discounted, 1);
+    assert.equal(round.byAxis[0].meanDiscounting, 3);
+  });
+});
+
 describe("the rounds read as a history rather than a pile", () => {
   it("groups the answers into the occasions they arrived on, newest first", () => {
     const who = person();
@@ -769,6 +918,195 @@ describe("the rounds read as a history rather than a pile", () => {
     );
     assert.equal(out.length, 1);
     assert.equal(out[0].n, 1);
+  });
+});
+
+describe("one axis over the rounds, which is the trend without a curve", () => {
+  it("puts the points in the order time ran, not newest first like every history", () => {
+    /*
+     * The one place the app reverses itself, deliberately. A history answers
+     * "what happened lately" and reads newest-first; a series answers "which way
+     * has this gone" and only reads in the direction time ran. Reversed, every
+     * axis appears to move backwards.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        scores: [{ axis: "Kommunikation", score: 2 }],
+        at: daysAgo(200),
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Kommunikation", score: 4 }],
+        at: NOW,
+        now: NOW
+      })
+    );
+
+    const [axis] = ok(api.assessments(store, String(who.id), NOW)).series;
+    assert.equal(axis.points.length, 2);
+    assert.ok(axis.points[0].day < axis.points[1].day, "the series runs backwards");
+    assert.equal(axis.points[0].mean, 2);
+    assert.equal(axis.points[1].mean, 4);
+  });
+
+  it("names who gave THIS axis, not everybody who answered the round", () => {
+    /*
+     * An assessor can skip an axis, and naming them under a figure they did not
+     * give is the sort of error that only surfaces in the conversation itself.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Kommunikation", score: 4 }],
+        at: NOW,
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        scores: [{ axis: "Leverans", score: 5 }],
+        at: NOW,
+        now: NOW
+      })
+    );
+    // A second occasion, so the series is drawn at all.
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Kommunikation", score: 3 }],
+        at: daysAgo(200),
+        now: NOW
+      })
+    );
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    const komm = read.series.find((/** @type {any} */ a) => a.axis === "Kommunikation");
+    assert.ok(komm, "the axis is missing, so this proved nothing");
+    const latest = komm.points[komm.points.length - 1];
+    assert.deepEqual(latest.assessors, ["Testproducent"], "the other axis's assessor was listed");
+  });
+
+  it("reports a round that did not ask about the axis, rather than closing the gap", () => {
+    /*
+     * Two figures side by side read as consecutive measurements. A set can be
+     * reworded between rounds, which is exactly when a round has no answer on an
+     * axis - so the absence is a point of its own with no figure on it.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        scores: [{ axis: "Kommunikation", score: 2 }],
+        at: daysAgo(400),
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Leverans", score: 5 }],
+        at: daysAgo(200),
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Kommunikation", score: 4 }],
+        at: NOW,
+        now: NOW
+      })
+    );
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    const komm = read.series.find((/** @type {any} */ a) => a.axis === "Kommunikation");
+    assert.ok(komm, "the axis is missing, so this proved nothing");
+    assert.equal(komm.points.length, 3, "the series skipped a round instead of marking it");
+    assert.equal(komm.points[1].asked, false, "the round that did not ask is not marked");
+    assert.equal(komm.points[1].mean, null, "a figure was invented for a round with no answer");
+    assert.equal(komm.asked, 2, "the count of rounds that asked is wrong");
+  });
+
+  it("carries no change between points, anywhere", () => {
+    // Same reasoning as the rounds: the assessors differ, so a difference
+    // between two means is a difference between two groups.
+    const who = person();
+    for (const [assessor, score, back] of [
+      ["Testregissör", 2, 200],
+      ["Testproducent", 5, 0]
+    ]) {
+      ok(
+        record(String(who.id), {
+          assessor: String(assessor),
+          scores: [{ axis: "Kommunikation", score: Number(score) }],
+          at: daysAgo(Number(back)),
+          now: NOW
+        })
+      );
+    }
+
+    const [axis] = ok(api.assessments(store, String(who.id), NOW)).series;
+    for (const shape of [axis, ...axis.points]) {
+      const movement = Object.keys(shape).filter((f) =>
+        /change|delta|diff|slope|direction|prev/i.test(f)
+      );
+      assert.deepEqual(movement, [], `the series carries a change figure: ${movement.join(", ")}`);
+    }
+  });
+
+  it("keeps two question sets apart, so one axis name is not one series", () => {
+    const who = person();
+    for (const [set, name, score, back] of [
+      ["producentrond", "Producentrond", 5, 200],
+      ["regirond", "Regirond", 1, 200],
+      ["producentrond", "Producentrond", 4, 0],
+      ["regirond", "Regirond", 2, 0]
+    ]) {
+      ok(
+        record(String(who.id), {
+          assessor: `Test ${name} ${back}`,
+          set: String(set),
+          setName: String(name),
+          scores: [{ axis: "Kommunikation", score: Number(score) }],
+          at: daysAgo(Number(back)),
+          now: NOW
+        })
+      );
+    }
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.series.length, 2, "two sets were merged into one series");
+    for (const axis of read.series) {
+      for (const pt of axis.points) {
+        assert.equal(pt.n, 1, `${axis.setName} counted the other set's answer`);
+      }
+    }
+  });
+
+  it("is not drawn at all from a single occasion", () => {
+    /*
+     * The gate lives in the service as `trendPossible`, so the block and the
+     * sentence explaining its absence cannot disagree. The reference
+     * implementation draws a curve through three answers from one afternoon.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testproducent", at: NOW, now: NOW }));
+    ok(record(String(who.id), { assessor: "Testregissör", at: NOW, now: NOW }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.trendPossible, false, "one occasion was called a trend");
+    assert.equal(read.rounds, 1);
+  });
+
+  it("returns nothing rather than throwing when there is nothing at all", () => {
+    assert.deepEqual(axisSeries([]), []);
   });
 });
 

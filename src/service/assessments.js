@@ -13,6 +13,7 @@ import {
   byAxis,
   doubleAnswers,
   isScore,
+  axisSeries,
   isWeight,
   occasions,
   rounds
@@ -435,6 +436,13 @@ export function assessments(store, who, now = Date.now()) {
      * them into one shape would lose whichever question was not asked.
      */
     roundHistory: rounds(rows),
+    /*
+     * The same answers with the axis as the unit instead of the round: what has
+     * this one axis done over time. Sent whether or not it can be shown - the
+     * view decides that off `trendPossible`, so the two cannot disagree about
+     * whether one occasion is a trend.
+     */
+    series: axisSeries(rows),
     doubles: doubleAnswers(rows),
     /*
      * Whether there is a round to offer as run. Carried on the read the block

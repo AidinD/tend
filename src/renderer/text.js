@@ -789,6 +789,34 @@ export const T = {
      */
     /* Its own word rather than the block's title again: the second heading was
        once "Bedömningar" too, and the page said it twice. */
+    /*
+     * The axis over time. The complement of Ronderna rather than a replacement:
+     * that block takes the round as the unit, this one takes the axis.
+     *
+     * Points and no line. A line between two rounds would imply the values in
+     * between were measured, and there is no value between two rounds - there is
+     * nothing. And no point carries a change against the one before it, for the
+     * same reason no round does: the assessors differ, so the difference is
+     * between two groups.
+     */
+    assessmentSeries: "Axel för axel, över ronderna",
+    assessmentSeriesWhy:
+      "Punkter och ingen kurva. En linje mellan två ronder skulle påstå att värdena däremellan " +
+      "är mätta, och mellan två ronder finns inget värde - det finns ingenting. Varje punkt bär " +
+      "sitt eget n och vilka som svarade, så jämförelsen görs med dem framför sig.",
+    /** @param {string} axis @param {string} set */
+    assessmentSeriesAxis: (axis, set) =>
+      `<strong>${axis}</strong> <span class="src">${set}</span>`,
+    /* An axis a round did not ask about. Reported rather than closed up: two
+       figures side by side read as consecutive measurements, and a set can be
+       reworded between rounds, which is exactly when this happens. */
+    assessmentSeriesNotAsked: "inte frågad",
+    /** @param {string} who */
+    assessmentSeriesWho: (who) => who,
+    /* Asked in only one round so far. Said instead of drawing one point and a
+       row of gaps, which looks like a broken series rather than a young one. */
+    assessmentSeriesOnce: "Frågad i en rond så här långt - det finns inget att jämföra med än.",
+
     assessmentRounds: "Ronderna",
     assessmentRoundsWhy:
       "Varje rond står för sig med sitt eget medelvärde och vilka som svarade. Ingen rond " +
@@ -811,6 +839,32 @@ export const T = {
     /** @param {number} low @param {number} high */
     assessmentAxisSpread: (low, high) => `${low}-${high}`,
     assessmentNoSpread: "alla lika",
+
+    /*
+     * What the assessor's weight does to a figure, in words.
+     *
+     * It does not change the mean - every answer counts once. It adds a second
+     * reading of the same axis with the answers he weighed low set aside, and
+     * only when that differs, because an identical pair of numbers on every row
+     * teaches somebody to stop reading both.
+     *
+     * The case, 2026-09-07: 5/5/4 with every comment box empty, from one of the
+     * weaker producers. The question that needed answering was whether the axis
+     * was being carried by the answer he did not trust.
+     */
+    /** @param {string} mean @param {number} n @param {number} set */
+    assessmentDiscounting: (mean, n, set) =>
+      `utan ${set === 1 ? "den du vägt lågt" : `de ${set} du vägt lågt`}: ${mean} av 5, n=${n}`,
+    /*
+     * Every answer on the axis is one he distrusts. Not a figure at all, and
+     * worth more than any mean on the row - so it is said instead of a number
+     * rather than beside one.
+     */
+    /** @param {number} n */
+    assessmentAllDiscounted: (n) =>
+      n === 1
+        ? "det enda svaret här är ett du vägt lågt"
+        : `alla ${n} svar här är sådana du vägt lågt`,
     /** @param {string} who @param {string} role */
     assessmentBy: (who, role) => (role ? `${who}, ${role}` : who),
     assessmentSaidNothing: "Skrev ingenting",
@@ -875,6 +929,48 @@ export const T = {
     assessmentWeighWhyHint:
       "Skriv det nu om du vet det. Om ett halvår är raden allt som finns kvar, och att en " +
       "bedömare är slarvig står ingenstans i den.",
+    /*
+     * Question sets: choosing one, and defining one.
+     *
+     * The set is picked before the answers are entered, which is the whole point
+     * of the card - the axes used to be retyped by hand per answer, and the
+     * aggregate groups on the raw label, so a typo made a separate axis with an
+     * n of one and nothing failed. The picker's own wording says what is being
+     * chosen rather than which screen this is.
+     */
+    assessmentSetPickTitle: "Vilket frågeset besvarades?",
+    assessmentSetPickIntro:
+      "Axlarna kommer därifrån, så de skrivs inte in för hand. Det är vad som gör att nästa " +
+      "rond går att jämföra med den här - en omskriven axel blir annars en egen axel med ett " +
+      "enda svar bakom sig.",
+    assessmentSetNew: "Nytt frågeset...",
+    assessmentSetNext: "Vidare",
+    /** @param {string} name */
+    assessmentIntroSet: (name) =>
+      `Svaren på ${name}. Axlarna står redan där - fyll i poängen efter varje kolon.`,
+    assessmentAxesHintSet:
+      "Poängen efter kolon, 1-5. Ta bort en rad som bedömaren hoppade över - en tom rad " +
+      "räknas inte som ett svar.",
+
+    /* Defining one. Its own dialog, reached from the picker rather than from a
+       settings page: the moment somebody needs a set is the moment they are
+       entering an answer that has nowhere to go. */
+    setDefineTitle: "Ett frågeset",
+    setDefineIntro:
+      "Vad en sorts bedömare frågas om. En producent, en peer och en art lead ser olika delar " +
+      "av arbetet, så de ska inte få samma frågor. Att skriva om en axel här ändrar vad NÄSTA " +
+      "rond frågar - ronder som redan körts står kvar som de var.",
+    setNameLabel: "Vad ronden heter",
+    setNamePlaceholder: "Producentrond",
+    setDisciplineLabel: "Vilken sorts bedömare",
+    setDisciplinePlaceholder: "producent",
+    setAxesLabel: "Axlarna, en per rad",
+    setAxesHint:
+      "Bara namnet. Vill du ha ankaren eller själva frågan med, skriv den efter ett kolon - " +
+      "den följer med till formuläret men inte in i svaret.",
+    setDefineConfirm: "Spara setet",
+    setDefinedToast: "Frågesetet sparat.",
+
     assessmentSetLabel: "Vilket frågeset",
     assessmentSetPlaceholder: "producentrond",
     assessmentAxesLabel: "Axlarna och poängen",

@@ -422,6 +422,11 @@ block for the part the notes do not answer.
 - **The five proposed duties are still proposals.** `npm run seed` writes them;
   he accepts or declines each in the Role map view. The four judgement questions
   from the research were settled on 2026-08-23 and are recorded in DECISIONS.md.
+- **Where the first question set gets defined.** A set is picked when recording
+  an answer, and "Nytt frågeset..." lives in that picker - so with no sets at all
+  there is no picker and no way in from the window. Recording still falls back to
+  free text, so nothing is blocked, but the first set has to come from somewhere.
+  A small entry point on the role map is the likely answer.
 - **Whether a family of related projects is one row each or one row with
   sub-rows.** When staffing moves between them a fixed schedule per project is
   probably wrong, and "longest untouched" is the better model.
@@ -433,23 +438,17 @@ block for the part the notes do not answer.
   as his own record of judgement calls; the scores go and the fact a round
   happened stays; or the whole collection goes and the method is what he keeps.
   His call.
-- **Whether an agent may transcribe a form response into an assessment.** A
-  number about a named colleague produced by anything but the colleague who gave
-  it is the highest-consequence row in the app, and transcription is also the
-  obvious use for an agent. Reading is open, writing is closed, with a test that
-  fails if a write tool appears before the question is answered.
-- **How short the window for "av misstag" should be.** Fifteen minutes today, in
-  one named constant with the reasoning beside it. A row can be erased outright
-  only inside it and only while nothing has replaced it; past that it is a
-  changed judgment and gets replaced instead. The asymmetry sets the direction -
-  too long lets a judgment be erased, too short only costs a struck-through line -
-  and a test holds it under a quarter of a day. The number is his.
-- **Whether an agent may mark an observation as replaced, or erase one.** Both
-  are in the window today and neither is on MCP, for the same reason writing an
-  assessment is not: an agent that can supersede a row can retract a reading that
-  turned out to be inconvenient, and one that can erase a row leaves nothing in
-  any view to notice. An agent DOES see every correction on read. Left closed
-  rather than settled, guarded by a name check and a behaviour check.
+- ~~**Whether an agent may transcribe a form response into an assessment.**~~
+  Settled on 2026-09-09: no. Reading stays open, writing stays closed, and the
+  tests that guarded the question now guard the decision. The cost is accepted
+  rather than overlooked - transcription is the obvious use for an agent, and the
+  typing is his.
+- ~~**How short the window for "av misstag" should be.**~~ Settled on 2026-09-09:
+  fifteen minutes, as built. One named constant, with a test holding it under a
+  quarter of a day so it cannot be widened into a delete button by increments.
+- ~~**Whether an agent may mark an observation as replaced, or erase one.**~~
+  Settled on 2026-09-09: neither. Both stay in the window. An agent still sees
+  every correction on read, which is the half that had to work.
 - ~~**Whether a round history should show movement between rounds.**~~ Settled on
   2026-09-09: it shows the rounds, not the movement. The assessors differ between
   rounds, so a subtracted mean compares two populations and would read as a change
@@ -461,9 +460,12 @@ block for the part the notes do not answer.
   accepts; a threshold on the round waits for the pending-request concept. See
   DECISIONS.md for why both automatic and nothing-automatic lost, each on a case
   from that day rather than on a principle.
-- **What the assessor's weight should DO to an aggregate.** The field is stored
-  from the first round because the knowledge does not survive six months, and it
-  moves nothing until this is decided. Its own card.
+- ~~**What the assessor's weight should DO to an aggregate.**~~ Settled on
+  2026-09-09: it never touches the mean. Each axis reports a second figure over
+  the answers not weighed low, and only when that differs. Weighing somebody high
+  moves nothing - distrust is actionable, confidence is not. A weighted mean was
+  rejected as one number silently containing a judgement about the assessors,
+  with invented multipliers. See DECISIONS.md.
 - ~~**What a focus has actually cost.**~~ Settled on 2026-09-08: the cost is
   measured only over the cadences that existed when the focus was set, and the
   focus stores how many that was. A count that no longer matches means something

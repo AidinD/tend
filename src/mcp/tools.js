@@ -458,6 +458,22 @@ export const TOOLS = [
     run: (store, args) => api.observations(store, args)
   },
   {
+    name: "tend_question_sets",
+    description:
+      "The question sets a feedback round can be run on - what one kind of assessor is asked " +
+      "about somebody, by discipline. Read this before helping prepare a round: it says which " +
+      "axes a producer is asked about as against a peer, and the axis labels are what make two " +
+      "rounds comparable. Retired sets are listed apart; they still name rounds that were run " +
+      "on them. There is deliberately no tool that adds or changes one - a set decides what " +
+      "somebody is asked about a colleague, which is the same class of claim as the role map.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false
+    },
+    run: (store) => api.questionSets(store)
+  },
+  {
     name: "tend_signals",
     description:
       "The monthly questions Tend cannot derive and has to ask: whether anyone stopped " +

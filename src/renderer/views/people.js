@@ -422,13 +422,104 @@ async function personPage(id) {
      *
      * @param {any} a
      */
+    /*
+     * What the weight adds to an axis, and only when it says something.
+     *
+     * The mean stays the mean - every answer counts once and there is no
+     * weighted average anywhere. This is the same axis with the answers he
+     * weighed low set aside, which answers the question the weight was recorded
+     * for: is this figure being carried by the answers I do not trust.
+     *
+     * Absent when nothing was weighed low, because a second number that always
+     * equals the first teaches somebody to stop reading either. When EVERY
+     * answer was weighed low there is no second figure to show, and the finding
+     * is said in words instead - that is worth more than any mean on the row.
+     *
+     * @param {any} a
+     */
+    const discounting = (/** @type {any} */ a) => {
+      if (Number(a.discounted) === 0) {
+        return "";
+      }
+      return `<span class="src">${
+        a.meanDiscounting === null
+          ? words.assessmentAllDiscounted(Number(a.n))
+          : words.assessmentDiscounting(
+              Number(a.meanDiscounting).toFixed(1),
+              Number(a.nDiscounting),
+              Number(a.discounted)
+            )
+      }</span>`;
+    };
+
     const axisLine = (/** @type {any} */ a) => `<div class="line">
           <span class="line-when">${words.assessmentAxisMean(a.mean.toFixed(1), a.n)}</span>
-          <span class="line-text">${words.assessmentAxis(esc(a.axis), esc(a.setName))}</span>
+          <span class="line-text">${words.assessmentAxis(esc(a.axis), esc(a.setName))}${discounting(
+            a
+          )}</span>
           <span class="line-right"><span class="pill plain">${
             a.spread === 0 ? words.assessmentNoSpread : words.assessmentAxisSpread(a.low, a.high)
           }</span></span>
         </div>`;
+
+    /*
+     * The axis over the rounds, and the one block on this page that only appears
+     * once there is something to compare.
+     *
+     * Gated on `trendPossible`, which the service works out - one occasion is a
+     * point, and the reference implementation draws a curve through three answers
+     * from one afternoon. The gate lives there rather than here so the block and
+     * the sentence explaining its absence cannot disagree.
+     *
+     * An axis asked in only one round so far says so instead of drawing one
+     * figure and a row of gaps, which reads as a broken series rather than a
+     * young one.
+     */
+    const seriesBlock = (() => {
+      if (rated.trendPossible !== true) {
+        return "";
+      }
+      const series = Array.isArray(rated.series) ? rated.series : [];
+      if (series.length === 0) {
+        return "";
+      }
+      return `<div class="block-title block-title-second">${esc(words.assessmentSeries)}</div>
+        <p class="card-why dim">${words.assessmentSeriesWhy}</p>
+        ${series
+          .map(
+            (/** @type {any} */ ax) => `<div class="prep-block">
+              <h3 class="prep-head">${words.assessmentSeriesAxis(
+                esc(ax.axis),
+                esc(ax.setName)
+              )}</h3>
+              ${
+                Number(ax.asked) < 2
+                  ? `<p class="prep-note">${words.assessmentSeriesOnce}</p>`
+                  : ""
+              }
+              ${(Array.isArray(ax.points) ? ax.points : [])
+                .map(
+                  (/** @type {any} */ pt) => `<div class="line${pt.asked ? "" : " dim"}">
+                    <span class="line-when">${
+                      pt.asked
+                        ? words.assessmentAxisMean(Number(pt.mean).toFixed(1), Number(pt.n))
+                        : words.assessmentSeriesNotAsked
+                    }</span>
+                    <span class="line-text">${esc(pt.day)}</span>
+                    ${
+                      pt.asked && pt.assessors.length > 0
+                        ? `<span class="line-note">${esc(
+                            words.assessmentSeriesWho(pt.assessors.join(", "))
+                          )}</span>`
+                        : ""
+                    }
+                  </div>`
+                )
+                .join("")}
+            </div>`
+          )
+          .join("")}`;
+    })();
 
     /*
      * A round: what it said, who said it, and the answers under it.
@@ -481,6 +572,7 @@ async function personPage(id) {
       <div class="block-title block-title-second">${esc(words.assessmentRounds)}</div>
       <p class="card-why dim">${words.assessmentRoundsWhy}</p>
       ${roundBlocks}
+      ${seriesBlock}
       ${button}
     </div>`;
   })();
@@ -1010,6 +1102,77 @@ export async function addPersonDialog() {
   return Boolean(await act("addPerson", values, words.addedNamed(values.name)));
 }
 
+/**
+ * Define a question set, from the point where one is missing.
+ *
+ * Reached from the picker rather than from a settings page, because the moment
+ * somebody needs a set is the moment they are holding an answer with nowhere to
+ * put it - and a flow that sends them elsewhere to define structure first loses
+ * the answer they came to enter.
+ *
+ * Returns the set as the picker would have handed it over, so the caller does not
+ * care which of the two paths produced it. Null when the dialog was dismissed or
+ * the service refused.
+ *
+ * @returns {Promise<{ id: string, name: string, axes: { axis: string, asked: string }[] } | null>}
+ */
+async function defineQuestionSet() {
+  const values = await form({
+    title: words.setDefineTitle,
+    intro: words.setDefineIntro,
+    fields: [
+      { name: "name", label: words.setNameLabel, placeholder: words.setNamePlaceholder, required: true },
+      {
+        name: "discipline",
+        label: words.setDisciplineLabel,
+        placeholder: words.setDisciplinePlaceholder
+      },
+      {
+        name: "axes",
+        label: words.setAxesLabel,
+        type: "textarea",
+        hint: words.setAxesHint,
+        required: true
+      }
+    ],
+    confirm: words.setDefineConfirm
+  });
+  if (!values) {
+    return null;
+  }
+
+  /*
+   * One axis per line, with anything after a colon kept as the question or the
+   * anchors behind it. Split on the FIRST colon rather than the last: an axis
+   * label is short and the prose after it is where a colon is likely to turn up
+   * again, which is the opposite of the score parser below.
+   */
+  const axes = String(values.axes ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .map((line) => {
+      const at = line.indexOf(":");
+      return at < 0
+        ? { axis: line, asked: "" }
+        : { axis: line.slice(0, at).trim(), asked: line.slice(at + 1).trim() };
+    });
+
+  const made = /** @type {any} */ (
+    await tend.invoke("addQuestionSet", {
+      name: values.name,
+      discipline: values.discipline,
+      axes
+    })
+  );
+  if (made?.error) {
+    toast(String(made.error), "bad");
+    return null;
+  }
+  toast(words.setDefinedToast);
+  return { id: String(made.id), name: String(values.name).trim(), axes };
+}
+
 export const actions = {
   // Growth's dialogs are shared with the prep card rather than written twice.
   // Both surfaces offer the same six things, and a second copy of any of them is
@@ -1445,18 +1608,85 @@ export const actions = {
   /**
    * Record one assessor's answers about somebody.
    *
-   * The axes are typed as lines rather than as a fixed set of fields, because
-   * this is step one and the stored question sets are a later card - and
-   * hard-coding three axes now would have to come out again. Parsed here and
-   * validated in the service, which is where the refusals live so the other
-   * client cannot route around them.
+   * ## Two dialogs, and why it is not one
+   *
+   * The set is chosen first, then the answers are entered against that set's
+   * axes with the labels already filled in. It has to be two, because a form is
+   * built once: choosing a set has to decide which axes the next screen asks
+   * about, and a single dialog cannot rewrite its own fields.
+   *
+   * The gain is the whole point of the sets card. The axes used to be retyped by
+   * hand for every answer, and the aggregate groups on the raw label - so round
+   * two was comparable to round one only if two or three labels were retyped
+   * identically after ninety days, and a typo made a separate axis with an n of
+   * one. Nothing would have failed.
+   *
+   * Still parsed as lines rather than as a field per axis: the scores are filled
+   * in beside labels the picker put there, so the labels are no longer typed,
+   * and a field per axis would mean a form whose shape changes per set for no
+   * further gain. Validated in the service either way.
+   *
+   * With no sets defined, this falls back to typing both - the behaviour before
+   * the card. A tool that refuses to record anything until structure is defined
+   * is a tool that loses the first round.
    *
    * @param {Record<string, string>} d
    */
   recordAssessment: async (d) => {
+    const sets = /** @type {any} */ (await tend.invoke("questionSets", {}));
+    const live = Array.isArray(sets?.live) ? sets.live : [];
+
+    /** @type {any} */
+    let chosen = null;
+    if (live.length > 0) {
+      const NEW = "__new__";
+      const picked = await form({
+        title: words.assessmentSetPickTitle,
+        intro: words.assessmentSetPickIntro,
+        fields: [
+          {
+            name: "set",
+            label: words.assessmentSetLabel,
+            type: "select",
+            value: String(live[0].id),
+            options: [
+              ...live.map((/** @type {any} */ q) => ({
+                value: String(q.id),
+                label: q.discipline ? `${q.name} - ${q.discipline}` : String(q.name)
+              })),
+              { value: NEW, label: words.assessmentSetNew }
+            ]
+          }
+        ],
+        confirm: words.assessmentSetNext
+      });
+      if (!picked) {
+        return;
+      }
+      if (String(picked.set) === NEW) {
+        const made = await defineQuestionSet();
+        if (!made) {
+          return;
+        }
+        chosen = made;
+      } else {
+        chosen = live.find((/** @type {any} */ q) => String(q.id) === String(picked.set)) ?? null;
+      }
+    }
+
+    /*
+     * The labels, pre-filled with an empty score each, so what is typed is the
+     * numbers. The same "Axel: poäng" shape the parser below already reads, so
+     * the free-text path and the set path produce one thing.
+     */
+    const prefill =
+      chosen === null
+        ? ""
+        : chosen.axes.map((/** @type {any} */ a) => `${a.axis}: `).join("\n");
+
     const values = await form({
       title: words.assessmentTitle,
-      intro: words.assessmentIntro,
+      intro: chosen === null ? words.assessmentIntro : words.assessmentIntroSet(chosen.name),
       fields: [
         {
           name: "assessor",
@@ -1469,17 +1699,25 @@ export const actions = {
           label: words.assessmentRoleLabel,
           placeholder: words.assessmentRolePlaceholder
         },
-        {
-          name: "set",
-          label: words.assessmentSetLabel,
-          placeholder: words.assessmentSetPlaceholder
-        },
+        /*
+         * Shown as a fact rather than asked again once a set is chosen. It is
+         * the field this whole flow exists to stop being typed, and rendering it
+         * as an input invites exactly the retyped variant that splits an axis.
+         */
+        chosen === null
+          ? {
+              name: "set",
+              label: words.assessmentSetLabel,
+              placeholder: words.assessmentSetPlaceholder
+            }
+          : { name: "setShown", label: words.assessmentSetLabel, type: "note", value: chosen.name },
         {
           name: "axes",
           label: words.assessmentAxesLabel,
           type: "textarea",
-          hint: words.assessmentAxesHint,
-          required: true
+          hint: chosen === null ? words.assessmentAxesHint : words.assessmentAxesHintSet,
+          required: true,
+          value: prefill
         },
         { name: "note", label: words.assessmentNoteLabel, type: "textarea" },
         {
@@ -1531,8 +1769,14 @@ export const actions = {
         assessorRole: values.assessorRole,
         assessorWeight: values.assessorWeight,
         weighWhy: values.weighWhy,
-        set: values.set,
-        setName: values.set,
+        /*
+         * The id and the name apart, when a set was chosen. The aggregate groups
+         * on `set`, so that is the stable half and must not be a label somebody
+         * can retype; `setName` is what a page prints. Without a set they are
+         * the same free text they always were.
+         */
+        set: chosen === null ? values.set : chosen.id,
+        setName: chosen === null ? values.set : chosen.name,
         scores,
         note: values.note,
         /*

@@ -266,7 +266,25 @@ export const COLLECTIONS = /** @type {const} */ ([
    * answered last spring. `domain/assessments.js` has that and the rest of the
    * reasoning - in particular why there is no single figure per person.
    */
-  "assessments"
+  "assessments",
+  /**
+   * The axes one kind of assessor is asked about.
+   *
+   * A producer, a peer and an art lead see different parts of the work, so they
+   * are not asked the same questions. Before this the set name and every axis
+   * label were free text retyped per answer, which meant round two was only
+   * comparable to round one if two or three labels were retyped identically
+   * after ninety days - and a typo made a separate axis with an n of one,
+   * silently.
+   *
+   * Deliberately NOT what an answer's axis points at. An assessment copies the
+   * label onto itself, so a set can be renamed, reworded or retired and last
+   * spring's round still reads as it did. That is the fourth defect in the
+   * reference implementation, where answers hold ids into an editable set.
+   *
+   * Structure, so no agent writes one. `domain/questionsets.js` has the rest.
+   */
+  "questionSets"
 ]);
 
 /**

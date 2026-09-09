@@ -165,6 +165,18 @@ const OPERATIONS = {
    * notice. Whether either ever crosses is a question on the epic, alongside
    * writing an assessment.
    */
+  /*
+   * Question sets, and deliberately not in `mcp/tools.js` for the writes. A set
+   * decides what somebody is asked about a colleague, which is the same class of
+   * claim as the role map.
+   */
+  questionSets: () => api.questionSets(store),
+  addQuestionSet: (/** @type {any} */ a) =>
+    api.addQuestionSet(store, { ...a, now: a.now ?? Date.now() }),
+  updateQuestionSet: (/** @type {any} */ a) => api.updateQuestionSet(store, a.id, a.fields ?? a),
+  retireQuestionSet: (/** @type {any} */ a) =>
+    api.retireQuestionSet(store, a.id, { retired: a.retired, now: a.now ?? Date.now() }),
+
   replaceObservation: (/** @type {any} */ a) =>
     api.replaceObservation(store, { ...a, now: a.now ?? Date.now() }),
   forgetObservation: (/** @type {any} */ a) =>

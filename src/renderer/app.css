@@ -2724,6 +2724,25 @@ kbd {
  * Not struck through, unlike the words it labels: it says when, and a
  * struck-through date is a puzzle.
  */
+/*
+ * A round that did not ask about this axis.
+ *
+ * Held down rather than left out. Closing the gap up would put two figures next
+ * to each other as though they were consecutive measurements, when a round in
+ * between asked about something else - and a set can be reworded between rounds,
+ * which is exactly when this happens. So the row stays and reads as absence.
+ *
+ * `.dim` existed only as `.card-why.dim` before this, so the class on a line was
+ * markup that did nothing.
+ */
+.line.dim {
+  color: var(--text-faint);
+}
+
+.line.dim > .line-when {
+  font-style: italic;
+}
+
 .line-note {
   flex: none;
   color: var(--text-faint);

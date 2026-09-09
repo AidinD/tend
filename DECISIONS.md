@@ -3,6 +3,147 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-09 - A question set fixes the labels, and cannot reach a round already run
+
+**Decided.** A `questionSets` collection holds what one kind of assessor is asked
+about: a name, a discipline, and its axes with the question or anchors behind
+each. Recording an answer picks a set first and enters the scores against its
+axes. Writes are app-only; reading is on MCP as `tend_question_sets`.
+
+**The fault, and it was not merely inconvenience.** The set name and every axis
+label were free text, retyped by hand for each answer, and the aggregate groups
+on the raw string. So "Kommunikation", "kommunikation" and "Kommunikaton" were
+three axes with an n of one each, and whether round two was comparable to round
+one depended on retyping two or three labels identically after ninety days.
+Nothing would have failed; the page would have shown twice as many axes, each
+measured once. Found while answering whether the epic was done, not by a test.
+
+**A set is a template for entry, never where an answer's axis lives.** An
+assessment still copies the label onto itself. This is the fourth defect found in
+the reference implementation: there, answers hold question ids pointing into an
+editable set, so rewording a question silently changes the meaning of every
+historical answer to it. Here a set can be renamed, reworded or retired and last
+spring's round still reads as it did - held by a test that fails when a set edit
+is made to touch a stored row.
+
+**Two dialogs and not one.** Choosing a set decides which axes the next screen
+asks about, and a form is built once. The picker also carries "Nytt frågeset...",
+because the moment somebody needs a set is the moment they are holding an answer
+with nowhere to put it, and sending them to define structure elsewhere first
+loses the answer they came to enter.
+
+**With no sets defined it falls back to typing both**, which is the behaviour
+before this. A tool that refuses to record anything until structure exists is a
+tool that loses the first round - and the first round is the one already sitting
+in his inbox.
+
+**Retired, not deleted**, and the name stays taken even then: a retired set names
+the rounds run on it, so reusing its name makes two different sets look like one
+history.
+
+**A known gap, named rather than papered over.** The only way to define the first
+set is through the picker, and the picker only appears once a set exists. The app
+harness reaches past it through the service. Worth a small entry point somewhere,
+and it is on the card rather than invented here.
+
+## 2026-09-09 - The assessor's weight is reported beside the mean, never inside it
+
+**Decided.** The mean stays the mean: every answer counts once and there is no
+weighted average anywhere. Each axis additionally carries `meanDiscounting` - the
+same axis over the answers NOT weighed low - with `discounted` saying how many
+were set aside, shown only when that number is above zero.
+
+**Why not a weighted mean, which is the obvious build.** It produces one number
+silently containing a judgement about the assessors, so the figure quoted in a
+review is neither what people answered nor anything anybody can check, and the
+weighting is invisible exactly where it matters. The multipliers would also be
+invented: there is no sense in which a careless producer's answer is worth 0.6 of
+a careful one. The app already reports rather than resolves in the same
+situation - two answers from one assessor on one day are both counted and the
+collision is surfaced.
+
+**The asymmetry is deliberate: low sets an answer aside, high does nothing.**
+Distrust is actionable, because "what does this look like without them" has a
+real answer. Confidence is not - counting an answer twice because it is a good
+one invents precision nobody measured. So weighing somebody high remains a note
+to the reader and moves no figure.
+
+**Null and not zero when every answer on an axis was weighed low.** A zero would
+print as a score on the scale. The finding is that the axis rests entirely on
+answers he distrusts, which is worth more than any mean on that row, so it is
+said in words instead of as a number.
+
+**The case, 2026-09-07:** 5/5/4 with all three comment boxes empty, from one of
+the weaker producers. The knowledge that the numbers said more about the assessor
+than about the subject lived only in his head, and in six months the row is all
+that is left.
+
+**A test called "does not let the weight touch the aggregate yet" was folded in**
+rather than left standing. It guarded the placeholder; the new block asserts the
+same untouched mean and the discounted figure beside it. Two tests narrating
+opposite stories about one fact is how a reader ends up believing the wrong one.
+
+## 2026-09-09 - The trend is a series of points, and there is no line between them
+
+**Decided.** `axisSeries` takes the axis as the unit and lists one point per
+round: the round's mean for that axis, its n, and who gave it. Oldest first.
+Drawn only when there is more than one occasion. It sits under the round history
+on a person's page rather than in a view of its own.
+
+**Points and no line.** A line between two rounds asserts that the values in
+between were measured, and between two rounds there is no value - there is
+nothing. The reference implementation draws a curve through three answers from
+one afternoon, which reads as movement where nothing moved.
+
+**No point carries a change against the point before it**, inherited from the
+round history decided the same day and for the same reason: a round's assessors
+are not the last round's, so the difference between two means is a difference
+between two populations. Each point carries its own n and its own assessors and
+the reader compares with those in front of them.
+
+**Oldest first, and it is the one place the app reverses itself.** A history
+answers "what happened lately" and reads newest-first. A series answers "which
+way has this gone" and only reads in the direction time ran; reversed, every axis
+appears to move backwards.
+
+**A round that did not ask about an axis is a gap, and the gap is reported.**
+Closing it up would put two figures side by side as though they were consecutive
+measurements. A set can be reworded between rounds, which is exactly when a round
+has no answer on an axis - so the absence is a point of its own with no figure on
+it, and it says so.
+
+**The assessors named under a point are those who gave THAT axis**, not everybody
+who answered the round. An assessor can skip an axis, and naming them under a
+figure they did not give is the sort of error that only surfaces in the
+conversation itself.
+
+**Complement rather than replacement.** The round history takes the round as the
+unit and answers "what did this round say"; the series takes the axis and answers
+"what has this one axis done". Same answers, two questions, and collapsing them
+into one shape would lose whichever was not asked.
+
+## 2026-09-09 - Three boundaries answered, and all three answered "as it stands"
+
+**Decided by him, on being asked.** The window for calling an observation a paste
+error stays at fifteen minutes. No MCP tool may replace or erase an observation.
+No agent may transcribe a form response into an assessment.
+
+**Recorded because "no change" is a decision and not an absence.** All three had
+been built closed and marked as questions, with tests standing guard so nobody
+could answer them by quietly adding a tool. The tests stay; what changes is that
+they now guard a decision rather than a placeholder, and the next session does not
+have to re-derive the reasoning or re-ask.
+
+**What the two refusals cost, stated so it is not a surprise later.** Transcription
+is the obvious use for an agent - the answers arrive as email and a form, and
+somebody has to type them in, and that somebody is him. Correcting an observation
+is likewise his to do at the keyboard. Both are real friction, accepted on the
+same ground: an agent that can write a number about a named colleague, or retract
+a reading of one, produces exactly the row nobody can audit six months later.
+
+The window is the one that can still be revisited cheaply - it is one named
+constant with a test holding it under a quarter of a day.
+
 ## 2026-09-09 - A round is its own row in a history, and carries no change figure
 
 **Decided.** The answers about one person are grouped into the occasions they

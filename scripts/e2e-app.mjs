@@ -5875,6 +5875,205 @@ try {
     }
   });
 
+  step("A question set, so the axes stop being retyped");
+
+  /*
+   * The consistency the sets exist for. The aggregate groups on the raw axis
+   * label, so before this a round was comparable to the last one only if two or
+   * three labels were retyped identically after ninety days - and a typo made a
+   * separate axis with an n of one, silently.
+   *
+   * Driven through the picker because that is the whole mechanism: choosing a set
+   * has to decide which axes the next screen asks about, which is why it is two
+   * dialogs and not one.
+   */
+  /*
+   * Back to the person: the checks above walk several views looking for two
+   * stacked cards and leave us wherever they found them.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"recordAssessment\"]') !== null",
+    "the assessment block"
+  );
+
+  await page.click('[data-act="recordAssessment"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the set picker");
+
+  const pickerFirst = JSON.parse(String(await page.evaluate(`(() => {
+        const dialog = document.querySelector('.dialog');
+        const select = dialog.querySelector('[name="set"]');
+        return JSON.stringify({
+          isSelect: select !== null && select.tagName === 'SELECT',
+          options: select === null || select.tagName !== 'SELECT'
+            ? []
+            : [...select.options].map((o) => o.value)
+        });
+      })()`)));
+
+  check("with no set defined, the answer form still asks for one as free text", () => {
+    /*
+     * The fallback, and it is not a nicety. A tool that refuses to record
+     * anything until structure is defined is a tool that loses the first round -
+     * which is the round already sitting in his inbox.
+     */
+    if (pickerFirst.isSelect !== false) {
+      throw new Error(`a picker appeared with no sets defined: ${JSON.stringify(pickerFirst)}`);
+    }
+  });
+
+  await page.click(".dialog [data-cancel]");
+  await sleep(200);
+
+  /*
+   * Defined through the service rather than through a dialog nobody can reach
+   * yet: the "Nytt frågeset..." option only exists once there is a picker, and
+   * the picker only exists once there is a set. That bootstrap is a real gap in
+   * the flow and it is named on the card rather than papered over here.
+   */
+  const setMade = JSON.parse(String(await page.evaluate(`(async () => {
+        const out = await window.tend.invoke('addQuestionSet', {
+          name: 'Producentrond',
+          discipline: 'producent',
+          axes: [
+            { axis: 'Leverans och ägarskap', asked: 'Levererar enligt plan?' },
+            { axis: 'Kommunikation', asked: '' }
+          ]
+        });
+        return JSON.stringify(out);
+      })()`)));
+
+  check("a set can be defined, and refuses to be defined twice", async () => {
+    if (setMade.error) {
+      throw new Error(`the set was refused: ${setMade.error}`);
+    }
+    if (!setMade.id) {
+      throw new Error(`no id came back: ${JSON.stringify(setMade)}`);
+    }
+  });
+
+  const twice = JSON.parse(String(await page.evaluate(`(async () => {
+        const out = await window.tend.invoke('addQuestionSet', {
+          name: 'Producentrond',
+          discipline: 'producent',
+          axes: [{ axis: 'Kommunikation' }]
+        });
+        return JSON.stringify(out);
+      })()`)));
+
+  check("and two sets cannot share a name, which would be two identical choices", () => {
+    if (!twice.error) {
+      throw new Error("a second set with the same name was accepted");
+    }
+    if (!/finns redan/.test(String(twice.error))) {
+      throw new Error(`refused for the wrong reason: ${twice.error}`);
+    }
+  });
+
+  await page.click('[data-act="recordAssessment"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the set picker");
+
+  const picker = JSON.parse(String(await page.evaluate(`(() => {
+        const dialog = document.querySelector('.dialog');
+        const select = dialog.querySelector('[name="set"]');
+        return JSON.stringify({
+          isSelect: select !== null && select.tagName === 'SELECT',
+          labels: select === null ? [] : [...select.options].map((o) => o.textContent.trim())
+        });
+      })()`)));
+
+  check("once a set exists the answer starts by choosing which one was answered", () => {
+    if (picker.isSelect !== true) {
+      throw new Error(`no set picker: ${JSON.stringify(picker)}`);
+    }
+    if (!picker.labels.some((/** @type {string} */ l) => /Producentrond/.test(l))) {
+      throw new Error(`the set is not on offer: ${JSON.stringify(picker.labels)}`);
+    }
+    if (!picker.labels.some((/** @type {string} */ l) => /Nytt frågeset/.test(l))) {
+      throw new Error("there is no way to define one from here");
+    }
+  });
+
+  await page.click(".dialog [data-confirm]");
+  await sleep(300);
+
+  const prefilled = JSON.parse(String(await page.evaluate(`(() => {
+        const dialog = document.querySelector('.dialog');
+        const axes = dialog === null ? null : dialog.querySelector('[name="axes"]');
+        return JSON.stringify({
+          open: dialog !== null,
+          axes: axes === null ? null : axes.value,
+          asksForSet: dialog === null ? true : dialog.querySelector('[name="set"]') !== null
+        });
+      })()`)));
+
+  check("and the axes are already there, so only the numbers get typed", () => {
+    /*
+     * The point of the card. Every axis label typed by hand is a chance to make
+     * a separate axis with an n of one, ninety days after the last time it was
+     * typed.
+     */
+    if (prefilled.open !== true) {
+      throw new Error("the answer form did not open after choosing a set");
+    }
+    if (!/Leverans och ägarskap:/.test(String(prefilled.axes))) {
+      throw new Error(`the axes were not filled in: "${prefilled.axes}"`);
+    }
+    if (!/Kommunikation:/.test(String(prefilled.axes))) {
+      throw new Error(`only some axes were filled in: "${prefilled.axes}"`);
+    }
+    if (prefilled.asksForSet !== false) {
+      throw new Error("the set is asked for again after being chosen");
+    }
+  });
+
+  await page.fillDialog({
+    assessor: "Testanimatör",
+    assessorRole: "animatör på projektet",
+    axes: "Leverans och ägarskap: 5\nKommunikation: 5",
+    note: "",
+    assessorWeight: "low",
+    weighWhy: "toppbetyg utan ett ord, som förra gången"
+  });
+  await sleep(350);
+
+  const weighted = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Bedömningar'
+        );
+        if (!block) { return JSON.stringify({ found: false }); }
+        return JSON.stringify({
+          found: true,
+          aggregate: [...block.children]
+            .filter((n) => n.matches('.line') && /n=/.test(n.textContent))
+            .map((r) => r.textContent.replace(/\\s+/g, ' ').trim())
+        });
+      })()`)));
+
+  check("an axis carried by an answer he weighed low says so, beside the plain mean", () => {
+    /*
+     * The case the weight card comes from: top marks with every comment box
+     * empty, from somebody known to be careless. The mean is still the mean -
+     * every answer counts once, and there is no weighted average anywhere - and
+     * beside it sits the same axis with that answer set aside.
+     */
+    if (weighted.found !== true) {
+      throw new Error("no assessment block on the page");
+    }
+    const marked = weighted.aggregate.filter((/** @type {string} */ r) => /vägt lågt/.test(r));
+    if (marked.length === 0) {
+      throw new Error(`no axis reports the discount: ${JSON.stringify(weighted.aggregate)}`);
+    }
+    const bare = weighted.aggregate.filter(
+      (/** @type {string} */ r) => /Leverans och ägarskap/.test(r) && !/vägt lågt/.test(r)
+    );
+    if (bare.length > 0) {
+      throw new Error(`the axis appears without its discount too: ${JSON.stringify(bare)}`);
+    }
+  });
+
   step("The rounds read as a history rather than one long pile");
 
   /*
@@ -5896,12 +6095,21 @@ try {
     "the assessment block"
   );
 
+  /*
+   * Through the set picker, which the step above this one put in the way. The
+   * set is chosen there and shown as a fact on the answer form, so `set` is no
+   * longer a field to fill - and only the axes this assessor answered are left
+   * in the box, which is also the case the series below needs: an axis the
+   * round did not ask about.
+   */
   await page.click('[data-act="recordAssessment"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the set picker");
+  await page.click(".dialog [data-confirm]");
+  await sleep(300);
   await page.waitFor("document.querySelector('.dialog') !== null", "the assessment form");
   await page.fillDialog({
     assessor: "Testregissör",
     assessorRole: "regissör på projektet",
-    set: "Producentrond",
     axes: "Kommunikation: 5",
     note: "Skrev en hel del om hur det gick",
     at: "2026-03-02"
@@ -5998,6 +6206,94 @@ try {
     const arrows = String(history.text).match(/[+-]\d+[.,]\d\s*(mot|sedan|från)/);
     if (arrows !== null) {
       throw new Error(`a round appears to show a change: "${arrows[0]}"`);
+    }
+  });
+
+  const series = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Bedömningar'
+        );
+        if (!block) { return JSON.stringify({ found: false }); }
+        const head = [...block.querySelectorAll('.block-title')].find(
+          (h) => /Axel för axel/.test(h.textContent)
+        );
+        if (head === undefined) { return JSON.stringify({ found: true, drawn: false }); }
+        /* Every prep-block after that heading is one axis's series. */
+        const blocks = [...block.children];
+        const from = blocks.indexOf(head);
+        const axes = blocks
+          .slice(from)
+          .filter((n) => n.matches('.prep-block'))
+          .map((box) => ({
+            head: (box.querySelector('.prep-head') || {}).textContent.replace(/\\s+/g, ' ').trim(),
+            points: [...box.querySelectorAll('.line')].map((r) => ({
+              when: ((r.querySelector('.line-when') || {}).textContent || '').trim(),
+              day: ((r.querySelector('.line-text') || {}).textContent || '').trim(),
+              dim: r.matches('.dim'),
+              who: ((r.querySelector('.line-note') || {}).textContent || '').trim()
+            }))
+          }));
+        return JSON.stringify({ found: true, drawn: true, axes });
+      })()`)));
+
+  check("with two occasions the axes get a series, one point per round", () => {
+    if (series.found !== true) {
+      throw new Error("no assessment block on the page");
+    }
+    if (series.drawn !== true) {
+      throw new Error("two occasions and no series was drawn");
+    }
+    if (series.axes.length === 0) {
+      throw new Error("the series heading is there with no axis under it");
+    }
+    const multi = series.axes.filter((/** @type {any} */ a) => a.points.length > 1);
+    if (multi.length === 0) {
+      throw new Error(
+        `no axis has more than one point: ${JSON.stringify(series.axes.map((/** @type {any} */ a) => a.head))}`
+      );
+    }
+  });
+
+  check("and the points run in the direction time ran, unlike every other history", () => {
+    /*
+     * The one place the app reverses itself. A history reads newest-first; a
+     * series only reads in the direction time ran, or every axis appears to move
+     * backwards.
+     */
+    const axis = series.axes.find((/** @type {any} */ a) => a.points.length > 1);
+    const days = axis.points.map((/** @type {any} */ p) => p.day);
+    const sorted = [...days].sort();
+    if (JSON.stringify(days) !== JSON.stringify(sorted)) {
+      throw new Error(`the series is not oldest first: ${JSON.stringify(days)}`);
+    }
+  });
+
+  check("a round that did not ask about an axis is a gap, not a closed-up list", () => {
+    /*
+     * Two figures side by side read as consecutive measurements. The backdated
+     * answer covered one axis only, so every other axis has a round with nothing
+     * in it - and that has to show as absence rather than vanish.
+     */
+    const gaps = series.axes.flatMap((/** @type {any} */ a) =>
+      a.points.filter((/** @type {any} */ p) => p.dim)
+    );
+    if (gaps.length === 0) {
+      throw new Error("no axis shows a round it was not asked in, so this proved nothing");
+    }
+    if (!gaps.every((/** @type {any} */ p) => /inte frågad/.test(p.when))) {
+      throw new Error(`a gap does not say it is one: ${JSON.stringify(gaps[0])}`);
+    }
+  });
+
+  check("and each point names who gave that axis, which is what makes two comparable", () => {
+    const answered = series.axes
+      .flatMap((/** @type {any} */ a) => a.points)
+      .filter((/** @type {any} */ p) => !p.dim);
+    if (answered.length === 0) {
+      throw new Error("no answered point at all, so this proved nothing");
+    }
+    if (!answered.some((/** @type {any} */ p) => /Test/.test(p.who))) {
+      throw new Error(`no point names its assessors: ${JSON.stringify(answered.slice(0, 3))}`);
     }
   });
 

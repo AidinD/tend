@@ -74,6 +74,19 @@ export {
   updatePerson
 } from "./writing.js";
 
+/* -------------------------------------------------- question sets -- */
+
+/*
+ * Structure, so the writes are app-only and there is no MCP tool for them - a
+ * set decides what a producer is asked about somebody. Reading is open.
+ */
+export {
+  addQuestionSet,
+  questionSets,
+  retireQuestionSet,
+  updateQuestionSet
+} from "./questionsets.js";
+
 /* ------------------------------------------------------- signals -- */
 
 /* Moved to signals.js and re-exported, so the service surface is unchanged. */
