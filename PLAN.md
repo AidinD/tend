@@ -450,6 +450,12 @@ block for the part the notes do not answer.
   turned out to be inconvenient, and one that can erase a row leaves nothing in
   any view to notice. An agent DOES see every correction on read. Left closed
   rather than settled, guarded by a name check and a behaviour check.
+- ~~**Whether a round history should show movement between rounds.**~~ Settled on
+  2026-09-09: it shows the rounds, not the movement. The assessors differ between
+  rounds, so a subtracted mean compares two populations and would read as a change
+  in the person - the same fault the focus price had. Each round carries its own
+  figures, its own n and who answered, and the page says why there is no delta.
+  The trend view cannot dodge the question and inherits it.
 - ~~**When a feedback round counts as run.**~~ Settled on 2026-09-07: it is
   offered, never counted. The person's page offers to mark it as run and he
   accepts; a threshold on the round waits for the pending-request concept. See

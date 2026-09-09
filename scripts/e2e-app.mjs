@@ -1528,7 +1528,7 @@ try {
         );
         if (line === undefined) { return null; }
         return {
-          when: (line.querySelector('.line-when') || {}).textContent.trim(),
+          when: ((line.querySelector('.line-when') || {}).textContent || '').trim(),
           text: (line.querySelector('.line-text') || {}).textContent.trim(),
           resolvable: line.querySelector('[data-act="resolvePromise"]') !== null
         };
@@ -5288,10 +5288,20 @@ try {
           found: true,
           text: block.textContent.replace(/\\s+/g, ' ').trim(),
           rows: [...block.querySelectorAll('.line')].map((r) => ({
-            when: (r.querySelector('.line-when') || {}).textContent.trim(),
+            when: ((r.querySelector('.line-when') || {}).textContent || '').trim(),
             text: (r.querySelector('.line-text') || {}).textContent.replace(/\\s+/g, ' ').trim(),
             pills: [...r.querySelectorAll('.pill')].map((x) => x.textContent.trim())
-          }))
+          })),
+          /*
+           * The aggregate's own axis rows, told apart from a round's by where
+           * they sit: the aggregate is a direct child of the block, a round's
+           * figures are inside that round's prep-block. Before the history was
+           * added these were the same set, and the axis-count check below
+           * counted whatever it found.
+           */
+          aggregateAxes: [...block.children]
+            .filter((n) => n.matches('.line') && /n=/.test(n.textContent))
+            .map((r) => ((r.querySelector('.line-when') || {}).textContent || '').trim())
         });
       })()`)));
 
@@ -5304,12 +5314,12 @@ try {
     if (!round.found) {
       throw new Error("no assessment block on the page");
     }
-    const axes = round.rows.filter((/** @type {any} */ r) => /n=/.test(String(r.when)));
+    const axes = round.aggregateAxes;
     if (axes.length !== 3) {
-      throw new Error(`${axes.length} axis rows, expected 3: ${JSON.stringify(round.rows)}`);
+      throw new Error(`${axes.length} aggregate axis rows, expected 3: ${JSON.stringify(axes)}`);
     }
-    if (!axes.every((/** @type {any} */ r) => /n=1/.test(String(r.when)))) {
-      throw new Error(`an axis has the wrong count: ${JSON.stringify(axes.map((/** @type {any} */ a) => a.when))}`);
+    if (!axes.every((/** @type {string} */ w) => /n=1/.test(w))) {
+      throw new Error(`an axis has the wrong count: ${JSON.stringify(axes)}`);
     }
   });
 
@@ -5469,7 +5479,7 @@ try {
           (r) => /Kommunikation/.test(r.textContent) && /n=/.test(r.textContent)
         );
         return JSON.stringify({
-          when: (row.querySelector('.line-when') || {}).textContent.trim(),
+          when: ((row.querySelector('.line-when') || {}).textContent || '').trim(),
           pills: [...row.querySelectorAll('.pill')].map((x) => x.textContent.trim())
         });
       })()`)));
@@ -5862,6 +5872,132 @@ try {
     const tight = stacked.cardGaps.filter((/** @type {number} */ g) => g < 10);
     if (tight.length > 0) {
       throw new Error(`card gaps of ${JSON.stringify(stacked.cardGaps)}px`);
+    }
+  });
+
+  step("The rounds read as a history rather than one long pile");
+
+  /*
+   * Two occasions, entered through the form with its own date field, because a
+   * history of one round proves nothing about grouping. What is driven here is
+   * the part the unit tests cannot see: that a round's figures are drawn under
+   * that round's date and not under the record's, and that no round shows a
+   * change against the one before it.
+   */
+  /*
+   * Back to the person, because the checks above this one walk several views
+   * looking for two stacked cards and leave us wherever they found them.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"recordAssessment\"]') !== null",
+    "the assessment block"
+  );
+
+  await page.click('[data-act="recordAssessment"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the assessment form");
+  await page.fillDialog({
+    assessor: "Testregissör",
+    assessorRole: "regissör på projektet",
+    set: "Producentrond",
+    axes: "Kommunikation: 5",
+    note: "Skrev en hel del om hur det gick",
+    at: "2026-03-02"
+  });
+  await page.waitFor(
+    "document.body.textContent.includes('Testregissör')",
+    "the backdated answer"
+  );
+
+  const history = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Bedömningar'
+        );
+        if (!block) { return JSON.stringify({ found: false }); }
+        const heads = [...block.querySelectorAll('.prep-head')]
+          .filter((h) => /^\\d{4}-\\d{2}-\\d{2}/.test(h.textContent.trim()));
+        return JSON.stringify({
+          found: true,
+          text: block.textContent.replace(/\\s+/g, ' ').trim(),
+          rounds: heads.map((h) => {
+            const box = h.parentElement;
+            return {
+              head: h.textContent.replace(/\\s+/g, ' ').trim(),
+              body: box.textContent.replace(/\\s+/g, ' ').trim(),
+              axes: [...box.querySelectorAll('.line')]
+                .filter((r) => /n=/.test(r.textContent))
+                .map((r) => ((r.querySelector('.line-when') || {}).textContent || '').trim()),
+              answers: [...box.querySelectorAll('.line')]
+                .filter((r) => !/n=/.test(r.textContent)).length
+            };
+          })
+        });
+      })()`)));
+
+  check("each occasion is its own round, in the order they happened", () => {
+    if (history.found !== true) {
+      throw new Error("no assessment block on the page");
+    }
+    if (history.rounds.length !== 2) {
+      throw new Error(
+        `${history.rounds.length} rounds drawn, expected 2: ${JSON.stringify(history.rounds.map((/** @type {any} */ r) => r.head))}`
+      );
+    }
+    const days = history.rounds.map((/** @type {any} */ r) => String(r.head).slice(0, 10));
+    if (!(days[0] > days[1])) {
+      throw new Error(`the history is not newest first: ${JSON.stringify(days)}`);
+    }
+    if (days[1] !== "2026-03-02") {
+      throw new Error(`the backdated answer did not land on its own date: ${JSON.stringify(days)}`);
+    }
+  });
+
+  check("a round's figures are its own, not the whole record's under its date", () => {
+    /*
+     * The failure this is really for, and it is silent: every round showing the
+     * same aggregate figure reads as stability rather than as a bug. Found by
+     * mutation in the unit suite - swapping a round's rows for all of them left
+     * every test green - so it is measured here too, on what the page draws.
+     */
+    const backdated = history.rounds.find((/** @type {any} */ r) => /2026-03-02/.test(r.head));
+    if (!backdated) {
+      throw new Error("the older round is not on the page");
+    }
+    if (backdated.axes.length !== 1) {
+      throw new Error(
+        `the older round draws ${backdated.axes.length} axis rows for its one answer: ${JSON.stringify(backdated.axes)}`
+      );
+    }
+    if (!/n=1/.test(String(backdated.axes[0]))) {
+      throw new Error(`the older round counted another round's answer: ${backdated.axes[0]}`);
+    }
+    if (backdated.answers !== 1) {
+      throw new Error(`${backdated.answers} answers under a round that had one`);
+    }
+  });
+
+  check("and it names who answered, which is what makes two rounds comparable", () => {
+    const backdated = history.rounds.find((/** @type {any} */ r) => /2026-03-02/.test(r.head));
+    if (!/Testregissör/.test(String(backdated.body))) {
+      throw new Error(`the round does not name its assessor: "${backdated.body}"`);
+    }
+  });
+
+  check("no round shows a change against the one before it, and the page says why", () => {
+    /*
+     * The obvious missing number, so the page has to account for it rather than
+     * look unfinished. A round's assessors are not the last round's, so
+     * subtracting the means compares two populations and reads as movement in
+     * the person - the same fault the focus price had.
+     */
+    if (!/bedömarna är sällan desamma/.test(String(history.text))) {
+      throw new Error("nothing on the page says why there is no change figure");
+    }
+    const arrows = String(history.text).match(/[+-]\d+[.,]\d\s*(mot|sedan|från)/);
+    if (arrows !== null) {
+      throw new Error(`a round appears to show a change: "${arrows[0]}"`);
     }
   });
 

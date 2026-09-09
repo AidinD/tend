@@ -70,7 +70,34 @@ const seeded = await (async () => {
     text: "Hen bad tvärtom om att skjuta på beslutet, jag läste anteckningen bakvänt.",
     now
   });
-  return { person: "Testkodare", wrong: String(wrong.id) };
+  /*
+   * Somebody else entirely for the round history, with two occasions.
+   *
+   * Not more answers about Testkodare: the checks above are written against a
+   * single round on that person - one occasion, n=1 per axis, "a trend is not
+   * possible yet" - and adding a second round there would have made three of
+   * them fail while testing nothing new. A fixture that several checks depend on
+   * is not the place to add a case.
+   */
+  const twice = api.addPerson(store, { name: "Testanimatör", relation: "lead-and-manage", now });
+  for (const [assessor, score, back] of [
+    ["Testregissör", 2, 190],
+    ["Testproducent", 4, 0]
+  ]) {
+    api.recordAssessment(store, {
+      person: String(twice.id),
+      assessor: String(assessor),
+      assessorRole: "på projektet",
+      set: "producentrond",
+      setName: "Producentrond",
+      scores: [{ axis: "Kommunikation", score: Number(score) }],
+      note: "Skrev en hel del",
+      at: now - Number(back) * 86_400_000,
+      now
+    });
+  }
+
+  return { person: "Testkodare", twice: "Testanimatör", wrong: String(wrong.id) };
 })();
 
 let failures = 0;
@@ -238,6 +265,34 @@ try {
     assert.equal(rounds.answers[0].assessorWeight, "low");
     assert.match(rounds.answers[0].weighWhy, /slarvig/);
     assert.equal(rounds.answers[0].saidAnything, false);
+  });
+
+  const history = payload(
+    await client.callTool({ name: "tend_assessments", arguments: { person: seeded.twice } })
+  );
+
+  check("and reads the rounds as rounds, each with its own figures and assessors", () => {
+    /*
+     * The comparison the feature exists for, over the protocol. A session
+     * preparing a review needs to see what THIS round said against what the
+     * last one said - a flat list of answers all carrying their own date makes
+     * that a reconstruction, and one it can get wrong silently.
+     *
+     * No round carries a change against the previous one, deliberately: the
+     * assessors differ between rounds, so a subtracted mean compares two
+     * populations and reads as movement in the person.
+     */
+    assert.equal(history.roundHistory.length, 2, "two occasions did not arrive as two rounds");
+    const [newest, oldest] = history.roundHistory;
+    assert.ok(newest.day > oldest.day, "the history is not newest first");
+    assert.deepEqual(oldest.assessors, ["Testregissör"], "the round does not say who answered");
+    for (const round of history.roundHistory) {
+      for (const axis of round.byAxis) {
+        assert.equal(axis.n, 1, `${round.day} ${axis.axis} counted another round's answer`);
+      }
+      const movement = Object.keys(round).filter((f) => /change|delta|diff|prev/i.test(f));
+      assert.deepEqual(movement, [], `a round carries a change figure: ${movement.join(", ")}`);
+    }
   });
 
   check("and gets the aggregate per axis, with no figure for the person", () => {

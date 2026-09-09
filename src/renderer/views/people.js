@@ -323,14 +323,21 @@ async function personPage(id) {
     .join("");
 
   /*
-   * A round of feedback, in three parts: what the answers amount to per axis,
-   * the answers themselves, and any collision.
+   * Feedback rounds, in three parts: what every answer amounts to per axis, any
+   * collision, and then the rounds themselves in the order they happened.
    *
    * There is no figure for the person anywhere in here, and the service does
    * not send one. The reference implementation this was ported from shows a 3.4
    * averaged over one assessor answering about technical quality and another
    * about delivery, and that number is not a weak signal - nothing was measured
    * twice. Per axis and per set, each with its own n.
+   *
+   * The answers sit inside the round they arrived on rather than in one flat
+   * list by date. The flat list was the first version and it read as one long
+   * pile: twelve rows all carrying the same date are twelve chances to mistake
+   * one occasion for twelve, and comparing this round against the last meant
+   * finding where one date stopped and the other began. What the feature exists
+   * for is that comparison.
    */
   const assessed = (() => {
     if (rated === null || rated.error) {
@@ -383,22 +390,15 @@ async function personPage(id) {
              </div>
            </div>`;
 
-    const axes = (Array.isArray(rated.byAxis) ? rated.byAxis : [])
-      .map(
-        (/** @type {any} */ a) => `<div class="line">
-          <span class="line-when">${words.assessmentAxisMean(a.mean.toFixed(1), a.n)}</span>
-          <span class="line-text">${words.assessmentAxis(esc(a.axis), esc(a.setName))}</span>
-          <span class="line-right"><span class="pill plain">${
-            a.spread === 0 ? words.assessmentNoSpread : words.assessmentAxisSpread(a.low, a.high)
-          }</span></span>
-        </div>`
-      )
-      .join("");
 
-    const rows = answers
-      .map(
-        (/** @type {any} */ r) => `<div class="line">
-          <span class="line-when">${esc(new Date(r.at).toISOString().slice(0, 10))}</span>
+    /*
+     * One answer. The date is on the round above it rather than repeated on
+     * every row, which is the whole gain of grouping: twelve rows that all said
+     * the same date were twelve chances to read the list as twelve occasions.
+     *
+     * @param {any} r
+     */
+    const answerLine = (/** @type {any} */ r) => `<div class="line">
           <span class="line-text">
             <strong>${esc(words.assessmentBy(r.assessor, r.assessorRole))}</strong>
             <span class="src">${esc(r.setName)} - ${r.scores
@@ -412,6 +412,45 @@ async function personPage(id) {
             <button class="act tiny" data-act="removeAssessment" data-id="${esc(r.id)}"
               data-who="${esc(r.assessor)}">${words.assessmentRemove}</button>
           </span>
+        </div>`;
+
+    /*
+     * One axis figure, used both for the aggregate over everything and inside a
+     * single round. The same shape in both places on purpose: a reader comparing
+     * a round against the whole record should not have to also translate between
+     * two layouts.
+     *
+     * @param {any} a
+     */
+    const axisLine = (/** @type {any} */ a) => `<div class="line">
+          <span class="line-when">${words.assessmentAxisMean(a.mean.toFixed(1), a.n)}</span>
+          <span class="line-text">${words.assessmentAxis(esc(a.axis), esc(a.setName))}</span>
+          <span class="line-right"><span class="pill plain">${
+            a.spread === 0 ? words.assessmentNoSpread : words.assessmentAxisSpread(a.low, a.high)
+          }</span></span>
+        </div>`;
+
+    /*
+     * A round: what it said, who said it, and the answers under it.
+     *
+     * Deliberately carrying no change against the round before. The reasoning
+     * is in `domain/assessments.js` and stated on the page itself, because a
+     * missing number is the one thing a reader will assume is an oversight: a
+     * round's assessors are not the last round's, so subtracting the means
+     * compares two populations and reports it as movement in the person.
+     */
+    const roundBlocks = (Array.isArray(rated.roundHistory) ? rated.roundHistory : [])
+      .map(
+        (/** @type {any} */ round) => `<div class="prep-block">
+          <h3 class="prep-head">${words.assessmentRoundHead(esc(round.day), Number(round.n))}</h3>
+          <p class="prep-note">${words.assessmentRoundWho(esc(round.assessors.join(", ")))}</p>
+          ${
+            Number(round.silent) === 0
+              ? ""
+              : `<p class="card-why warn-text">${words.assessmentRoundSilent(Number(round.silent))}</p>`
+          }
+          ${(Array.isArray(round.byAxis) ? round.byAxis : []).map(axisLine).join("")}
+          ${(Array.isArray(round.answers) ? round.answers : []).map(answerLine).join("")}
         </div>`
       )
       .join("");
@@ -438,9 +477,10 @@ async function personPage(id) {
       }</p>
       ${doubles ? `<div class="prep-block"><h3 class="prep-head">${words.assessmentDoubleTitle}</h3>${doubles}</div>` : ""}
       ${offerBlock}
-      ${axes}
-      <div class="block-title block-title-second">${esc(words.assessmentsAnswers)}</div>
-      ${rows}
+      ${(Array.isArray(rated.byAxis) ? rated.byAxis : []).map(axisLine).join("")}
+      <div class="block-title block-title-second">${esc(words.assessmentRounds)}</div>
+      <p class="card-why dim">${words.assessmentRoundsWhy}</p>
+      ${roundBlocks}
       ${button}
     </div>`;
   })();
@@ -1495,7 +1535,22 @@ export const actions = {
         setName: values.set,
         scores,
         note: values.note,
-        at: values.at ? Date.parse(String(values.at)) : undefined
+        /*
+         * Passed through, not parsed again.
+         *
+         * A `date` field already answers with a timestamp - `form()` runs the
+         * raw value through `middayOn` so a timezone shift cannot move it to
+         * the day before. Re-parsing that number as a date string produced NaN,
+         * the service read NaN as "no date given" and fell back to now, and the
+         * answer was silently filed as today. Every other date field in the app
+         * is spread straight into the call; this was the only one that touched
+         * it, and nothing failed - the toast still said Registrerat.
+         *
+         * Found while building the round history, which is where it shows: an
+         * answer that came in last quarter could not be entered as last
+         * quarter's, so a second occasion was unreachable.
+         */
+        at: values.at
       },
       words.assessmentToast
     );

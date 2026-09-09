@@ -3,6 +3,64 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-09 - A round is its own row in a history, and carries no change figure
+
+**Decided.** The answers about one person are grouped into the occasions they
+arrived on, newest first, each round showing its own per-axis figures, who
+answered, how many of them wrote nothing, and its answers underneath. The
+aggregate over every round stays above it. No round shows a change against the
+round before it.
+
+**The fault.** The answers were one flat list by date. That answers "what came in
+lately", and the question the feature exists for is "what did this round say, and
+what did the one before it" - which meant finding where one date stopped and the
+next began, in a list where twelve rows carrying the same date read as twelve
+occasions.
+
+**Why no change figure, which is the obvious thing to add and the reason the card
+said "ingen kurva".** A round's assessors are not the round before's, and feedback
+rounds cannot demand that they be: people move teams, a producer leaves the
+project, somebody new is asked precisely because the last round had a gap. So the
+difference between two rounds' means is a difference between two means taken over
+two different populations. That is not a change in the person, and it is exactly
+the fault `focusCost` was rewritten for the day before, after reporting a
+newcomer's year of backlog as the price of a focus.
+
+So each round reports its own mean, its own n and WHO answered, and the reader
+compares with the assessors in front of them. The page says why the number is
+absent, because a missing number is the one thing a reader assumes is an
+oversight. The decision belongs to the trend card, which cannot avoid it.
+
+**Considered: showing the change but marking it when the assessors differ.**
+Rejected because the assessors almost always differ, so the mark would be on
+nearly every figure, and a caveat that is always present is read as boilerplate
+rather than as a warning. A figure nobody should trust is worse than no figure.
+
+**A round's figures come from its own rows.** Grouping by day and then averaging
+the day would rebuild the cross-question-set mean this feature exists to refuse,
+one occasion at a time - so a round's per-axis figures come from `byAxis` on that
+round's rows alone. Found by mutation: swapping a round's rows for all of them
+left every test green, because they all used a single day, and every round would
+have shown the whole record's figure under its own date. Two rounds reading
+identically is worse than no history, because it looks like stability.
+
+**A day and not an instant.** A round is a form sent out and answered over an
+afternoon or a week; answers an hour apart are one occasion.
+
+**And a real defect underneath it: a dated answer was silently filed as today.**
+The form has a date field precisely because answers arrive after the fact. A
+`date` field answers with a timestamp - `form()` runs the raw value through
+`middayOn` so a timezone cannot move it to the day before - and the assessment
+action was re-parsing that number as a date string, which is NaN. The service
+read NaN as "no date given" and fell back to now. Nothing failed; the toast said
+Registrerat. Every other date field in the app is spread straight into its call;
+this was the only one that touched the value.
+
+It surfaced here because it makes a second occasion unreachable: an answer that
+came in last quarter could not be entered as last quarter's. Now held by a check
+in the running app that fails without the fix, and by two service tests - `at` is
+honoured, and a NaN still reads as "no date".
+
 ## 2026-09-09 - An observation is replaced, and only a paste error is erased
 
 **Decided.** An observation can carry a `replaces` pointer at the row it

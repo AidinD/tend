@@ -775,9 +775,35 @@ export const T = {
     assessmentsOneOccasion:
       "En trend behöver mer än ett datum - en kurva genom svar från samma dag ser ut som " +
       "rörelse där ingen finns.",
-    /* The answers themselves, under the aggregate. Its own word: the block's
-       title was reused here at first and the page said BEDÖMNINGAR twice. */
-    assessmentsAnswers: "Svaren",
+    /*
+     * The rounds as a history, which is the comparison this whole feature is
+     * for. The answers sit inside the round they arrived on instead of in one
+     * flat list by date, so "what did this round say, and the one before it"
+     * is answerable by reading down the page.
+     *
+     * No round carries a change against the previous one, and the note says
+     * why in the one place a reader would look for the missing number: a
+     * round's assessors are not the last round's, so a subtracted mean is a
+     * difference between two populations and not movement in the person. Same
+     * fault the focus price had.
+     */
+    /* Its own word rather than the block's title again: the second heading was
+       once "Bedömningar" too, and the page said it twice. */
+    assessmentRounds: "Ronderna",
+    assessmentRoundsWhy:
+      "Varje rond står för sig med sitt eget medelvärde och vilka som svarade. Ingen rond " +
+      "visar en förändring mot den förra, för bedömarna är sällan desamma - skillnaden mellan " +
+      "två medelvärden över två olika grupper är inte en rörelse hos personen.",
+    /** @param {string} day @param {number} n */
+    /* "svar" does not inflect, so there is no plural branch to write here. */
+    assessmentRoundHead: (day, n) => `${day} &middot; ${n} svar`,
+    /** @param {string} who */
+    assessmentRoundWho: (who) => `Svarade: ${who}`,
+    /** @param {number} n */
+    assessmentRoundSilent: (n) =>
+      n === 1
+        ? "En av dem skrev ingenting, bara siffror."
+        : `${n} av dem skrev ingenting, bara siffror.`,
     /** @param {string} axis @param {string} set */
     assessmentAxis: (axis, set) => `<strong>${axis}</strong> <span class="src">${set}</span>`,
     /** @param {string} mean @param {number} n */

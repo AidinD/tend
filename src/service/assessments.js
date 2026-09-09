@@ -14,7 +14,8 @@ import {
   doubleAnswers,
   isScore,
   isWeight,
-  occasions
+  occasions,
+  rounds
 } from "../domain/assessments.js";
 import { WEIGHTS } from "../domain/assessments.js";
 import { dutyLabel } from "../domain/attention.js";
@@ -368,6 +369,8 @@ export function assessmentSummary(store, personId, now) {
   const last = rows.reduce((newest, r) => Math.max(newest, r.at), 0);
   return {
     answers: rows.length,
+    /* The COUNT of occasions. `roundHistory` below is the occasions themselves -
+       two different questions, and the summary line asks this one. */
     rounds: days.length,
     lastAt: last,
     lastAnswered: agoWords(daysSince(last, now) ?? 0),
@@ -424,6 +427,14 @@ export function assessments(store, who, now = Date.now()) {
     trendPossible: days.length > 1,
     occasions: days,
     byAxis: byAxis(rows),
+    /*
+     * The same answers grouped into the occasions they arrived on, so a round
+     * can be read against the one before it. Carried beside the flat list
+     * rather than instead of it: the aggregate answers "where does this person
+     * stand", the history answers "what has each round said", and collapsing
+     * them into one shape would lose whichever question was not asked.
+     */
+    roundHistory: rounds(rows),
     doubles: doubleAnswers(rows),
     /*
      * Whether there is a round to offer as run. Carried on the read the block

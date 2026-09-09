@@ -33,7 +33,14 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 
 import * as api from "../src/service/api.js";
 import { TOOLS, callTool } from "../src/mcp/tools.js";
-import { WEIGHTS, byAxis, doubleAnswers, isScore, occasions } from "../src/domain/assessments.js";
+import {
+  WEIGHTS,
+  byAxis,
+  doubleAnswers,
+  isScore,
+  occasions,
+  rounds
+} from "../src/domain/assessments.js";
 import { personBlocksIn } from "../src/domain/halves.js";
 import { openStore } from "../src/storage/store.js";
 import { DAY_MS } from "../src/domain/time.js";
@@ -536,6 +543,232 @@ describe("what a person's page carries about a round, and what it does not", () 
     assert.ok(summary, "no aggregate at all, so this proved nothing");
     assert.equal(summary.saidNothing, 2);
     assert.equal(summary.doubles, 1);
+  });
+});
+
+describe("the rounds read as a history rather than a pile", () => {
+  it("groups the answers into the occasions they arrived on, newest first", () => {
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testproducent", now: daysAgo(200) }));
+    ok(record(String(who.id), { assessor: "Testregissör", now: daysAgo(200) + 3600_000 }));
+    ok(record(String(who.id), { assessor: "Testproducent", now: NOW }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.roundHistory.length, 2, "two occasions were not seen as two");
+    assert.ok(
+      read.roundHistory[0].day > read.roundHistory[1].day,
+      "the history is not newest first"
+    );
+    assert.equal(read.roundHistory[1].n, 2, "the two answers from one day did not group");
+  });
+
+  it("counts answers an hour apart as one occasion, not two", () => {
+    // A round is a form sent out and answered over an afternoon or a week. An
+    // instant would make every answer its own round and the history useless.
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testproducent", now: NOW }));
+    ok(record(String(who.id), { assessor: "Testregissör", now: NOW + 3600_000 }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.roundHistory.length, 1);
+    assert.equal(read.roundHistory[0].n, 2);
+  });
+
+  it("names who answered each round, because that is what makes two comparable", () => {
+    /*
+     * The field the whole no-delta decision rests on. Two rounds with no
+     * assessor in common are two different measurements however alike their
+     * means look, and a reader can only see that if the names travel with the
+     * round.
+     */
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testregissör", now: daysAgo(200) }));
+    ok(record(String(who.id), { assessor: "Testproducent", now: NOW }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.deepEqual(read.roundHistory[0].assessors, ["Testproducent"]);
+    assert.deepEqual(read.roundHistory[1].assessors, ["Testregissör"]);
+  });
+
+  it("carries no change against the round before it, anywhere", () => {
+    /*
+     * THE test for this card. Subtracting one round's mean from the last one's
+     * is the obvious feature and it is wrong: the assessors differ, so the
+     * difference is between two populations and would be read as movement in
+     * the person. Same fault the focus price had on 2026-09-08.
+     *
+     * Asserted on the shape rather than on a rendered string, so it also fails
+     * if somebody adds the field intending the view to use it later.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        scores: [{ axis: "Kommunikation", score: 2 }],
+        now: daysAgo(200)
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Kommunikation", score: 5 }],
+        now: NOW
+      })
+    );
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    for (const round of read.roundHistory) {
+      const fields = Object.keys(round).concat(Object.keys(round.byAxis[0] ?? {}));
+      const movement = fields.filter((f) => /change|delta|diff|trend|since|prev|movement/i.test(f));
+      assert.deepEqual(movement, [], `a round carries a change figure: ${movement.join(", ")}`);
+    }
+  });
+
+  it("keeps two question sets apart inside one round, exactly as it does across all of them", () => {
+    /*
+     * The invariant this feature could quietly break. Grouping by day and then
+     * averaging the day would rebuild the cross-set mean the file exists to
+     * refuse - a producer's Kommunikation and a lead's Kommunikation are not the
+     * same question - so a round's figures come from `byAxis` on its own rows.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        set: "producentrond",
+        setName: "Producentrond",
+        scores: [{ axis: "Kommunikation", score: 5 }],
+        now: NOW
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        set: "regirond",
+        setName: "Regirond",
+        scores: [{ axis: "Kommunikation", score: 1 }],
+        now: NOW
+      })
+    );
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.roundHistory.length, 1, "one day should be one round");
+    const [round] = read.roundHistory;
+    assert.equal(round.byAxis.length, 2, "one round merged two question sets into one figure");
+    for (const axis of round.byAxis) {
+      assert.equal(axis.n, 1, `${axis.setName} ${axis.axis} counted somebody else's answer`);
+    }
+  });
+
+  it("figures a round over its own answers only, not over every round's", () => {
+    /*
+     * Found by mutation: swapping the round's own rows for all of them left
+     * every test green, because they all used a single day. So each round would
+     * have reported the whole record's mean under its own date - two rounds
+     * showing an identical figure that belongs to neither, which is worse than
+     * no history at all since it looks like stability.
+     */
+    const who = person();
+    ok(
+      record(String(who.id), {
+        assessor: "Testregissör",
+        scores: [{ axis: "Kommunikation", score: 2 }],
+        now: daysAgo(200)
+      })
+    );
+    ok(
+      record(String(who.id), {
+        assessor: "Testproducent",
+        scores: [{ axis: "Kommunikation", score: 4 }],
+        now: NOW
+      })
+    );
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    const [newest, oldest] = read.roundHistory;
+    assert.equal(newest.byAxis.length, 1);
+    assert.equal(newest.byAxis[0].n, 1, "the newest round counted the older round's answer");
+    assert.equal(newest.byAxis[0].mean, 4, `the newest round reads ${newest.byAxis[0].mean}`);
+    assert.equal(oldest.byAxis[0].n, 1, "the oldest round counted the newer round's answer");
+    assert.equal(oldest.byAxis[0].mean, 2, `the oldest round reads ${oldest.byAxis[0].mean}`);
+
+    /* And the aggregate over everything is still the aggregate - the mean of
+       both - so the two shapes are genuinely answering different questions. */
+    const all = read.byAxis.find((/** @type {any} */ a) => a.axis === "Kommunikation");
+    assert.ok(all, "the aggregate lost the axis");
+    assert.equal(all.n, 2);
+    assert.equal(all.mean, 3);
+  });
+
+  it("reports the silent answers per round, not only over the whole record", () => {
+    // Top marks with every box empty reads as a strong result and is closer to
+    // no answer. Which ROUND that happened in is the useful version.
+    const who = person();
+    ok(record(String(who.id), { assessor: "Testproducent", note: "", now: NOW }));
+    ok(record(String(who.id), { assessor: "Testregissör", note: "Skrev en hel del", now: NOW }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.roundHistory[0].silent, 1);
+  });
+
+  it("and the count of occasions still means occasions, beside the history", () => {
+    // `rounds` is the number and `roundHistory` is the list. They answer
+    // different questions and the summary line asks the first.
+    const who = person();
+    ok(record(String(who.id), { now: daysAgo(200) }));
+    ok(record(String(who.id), { assessor: "Testregissör", now: NOW }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.rounds, 2);
+    assert.equal(read.roundHistory.length, 2);
+    assert.equal(read.trendPossible, true);
+  });
+
+  it("dates an answer by when it was answered, not by when it was typed in", () => {
+    /*
+     * The half of the round history that nothing covered, and it was broken.
+     *
+     * The form has a date field precisely because answers arrive after the fact,
+     * and `recordAssessment` honours `at` over `now` - but the renderer was
+     * re-parsing the timestamp the form had already produced, so every answer
+     * was filed as today and a second occasion was unreachable. The e2e drives
+     * the form; this holds the service's own promise, which is the thing the
+     * renderer relies on.
+     */
+    const who = person();
+    const answered = daysAgo(190);
+    ok(record(String(who.id), { at: answered, now: NOW }));
+
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.answers[0].at, answered, "the answer was filed under the wrong instant");
+    assert.equal(
+      read.roundHistory[0].day,
+      new Date(answered).toISOString().slice(0, 10),
+      "the round is not under the day it was answered on"
+    );
+  });
+
+  it("falls back to now when the date given is not a usable instant", () => {
+    // NaN was what the renderer actually sent, and "no date" is the right
+    // reading of it - the wrong part was producing it, not handling it.
+    const who = person();
+    ok(record(String(who.id), { at: Number.NaN, now: NOW }));
+    const read = ok(api.assessments(store, String(who.id), NOW));
+    assert.equal(read.answers[0].at, NOW);
+  });
+
+  it("drops a row with no date rather than inventing a round for it", () => {
+    // Straight at the domain: `at` of 0 is a row that never got a date, and
+    // 1970 as its own occasion at the bottom of the history is worse than
+    // nothing.
+    const out = rounds(
+      /** @type {any} */ ([
+        { id: "a", at: 0, assessor: "Ingen", scores: [], saidAnything: false, set: "s", setName: "S" },
+        { id: "b", at: NOW, assessor: "Någon", scores: [], saidAnything: true, set: "s", setName: "S" }
+      ])
+    );
+    assert.equal(out.length, 1);
+    assert.equal(out[0].n, 1);
   });
 });
 
