@@ -2398,6 +2398,60 @@ export const T = {
     changeIt: "Ändra det",
     reverseIt: "Riv upp det",
 
+    /*
+     * Whether a decision was actually followed, which is none of the three
+     * buttons above.
+     *
+     * A decision agreed and then not followed still holds as an agreement, has
+     * not been changed, and reversing it would say he has given it up. So it
+     * went on reading as `recorded` with a revisit in December, and read in
+     * December it read as working.
+     *
+     * Two counters and never one: kept nine times and broken once is a different
+     * object from broken two out of two, and a log that counts only breaches
+     * cannot tell them apart. The gap between them is the reading, exactly as a
+     * growth thread keeps "discussed" and "actually seen" apart.
+     */
+    markKept: "Det följdes",
+    markBroken: "Det följdes inte",
+    /** @param {number} kept @param {number} broken */
+    markCounts: (kept, broken) =>
+      `Följt ${kept} ${kept === 1 ? "gång" : "gånger"}, inte följt ${broken} ${
+        broken === 1 ? "gång" : "gånger"
+      }.`,
+    /* The revisit question, written from the counts instead of from memory.
+       "Håller det fortfarande?" in December is a memory exercise; these are the
+       same sort of prompt a growth thread already produces. */
+    markAskNeverFollowed:
+      "Det har aldrig följts sedan det fattades. Är beslutet fel, eller saknas det något som " +
+      "gör det möjligt att följa?",
+    markAskMostlyBroken:
+      "Det bryts oftare än det följs. Det är inte längre en överenskommelse som glappar, utan " +
+      "en som inte gäller - riv upp det eller ändra det till något som stämmer.",
+    markAskSlippedOnce:
+      "Brutet en gång, och nyligen. Värt att säga till om nu snarare än att låta det bli " +
+      "vanan innan omprövningen kommer.",
+    markAskHolding: "Det har hållit. Omprövningen kan ställa den vanliga frågan.",
+    markTitle: "Följdes beslutet den här gången?",
+    markIntro:
+      "En daterad gång, inte ett omdöme om beslutet. Beslutet står kvar precis som det är - " +
+      "det här är underlaget som gör omprövningen värd något i december.",
+    markHeldLabel: "Vilket var det",
+    markHeldYes: "Det följdes",
+    markHeldNo: "Det följdes inte",
+    markWhenLabel: "När",
+    markWhyLabel: "Kort om tillfället, frivilligt",
+    markWhyHint:
+      "Om tillfället, inte om personen. Det som är en läsning av någon hör hemma som en " +
+      "observation på dem - peka på den nedan i stället för att skriva den två gånger.",
+    markObservationLabel: "Peka på en observation, frivilligt",
+    markObservationNone: "Ingen",
+    markConfirm: "Notera det",
+    markToast: "Noterat.",
+    markPointsAt: "Observation:",
+    markRemove: "Ta bort",
+    markRemovedToast: "Borttaget.",
+
     /* One in the log. */
     noRevisit: "&middot; inget återkomstdatum",
     /** @param {string} date */

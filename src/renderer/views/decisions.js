@@ -8,7 +8,7 @@
  * have to remember to read is an archive; one that comes back to you is a tool.
  */
 
-import { act, ask, esc, form, tend } from "../ui.js";
+import { act, ask, asDateInput, esc, form, tend, toast } from "../ui.js";
 import { refresh } from "../app.js";
 import { T } from "../text.js";
 
@@ -93,9 +93,12 @@ function revisit(d) {
         <span class="badge">${words.dueBadge(esc(d.revisitOverdueBy ?? words.dueNow))}</span>
       </div>
       ${body(d)}
+      ${standing(d)}
       <div class="card-foot">
         <span class="src">${words.revisitSrc}</span>
         <button class="act" data-act="holds" data-id="${esc(d.id)}">${words.stillHolds}</button>
+        <button class="act" data-act="mark" data-id="${esc(d.id)}">${words.markKept}</button>
+        <button class="act" data-act="markBroken" data-id="${esc(d.id)}">${words.markBroken}</button>
         <button class="act" data-act="edit" data-id="${esc(d.id)}">${words.changeIt}</button>
         <button class="act" data-act="reverse" data-id="${esc(d.id)}">${words.reverseIt}</button>
       </div>
@@ -104,6 +107,21 @@ function revisit(d) {
 
 /** @param {any} d */
 function entry(d) {
+  /*
+   * Whether it was followed is offered on any decision that is standing, not
+   * only on one whose revisit has come due.
+   *
+   * The occasion to note comes when it happens, which is months before the
+   * revisit - that is the whole point of collecting dated marks rather than
+   * remembering in December. Putting the buttons only on the overdue card would
+   * mean the record could only be written at the one moment it is already too
+   * late to be useful.
+   *
+   * Not offered on a reversed decision: it is history and has stopped asking
+   * anything, so an occasion of following it is not a fact about anything.
+   */
+  const standing_ = d.status === "recorded" || d.status === "revisited";
+
   return `
     <div class="card">
       <div class="card-top">
@@ -111,14 +129,88 @@ function entry(d) {
         <span class="badge">${esc(d.status)}</span>
       </div>
       ${body(d)}
+      ${standing(d)}
       <div class="card-foot">
         <span class="src">
           ${esc(new Date(d.decidedAt).toLocaleDateString("sv-SE"))}
           ${d.revisitAt ? words.backOn(esc(new Date(d.revisitAt).toLocaleDateString("sv-SE"))) : words.noRevisit}
         </span>
+        ${
+          standing_
+            ? `<button class="act" data-act="mark" data-id="${esc(d.id)}">${words.markKept}</button>
+               <button class="act" data-act="markBroken" data-id="${esc(d.id)}">${words.markBroken}</button>`
+            : ""
+        }
         <button class="act" data-act="edit" data-id="${esc(d.id)}">${words.edit}</button>
       </div>
     </div>`;
+}
+
+/**
+ * How the decision has actually gone, and the question that follows from it.
+ *
+ * Two counts, printed as two counts. A decision kept nine times and broken once
+ * is a different object from one broken two out of two, and adding them would
+ * lose exactly the difference worth having - the same reason a growth thread
+ * keeps "discussed" and "actually seen" apart.
+ *
+ * The prompt underneath comes from the shape of those counts rather than from a
+ * date. "Does this still hold?" in December is a memory exercise; "it has never
+ * been followed since it was made" is a question somebody can answer.
+ *
+ * Silent when nothing has been noted, rather than printing a pair of zeroes on
+ * every card. A decision nobody has had occasion to follow yet is the ordinary
+ * case, and a counter of nothing reads as a failure to record rather than as an
+ * absence of occasions.
+ *
+ * @param {any} d
+ */
+function standing(d) {
+  const marks = Array.isArray(d.marks) ? d.marks : [];
+  if (marks.length === 0) {
+    return "";
+  }
+
+  const ask = {
+    "never-followed": words.markAskNeverFollowed,
+    "mostly-broken": words.markAskMostlyBroken,
+    "slipped-once": words.markAskSlippedOnce,
+    holding: words.markAskHolding
+  }[String(d.shape)];
+
+  return `<div class="marks">
+    <p class="card-why">${words.markCounts(Number(d.standing.kept), Number(d.standing.broken))}</p>
+    ${ask ? `<p class="card-why ${d.standing.everBroken ? "warn-text" : "dim"}">${ask}</p>` : ""}
+    ${marks
+      .map(
+        (/** @type {any} */ m) => `<div class="line ${m.held ? "sev-ok" : "sev-warn"}">
+          <span class="line-when">${esc(
+            new Date(Number(m.at)).toISOString().slice(0, 10)
+          )}</span>
+          <span class="line-text">${esc(m.held ? words.markHeldYes : words.markHeldNo)}${
+            m.why ? `<span class="src">${esc(m.why)}</span>` : ""
+          }${
+            /*
+             * The observation it points at, read from the row that owns it. Not
+             * a copy: that sentence is a statement about a person and lives on
+             * their page, and restating it here is the duplication the
+             * replace-an-observation work exists to remove.
+             */
+            m.observation
+              ? `<span class="src">${words.markPointsAt} ${esc(
+                  m.observation.person ? `${m.observation.person}: ` : ""
+                )}${esc(words.whyHandle(m.observation.text))}</span>`
+              : ""
+          }</span>
+          <span class="line-right">
+            <button class="act tiny danger" data-act="unmark" data-id="${esc(m.id)}">${
+              words.markRemove
+            }</button>
+          </span>
+        </div>`
+      )
+      .join("")}
+  </div>`;
 }
 
 /**
@@ -257,6 +349,79 @@ const fields = (roster) => [
   }
 ];
 
+/**
+ * Ask for the one occasion, and record it.
+ *
+ * The observation picker is the point of the SPÄRR on this card: "somebody broke
+ * this" is already a row on that person's page, and the mark points at it rather
+ * than restating it. Offering the existing rows is what makes pointing the easy
+ * path and writing it twice the awkward one - a free text field alone would have
+ * had the sentence copied in within a week.
+ *
+ * Only recent observations are offered. The list is every observation in the
+ * store, and a select of four hundred is a select nobody uses.
+ *
+ * @param {string} decision
+ * @param {boolean} held
+ */
+async function markOccasion(decision, held) {
+  const seen = /** @type {any} */ (await tend.invoke("observations", {}));
+  const recent = (Array.isArray(seen?.areas) ? seen.areas : [])
+    .flatMap((/** @type {any} */ a) => a.items)
+    .sort((/** @type {any} */ a, /** @type {any} */ b) => Number(b.at) - Number(a.at))
+    .slice(0, 20);
+
+  const values = await form({
+    title: words.markTitle,
+    intro: words.markIntro,
+    fields: [
+      {
+        name: "held",
+        label: words.markHeldLabel,
+        type: "select",
+        value: held ? "yes" : "no",
+        options: [
+          { value: "yes", label: words.markHeldYes },
+          { value: "no", label: words.markHeldNo }
+        ]
+      },
+      { name: "at", label: words.markWhenLabel, type: "date", value: asDateInput(Date.now()) },
+      { name: "why", label: words.markWhyLabel, hint: words.markWhyHint },
+      {
+        name: "observation",
+        label: words.markObservationLabel,
+        type: "select",
+        value: "",
+        options: [
+          { value: "", label: words.markObservationNone },
+          ...recent.map((/** @type {any} */ o) => ({
+            value: String(o.id),
+            label: `${o.person ? `${o.person}: ` : ""}${words.whyHandle(String(o.text))}`
+          }))
+        ]
+      }
+    ],
+    confirm: words.markConfirm,
+    attempt: async (v) => {
+      const out = /** @type {any} */ (
+        await tend.invoke("markDecision", {
+          decision,
+          held: v.held === "yes",
+          why: v.why,
+          observation: v.observation,
+          at: v.at
+        })
+      );
+      return out?.error ? String(out.error) : null;
+    }
+  });
+
+  if (values) {
+    toast(words.markToast);
+    refresh();
+  }
+}
+
 export const actions = {
   add: async () => {
     const roster = await tend.invoke("people");
@@ -296,6 +461,27 @@ export const actions = {
   holds: async (d) => {
     await act("stillHolds", { id: d.id, days: 90 });
     refresh();
+  },
+
+  /**
+   * Note one occasion on which the decision was followed.
+   *
+   * The two kinds go through one dialog with the kind preset, rather than two
+   * dialogs, because they are one act with a flag - and the form is where the
+   * date and the pointer are asked for either way.
+   *
+   * @param {Record<string, string>} d
+   */
+  mark: async (d) => markOccasion(d.id, true),
+
+  /** @param {Record<string, string>} d */
+  markBroken: async (d) => markOccasion(d.id, false),
+
+  /** @param {Record<string, string>} d */
+  unmark: async (d) => {
+    if (await act("unmarkDecision", { id: d.id }, words.markRemovedToast)) {
+      refresh();
+    }
   },
 
   /** @param {Record<string, string>} d */

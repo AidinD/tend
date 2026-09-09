@@ -284,7 +284,24 @@ export const COLLECTIONS = /** @type {const} */ ([
    *
    * Structure, so no agent writes one. `domain/questionsets.js` has the rest.
    */
-  "questionSets"
+  "questionSets",
+  /**
+   * One dated occasion on which a decision was followed, or was not.
+   *
+   * Two kinds in one collection, told apart by `held`, so the counts can never
+   * be added together by accident - the same shape a growth thread uses for
+   * "discussed" and "actually seen", where the gap between them is the reading.
+   * A decision kept nine times and broken once is a different object from one
+   * broken two out of two.
+   *
+   * A mark may POINT at an observation and never restates one. "Somebody broke
+   * this" is already a row on that person's page, and copying it here would
+   * rebuild the duplication the replace-an-observation work exists to remove.
+   *
+   * `domain/decisionmarks.js` has the rest, including why this is not a note in
+   * `because`.
+   */
+  "decisionMarks"
 ]);
 
 /**

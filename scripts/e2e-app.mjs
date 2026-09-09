@@ -6096,7 +6096,7 @@ try {
   await page.click('[data-act="recordAssessment"]');
   await page.waitFor("document.querySelector('.dialog') !== null", "the set picker");
 
-  const picker = JSON.parse(String(await page.evaluate(`(() => {
+  const setPicker = JSON.parse(String(await page.evaluate(`(() => {
         const dialog = document.querySelector('.dialog');
         const select = dialog.querySelector('[name="set"]');
         return JSON.stringify({
@@ -6106,13 +6106,13 @@ try {
       })()`)));
 
   check("once a set exists the answer starts by choosing which one was answered", () => {
-    if (picker.isSelect !== true) {
-      throw new Error(`no set picker: ${JSON.stringify(picker)}`);
+    if (setPicker.isSelect !== true) {
+      throw new Error(`no set picker: ${JSON.stringify(setPicker)}`);
     }
-    if (!picker.labels.some((/** @type {string} */ l) => /Producentrond/.test(l))) {
-      throw new Error(`the set is not on offer: ${JSON.stringify(picker.labels)}`);
+    if (!setPicker.labels.some((/** @type {string} */ l) => /Producentrond/.test(l))) {
+      throw new Error(`the set is not on offer: ${JSON.stringify(setPicker.labels)}`);
     }
-    if (!picker.labels.some((/** @type {string} */ l) => /Nytt frågeset/.test(l))) {
+    if (!setPicker.labels.some((/** @type {string} */ l) => /Nytt frågeset/.test(l))) {
       throw new Error("there is no way to define one from here");
     }
   });
@@ -6756,6 +6756,122 @@ try {
     }
     if (!(whyOpened.labelShown > 0)) {
       throw new Error("nothing labels the open fold, so the summary row is empty");
+    }
+  });
+
+  step("A decision that was agreed and then not followed");
+
+  /*
+   * The gap: a decision broken within the week went on reading `recorded` with a
+   * revisit months away, because none of the three buttons fitted. It still
+   * holds as an agreement, it has not been changed, and reversing it would say
+   * he gave it up.
+   *
+   * Driven through the real dialog because the observation picker is the point:
+   * "somebody broke this" already exists as a row on that person's page, and the
+   * mark has to point at it rather than have it typed in again.
+   */
+  await page.click('.nav-btn[data-view="decisions"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"markBroken\"]') !== null",
+    "a recorded decision"
+  );
+
+  await page.click('[data-act="markBroken"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the mark dialog");
+
+  const markPicker = JSON.parse(String(await page.evaluate(`(() => {
+        const dialog = document.querySelector('.dialog');
+        const held = dialog.querySelector('[name="held"]');
+        const obs = dialog.querySelector('[name="observation"]');
+        return JSON.stringify({
+          heldPreset: held === null ? null : held.value,
+          observations: obs === null ? 0 : obs.options.length,
+          observationLabels: obs === null ? [] : [...obs.options].map((o) => o.textContent.trim())
+        });
+      })()`)));
+
+  check("the dialog opens on the kind that was clicked, and offers what to point at", () => {
+    /*
+     * The pointer is what keeps a second copy of "somebody broke this" from
+     * appearing. Offering the existing rows is what makes pointing the easy path
+     * - a free text field alone would have had the sentence typed in twice
+     * within a week.
+     */
+    if (markPicker.heldPreset !== "no") {
+      throw new Error(`the broken button opened on "${markPicker.heldPreset}"`);
+    }
+    if (markPicker.observations < 2) {
+      throw new Error("the picker offers nothing to point at, so this proved nothing");
+    }
+  });
+
+  await page.fillDialog({ held: "no", why: "gick förbi överenskommelsen" });
+  await sleep(350);
+
+  const brokeMark = JSON.parse(String(await page.evaluate(`(() => {
+        const box = document.querySelector('.marks');
+        if (box === null) { return JSON.stringify({ found: false }); }
+        const card = box.closest('.card');
+        return JSON.stringify({
+          found: true,
+          text: box.textContent.replace(/\\s+/g, ' ').trim(),
+          rows: box.querySelectorAll('.line').length,
+          broken: box.querySelectorAll('.line.sev-warn').length,
+          kept: box.querySelectorAll('.line.sev-ok').length,
+          status: ((card.querySelector('.badge') || {}).textContent || '').trim(),
+          /* The decision's own words, untouched by the breach. */
+          why: ((card.querySelector('.card-why') || {}).textContent || '').trim()
+        });
+      })()`)));
+
+  check("the breach is recorded and the decision still stands", () => {
+    if (brokeMark.found !== true) {
+      throw new Error("nothing was recorded on the decision");
+    }
+    if (brokeMark.broken !== 1) {
+      throw new Error(`${brokeMark.broken} broken marks, expected 1`);
+    }
+    if (brokeMark.status !== "recorded") {
+      throw new Error(`noting a breach moved the decision to "${brokeMark.status}"`);
+    }
+  });
+
+  check("and it asks the question that follows, instead of the calendar's", () => {
+    /*
+     * "Does this still hold?" in December is a memory exercise. With dated marks
+     * of both kinds the prompt writes itself.
+     */
+    if (!/aldrig följts/.test(String(brokeMark.text))) {
+      throw new Error(`the prompt does not follow from the counts: "${brokeMark.text}"`);
+    }
+  });
+
+  await page.click('[data-act="mark"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the mark dialog");
+  await page.fillDialog({ held: "yes", why: "höll den den här gången" });
+  await sleep(350);
+
+  const bothKinds = JSON.parse(String(await page.evaluate(`(() => {
+        const box = document.querySelector('.marks');
+        return JSON.stringify({
+          text: box.textContent.replace(/\\s+/g, ' ').trim(),
+          broken: box.querySelectorAll('.line.sev-warn').length,
+          kept: box.querySelectorAll('.line.sev-ok').length
+        });
+      })()`)));
+
+  check("the two counts are shown as two, never added together", () => {
+    /*
+     * The whole reason there are two counters. A decision kept nine times and
+     * broken once is a different object from one broken two out of two, and a
+     * single tally cannot tell them apart.
+     */
+    if (bothKinds.kept !== 1 || bothKinds.broken !== 1) {
+      throw new Error(`${bothKinds.kept} kept and ${bothKinds.broken} broken drawn: "${bothKinds.text}"`);
+    }
+    if (!/Följt 1 gång, inte följt 1 gång/.test(String(bothKinds.text))) {
+      throw new Error(`the counts are not both stated: "${bothKinds.text}"`);
     }
   });
 

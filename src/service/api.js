@@ -28,11 +28,21 @@
  */
 
 import { PREP_CARDS, prep } from "./prep.js";
-import { decideDecision, decisions, logDecision, revisitsDue, stillHolds } from "./ledger.js";
+import {
+  decideDecision,
+  decisions,
+  logDecision,
+  markDecision,
+  revisitsDue,
+  stillHolds,
+  unmarkDecision
+} from "./ledger.js";
 import { resolvePerson, resolveProject, resolveStake, resolveWorkstream } from "./resolve.js";
 
 export { PREP_CARDS, prep };
 export { decideDecision, decisions, logDecision, revisitsDue, stillHolds };
+/* Whether a decision was actually followed. App only - see markDecision. */
+export { markDecision, unmarkDecision };
 export { resolvePerson, resolveProject, resolveStake, resolveWorkstream };
 
 /** Collections an agent may add rows to. Structure is not on this list. */

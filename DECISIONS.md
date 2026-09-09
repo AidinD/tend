@@ -3,6 +3,64 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-09 - A decision can be marked kept or broken, and the two are never added
+
+**Decided.** A `decisionMarks` collection holds dated occasions on which a
+decision was followed, or was not, told apart by a `held` flag. The decision
+itself does not move: it stays `recorded` while marks accumulate. A mark may
+point at an existing observation and never restates one. App only.
+
+**The fault.** A recorded decision had three buttons - it still holds, change it,
+reverse it - and a decision that was agreed and then not followed is none of
+them. It still holds as an agreement, it has not been changed, and reversing it
+says he gave it up. So the record went on saying `recorded` with a revisit
+months out, and read then, it read as working. The case was five days old when
+it broke.
+
+**Two counters and never one.** A decision kept nine times and broken once is a
+different object from one broken two out of two, and a log that counts only
+breaches cannot tell them apart. This is the growth thread's structure applied to
+decisions: "discussed" and "actually seen" are two counts whose whole value is
+the gap between them, and the port is of something already designed and tested
+rather than a new mechanism.
+
+**The age and the counts are also two numbers.** Broken once in five days is not
+broken once in three months, so the revisit question is chosen from the shape of
+the counts AND the decision's age. That is the consequence that makes the card
+worth doing: "does this still hold?" in December is a memory exercise, and "it
+has never been followed since it was made" is a question somebody can answer.
+
+**Nothing terminal happens automatically.** Two breaches change the question the
+revisit asks and nothing else. Reversing is his to say, exactly as accepting a
+proposal is - and a decision that reversed itself after a threshold would be the
+tool deciding the thing it exists to record.
+
+**A mark points at an observation and never copies one.** "Somebody broke this"
+is a statement about a person and already lives on their page. Copying it here
+would rebuild precisely the duplication the replace-an-observation work exists to
+remove: two rows saying one thing, with a correction to either leaving the other
+standing. The window offers the recent observations in a picker, because a free
+text field alone would have had the sentence typed in twice within a week. A
+pointer whose target is later erased resolves to nothing rather than to a stale
+sentence, and the mark stays as the dated fact it is.
+
+**And it is not a note in `because`.** That field is the only one that still
+means anything in a year. The ledger records what was decided, not whether it
+held, and mixing compliance into it destroys the first to store the second.
+
+**A mark is removed outright rather than superseded**, unlike an observation. It
+carries no reading of anybody - it is a tally entry saying an occasion happened -
+so there is no earlier judgement worth keeping beside a corrected one. What it
+points at is untouched.
+
+**Not on MCP, and that is a question rather than a settlement.** A deviation is
+an assertion about another person, the same class of row as writing an
+assessment, which is parked on the assessments epic - and the equivalent question
+for observations was answered "no" on the same day. Guarded by a name check and a
+behaviour check. An agent still READS how a decision has gone, which is the half
+that had to work: a session asked whether something holds should see that it was
+broken twice, or it advises from a picture nobody shares.
+
 ## 2026-09-09 - A question set fixes the labels, and cannot reach a round already run
 
 **Decided.** A `questionSets` collection holds what one kind of assessor is asked

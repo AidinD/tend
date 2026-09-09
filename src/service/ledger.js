@@ -11,7 +11,8 @@
  */
 
 import { DEFAULT_REVISIT_DAYS, isDecisionStatus, revisitAt, revisitStatus, thin } from "../domain/decisions.js";
-import { humanDays } from "../domain/time.js";
+import { markStanding, marksFor, revisitShape } from "../domain/decisionmarks.js";
+import { daysSince, humanDays } from "../domain/time.js";
 import { resolvePerson } from "./resolve.js";
 
 /**
@@ -53,6 +54,23 @@ function resolveEveryone(store, who) {
  */
 export function decisions(store, now, status) {
   const names = new Map(store.rows("people").map((p) => [String(p.id), String(p.name)]));
+  const marks = store.rows("decisionMarks");
+  /*
+   * The observations a mark may point at, by id. Read once for the whole list
+   * rather than per mark: a page of decisions each resolving its own pointers
+   * would walk the evidence rows once per mark.
+   */
+  const observations = new Map(
+    store.rows("evidence").map((e) => [
+      String(e.id),
+      {
+        id: String(e.id),
+        text: String(e.text ?? ""),
+        at: Number(e.at ?? 0),
+        person: e.person ? (names.get(String(e.person)) ?? null) : null
+      }
+    ])
+  );
 
   return store
     .rows("decisions")
@@ -77,6 +95,32 @@ export function decisions(store, now, status) {
         // checkable against the note it was read out of.
         source: d.source ? String(d.source) : null,
         proposedBy: d._by ? String(d._by) : null,
+        /*
+         * Whether it has actually been followed, kept apart from what was
+         * decided. Two counts and never one: a decision kept nine times and
+         * broken once is a different object from one broken two out of two.
+         */
+        ...(() => {
+          const mine = marksFor(marks, String(d.id));
+          const standing = markStanding(mine);
+          const age = daysSince(Number(d.decidedAt ?? d._at ?? 0), now);
+          return {
+            standing,
+            shape: revisitShape(standing, age),
+            marks: mine.map((m) => ({
+              id: String(m.id),
+              held: m.held === true,
+              at: Number(m.at ?? 0),
+              why: m.why ? String(m.why) : null,
+              /*
+               * The observation this points at, resolved for reading and never
+               * copied onto the mark. A pointer whose target has been erased
+               * resolves to null rather than to a stale sentence.
+               */
+              observation: m.observation ? (observations.get(String(m.observation)) ?? null) : null
+            }))
+          };
+        })(),
         missing: thin(d)
       };
     });
@@ -219,4 +263,91 @@ export function stillHolds(store, id, now, days = DEFAULT_REVISIT_DAYS) {
   }
   store.update("decisions", id, { status: "revisited", revisitAt: revisitAt(now, days) });
   return { id, revisitIn: `${days} dagar` };
+}
+
+/**
+ * Record that a decision was followed on a given day, or was not.
+ *
+ * One call for both kinds, because they are one act with a flag: the whole
+ * design is that the two counts sit in one collection and are never added
+ * together, and two functions would be two places to keep that true.
+ *
+ * `observation` points at a row that already exists on somebody's page. It is
+ * never a copy: "somebody broke this" is a statement about a person, it belongs
+ * on that person, and restating it here would rebuild the duplication the
+ * replace-an-observation work exists to remove - two rows saying one thing, with
+ * a correction to either leaving the other standing.
+ *
+ * App only. There is no MCP tool, and that is a question on the card rather than
+ * a decision taken here: a deviation is an assertion about another person, which
+ * is the same class of row as writing an assessment - already parked, and
+ * answered "no" for observations on 2026-09-09.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {string} args.decision
+ * @param {boolean} args.held True when it was followed.
+ * @param {string} [args.why] A short word on the occasion, not on the person.
+ * @param {string} [args.observation] An existing observation to point at.
+ * @param {number} [args.at] When it happened. Defaults to now.
+ * @param {number} args.now
+ */
+export function markDecision(store, { decision, held, why, observation, at, now }) {
+  const row = store.rows("decisions").find((d) => String(d.id) === String(decision));
+  if (!row) {
+    return { error: `Inget beslut med id "${decision}".` };
+  }
+  if (typeof held !== "boolean") {
+    return {
+      error: "En notering måste säga vilket av de två den är: hållet eller brutet."
+    };
+  }
+
+  /*
+   * A pointer at nothing is worse than no pointer: it reads on the page as
+   * though there is evidence to look at. Checked here rather than shrugged at,
+   * because the id comes from a picker and a stale one means the observation was
+   * erased between opening the dialog and confirming it.
+   */
+  let points = null;
+  if (observation !== undefined && String(observation).trim() !== "") {
+    const found = store
+      .rows("evidence")
+      .find((e) => String(e.id) === String(observation).trim());
+    if (!found) {
+      return { error: "Observationen finns inte längre - den kan ha tagits bort." };
+    }
+    points = String(found.id);
+  }
+
+  const when = Number(at);
+  const id = store.create("decisionMarks", {
+    decision: String(row.id),
+    held,
+    why: String(why ?? "").trim() || null,
+    observation: points,
+    at: Number.isFinite(when) && when > 0 ? when : now
+  });
+  return { id, decision: String(row.id), held };
+}
+
+/**
+ * Take back a mark that was entered against the wrong decision, or twice.
+ *
+ * Removed outright rather than superseded, unlike an observation. A mark carries
+ * no reading of anybody: it is a tally entry saying an occasion happened, so
+ * there is no earlier judgement worth keeping beside a corrected one. What it
+ * points AT is untouched - the observation is somebody else's row and stays
+ * exactly where it was.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {string} id
+ */
+export function unmarkDecision(store, id) {
+  const row = store.rows("decisionMarks").find((m) => String(m.id) === String(id));
+  if (!row) {
+    return { error: `Ingen notering med id "${id}".` };
+  }
+  store.remove("decisionMarks", String(row.id));
+  return { id: String(row.id), removed: true };
 }

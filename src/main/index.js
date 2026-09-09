@@ -170,6 +170,14 @@ const OPERATIONS = {
    * decides what somebody is asked about a colleague, which is the same class of
    * claim as the role map.
    */
+  /*
+   * Whether a decision was followed, and deliberately not on MCP: a deviation is
+   * an assertion about another person, the same class of row as writing an
+   * assessment. On the card as a question rather than settled here.
+   */
+  markDecision: (/** @type {any} */ a) => api.markDecision(store, { ...a, now: a.now ?? Date.now() }),
+  unmarkDecision: (/** @type {any} */ a) => api.unmarkDecision(store, a.id),
+
   questionSets: () => api.questionSets(store),
   addQuestionSet: (/** @type {any} */ a) =>
     api.addQuestionSet(store, { ...a, now: a.now ?? Date.now() }),

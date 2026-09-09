@@ -422,6 +422,12 @@ block for the part the notes do not answer.
 - **The five proposed duties are still proposals.** `npm run seed` writes them;
   he accepts or declines each in the Role map view. The four judgement questions
   from the research were settled on 2026-08-23 and are recorded in DECISIONS.md.
+- **Whether an agent may mark a decision kept or broken.** Both are in the window
+  today and neither is on MCP. A deviation is an assertion about another person -
+  the same class of row as writing an assessment, and the equivalent question for
+  observations was answered no on 2026-09-09. Reading how a decision has gone is
+  open, and has to be. Left closed rather than settled, guarded by a name check
+  and a behaviour check.
 - **Where the first question set gets defined.** A set is picked when recording
   an answer, and "Nytt frågeset..." lives in that picker - so with no sets at all
   there is no picker and no way in from the window. Recording still falls back to
