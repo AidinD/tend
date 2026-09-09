@@ -40,6 +40,36 @@
  * make renaming a CSS class a translation question.
  */
 
+/**
+ * The first part of a paragraph, as a one-line handle for it.
+ *
+ * Cut at a word rather than mid-word, and only when there is enough left over to
+ * be worth hiding - trimming eight characters off a short note buys nothing and
+ * costs a click.
+ *
+ * 90 and 78, and the numbers are the measure rather than taste. A row's text is
+ * capped at 84ch, so a 120-character handle wrapped to two lines and "one line
+ * each" was not true of anything on the page - which is the whole claim. 78 plus
+ * the ellipsis clears it; 90 is the point below which hiding the rest saves less
+ * than the click costs.
+ *
+ * Shared rather than written per surface: observations and decisions both fold a
+ * paragraph behind its first line, and two copies of this would drift until one
+ * surface's "one line" was two.
+ *
+ * @param {string} full
+ * @returns {string}
+ */
+export function handleOf(full) {
+  const one = String(full ?? "").replace(/\s+/g, " ").trim();
+  if (one.length <= 90) {
+    return one;
+  }
+  const cut = one.slice(0, 78);
+  const at = cut.lastIndexOf(" ");
+  return `${(at > 40 ? cut.slice(0, at) : cut).replace(/[,.;:-]$/, "")}...`;
+}
+
 export const T = {
   /*
    * How urgent something reads, in words.
@@ -832,12 +862,27 @@ export const T = {
       n === 1
         ? "En av dem skrev ingenting, bara siffror."
         : `${n} av dem skrev ingenting, bara siffror.`,
-    /** @param {string} axis @param {string} set */
-    assessmentAxis: (axis, set) => `<strong>${axis}</strong> <span class="src">${set}</span>`,
-    /** @param {string} mean @param {number} n */
-    assessmentAxisMean: (mean, n) => `${mean} av 5, n=${n}`,
+    /*
+     * The figure, and what it is out of.
+     *
+     * Split from the count, which used to ride along in the same monospace run
+     * as "4.0 av 5, n=1". That put the one thing worth reading - the score - in
+     * the same weight and colour as its own footnote, on every row, and a page
+     * of those reads as one grey field.
+     */
+    /** @param {string} mean */
+    assessmentAxisMean: (mean) => mean,
+    assessmentAxisOutOf: "av 5",
+    /** @param {number} n */
+    assessmentAxisCount: (n) => (n === 1 ? "ett svar" : `${n} svar`),
     /** @param {number} low @param {number} high */
-    assessmentAxisSpread: (low, high) => `${low}-${high}`,
+    assessmentAxisSpread: (low, high) => `spridning ${low}-${high}`,
+    /*
+     * Said only when there is a spread to have. With one answer "alla lika" was
+     * printed on every row in the block, and one answer is trivially all alike -
+     * so it was a pill on every line saying nothing, which is how a reader
+     * learns to stop looking at the right-hand column.
+     */
     assessmentNoSpread: "alla lika",
 
     /*
@@ -1016,22 +1061,7 @@ export const T = {
      *
      * @param {string} full
      */
-    observationHandle: (full) => {
-      const one = full.replace(/\s+/g, " ").trim();
-      /*
-       * 90 and 78, and the numbers are the measure rather than taste. A row's
-       * text is capped at 84ch, so a 120-character handle wrapped to two lines
-       * and "one line each" was not true of anything on the page - which is the
-       * whole claim. 78 plus the ellipsis clears it; 90 is the point below which
-       * hiding the rest saves less than the click costs.
-       */
-      if (one.length <= 90) {
-        return one;
-      }
-      const cut = one.slice(0, 78);
-      const at = cut.lastIndexOf(" ");
-      return `${(at > 40 ? cut.slice(0, at) : cut).replace(/[,.;:-]$/, "")}...`;
-    },
+    observationHandle: (full) => handleOf(full),
     /** @param {number} n */
     observationsOlder: (n) => `${n} äldre`,
 
@@ -2310,6 +2340,24 @@ export const T = {
   },
 
   decisions: {
+    /*
+     * A decision opens as its own sentence and nothing else.
+     *
+     * The reasoning behind one runs to eight or ten lines, and every card had
+     * all of it open at once - so the page was a wall and the decisions
+     * themselves, which is what a reader is scanning for, were the smallest
+     * thing on it. The reasoning is the most valuable part and is not
+     * summarised or dropped; it goes behind the line that names it, exactly as
+     * an observation does.
+     *
+     * What stays out in the open is what asks for something: the missing
+     * fields, and the buttons. A warning behind a fold is a warning nobody
+     * reads.
+     */
+    whyFold: "Skälet",
+    /** @param {string} full */
+    whyHandle: (full) => handleOf(full),
+
     readFailedTitle: "Kunde inte läsa datan",
     title: "Beslut",
     sub:

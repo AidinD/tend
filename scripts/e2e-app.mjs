@@ -189,19 +189,47 @@ const MIN_GROUP_GAP = 16;
  * @returns {Promise<{ title: string, after: string, gap: number }[]>}
  */
 async function groupGaps(page) {
+  /*
+   * Every heading that labels a run of page structure, not only the ones inside
+   * a `.group`.
+   *
+   * The first version queried `.group` alone, and the front page does not use
+   * it: its sections are `.roster-block`, `.aims-block`, `.proposed-block` and
+   * so on, each with a `.group-head` or `.prep-head` of its own. So the check
+   * passed on eight views while measuring a handful of headings that were never
+   * the ones on screen - and "Runt omkring" sat flush against the team grid
+   * above it for as long as it has existed, because `.around-head` is a class
+   * with no CSS behind it.
+   *
+   * Scoped to headings that are a direct child of a section or of `main`, which
+   * is what makes one page structure rather than the inside of a card. A heading
+   * inside a `.prep-block` or a `.card` legitimately sits closer to what it
+   * follows, and pulling those in would fail the check on correct layout.
+   */
   const raw = await page.evaluate(`JSON.stringify(
-    [...document.querySelectorAll('.group')]
-      .map((group) => {
-        const above = group.previousElementSibling;
-        const head = group.querySelector('.group-head');
-        if (above === null || head === null) { return null; }
+    [...document.querySelectorAll('.group-head, .prep-head')]
+      .filter((head) => {
+        const parent = head.parentElement;
+        if (parent === null) { return false; }
+        return parent.tagName === 'SECTION' || parent.tagName === 'MAIN' ||
+          parent.classList.contains('group');
+      })
+      .map((head) => {
+        /*
+         * What sits above it: the element before it, or - when the heading opens
+         * its section - whatever sits before that section. A heading at the top
+         * of a block still has to clear what the previous block left behind.
+         */
+        const above = head.previousElementSibling ??
+          (head.parentElement === null ? null : head.parentElement.previousElementSibling);
+        if (above === null) { return null; }
         const top = above.getBoundingClientRect();
         const bottom = head.getBoundingClientRect();
         // A collapsed box is either hidden or not laid out yet, and the
         // distance to it means nothing either way.
         if (top.height === 0 || bottom.height === 0) { return null; }
         return {
-          title: ((group.querySelector('.group-title') || {}).textContent || '(untitled)').trim(),
+          title: ((head.querySelector('.group-title') || {}).textContent || '(untitled)').trim(),
           after: String(above.className || above.tagName.toLowerCase()),
           gap: Math.round(bottom.top - top.bottom)
         };
@@ -5294,14 +5322,20 @@ try {
           })),
           /*
            * The aggregate's own axis rows, told apart from a round's by where
-           * they sit: the aggregate is a direct child of the block, a round's
-           * figures are inside that round's prep-block. Before the history was
-           * added these were the same set, and the axis-count check below
-           * counted whatever it found.
+           * they sit: the aggregate's sets are direct children of the block, a
+           * round's sit inside that round's prep-block. The axes moved down one
+           * level into an axis-set wrapper when the set name stopped being
+           * repeated on every row.
+           *
+           * No backticks in here: this whole probe is a template literal, and a
+           * backtick in a comment ends it - which is what happened when this
+           * comment was first written, and TypeScript then reported the rest of
+           * the file as the error.
            */
           aggregateAxes: [...block.children]
-            .filter((n) => n.matches('.line') && /n=/.test(n.textContent))
-            .map((r) => ((r.querySelector('.line-when') || {}).textContent || '').trim())
+            .filter((n) => n.matches('.axis-set'))
+            .flatMap((set) => [...set.querySelectorAll('.axis-line')])
+            .map((r) => (r.textContent || '').replace(/\\s+/g, ' ').trim())
         });
       })()`)));
 
@@ -5318,8 +5352,86 @@ try {
     if (axes.length !== 3) {
       throw new Error(`${axes.length} aggregate axis rows, expected 3: ${JSON.stringify(axes)}`);
     }
-    if (!axes.every((/** @type {string} */ w) => /n=1/.test(w))) {
+    if (!axes.every((/** @type {string} */ w) => /ett svar/.test(w))) {
       throw new Error(`an axis has the wrong count: ${JSON.stringify(axes)}`);
+    }
+  });
+
+  const legible = JSON.parse(String(await page.evaluate(`(() => {
+        const block = [...document.querySelectorAll('.block')].find(
+          (b) => (b.querySelector('.block-title') || {}).textContent === 'Bedömningar'
+        );
+        if (!block) { return JSON.stringify({ found: false }); }
+        const sets = [...block.children].filter((n) => n.matches('.axis-set'));
+        return JSON.stringify({
+          found: true,
+          sets: sets.length,
+          setNames: sets.map((x) => (x.querySelector('.axis-set-name') || {}).textContent.trim()),
+          axes: sets.flatMap((x) => [...x.querySelectorAll('.axis-line')]).length,
+          /* How many rows repeat the set name inside themselves. */
+          repeats: sets.flatMap((x) => [...x.querySelectorAll('.axis-line')])
+            .filter((r) => /Producentrond/.test(r.textContent)).length,
+          spreadPills: block.querySelectorAll('.axis-line .pill').length,
+          pipRows: sets.flatMap((x) => [...x.querySelectorAll('.axis-line')])
+            .map((r) => ({
+              pips: r.querySelectorAll('.pip').length,
+              on: r.querySelectorAll('.pip.on').length,
+              mean: (r.querySelector('.axis-mean') || {}).textContent.trim()
+            }))
+        });
+      })()`)));
+
+  check("the set is named once over its axes, not repeated under every one", () => {
+    /*
+     * Three rows of the same grey set name under three axes was most of what
+     * made this block read as a wall. The set still has to be visible - two sets
+     * can ask about an axis of the same name and mean different things by it -
+     * but that is a fact about the group.
+     */
+    if (legible.found !== true) {
+      throw new Error("no assessment block on the page");
+    }
+    if (legible.sets < 1) {
+      throw new Error("the axes are not grouped by set at all");
+    }
+    if (legible.setNames.some((/** @type {string} */ n) => n === "")) {
+      throw new Error(`a set group has no name: ${JSON.stringify(legible.setNames)}`);
+    }
+    if (legible.repeats > 0) {
+      throw new Error(`${legible.repeats} axis rows still repeat the set name`);
+    }
+  });
+
+  check("one answer gets no spread pill, because one answer has no spread", () => {
+    /*
+     * "alla lika" was printed on every row of a first round - a pill on every
+     * line saying nothing, which is how a reader learns to stop looking at the
+     * right-hand column entirely.
+     */
+    if (legible.axes < 1) {
+      throw new Error("no axis rows at all, so this proved nothing");
+    }
+    if (legible.spreadPills > 0) {
+      throw new Error(`${legible.spreadPills} spread pills on a round of single answers`);
+    }
+  });
+
+  check("and the score is drawn as well as written, so a row can be read at a glance", () => {
+    const rows = legible.pipRows;
+    if (rows.length === 0) {
+      throw new Error("no axis rows to measure");
+    }
+    for (const row of rows) {
+      if (row.pips !== 5) {
+        throw new Error(`${row.pips} pips on a five-point scale: ${JSON.stringify(row)}`);
+      }
+      const mean = Number(String(row.mean).replace(",", "."));
+      if (!(mean > 0)) {
+        throw new Error(`the figure is not on the row: ${JSON.stringify(row)}`);
+      }
+      if (row.on !== Math.floor(mean)) {
+        throw new Error(`${row.on} pips filled for a mean of ${mean}`);
+      }
     }
   });
 
@@ -5475,11 +5587,12 @@ try {
         const block = [...document.querySelectorAll('.block')].find(
           (b) => (b.querySelector('.block-title') || {}).textContent === 'Bedömningar'
         );
-        const row = [...block.querySelectorAll('.line')].find(
-          (r) => /Kommunikation/.test(r.textContent) && /n=/.test(r.textContent)
+        const row = [...block.querySelectorAll('.axis-line')].find(
+          (r) => /Kommunikation/.test(r.textContent)
         );
         return JSON.stringify({
-          when: ((row.querySelector('.line-when') || {}).textContent || '').trim(),
+          mean: ((row.querySelector('.axis-mean') || {}).textContent || '').trim(),
+          text: (row.textContent || '').replace(/\\s+/g, ' ').trim(),
           pills: [...row.querySelectorAll('.pill')].map((x) => x.textContent.trim())
         });
       })()`)));
@@ -5487,10 +5600,18 @@ try {
   check("and the mean carries its spread, because a mean alone is what gets quoted", () => {
     // 4 and 2 average to 3, and so do 3 and 3. Without the range the two are
     // the same number on the page and they mean different things.
-    if (!/3\.0 av 5, n=2/.test(String(spread.when))) {
-      throw new Error(`the axis reads "${spread.when}"`);
+    if (String(spread.mean) !== "3.0") {
+      throw new Error(`the axis reads "${spread.mean}" in "${spread.text}"`);
     }
-    if (!spread.pills.some((/** @type {string} */ x) => x === "2-4")) {
+    if (!/2 svar/.test(String(spread.text))) {
+      throw new Error(`the count is not on the row: "${spread.text}"`);
+    }
+    /*
+     * The pill is here because there are two answers. With one there is no
+     * spread to have, and it is deliberately absent - see the check on the
+     * first round above, which is the other half of this pair.
+     */
+    if (!spread.pills.some((/** @type {string} */ x) => /2-4/.test(x))) {
       throw new Error(`the spread is missing: ${JSON.stringify(spread.pills)}`);
     }
   });
@@ -6047,8 +6168,9 @@ try {
         return JSON.stringify({
           found: true,
           aggregate: [...block.children]
-            .filter((n) => n.matches('.line') && /n=/.test(n.textContent))
-            .map((r) => r.textContent.replace(/\\s+/g, ' ').trim())
+            .filter((n) => n.matches('.axis-set'))
+            .flatMap((set) => [...set.querySelectorAll('.axis-line')])
+            .map((r) => (r.textContent || '').replace(/\\s+/g, ' ').trim())
         });
       })()`)));
 
@@ -6134,11 +6256,10 @@ try {
             return {
               head: h.textContent.replace(/\\s+/g, ' ').trim(),
               body: box.textContent.replace(/\\s+/g, ' ').trim(),
-              axes: [...box.querySelectorAll('.line')]
-                .filter((r) => /n=/.test(r.textContent))
-                .map((r) => ((r.querySelector('.line-when') || {}).textContent || '').trim()),
+              axes: [...box.querySelectorAll('.axis-line')]
+                .map((r) => (r.textContent || '').replace(/\\s+/g, ' ').trim()),
               answers: [...box.querySelectorAll('.line')]
-                .filter((r) => !/n=/.test(r.textContent)).length
+                .filter((r) => !r.matches('.axis-line')).length
             };
           })
         });
@@ -6178,7 +6299,7 @@ try {
         `the older round draws ${backdated.axes.length} axis rows for its one answer: ${JSON.stringify(backdated.axes)}`
       );
     }
-    if (!/n=1/.test(String(backdated.axes[0]))) {
+    if (!/ett svar/.test(String(backdated.axes[0]))) {
       throw new Error(`the older round counted another round's answer: ${backdated.axes[0]}`);
     }
     if (backdated.answers !== 1) {
@@ -6511,6 +6632,130 @@ try {
     }
     if (corrected.erasable > 6) {
       throw new Error(`${corrected.erasable} erase buttons, so the chain gate is doing nothing`);
+    }
+  });
+
+  step("A decision is a line first, and its reasoning behind it");
+
+  /*
+   * The wall this undoes: every card opened with eight or ten lines of prose,
+   * again with the rejected alternative under it, so the decisions themselves -
+   * the one thing somebody scanning is looking for - were the smallest thing on
+   * the page.
+   *
+   * Driven rather than reasoned about, because the failure mode is a fold that
+   * draws and does not open, and the text is in the DOM either way.
+   */
+  await page.click('.nav-btn[data-view="decisions"]');
+  await page.waitFor("document.querySelector('.card') !== null", "the decisions view");
+
+  const folded = JSON.parse(String(await page.evaluate(`(() => {
+        const folds = [...document.querySelectorAll('.why-fold')];
+        if (folds.length === 0) { return JSON.stringify({ found: false }); }
+        const one = folds[0];
+        const summary = one.querySelector('.why-summary');
+        const body = one.querySelector('.why-body');
+        return JSON.stringify({
+          found: true,
+          folds: folds.length,
+          open: one.open,
+          summaryHeight: Math.round(summary.getBoundingClientRect().height),
+          /*
+           * The fold's OWN height against its summary's, rather than the body's.
+           * A closed details in current Chrome hides its content through
+           * content-visibility, not display, so the child still reports a rect -
+           * measuring that read 73px on a fold that was correctly shut. What is
+           * actually claimed is that the closed fold takes up no more room than
+           * its one summary line, and that is a claim about the details element.
+           */
+          foldHeight: Math.round(one.getBoundingClientRect().height),
+          bodyShown: body === null ? 0 : Math.round(body.getBoundingClientRect().height),
+          handle: (one.querySelector('.why-handle') || {}).textContent.trim(),
+          hidden: body === null ? 0 : body.textContent.replace(/\\s+/g, ' ').trim().length,
+          /* Warnings must not be inside the fold. */
+          warningsInside: one.querySelectorAll('.warn-text').length,
+          warningsOutside: [...document.querySelectorAll('.card .warn-text')]
+            .filter((w) => w.closest('.why-fold') === null).length
+        });
+      })()`)));
+
+  check("a decision's reasoning starts folded, behind its own first line", () => {
+    if (folded.found !== true) {
+      throw new Error("no decision on the page carries reasoning, so this proved nothing");
+    }
+    if (folded.open !== false) {
+      throw new Error("the reasoning is open before anybody asked for it");
+    }
+    if (folded.foldHeight > folded.summaryHeight + 4) {
+      throw new Error(
+        `the fold is closed but takes ${folded.foldHeight}px against a summary of ${folded.summaryHeight}px`
+      );
+    }
+    if (folded.handle === "") {
+      throw new Error("the fold has no handle, so nothing says what is behind it");
+    }
+    if (folded.hidden < 40) {
+      throw new Error(`only ${folded.hidden} characters are behind the fold`);
+    }
+  });
+
+  check("and the summary is one line, or the wall is back a row at a time", () => {
+    // The handle is cut to the measure; this is the net under it.
+    if (folded.summaryHeight > 30) {
+      throw new Error(`the summary is ${folded.summaryHeight}px, so it wrapped`);
+    }
+  });
+
+  check("what is missing from a decision stays outside the fold", () => {
+    /*
+     * The one line on the card that asks for something. A warning behind a click
+     * is a warning nobody reads, which would make the fold a way of hiding
+     * exactly the thing the card exists to nag about.
+     */
+    if (folded.warningsInside > 0) {
+      throw new Error(`${folded.warningsInside} warnings are hidden behind the fold`);
+    }
+  });
+
+  await page.click(".why-fold > .why-summary");
+  await sleep(250);
+
+  const whyOpened = JSON.parse(String(await page.evaluate(`(() => {
+        const one = document.querySelector('.why-fold');
+        const body = one.querySelector('.why-body');
+        const handle = one.querySelector('.why-handle');
+        const label = one.querySelector('.why-label');
+        return JSON.stringify({
+          open: one.open,
+          foldHeight: Math.round(one.getBoundingClientRect().height),
+          handleShown: handle === null ? 0 : Math.round(handle.getBoundingClientRect().height),
+          labelShown: label === null ? 0 : Math.round(label.getBoundingClientRect().height)
+        });
+      })()`)));
+
+  check("clicking it puts the whole reasoning on screen", () => {
+    if (whyOpened.open !== true) {
+      throw new Error("clicking the summary did not open it");
+    }
+    if (!(whyOpened.foldHeight > folded.foldHeight + 20)) {
+      throw new Error(
+        `opening it added only ${whyOpened.foldHeight - folded.foldHeight}px, so nothing came out`
+      );
+    }
+  });
+
+  check("and the first line is not then read twice", () => {
+    /*
+     * The handle IS the first line of the paragraph now underneath it. Left in
+     * place it reads as a bug, so it gives way to the plain word for what is on
+     * screen - and the row stays a control with something in it rather than a
+     * bare triangle.
+     */
+    if (whyOpened.handleShown !== 0) {
+      throw new Error("the handle is still there above the paragraph it repeats");
+    }
+    if (!(whyOpened.labelShown > 0)) {
+      throw new Error("nothing labels the open fold, so the summary row is empty");
     }
   });
 

@@ -452,15 +452,87 @@ async function personPage(id) {
       }</span>`;
     };
 
-    const axisLine = (/** @type {any} */ a) => `<div class="line">
-          <span class="line-when">${words.assessmentAxisMean(a.mean.toFixed(1), a.n)}</span>
-          <span class="line-text">${words.assessmentAxis(esc(a.axis), esc(a.setName))}${discounting(
-            a
-          )}</span>
-          <span class="line-right"><span class="pill plain">${
-            a.spread === 0 ? words.assessmentNoSpread : words.assessmentAxisSpread(a.low, a.high)
-          }</span></span>
+    /*
+     * The score as something to look at rather than as a string to parse.
+     *
+     * Five pips with the mean filled in, which is the one thing on the row that
+     * can be read without reading. It is deliberately not coloured by value: a
+     * red 2 and a green 5 against a named colleague's name is the tool passing
+     * judgement in the margin, and the scale's own 3 is defined as "delivers to
+     * plan" - good, not mediocre - so any colour ramp would say the wrong thing
+     * before a word had been read.
+     *
+     * @param {number} mean
+     */
+    const pips = (/** @type {number} */ mean) =>
+      `<span class="pips" aria-hidden="true">${[1, 2, 3, 4, 5]
+        .map(
+          (step) =>
+            `<span class="pip${
+              mean >= step ? " on" : mean > step - 1 ? " half" : ""
+            }"></span>`
+        )
+        .join("")}</span>`;
+
+    const axisLine = (/** @type {any} */ a) => `<div class="line axis-line">
+          <span class="axis-score">
+            <span class="axis-mean">${words.assessmentAxisMean(a.mean.toFixed(1))}</span>
+            <span class="axis-of">${words.assessmentAxisOutOf}</span>
+          </span>
+          ${pips(Number(a.mean))}
+          <span class="line-text">${esc(a.axis)}${discounting(a)}</span>
+          <span class="line-right">
+            <span class="src">${words.assessmentAxisCount(Number(a.n))}</span>
+            ${
+              /*
+               * Only when there is a spread to report. Three assessors at 2, 3
+               * and 5 mean something entirely different from three at 3, 3 and
+               * 4 - but ONE assessor has no spread at all, and printing "alla
+               * lika" on every row of a first round is a pill that says nothing
+               * on every line.
+               */
+              Number(a.n) < 2
+                ? ""
+                : `<span class="pill plain">${
+                    a.spread === 0
+                      ? words.assessmentNoSpread
+                      : words.assessmentAxisSpread(a.low, a.high)
+                  }</span>`
+            }
+          </span>
         </div>`;
+
+    /*
+     * Axes gathered under the set they belong to, with the set named once.
+     *
+     * It used to be repeated under every axis - three rows of the same grey set
+     * name under three axes - which is most of what made the block read as a
+     * wall. The set still has to be visible, because
+     * two sets can ask about an axis of the same name and mean different things
+     * by it, but it is a property of the group and not of each row.
+     *
+     * @param {any[]} axes
+     */
+    const axisGroups = (/** @type {any[]} */ axes) => {
+      /** @type {Map<string, any[]>} */
+      const bySet = new Map();
+      for (const a of axes) {
+        const at = bySet.get(a.set);
+        if (at === undefined) {
+          bySet.set(a.set, [a]);
+        } else {
+          at.push(a);
+        }
+      }
+      return [...bySet.values()]
+        .map(
+          (group) => `<div class="axis-set">
+            <div class="axis-set-name">${esc(group[0].setName)}</div>
+            ${group.map(axisLine).join("")}
+          </div>`
+        )
+        .join("");
+    };
 
     /*
      * The axis over the rounds, and the one block on this page that only appears
@@ -502,10 +574,16 @@ async function personPage(id) {
                   (/** @type {any} */ pt) => `<div class="line${pt.asked ? "" : " dim"}">
                     <span class="line-when">${
                       pt.asked
-                        ? words.assessmentAxisMean(Number(pt.mean).toFixed(1), Number(pt.n))
+                        ? `${words.assessmentAxisMean(Number(pt.mean).toFixed(1))} ${
+                            words.assessmentAxisOutOf
+                          }`
                         : words.assessmentSeriesNotAsked
                     }</span>
-                    <span class="line-text">${esc(pt.day)}</span>
+                    <span class="line-text">${esc(pt.day)}${
+                      pt.asked
+                        ? `<span class="src">${words.assessmentAxisCount(Number(pt.n))}</span>`
+                        : ""
+                    }</span>
                     ${
                       pt.asked && pt.assessors.length > 0
                         ? `<span class="line-note">${esc(
@@ -540,7 +618,7 @@ async function personPage(id) {
               ? ""
               : `<p class="card-why warn-text">${words.assessmentRoundSilent(Number(round.silent))}</p>`
           }
-          ${(Array.isArray(round.byAxis) ? round.byAxis : []).map(axisLine).join("")}
+          ${axisGroups(Array.isArray(round.byAxis) ? round.byAxis : [])}
           ${(Array.isArray(round.answers) ? round.answers : []).map(answerLine).join("")}
         </div>`
       )
@@ -568,7 +646,7 @@ async function personPage(id) {
       }</p>
       ${doubles ? `<div class="prep-block"><h3 class="prep-head">${words.assessmentDoubleTitle}</h3>${doubles}</div>` : ""}
       ${offerBlock}
-      ${(Array.isArray(rated.byAxis) ? rated.byAxis : []).map(axisLine).join("")}
+      ${axisGroups(Array.isArray(rated.byAxis) ? rated.byAxis : [])}
       <div class="block-title block-title-second">${esc(words.assessmentRounds)}</div>
       <p class="card-why dim">${words.assessmentRoundsWhy}</p>
       ${roundBlocks}

@@ -2713,6 +2713,176 @@ kbd {
  * bar.
  */
 /*
+ * The reasoning behind a decision, folded behind its own first line.
+ *
+ * Every card opened with all of it - eight or ten lines, again with the rejected
+ * alternative under it, on every card - so the decisions themselves, which is
+ * what a reader is scanning for, were the smallest thing on the page.
+ *
+ * The marker is the same triangle the observation folds use, and it is placed
+ * the same way: in the flex row rather than as the platform's, so it lines up
+ * with the text beside it. `position: static` for the same reason as there - the
+ * severity bar declares `position: absolute` on every `::before`, and without
+ * winning that back the triangle pins itself to the corner.
+ */
+.why-fold {
+  margin: var(--sp-label) 0 0;
+}
+
+.why-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-label);
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-dim);
+  font-size: var(--t-body);
+  line-height: 1.5;
+}
+
+.why-summary::-webkit-details-marker {
+  display: none;
+}
+
+.why-summary::before {
+  content: "";
+  position: static;
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid var(--text-faint);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 120ms ease;
+}
+
+.why-fold[open] > .why-summary::before {
+  transform: rotate(90deg);
+}
+
+/*
+ * One line, guaranteed. The handle is already cut to the measure; this is the
+ * net under it, so a single unbroken word or a narrow window cannot wrap the
+ * summary to two lines and give back the wall.
+ */
+.why-handle {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/*
+ * One label per state. Closed, the handle is the first line of what is behind
+ * it; open, that line sits directly underneath and reading it twice reads as a
+ * bug, so the plain word takes over and the row stays a control with something
+ * in it.
+ */
+.why-fold[open] > .why-summary > .why-handle,
+.why-fold:not([open]) > .why-summary > .why-label {
+  display: none;
+}
+
+.why-label {
+  font-size: var(--t-micro);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.why-body > .card-why:first-child {
+  margin-top: 0;
+}
+
+/*
+ * A score, made into something that can be read without reading.
+ *
+ * The row used to open with "4.0 av 5, n=1" in one grey monospace run: the only
+ * thing worth looking at, at the same weight and colour as its own footnote, on
+ * every line. A page of those is the grey field he described.
+ *
+ * Now the figure carries the weight, "av 5" sits under it small, the count moves
+ * to the right with the spread, and five pips give the shape of the answer at a
+ * glance.
+ *
+ * Deliberately not coloured by value. A red 2 and a green 5 beside a colleague's
+ * name is the tool passing judgement in the margin - and on this scale a 3 is
+ * defined as "delivers to plan", which is good, so any ramp from red to green
+ * would be saying something false before a word had been read.
+ */
+.axis-line {
+  align-items: center;
+  gap: var(--sp-item);
+}
+
+.axis-score {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-sub);
+  min-width: 4.2rem;
+}
+
+.axis-mean {
+  font-size: var(--t-title);
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.axis-of {
+  font-size: var(--t-micro);
+  color: var(--text-faint);
+}
+
+.pips {
+  flex: none;
+  display: flex;
+  gap: var(--sp-sub);
+  align-items: center;
+}
+
+.pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--surface-2);
+}
+
+/*
+ * One neutral ink for a filled pip, and a dimmer one for the half step. The
+ * half exists because a mean of 3.4 on five whole pips would otherwise round
+ * away the only part of the figure that came from more than one answer.
+ */
+.pip.on {
+  background: var(--text-dim);
+}
+
+.pip.half {
+  background: var(--text-faint);
+}
+
+/*
+ * The set, named once over the axes that belong to it.
+ *
+ * It used to repeat under every axis - the same grey line three times under
+ * three axes - which was most of what made the block a wall. It still has to be
+ * visible, because two sets can ask about an axis of the same name and mean
+ * different things by it, but that is a fact about the group and not about each
+ * row.
+ */
+.axis-set + .axis-set {
+  margin-top: var(--sp-item);
+}
+
+.axis-set-name {
+  font-size: var(--t-micro);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: var(--sp-sub);
+}
+
+/*
  * The stamp saying a row is not current, on the row rather than under it.
  *
  * Its own flex item at a fixed size, so it survives the two things that clip a
@@ -2962,6 +3132,22 @@ kbd {
  * window they stack without a media query. The basis is what decides the wrap,
  * so it is the number to change if the pairing is wrong.
  */
+/*
+ * The second heading inside the roster, which had no air above it at all.
+ *
+ * `.around-head` was in the markup with no rule behind it, so it took only
+ * `.prep-head` - which has a bottom margin and no top one, because as the FIRST
+ * thing in a block it never needed one. This one is not first: it follows the
+ * team grid, and a label reads as belonging to whatever it is nearest, so it sat
+ * against the grid as though it were a caption for it.
+ *
+ * The heading-gap check did not catch it because it only looked at `.group`
+ * elements, and the roster is a `.roster-block`. It looks at both now.
+ */
+.around-head {
+  margin-top: var(--sp-block);
+}
+
 .band {
   display: flex;
   flex-wrap: wrap;

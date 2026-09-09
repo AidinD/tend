@@ -129,25 +129,71 @@ function entry(d) {
  * matters in a year. A record that cannot be read by somebody who was not there
  * is not worth keeping.
  *
+ * ## The reasoning sits behind the line that names it
+ *
+ * Every card used to open with all of it: eight or ten lines of prose, again
+ * with the rejected alternative under it, on every card on the page. The
+ * decision itself - the one thing somebody scanning is looking for - was then
+ * the smallest thing on screen, and the page read as a wall of grey.
+ *
+ * Nothing is summarised and nothing is dropped. The first line of the reasoning
+ * stands as the handle and the rest is one click away, which is the shape the
+ * observations arrived at for exactly this problem on a person's page.
+ *
+ * `missing` stays outside the fold. It is the one line that asks for something,
+ * and a warning behind a click is a warning nobody reads.
+ *
+ * The colon and the space in the labels below are IN the text, not added by the
+ * stylesheet. These lines are selectable, and a label placed with `margin-right`
+ * copies out as "ConsultedTestperson" - the styling would be doing work the
+ * words then cannot do on their own. It is also what a check here reads, and a
+ * check that has to learn about a span to find a name is measuring the markup
+ * rather than the behaviour.
+ *
  * @param {any} d
  */
 function body(d) {
+  const reasoning = [
+    d.because ? `<p class="card-why">${esc(d.because)}</p>` : "",
+    d.rejected
+      ? `<p class="card-why dim"><span class="inline-label">${words.rejectedLabel}</span> ${esc(d.rejected)}</p>`
+      : "",
+    d.consulted.length > 0
+      ? `<p class="card-why dim"><span class="inline-label">${words.consultedLabel}</span> ${esc(d.consulted.join(", "))}</p>`
+      : ""
+  ]
+    .filter((part) => part !== "")
+    .join("");
+
+  const missing =
+    d.missing.length > 0
+      ? `<p class="card-why warn-text">${words.missing(esc(d.missing.join(words.missingJoin)))}</p>`
+      : "";
+
+  if (reasoning === "") {
+    return missing;
+  }
+
   return `
-    ${d.because ? `<p class="card-why">${esc(d.because)}</p>` : ""}
-    ${
-      /*
-       * The colon and the space are IN the text, not added by the stylesheet.
-       *
-       * These lines are selectable, and a label placed with `margin-right`
-       * copies out as "ConsultedTestperson" - the styling would be doing work
-       * the words then cannot do on their own. It is also what a check here
-       * reads, and a check that has to learn about a span to find a name is
-       * measuring the markup rather than the behaviour.
-       */ ""
-    }
-    ${d.rejected ? `<p class="card-why dim"><span class="inline-label">${words.rejectedLabel}</span> ${esc(d.rejected)}</p>` : ""}
-    ${d.consulted.length > 0 ? `<p class="card-why dim"><span class="inline-label">${words.consultedLabel}</span> ${esc(d.consulted.join(", "))}</p>` : ""}
-    ${d.missing.length > 0 ? `<p class="card-why warn-text">${words.missing(esc(d.missing.join(words.missingJoin)))}</p>` : ""}`;
+    <details class="why-fold">
+      <summary class="why-summary">
+        ${
+          /*
+           * Two labels, one for each state. Closed, the handle IS the first line
+           * of the paragraph underneath, which is what makes the fold worth
+           * opening. Open, that line would be read twice in a row - so it gives
+           * way to the plain word for what is now on screen, and the row stays a
+           * control with something in it rather than a bare triangle.
+           */ ""
+        }
+        <span class="why-handle">${esc(
+          words.whyHandle(String(d.because ?? "").trim() === "" ? words.whyFold : d.because)
+        )}</span>
+        <span class="why-label">${esc(words.whyFold)}</span>
+      </summary>
+      <div class="why-body">${reasoning}</div>
+    </details>
+    ${missing}`;
 }
 
 /**
