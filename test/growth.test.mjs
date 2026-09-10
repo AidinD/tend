@@ -25,6 +25,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 
 import * as api from "../src/service/api.js";
+import { callTool } from "../src/mcp/tools.js";
 import { openStore } from "../src/storage/store.js";
 import { prep } from "../src/service/prep.js";
 import { DAY_MS } from "../src/domain/time.js";
@@ -770,6 +771,36 @@ describe("who else hears about it", () => {
     ok(api.logGrowthNote(store, { growth: id, observed: true, tell: manager.id, note: "chaired it", now: NOW }));
     const seen = ok(api.growth(store, "Halvar", NOW));
     assert.deepEqual(seen.threads[0].told, ["Ingeborg"]);
+  });
+
+  it("and no agent can set it, because the promise to tell them is the window's", () => {
+    /*
+     * Found on 2026-09-10 while auditing every tool that spreads its arguments.
+     * `tell` was never declared on `tend_log_growth_note`, and `callTool` does
+     * not validate against a schema - so it was reachable, undeclared, and
+     * nobody had decided it should be.
+     *
+     * Two reasons it stays shut. It records who OUTSIDE the conversation was
+     * told about somebody's development, which is a claim about a third party's
+     * knowledge on the most sensitive surface here after assessments. And it
+     * would be half the behaviour: the promise to actually tell them is made by
+     * the window's own action, not by this function, so an agent setting it
+     * would record that somebody was told and arrange nothing.
+     *
+     * Checked on what a call does rather than on the schema, which is the part
+     * the schema cannot enforce.
+     */
+    const manager = ok(api.people(store, NOW, "own-manager"))[0];
+    const out = callTool(
+      store,
+      "tend_log_growth_note",
+      { growth: id, observed: true, note: "chaired it", tell: manager.id },
+      NOW
+    );
+    assert.ok(!(/** @type {any} */ (out).error), `the note itself was refused: ${JSON.stringify(out)}`);
+
+    const seen = ok(api.growth(store, "Halvar", NOW));
+    assert.deepEqual(seen.threads[0].told, [], "an agent recorded who was told");
   });
 
   it("lists each person once however many times they were told", () => {

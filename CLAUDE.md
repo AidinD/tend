@@ -77,6 +77,15 @@ cannot be read - "nothing is open" and "I could not find Jot" are different
 facts, and rendering them identically is the way a broken integration hides for
 weeks.
 
+**A tool's schema is documentation, not a gate.** `callTool` does not validate
+arguments against `inputSchema`, so `additionalProperties: false` stops nothing
+and a `run` that spreads `{ ...args }` hands the service every key the caller
+sent. Fourteen tools spread. If a service field must stay out of an agent's
+reach, pin it AFTER the spread - `{ ...args, tell: undefined, now }` - the way
+`tend_propose_decision` already pins its status. `test/toolsurface.test.mjs`
+fails when a tool passes a field its schema does not declare, and its allow list
+wants a reason per entry.
+
 **Agents propose decisions; they never record one.** `tend_propose_decision`
 forces `status: "proposed"` inside the tool rather than trusting the caller, and
 there is deliberately no MCP tool that records or accepts one - a test asserts

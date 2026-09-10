@@ -3,6 +3,55 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-10 - A tool accepts what it says it accepts, and a test says so
+
+**Decided.** Every MCP tool that spreads `{ ...args }` was audited against the
+service function it calls. `tell` on `tend_log_growth_note` is pinned off; two
+fields on `tend_propose_decision` are allowed with the reason written down; the
+rest were already covered. `test/toolsurface.test.mjs` now fails if any tool
+passes a field its schema does not declare.
+
+**Why an audit was needed at all.** `callTool` does not validate arguments
+against `inputSchema`, so `additionalProperties: false` is documentation and not
+a gate. Fourteen tools spread, which means fourteen tools hand the service every
+key a caller sent. Found while closing the contact duplication: a window-only
+refusal was about to be guarded by an undeclared field, which an agent could
+therefore have set.
+
+**One real finding: `tell`.** It records who OUTSIDE a conversation was told
+about somebody's development - a claim about a third party's knowledge, on the
+most sensitive surface here after assessments - and it was never declared, so
+nobody had decided it should be reachable. It would also have been half the
+behaviour: the promise to actually tell them is made by the window's own action,
+not by `logGrowthNote`, so an agent setting it would record that somebody was
+told and arrange nothing. Pinned off, with the service's own doc corrected -
+it claimed the function turns `tell` into a promise, and it does not.
+
+**Two findings that were not holes, checked rather than assumed.** On
+`tend_propose_decision`, `decidedAt` and `revisitDays` are reachable and both
+inert: `logDecision` nulls `revisitAt` for a proposal and `revisitStatus`
+returns not-due for one regardless, so no agent can manufacture an overdue
+revisit; and `decideDecision` overwrites `decidedAt` with the moment of
+acceptance, so a backdated proposal cannot pre-start the clock either. Two
+guards, in two places. They are on the allow list with those reasons.
+
+**And one finding that was my own measurement error.** The first pass reported
+`tend_links` as passing an undeclared `person`. Its schema declares it - on a
+single line - and the pattern only knew the one-property-per-line shape. The
+test now reads both shapes and has a calibration case for each, because a
+parser that stops matching would otherwise pass everything silently.
+
+**The allow list has to stay honest in both directions.** A field on it needs a
+reason of more than a few words, and a separate check fails when an allowance
+names a field that is no longer reachable - otherwise the list becomes where
+findings go to be forgotten.
+
+**Source-reading, deliberately.** The mismatch is between two declarations and
+neither is introspectable at runtime. This repo already tests that way where it
+has to: the palette tests parse the stylesheet and the vocabulary test greps the
+views for unread keys. The `tell` refusal is additionally checked on behaviour,
+in `growth.test.mjs`, because that is the half a schema can never enforce.
+
 ## 2026-09-10 - A conversation that is a note belongs to the note
 
 **Decided.** A derived contact resolves its text out of Nib on every read rather

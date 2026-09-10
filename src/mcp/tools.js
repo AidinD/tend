@@ -649,7 +649,20 @@ export const TOOLS = [
       required: ["growth"],
       additionalProperties: false
     },
-    run: (store, args, now) => api.logGrowthNote(store, { ...args, now })
+    /*
+     * `tell` is pinned off, like `anyway` on tend_log_touch and `status` on
+     * tend_propose_decision. `callTool` does not validate against the schema
+     * above, so a field left to the spread is a field an agent can set - and
+     * this one was never declared, so nobody decided it should be reachable.
+     *
+     * Two reasons it stays shut. It records who OUTSIDE the conversation was
+     * told about somebody's development, which is a claim about a third party's
+     * knowledge on the most sensitive surface in the app after assessments. And
+     * it would only be half the behaviour: the window pairs it with a promise to
+     * actually tell them (see `threadTalked`), so an agent setting it would
+     * leave the record saying somebody was told with none of the follow-through.
+     */
+    run: (store, args, now) => api.logGrowthNote(store, { ...args, tell: undefined, now })
   },
   {
     name: "tend_workstreams",

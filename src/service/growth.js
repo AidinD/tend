@@ -352,9 +352,14 @@ export function endThread(store, id, { status, why, said }) {
  * @param {string} [args.note]
  * @param {boolean} [args.observed]
  * @param {string} [args.tell] Who outside the conversation was told, or should be.
- *   Kept on the note as well as turned into a promise, so the record survives the
- *   promise being closed - "I told his manager in May" is the thing a level
- *   conversation next spring rests on.
+ *   Kept on the note so the record survives the promise being closed - "I told
+ *   his manager in May" is the thing a level conversation next spring rests on.
+ *
+ *   The promise itself is made by the caller, not here: `threadTalked` in the
+ *   growth view logs one alongside this. That is worth knowing before reading
+ *   this field as self-contained - writing it without the promise records that
+ *   somebody was told and arranges nothing, which is why the MCP tool pins it
+ *   off rather than passing it through.
  * @param {number} [args.at]
  * @param {number} args.now
  */
