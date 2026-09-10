@@ -655,6 +655,7 @@ export const TOOLS = [
      * above, so a field left to the spread is a field an agent can set - and
      * this one was never declared, so nobody decided it should be reachable.
      *
+     * Settled on 2026-09-10 rather than merely closed: he was asked and said no.
      * Two reasons it stays shut. It records who OUTSIDE the conversation was
      * told about somebody's development, which is a claim about a third party's
      * knowledge on the most sensitive surface in the app after assessments. And

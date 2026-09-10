@@ -773,7 +773,7 @@ describe("who else hears about it", () => {
     assert.deepEqual(seen.threads[0].told, ["Ingeborg"]);
   });
 
-  it("and no agent can set it, because the promise to tell them is the window's", () => {
+  it("and no agent can set it - decided on 2026-09-10, not merely left shut", () => {
     /*
      * Found on 2026-09-10 while auditing every tool that spreads its arguments.
      * `tell` was never declared on `tend_log_growth_note`, and `callTool` does

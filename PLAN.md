@@ -434,6 +434,11 @@ block for the part the notes do not answer.
   `index.json` while the app is running is overwritten by the next click, so
   graduating a principle from Tend would need something the contract does not
   currently offer.
+- ~~**Whether an agent may record who was told about somebody's development.**~~
+  Settled on 2026-09-10: no. `tell` stays off the MCP surface. It is a claim
+  about a third party's knowledge, and the promise to actually tell them is made
+  by the window's action - so an agent setting it would record that somebody was
+  told and arrange nothing.
 - **Whether an agent may mark a decision kept or broken.** Both are in the window
   today and neither is on MCP. A deviation is an assertion about another person -
   the same class of row as writing an assessment, and the equivalent question for

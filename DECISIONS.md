@@ -3,6 +3,36 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-10 - No agent records who was told about somebody's development
+
+**Decided by him, on being asked.** `tell` stays off the MCP surface. It was
+pinned off the same day it was found; what changes is that it is now settled
+rather than closed pending a decision, so the next session does not have to
+re-derive it or ask again.
+
+**What it would have been.** `tell` names somebody OUTSIDE a conversation who was
+told about a colleague's development. That is a claim about a third party's
+knowledge, recorded on the most sensitive surface here after assessments - and it
+was reachable only because `callTool` does not validate against a schema, never
+because anybody decided it should be.
+
+**The half that made it worse.** The promise to actually tell them is created by
+the window's own action, not by `logGrowthNote`. An agent setting `tell` would
+have recorded that somebody was told and arranged nothing - a record of a
+conversation that had not been arranged, which is the shape of claim this app
+refuses everywhere else.
+
+**Same answer as the neighbouring three, and the same reason.** Writing an
+assessment, correcting or erasing an observation, and marking a decision kept or
+broken are all window-only, all because a row that asserts something about
+another person should be written by the person asserting it. This is the fourth
+of that family and the cheapest to get wrong, because nothing about it looked
+like a capability.
+
+**The cost, accepted rather than overlooked.** A session that has just written up
+a 1-1 cannot record that he told somebody's manager, even when he says so in the
+same breath. He types it in the window, where the promise gets made too.
+
 ## 2026-09-10 - A tool accepts what it says it accepts, and a test says so
 
 **Decided.** Every MCP tool that spreads `{ ...args }` was audited against the
