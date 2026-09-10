@@ -1249,6 +1249,24 @@ export const T = {
     logNoteLabel: "En rad, frivilligt",
     logNotePlaceholder: "Vad det handlade om",
     when: "När",
+    /*
+     * A contact the note already recorded, and the one way past the refusal.
+     *
+     * The Nib import owns a conversation that exists as a note - its row resolves
+     * its text out of Nib on every read, so a second row would be the same
+     * afternoon twice with prose about the note copied into Tend.
+     *
+     * But two real conversations of one kind on one day happen, so this asks
+     * rather than forbids. The MCP tool has no way to answer it, which is the
+     * point: an agent cannot tell a second conversation from the note it just
+     * read.
+     */
+    coveredTitle: "Anteckningen har redan den här kontakten",
+    coveredBody:
+      "Samma dag och samma slag finns redan från en anteckning i Nib, och den raden hämtar sin " +
+      "text därifrån - skriv i anteckningen om det är samma samtal. Var det ett ANNAT samtal " +
+      "samma dag är det här rätt.",
+    coveredConfirm: "Det var ett annat samtal",
     logWhenHint: "Bakdatera det om du tar igen.",
     logIt: "Logga",
     loggedToast: "Loggat.",

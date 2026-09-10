@@ -1451,9 +1451,38 @@ export const actions = {
     if (!values) {
       return;
     }
-    if (await act("logTouch", { subject: d.person, ...values }, words.loggedToast)) {
-      refresh();
+    /*
+     * Refused when a note already recorded a contact of this kind that day, and
+     * the refusal is a question rather than a wall: two real conversations of
+     * one kind on one day happen. Asked here and honoured in the service, which
+     * is where the rule has to live - the MCP tool cannot pass `anyway` and so
+     * cannot get past it.
+     */
+    const sent = /** @type {any} */ (
+      await tend.invoke("logTouch", { subject: d.person, ...values })
+    );
+    if (sent?.covered) {
+      const other = await ask({
+        title: words.coveredTitle,
+        body: words.coveredBody,
+        confirm: words.coveredConfirm
+      });
+      if (!other) {
+        return;
+      }
+      if (
+        await act("logTouch", { subject: d.person, ...values, anyway: true }, words.loggedToast)
+      ) {
+        refresh();
+      }
+      return;
     }
+    if (sent?.error) {
+      toast(String(sent.error), "bad");
+      return;
+    }
+    toast(words.loggedToast);
+    refresh();
   },
 
   /** @param {Record<string, string>} d */

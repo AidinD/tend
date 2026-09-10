@@ -3,6 +3,64 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-10 - A conversation that is a note belongs to the note
+
+**Decided.** A derived contact resolves its text out of Nib on every read rather
+than storing it, and `logTouch` refuses a contact of that kind on that day when a
+note already recorded one. The window can override by asking him; no MCP tool
+can.
+
+**The duplication, measured before it was fixed.** Four conversations in five
+days were on the page twice: a short row from the indexer carrying the note's
+TITLE, and a long one from an agent session that had read the same note and
+logged a summary. Neither writer knew about the other. Across all 98 contact rows
+there were three such pairs, plus one pair from two hand writes.
+
+**It was not the import running twice, which is what it looked like.** A derived
+row's id is `nib:<note>:<person>:<kind>` and 0 of 14 derived ids were duplicated;
+0 groups held two derived rows. A repeated import cannot produce a second row.
+
+**Nor was it about WHEN the note is read, which is what it looked like next.** The
+reducer's `create` only fills fields an existing row is MISSING, and the indexer
+only ever takes `note.title` for a contact. So the row can never gain content:
+indexing at creation and indexing a week later produce the same title-only row,
+for ever. That is why the text had to stop being stored rather than be captured
+better.
+
+**Resolved at read, from the preview.** `index.json` carries a 200-character
+preview per note - present on 133 of 135 notes in real data - so one file read
+serves a whole page instead of twenty body files. Filling a note in later simply
+shows up, with nothing to re-index and no cache to invalidate. An unreadable
+notebook falls back to the stored title, so it degrades to yesterday's behaviour
+instead of emptying the row.
+
+**And this is what makes the refusal cost nothing.** Without the enrichment,
+forbidding the agent's summary would trade a duplicate for a permanently thinner
+record - which is what he asked about, and he was right. With it, the row the
+import owns is the better row.
+
+**The refusal is a question, not a wall.** Two real conversations of one kind in
+a day happen, so the window asks and takes his word via `anyway`. The rule lives
+in the service so a second client cannot route around it, and `anyway` is forced
+off in the MCP tool AFTER the spread - the same shape `tend_propose_decision`
+uses for its status, and the shape that actually holds: `callTool` does not
+validate against `additionalProperties`, so a field left to a spread is a field
+an agent can set. That was worth finding on its own; 14 tools spread their args.
+
+**One order is left open on purpose.** An agent logging BEFORE the import runs
+still produces a pair. I built the mirror rule - the import standing down when a
+hand row shares the day - and then reverted it: `shared-meetings.test.mjs`
+already settles which way to fail, towards a duplicate that is on the page and
+can be deleted rather than towards a conversation the app quietly declined to
+record. The import cannot tell a genuine second conversation from the note it is
+about to write. A test holds that case open so the next reader knows it is a cost
+rather than an oversight.
+
+**Rejected: letting the longer text win.** It legitimises prose about a note
+living in Tend's store, against this project's first rule about Nib - and the
+summary would then be the record, with the note it came from no longer the source
+of anything.
+
 ## 2026-09-10 - The principles he is practising are on Now, as their own block
 
 **Decided.** Now carries a block of the principles flagged open in Nib, read

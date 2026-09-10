@@ -15,6 +15,7 @@
 
 import { isArchived } from "../domain/archive.js";
 import { CONTACT_KINDS, kindsFor, subjectOf } from "../domain/contact.js";
+import { derivedTouch } from "./nib.js";
 import { isRelationIn, relationsIn } from "../domain/halves.js";
 import { MISTAKE_WINDOW_MS, removableAsMistake } from "../domain/observations.js";
 import { namedStakes } from "../domain/stakes.js";
@@ -377,9 +378,12 @@ export function resolvePromise(store, id, as = "resolved") {
  * @param {string} args.kind
  * @param {string} [args.note]
  * @param {number} [args.at]
+ * @param {boolean} [args.anyway] Log it even though a note already recorded a
+ *   contact of this kind on this day. The window offers this after asking; the
+ *   MCP tool does not accept it.
  * @param {number} args.now
  */
-export function logTouch(store, { subject, kind, note, at, now }) {
+export function logTouch(store, { subject, kind, note, at, anyway, now }) {
   const asked = String(kind ?? "").trim();
   if (!asked) {
     return { error: "A contact needs a kind, e.g. one-to-one, second-hand, sideways, check-in." };
@@ -441,6 +445,62 @@ export function logTouch(store, { subject, kind, note, at, now }) {
         "Den dagen har inte kommit än. En kontakt är en registrering av något som hänt, så ett " +
         "möte i kalendern kan inte uppfylla en takt - logga den när den ägt rum, eller backdatera."
     };
+  }
+
+  /*
+   * A conversation the note already recorded is not logged twice.
+   *
+   * ## The duplication this closes
+   *
+   * The Nib indexer writes one contact per attendee per note, keyed by the note
+   * id, and its text is the note's TITLE. An agent session reading the same note
+   * would then log a SECOND contact carrying a summary, and neither writer knew
+   * about the other: four conversations in five days were on the page twice, one
+   * short row and one long one, for the same afternoon.
+   *
+   * So the note owns that slot. The import is the writer for a conversation that
+   * exists as a note, and its row now resolves its text out of Nib on every read
+   * - see `notePreviews` - so standing down here costs nothing that used to be
+   * gained by writing over it.
+   *
+   * ## Why the day and not the instant
+   *
+   * The derived row is dated to the note, and a hand-logged one to whenever the
+   * conversation is being written up. Matching on the instant would match
+   * nothing, and matching on the note is impossible: a hand-logged contact
+   * carries no note reference, which is the whole reason this could not be seen
+   * before.
+   *
+   * ## Refused rather than merged, and `anyway` is the way past it
+   *
+   * Two real conversations of one kind on one day happen - two casual chats with
+   * somebody in a day is ordinary - so this cannot simply be a hard rule. It is
+   * a refusal the WINDOW can override by asking him, and the MCP tool cannot:
+   * `tend_log_touch` does not accept `anyway` and does not offer it. The rule
+   * lives here rather than in the tool definition so a second client cannot
+   * route around it, and the override is a field rather than a caller identity
+   * for the same reason.
+   */
+  if (anyway !== true) {
+    const day = new Date(when).toISOString().slice(0, 10);
+    const already = store.rows("touches").find((t) => {
+      if (String(t.subject) !== String(found.row.id) || String(t.kind) !== asked) {
+        return false;
+      }
+      if (derivedTouch(t) === null) {
+        return false;
+      }
+      return new Date(Number(t.at ?? 0)).toISOString().slice(0, 10) === day;
+    });
+    if (already) {
+      return {
+        error:
+          `Den ${day} finns redan en ${asked} med ${found.row.name} som kommer från en ` +
+          `anteckning i Nib, och den hämtar sin text därifrån. Skriv i anteckningen i stället ` +
+          `- var det ett annat samtal samma dag, logga det med anyway.`,
+        covered: String(already.id)
+      };
+    }
   }
 
   const id = store.create("touches", {

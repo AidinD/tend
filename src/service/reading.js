@@ -20,6 +20,7 @@ import { archivedIds, isArchived } from "../domain/archive.js";
 import { contactSummary } from "../domain/contact.js";
 import { personBlocksIn, relationsIn } from "../domain/halves.js";
 import { removableAsMistake, superseded } from "../domain/observations.js";
+import { derivedTouch, notePreviews } from "./nib.js";
 import { myAttention } from "../domain/myattention.js";
 import { availability } from "../domain/people.js";
 import { openPromises } from "../domain/promises.js";
@@ -204,6 +205,21 @@ export function person(store, query, now) {
    */
   const allTouches = store.rows("touches").filter((t) => t.subject === p.id);
 
+  /*
+   * What the notes behind the derived rows actually say, read fresh.
+   *
+   * A contact derived from a note stores only the note's title, and cannot ever
+   * gain more - `create` fills only missing fields, so re-indexing a note that
+   * has since been written out leaves the row as it was. That capped the history
+   * at titles, and the gap got filled by agent sessions logging a second contact
+   * carrying a summary: two rows for one conversation, with prose about a note
+   * copied into Tend.
+   *
+   * Resolved at read and never stored, so filling a note in later just shows up.
+   * Read once for the whole page rather than per row.
+   */
+  const previews = notePreviews();
+
   const history = allTouches
     .slice()
     .sort((a, b) => Number(b.at ?? 0) - Number(a.at ?? 0))
@@ -215,7 +231,22 @@ export function person(store, query, now) {
       kind: t.kind,
       when: agoWords((daysSince(t.at, now) ?? 0)),
       at: t.at ?? null,
-      note: t.note ?? null,
+      /*
+       * The note's own words where there are any, and the stored title where
+       * there are not - a closed notebook degrades the row to what it says
+       * today rather than emptying it.
+       */
+      note: (() => {
+        const derived = derivedTouch(t);
+        if (derived === null) {
+          return t.note ?? null;
+        }
+        const said = previews.get(derived.noteId);
+        return said?.preview || said?.title || (t.note ?? null);
+      })(),
+      /* Whether the words above came from the note or from the stored row, so a
+         reader can tell a resolved row from a stale one. */
+      fromNote: derivedTouch(t) !== null && previews.has(derivedTouch(t)?.noteId ?? ""),
       /*
        * Where the row came from, which the store has always recorded and the
        * page has never been able to say.

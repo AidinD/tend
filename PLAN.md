@@ -422,6 +422,12 @@ block for the part the notes do not answer.
 - **The five proposed duties are still proposals.** `npm run seed` writes them;
   he accepts or declines each in the Role map view. The four judgement questions
   from the research were settled on 2026-08-23 and are recorded in DECISIONS.md.
+- **Whether an agent logging a contact before the import runs should be closed
+  too.** The refusal covers the common order - the note is indexed, then an agent
+  reads it - and leaves the reverse producing a pair. Closing it would mean the
+  import declining to record a conversation because a hand row shares its day,
+  which is a silent absence, and this repo has already chosen to fail towards a
+  visible duplicate. Left open with a test naming it.
 - **Whether Tend may ever write a principle's flag back to Nib.** It only reads
   today, and a test holds the notebook byte-identical across a write. This is not
   a larger version of reading: NIB-CONTRACT.md says an external write to

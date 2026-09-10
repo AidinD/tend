@@ -310,7 +310,19 @@ export const TOOLS = [
       required: ["subject", "kind"],
       additionalProperties: false
     },
-    run: (store, args, now) => api.logTouch(store, { ...args, now })
+    /*
+     * `anyway` is forced off AFTER the spread, which is the same shape
+     * `tend_propose_decision` uses to force its status - and it is the shape
+     * that actually holds. `additionalProperties: false` in the schema above is
+     * documentation: `callTool` does not validate against it, so a field left to
+     * the spread is a field an agent can set.
+     *
+     * What it would buy is a way past the refusal that a note already recorded
+     * this conversation. The window may ask him and override; an agent may not,
+     * because it cannot know whether a second contact of one kind on one day is
+     * a real second conversation or the note it just read.
+     */
+    run: (store, args, now) => api.logTouch(store, { ...args, anyway: false, now })
   },
   {
     name: "tend_log_evidence",

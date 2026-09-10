@@ -606,6 +606,69 @@ export function derivedPromise(row) {
 }
 
 /**
+ * What each note says, by id, for resolving a derived row's text at read time.
+ *
+ * ## Why a derived contact does not store its own prose
+ *
+ * A contact derived from a note stores the note's TITLE and nothing else, and it
+ * can never gain more: the reducer's `create` only fills fields an existing row
+ * is missing, so re-indexing a note that has since been written out leaves the
+ * row exactly as it was. Indexing at creation and indexing a week later produce
+ * the same title-only row.
+ *
+ * That left the contact history capped at note titles - four or five words each -
+ * while the conversation itself sat in Nib. The gap got filled by agent sessions
+ * reading the note and logging a SECOND contact carrying a summary, which is two
+ * rows for one conversation and prose about a note copied into Tend's store,
+ * against this project's first rule about Nib.
+ *
+ * So the text is resolved here instead, on every read, and never stored. Filling
+ * a note in later simply shows up, with nothing to re-index and no cache to
+ * invalidate - the same shape the practice block uses for the principle flags.
+ *
+ * ## The preview and not the body
+ *
+ * One file for every note rather than one file per note. `index.json` carries a
+ * 200-character preview per note, which is present on 133 of the 135 notes in
+ * real data and is about a contact row's worth of text; reading twenty body
+ * files to draw one page is a cost with nothing to show for it.
+ *
+ * Unavailable Nib returns an empty map rather than an error. A contact row whose
+ * text cannot be resolved falls back to the title it stored, which is exactly
+ * today's behaviour - so a closed notebook degrades the page instead of emptying
+ * it.
+ *
+ * @param {string} [dir]
+ * @returns {Map<string, { title: string, preview: string }>}
+ */
+export function notePreviews(dir = nibDataDir()) {
+  /** @type {Map<string, { title: string, preview: string }>} */
+  const found = new Map();
+
+  let index;
+  try {
+    /* Every scope: a contact row is bound to a person, and which half the note
+       lives in was decided when the binding was made, not now. */
+    index = readNibIndex(dir, "reference");
+  } catch {
+    return found;
+  }
+  if (!index.available) {
+    return found;
+  }
+
+  for (const category of index.categories ?? []) {
+    for (const note of category.notes ?? []) {
+      found.set(String(note.id), {
+        title: String(note.title ?? ""),
+        preview: String(note.preview ?? "").trim()
+      });
+    }
+  }
+  return found;
+}
+
+/**
  * Index Nib into Tend: one contact per attendee per note, one commitment per
  * open action point.
  *
@@ -918,6 +981,7 @@ export function indexNib(store, { dir, dry = false } = {}) {
             continue;
           }
           takenTouchKeys.add(key);
+
           contacts += 1;
           if (!dry) {
             store.create("touches", {
