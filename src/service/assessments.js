@@ -16,6 +16,7 @@ import {
   axisSeries,
   isWeight,
   occasions,
+  roundSummaries,
   rounds
 } from "../domain/assessments.js";
 import { WEIGHTS } from "../domain/assessments.js";
@@ -451,5 +452,133 @@ export function assessments(store, who, now = Date.now()) {
      */
     offer: roundOffer(store, String(found.person.id), now),
     answers: rows
+  };
+}
+
+/**
+ * The rounds that ran, after their answers were retired.
+ *
+ * Read separately from `assessments` because it answers a different question and
+ * survives when that one has nothing left to answer with: this is his record of
+ * how he worked, not a record about anybody.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ */
+export function roundsRan(store) {
+  return store
+    .rows("roundsRan")
+    .filter((r) => !r._deleted)
+    .map((r) => ({
+      id: String(r.id),
+      day: String(r.day ?? ""),
+      setName: String(r.setName ?? ""),
+      answers: Number(r.answers ?? 0),
+      assessors: Number(r.assessors ?? 0),
+      people: Number(r.people ?? 0),
+      silent: Number(r.silent ?? 0),
+      retiredAt: Number(r.retiredAt ?? 0)
+    }))
+    .sort((a, b) => b.day.localeCompare(a.day));
+}
+
+/**
+ * Retire the answers and keep the rounds - alternative B, the day the job ends.
+ *
+ * ## What it does, in order
+ *
+ * Writes one `roundsRan` row per (day, question set) from the answers as they
+ * stand, then blanks every assessment's fields and tombstones it. The summaries
+ * are written FIRST and deliberately: if the second half fails halfway the
+ * record of what happened exists, which is the direction to fail in - the
+ * alternative is scores gone and no trace that anything was ever run.
+ *
+ * ## What survives, and what does not
+ *
+ * The day, the set, and how many answered. No person, no assessor, no score, no
+ * note, no weight. See `roundSummaries` for why the subject goes too.
+ *
+ * ## The limit this cannot get past, stated rather than implied
+ *
+ * `store.remove` is a tombstone: the reducer marks the row deleted and every
+ * read path filters it, but the log is append-only and the original
+ * `assessments.create` event is still in the file with the scores, the notes and
+ * the assessor names in it. Blanking the fields first means a REPLAY of the log
+ * ends with nothing readable - but the bytes of the original event are still on
+ * disk and a reader of the file can see them.
+ *
+ * Nothing here can change that. Removing them from the file is compaction, which
+ * this project refuses on the grounds that it is the only operation that
+ * destroys data; the honest alternative is to export what survives and start a
+ * fresh data directory. That is his call and is not what this does.
+ *
+ * So this makes the numbers unreachable from the app, permanently and by every
+ * path the app has. It does not shred the file, and calling it "deleted" without
+ * that sentence would be the more comfortable lie.
+ *
+ * App only, and irreversible by design - there is no undo, unlike the bulk
+ * archive which promises that nothing is removed.
+ *
+ * @param {import("../storage/store.js").TendStore} store
+ * @param {object} args
+ * @param {number} args.now
+ * @param {boolean} [args.dry] Report what would go without writing.
+ */
+export function retireAssessments(store, { now, dry }) {
+  const live = store.rows("assessments").filter((a) => !a._deleted);
+  const rows = live.map((a) => assessmentStanding(a, now));
+  const summaries = roundSummaries(rows);
+
+  if (dry) {
+    return {
+      dry: true,
+      rounds: summaries.length,
+      answers: live.length,
+      summaries
+    };
+  }
+
+  for (const round of summaries) {
+    /*
+     * A deterministic id, so running this twice cannot write a second copy of
+     * the same round - and so a round retired in an earlier pass is left exactly
+     * as it was rather than gaining a new stamp.
+     */
+    store.create("roundsRan", {
+      id: `ran:${round.day}:${round.set}`,
+      day: round.day,
+      setName: round.setName,
+      answers: round.answers,
+      assessors: round.assessors,
+      people: round.people,
+      silent: round.silent,
+      retiredAt: now
+    });
+  }
+
+  for (const row of live) {
+    /*
+     * Blanked before it is tombstoned. A tombstone keeps the row's fields, so
+     * without this the scores would still be in the reduced state behind a
+     * `_deleted` flag - one careless read away from the page. Blanking makes a
+     * replay end with nothing readable; see the header for what it still cannot
+     * do about the bytes already in the file.
+     */
+    store.update("assessments", String(row.id), {
+      assessor: null,
+      assessorRole: null,
+      assessorWeight: "unset",
+      weighWhy: null,
+      scores: [],
+      note: null
+    });
+    store.remove("assessments", String(row.id));
+  }
+
+  return {
+    rounds: summaries.length,
+    answers: live.length,
+    /* Said back so the confirmation can repeat it, and so a caller cannot
+       report success over a store that had nothing in it. */
+    kept: summaries.map((r) => `${r.day} ${r.setName}`)
   };
 }

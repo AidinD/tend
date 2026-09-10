@@ -318,7 +318,22 @@ export const COLLECTIONS = /** @type {const} */ ([
    * habit is a deadline on something that does not have one, and would turn a
    * practice into a chore. A count is not a clock.
    */
-  "practiceMarks"
+  "practiceMarks",
+  /**
+   * That a feedback round ran, once its answers are gone.
+   *
+   * Alternative B on the assessments epic, chosen 2026-09-10: the day he leaves
+   * the job the scores go and the fact a round happened stays. A round was
+   * derived by grouping answers, so deleting the answers deleted the rounds with
+   * them - this is the row that is materialised instead, at the moment of
+   * retirement and never before.
+   *
+   * Carries a day, a question set and counts. No person, no assessor, no score,
+   * no note, no weight: what he keeps is his own record as a leader, and keeping
+   * the subject would mean carrying "this named colleague was assessed" out of a
+   * job he has left. `domain/assessments.js` has the rest.
+   */
+  "roundsRan"
 ]);
 
 /**

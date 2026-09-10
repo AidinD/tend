@@ -453,14 +453,13 @@ block for the part the notes do not answer.
 - **Whether a family of related projects is one row each or one row with
   sub-rows.** When staffing moves between them a fixed schedule per project is
   probably wrong, and "longest untouched" is the better model.
-- **What happens to a colleague's ratings the day he leaves the job.** His
-  reading of how he leads is his; named colleagues' scores from an employer are
-  not as obviously his. The rows are separable by construction - their own
-  collection, with `archiveEverythingActive` as the existing hook - and the
-  three candidates are written on the epic rather than chosen: they go with him
-  as his own record of judgement calls; the scores go and the fact a round
-  happened stays; or the whole collection goes and the method is what he keeps.
-  His call.
+- ~~**What happens to a colleague's ratings the day he leaves the job.**~~
+  Settled on 2026-09-10: alternative B. The assessments are retired and one row
+  per (day, question set) survives with the day, the set and how much came back -
+  no person, no assessor, no score, no note, no weight. Its own button in
+  Settings, apart from the bulk archive, because that one promises nothing is
+  removed. The log still holds the original events; removing those means
+  compaction, which this project refuses, or a fresh data directory.
 - ~~**Whether an agent may transcribe a form response into an assessment.**~~
   Settled on 2026-09-09: no. Reading stays open, writing stays closed, and the
   tests that guarded the question now guard the decision. The cost is accepted

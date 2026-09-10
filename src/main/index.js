@@ -184,6 +184,15 @@ const OPERATIONS = {
   markPractice: (/** @type {any} */ a) => api.markPractice(store, { ...a, now: a.now ?? Date.now() }),
   unmarkPractice: (/** @type {any} */ a) => api.unmarkPractice(store, a.id),
 
+  /*
+   * The day the job ends. Its own operation and not part of the bulk archive,
+   * which promises that nothing is removed and offers an undo - this removes and
+   * cannot be undone.
+   */
+  roundsRan: () => api.roundsRan(store),
+  retireAssessments: (/** @type {any} */ a) =>
+    api.retireAssessments(store, { now: a?.now ?? Date.now(), dry: Boolean(a?.dry) }),
+
   questionSets: () => api.questionSets(store),
   addQuestionSet: (/** @type {any} */ a) =>
     api.addQuestionSet(store, { ...a, now: a.now ?? Date.now() }),

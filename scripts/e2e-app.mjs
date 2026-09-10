@@ -6962,6 +6962,83 @@ try {
     }
   });
 
+  step("Retiring the rounds is its own step, and says what it cannot do");
+
+  /*
+   * Alternative B, the day the job ends. What is driven here is the part a
+   * service test cannot see: that this is a SEPARATE card and button from the
+   * bulk archive, which promises nothing is removed and offers an undo - one
+   * press doing both would make that promise false - and that the card states
+   * the limit rather than only the confirmation doing so.
+   */
+  await page.click('.nav-btn[data-view="settings"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"archiveEverything\"]') !== null",
+    "the leaving section"
+  );
+
+  const leaving = JSON.parse(String(await page.evaluate(`(() => {
+        const archive = document.querySelector('[data-act="archiveEverything"]');
+        const retire = document.querySelector('[data-act="retireAssessments"]');
+        const archiveCard = archive === null ? null : archive.closest('.card');
+        const retireCard = retire === null ? null : retire.closest('.card');
+        return JSON.stringify({
+          hasArchive: archive !== null,
+          hasRetire: retire !== null,
+          /* Two cards, not two buttons on one. */
+          separate: archiveCard !== null && retireCard !== null && archiveCard !== retireCard,
+          archiveText: archiveCard === null
+            ? ''
+            : archiveCard.textContent.replace(/\\s+/g, ' ').trim(),
+          retireText: retireCard === null
+            ? ''
+            : retireCard.textContent.replace(/\\s+/g, ' ').trim()
+        });
+      })()`)));
+
+  check("retiring the rounds is its own card, apart from the archive", () => {
+    if (leaving.hasArchive !== true) {
+      throw new Error("the bulk archive is gone from Settings");
+    }
+    if (leaving.hasRetire !== true) {
+      throw new Error("there is no way to retire the rounds - a round was entered earlier");
+    }
+    if (leaving.separate !== true) {
+      throw new Error("the two are on one card, so one press would do both");
+    }
+  });
+
+  check("and the archive still promises that nothing is removed", () => {
+    /*
+     * The promise the new step must not quietly break. If retiring ever moves
+     * onto that card, this is the check that says so.
+     */
+    if (!/Inget tas bort/.test(String(leaving.archiveText))) {
+      throw new Error(`the archive no longer promises it: "${leaving.archiveText}"`);
+    }
+    if (/pensioner/i.test(String(leaving.archiveText))) {
+      throw new Error("the archive card now talks about retiring, which is the destructive step");
+    }
+  });
+
+  check("the card says what survives and what it cannot get past", () => {
+    /*
+     * Both halves in the open, on the card rather than only in the dialog.
+     * Somebody deciding whether to press it is exactly the person who needs to
+     * know the log still holds the original event.
+     */
+    const text = String(leaving.retireText);
+    if (!/hur många som svarade/.test(text)) {
+      throw new Error(`the card does not say what survives: "${text}"`);
+    }
+    if (!/append-only/.test(text) || !/ligger kvar i filen/.test(text)) {
+      throw new Error(`the card does not state the limit: "${text}"`);
+    }
+    if (!/komprimering/.test(text)) {
+      throw new Error("the card does not say what removing them for real would take");
+    }
+  });
+
   step("Finishing up");
 
   /*

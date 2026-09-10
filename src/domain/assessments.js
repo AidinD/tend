@@ -461,6 +461,84 @@ export function axisSeries(rows) {
 }
 
 /**
+ * What survives a round once the answers are gone.
+ *
+ * ## Why this shape exists
+ *
+ * The day he leaves the job, the scores go and the fact a round happened stays -
+ * alternative B on the epic, chosen 2026-09-10. That needs a round that can
+ * outlive its own answers, and until now there was no such thing: a round is
+ * derived by grouping answers, so deleting the answers deleted the rounds with
+ * them. This is the row that is materialised instead.
+ *
+ * ## What it deliberately does not carry
+ *
+ * No person, no assessor names, no scores, no notes, no weights. Just that a
+ * round on a question set ran on a day, and how much came back.
+ *
+ * B's own wording lists the date, the set and how many answered - and no
+ * subject. That is the right reading rather than an omission: what he keeps is
+ * his own record as a leader, which is that he ran rounds, this often, with
+ * these sets. Keeping the person would mean carrying "this named colleague was
+ * assessed" out of a job he has left, which is a fact about them and the exact
+ * thing alternative B exists to stop him taking with him.
+ *
+ * People are counted, not named, because "a round covering four people" is about
+ * how he worked and "a round covering her" is about her.
+ *
+ * @param {ReturnType<typeof assessmentStanding>[]} rows
+ * @returns {{ day: string, set: string, setName: string, answers: number,
+ *   assessors: number, people: number, silent: number }[]}
+ */
+export function roundSummaries(rows) {
+  /** @type {Map<string, { day: string, set: string, setName: string,
+   *   answers: number, assessors: Set<string>, people: Set<string>, silent: number }>} */
+  const groups = new Map();
+
+  for (const row of rows) {
+    if (row.at === 0) {
+      continue;
+    }
+    const day = new Date(row.at).toISOString().slice(0, 10);
+    const key = `${day}\u0000${row.set}`;
+    const at = groups.get(key) ?? {
+      day,
+      set: row.set,
+      setName: row.setName,
+      answers: 0,
+      assessors: new Set(),
+      people: new Set(),
+      silent: 0
+    };
+    at.answers += 1;
+    if (row.assessor !== "") {
+      at.assessors.add(row.assessor);
+    }
+    if (row.person !== "") {
+      at.people.add(row.person);
+    }
+    if (!row.saidAnything) {
+      at.silent += 1;
+    }
+    groups.set(key, at);
+  }
+
+  return [...groups.values()]
+    .map((g) => ({
+      day: g.day,
+      set: g.set,
+      setName: g.setName,
+      answers: g.answers,
+      /* Counts, and the Sets never leave this function - so no name can reach a
+         stored row by accident later. */
+      assessors: g.assessors.size,
+      people: g.people.size,
+      silent: g.silent
+    }))
+    .sort((a, b) => b.day.localeCompare(a.day) || a.setName.localeCompare(b.setName));
+}
+
+/**
  * Assessments that look like the same assessor answering twice about the same
  * person on the same day.
  *

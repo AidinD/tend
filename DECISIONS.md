@@ -3,6 +3,52 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-10 - The scores go, the fact a round ran stays
+
+**Decided by him**, out of the three alternatives written on the epic and left
+open since 2026-09-07. Alternative B: on leaving the job the assessments are
+retired and one `roundsRan` row per (day, question set) survives with the day,
+the set and how much came back.
+
+**It is the alternative that needed building rather than choosing.** A round was
+DERIVED by grouping answers, so deleting the answers would have deleted the
+rounds with them - the epic said as much when it was written, which is why it
+asked to be settled before the button was ever pressed. The surviving row is
+materialised at the moment of retirement and never before.
+
+**A sub-decision inside B that he did not specify: the subject goes too.** B's
+own wording lists the date, the set and how many answered, and names no subject.
+That reads as deliberate rather than as an omission - what he keeps is his own
+record as a leader, which is that he ran rounds, this often, with these sets.
+Keeping the person would mean carrying "this named colleague was assessed" out of
+a job he has left, which is the fact about them that B exists to stop him taking.
+So people are counted, never named, and the Sets that do the counting never leave
+the function.
+
+**Its own button, deliberately not the bulk archive's.** That one says "inget tas
+bort" and offers a single undo. This removes and cannot be undone, and one press
+doing both would make the archive's promise false. Two cards, and an app check
+asserts they stay two and that the archive's wording still promises what it
+promises.
+
+**The limit, stated on the card and not only in the confirmation.** `remove` is a
+tombstone and the log is append-only. The fields are blanked before the tombstone
+so a replay ends with nothing readable and no read path in the app can reach a
+score - and the original `assessments.create` event is still in the file with the
+numbers, the notes and the assessor names in it.
+
+Nothing here can change that. Removing them from the file is compaction, which
+this project refuses on the grounds that it is the only operation that destroys
+data; the honest alternative is exporting what survives and starting a fresh data
+directory, which is a separate decision and not what this does. A test asserts
+the log still holds the original event, and says in its own failure message that
+if that ever stops being true the wording in the service and in Settings has to
+change with it.
+
+Calling it "deleted" without that paragraph would have been the more comfortable
+lie, and the card in Settings carries it in full rather than burying it in a
+dialog somebody clicks past.
+
 ## 2026-09-10 - No agent records who was told about somebody's development
 
 **Decided by him, on being asked.** `tell` stays off the MCP surface. It was

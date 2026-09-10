@@ -90,6 +90,12 @@ export {
  * Structure, so the writes are app-only and there is no MCP tool for them - a
  * set decides what a producer is asked about somebody. Reading is open.
  */
+/*
+ * Alternative B on the assessments epic: the scores go, the fact a round ran
+ * stays. App only and irreversible - see retireAssessments.
+ */
+export { retireAssessments, roundsRan } from "./assessments.js";
+
 export {
   addQuestionSet,
   questionSets,

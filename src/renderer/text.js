@@ -2820,6 +2820,56 @@ export const T = {
      * reassurance.
      */
     leavingGroup: "När ett jobb slutar",
+    /*
+     * Retiring the feedback rounds - alternative B, chosen 2026-09-10.
+     *
+     * Its own card and its own button, deliberately NOT folded into the bulk
+     * archive above. That one promises "inget tas bort" and offers an undo; this
+     * removes and cannot be undone, and putting them behind one press would make
+     * the archive's promise false.
+     *
+     * The wording has to carry the limit too. Tombstoning makes the numbers
+     * unreachable from every path the app has, and the original event is still
+     * in the log file - saying "raderas" without that sentence is the more
+     * comfortable lie.
+     */
+    retireTitle: "Pensionera bedömningarna",
+    retireWhy:
+      "För samma ögonblick, men det här är det andra steget och ett annat sorts steg. Siffrorna " +
+      "går; att ronden kördes står kvar - vilken dag, vilket frågeset, hur många som svarade.",
+    retireKeeps:
+      "Kvar blir din egen historik som ledare: att du körde ronder, hur ofta, med vilka set. " +
+      "Ingen person, ingen bedömare, inget betyg, ingen kommentar, ingen tyngd. Att behålla " +
+      "personen vore att bära \"den här kollegan blev bedömd\" ut ur ett jobb du lämnat.",
+    retireLimit:
+      "Ärligt om gränsen: loggen är append-only. Efteråt kan ingenting i appen läsa siffrorna, " +
+      "på någon väg - men den ursprungliga händelsen ligger kvar i filen. Att få bort den kräver " +
+      "antingen komprimering, som det här projektet vägrar eftersom det är den enda operationen " +
+      "som förstör data, eller att exportera det som blir kvar och börja i en ny datamapp.",
+    retireNothing: "Inga bedömningar att pensionera.",
+    /** @param {number} rounds @param {number} answers */
+    retireCount: (rounds, answers) =>
+      `${answers} ${answers === 1 ? "svar" : "svar"} från ${rounds} ${
+        rounds === 1 ? "rond" : "ronder"
+      } skulle pensioneras.`,
+    retireButton: "Pensionera bedömningarna",
+    retireAskTitle: "Pensionera bedömningarna?",
+    /** @param {number} rounds @param {number} answers @param {string} kept */
+    retireAskBody: (rounds, answers, kept) =>
+      `${answers} svar tas bort och kan inte tas tillbaka. Kvar blir ${rounds} ${
+        rounds === 1 ? "rond" : "ronder"
+      }, med dag, frågeset och antal:\n\n${kept}\n\nDet finns ingen Ångra för det här, till ` +
+      `skillnad från arkiveringen ovanför.`,
+    retireConfirm: "Pensionera dem",
+    /** @param {number} rounds @param {number} answers */
+    retiredToast: (rounds, answers) => `${answers} svar borta, ${rounds} ronder kvar.`,
+    retiredGroup: "Ronder du körde",
+    /** @param {number} answers @param {number} assessors @param {number} people */
+    retiredCounts: (answers, assessors, people) =>
+      `${answers} svar från ${assessors} bedömare, om ${people} ${
+        people === 1 ? "person" : "personer"
+      }`,
+
     archiveAllTitle: "Arkivera alla och allt aktivt",
     archiveAllWhy:
       "För det ögonblick ett jobb tar slut. Arkiverar varje person, projekt och arbetsområde som " +

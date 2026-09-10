@@ -32,13 +32,17 @@ const WHERE_FROM = {
 };
 
 export async function render() {
-  const [status, folders, bindings, roster, model, undoable] = await Promise.all([
+  const [status, folders, bindings, roster, model, undoable, pending, ran] = await Promise.all([
     tend.invoke("status"),
     tend.invoke("nibFolders"),
     tend.invoke("sources"),
     tend.invoke("people"),
     modelStatus(),
-    tend.invoke("undoableBulkArchive")
+    tend.invoke("undoableBulkArchive"),
+    /* A dry run, so the card can say what pressing it would take and the button
+       can be absent when there is nothing to take. */
+    tend.invoke("retireAssessments", { dry: true }),
+    tend.invoke("roundsRan")
   ]);
 
   return `
@@ -52,6 +56,7 @@ export async function render() {
     ${modelSection(model)}
     ${dataSection(status)}
     ${archiveSection(undoable)}
+    ${retireSection(pending, Array.isArray(ran) ? ran : [])}
     ${aboutSection(status)}
   `;
 }
@@ -274,6 +279,66 @@ function archiveSection(undoable) {
     </article>
     ${undoCard(undoable)}
   </div>`;
+}
+
+/**
+ * Retiring the feedback rounds, and what survives them.
+ *
+ * Its own card under the same heading rather than another button on the archive
+ * above. The archive promises that nothing is removed and offers an undo; this
+ * removes and cannot be undone, and one press doing both would make that promise
+ * false.
+ *
+ * The count is read live so the button cannot offer to retire nothing, and the
+ * limit is printed on the card rather than only in the confirmation - somebody
+ * deciding whether to press it is the person who needs to know that the log
+ * still holds the original event.
+ *
+ * @param {any} pending
+ * @param {any[]} ran
+ */
+function retireSection(pending, ran) {
+  const rounds = Number(pending?.rounds ?? 0);
+  const answers = Number(pending?.answers ?? 0);
+
+  const kept =
+    ran.length === 0
+      ? ""
+      : `<article class="card">
+          <div class="card-top"><h2 class="card-title">${words.retiredGroup}</h2></div>
+          ${ran
+            .map(
+              (/** @type {any} */ r) => `<div class="line">
+                <span class="line-when">${esc(r.day)}</span>
+                <span class="line-text">${esc(r.setName)}<span class="src">${esc(
+                  words.retiredCounts(
+                    Number(r.answers),
+                    Number(r.assessors),
+                    Number(r.people)
+                  )
+                )}</span></span>
+              </div>`
+            )
+            .join("")}
+        </article>`;
+
+  return `<article class="card">
+      <div class="card-top"><h2 class="card-title">${words.retireTitle}</h2></div>
+      <p class="card-why">${words.retireWhy}</p>
+      <p class="card-why dim">${words.retireKeeps}</p>
+      <p class="card-why warn-text">${words.retireLimit}</p>
+      <div class="card-foot">
+        <span class="src">${
+          answers === 0 ? words.retireNothing : esc(words.retireCount(rounds, answers))
+        }</span>
+        ${
+          answers === 0
+            ? ""
+            : `<button class="act danger" data-act="retireAssessments">${words.retireButton}</button>`
+        }
+      </div>
+    </article>
+    ${kept}`;
 }
 
 /**
@@ -627,6 +692,52 @@ export const actions = {
 
   openData: async () => {
     await act("openDataDir", {});
+  },
+
+  /**
+   * Retire the feedback rounds - alternative B, the day the job ends.
+   *
+   * Confirmed against a dry run rather than against a number the page was drawn
+   * with: the page may have been open a while, and a confirmation that names a
+   * count has to name the count it is about to act on.
+   *
+   * No undo is offered, and the dialog says so. The bulk archive above has one
+   * because nothing it does is destructive; this is the other kind of step and
+   * pretending otherwise in the wording would be the actual failure.
+   */
+  retireAssessments: async () => {
+    const dry = /** @type {any} */ (await tend.invoke("retireAssessments", { dry: true }));
+    if (dry?.error) {
+      toast(String(dry.error), "bad");
+      return;
+    }
+    if (Number(dry?.answers ?? 0) === 0) {
+      toast(words.retireNothing);
+      refresh();
+      return;
+    }
+
+    const kept = (dry.summaries ?? [])
+      .map((/** @type {any} */ r) => `${r.day} - ${r.setName} (${r.answers})`)
+      .join("\n");
+
+    const sure = await ask({
+      title: words.retireAskTitle,
+      body: words.retireAskBody(Number(dry.rounds), Number(dry.answers), kept),
+      confirm: words.retireConfirm,
+      tone: "danger"
+    });
+    if (!sure) {
+      return;
+    }
+
+    const done = /** @type {any} */ (await tend.invoke("retireAssessments", {}));
+    if (done?.error) {
+      toast(String(done.error), "bad");
+      return;
+    }
+    toast(words.retiredToast(Number(done.rounds), Number(done.answers)));
+    refresh();
   },
 
   archiveEverything: async () => {
