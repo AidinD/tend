@@ -1038,24 +1038,6 @@ export const T = {
       "Poängen efter kolon, 1-5. Ta bort en rad som bedömaren hoppade över - en tom rad " +
       "räknas inte som ett svar.",
 
-    /* Defining one. Its own dialog, reached from the picker rather than from a
-       settings page: the moment somebody needs a set is the moment they are
-       entering an answer that has nowhere to go. */
-    setDefineTitle: "Ett frågeset",
-    setDefineIntro:
-      "Vad en sorts bedömare frågas om. En producent, en peer och en art lead ser olika delar " +
-      "av arbetet, så de ska inte få samma frågor. Att skriva om en axel här ändrar vad NÄSTA " +
-      "rond frågar - ronder som redan körts står kvar som de var.",
-    setNameLabel: "Vad ronden heter",
-    setNamePlaceholder: "Producentrond",
-    setDisciplineLabel: "Vilken sorts bedömare",
-    setDisciplinePlaceholder: "producent",
-    setAxesLabel: "Axlarna, en per rad",
-    setAxesHint:
-      "Bara namnet. Vill du ha ankaren eller själva frågan med, skriv den efter ett kolon - " +
-      "den följer med till formuläret men inte in i svaret.",
-    setDefineConfirm: "Spara setet",
-    setDefinedToast: "Frågesetet sparat.",
 
     assessmentSetLabel: "Vilket frågeset",
     assessmentSetPlaceholder: "producentrond",
@@ -2272,6 +2254,61 @@ export const T = {
   },
 
   role: {
+    /*
+     * Question sets: what one kind of assessor is asked about.
+     *
+     * They live here because a set decides what somebody is asked about a
+     * colleague, which is a claim about how the job is evaluated - the same
+     * class of thing as a duty. Until 2026-09-10 the only way in was the picker
+     * that appears while recording an answer, and that picker only exists once
+     * a set does, so from a clean store there was no way to define the first
+     * one at all.
+     */
+    setDefineTitle: "Ett frågeset",
+    setDefineIntro:
+      "Vad en sorts bedömare frågas om. En producent, en peer och en art lead ser olika delar " +
+      "av arbetet, så de ska inte få samma frågor. Att skriva om en axel här ändrar vad NÄSTA " +
+      "rond frågar - ronder som redan körts står kvar som de var.",
+    setNameLabel: "Vad ronden heter",
+    setNamePlaceholder: "Producentrond",
+    setDisciplineLabel: "Vilken sorts bedömare",
+    setDisciplinePlaceholder: "producent",
+    setAxesLabel: "Axlarna, en per rad",
+    setAxesHint:
+      "Bara namnet. Vill du ha ankaren eller själva frågan med, skriv den efter ett kolon - " +
+      "den följer med till formuläret men inte in i svaret.",
+    setDefineConfirm: "Spara setet",
+    setDefinedToast: "Frågesetet sparat.",
+    setsGroup: "Frågeset",
+    setsNote:
+      "Vad en sorts bedömare frågas om. En producent, en peer och en art lead ser olika delar " +
+      "av arbetet, så de ska inte få samma frågor - och axelnamnen är det som gör att nästa " +
+      "rond går att jämföra med den här.",
+    setsEmpty:
+      "Inga frågeset än. Utan ett skrivs axlarna in för hand vid varje svar, och en omskriven " +
+      "axel blir en egen axel med ett enda svar bakom sig.",
+    setsAdd: "Nytt frågeset",
+    /** @param {string} discipline */
+    setFor: (discipline) => `för ${discipline}`,
+    setForNobody: "ingen disciplin angiven",
+    /** @param {number} n */
+    setAxes: (n) => `${n} ${n === 1 ? "axel" : "axlar"}`,
+    setEdit: "Ändra",
+    setRetire: "Pensionera",
+    setUnretire: "Ta tillbaka",
+    setEditTitle: "Ändra frågesetet",
+    setEditIntro:
+      "Det här ändrar vad NÄSTA rond frågar. Ronder som redan körts står kvar precis som de " +
+      "var - ett svar bär sina egna axelnamn, så att skriva om en axel här kan inte nå bakåt.",
+    setEditConfirm: "Spara ändringen",
+    setEditedToast: "Frågesetet ändrat.",
+    /** @param {string} name */
+    setRetireTitle: (name) => `Pensionera ${name}?`,
+    setRetireBody:
+      "Det slutar erbjudas för nya svar och står kvar läsbart - ronder som körts på det " +
+      "namnger det fortfarande. Går att ta tillbaka.",
+    setRetiredToast: "Pensionerat.",
+    setUnretiredToast: "Tillbaka.",
     title: "Rollkarta",
     sub:
       "Vad jobbet kräver av dig, och hur du ligger till mot det. Ändra vad som helst av det - " +

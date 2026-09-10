@@ -9,14 +9,16 @@
 import { act, ask, esc, form, OWN_SOURCE, RELATION_OPTIONS, SUBJECT_KINDS, tend } from "../ui.js";
 import { refresh } from "../app.js";
 import { T } from "../text.js";
+import { actions as setActions, setsBlock } from "./questionsets.js";
 
 const words = T.role;
 
 export async function render() {
-  const [map, questions, topics] = await Promise.all([
+  const [map, questions, topics, sets] = await Promise.all([
     tend.invoke("roleMap"),
     tend.invoke("signals"),
-    tend.invoke("allTopics")
+    tend.invoke("allTopics"),
+    tend.invoke("questionSets")
   ]);
 
   const header = `
@@ -145,6 +147,31 @@ export async function render() {
           </div>`
         : ""
     }
+    ${
+      /*
+       * The question sets, and this is the only way in to the first one.
+       *
+       * "Nytt frågeset..." also lives in the picker that appears while
+       * recording an answer - but that picker only exists once a set does, so
+       * from a clean store there was no way to define one from the window at
+       * all. Recording fell back to typing the axes by hand, which is the thing
+       * sets exist to stop.
+       *
+       * Here rather than in Settings because a set decides what somebody is
+       * asked about a colleague, which is a claim about how the job is
+       * evaluated - the same class of thing as the duties above it.
+       *
+       * Drawn even when it holds nothing, unlike the groups above: an absent
+       * block cannot say what would put something in it, and this is the block
+       * somebody needs before they have anything at all.
+       *
+       * It does sit behind the page having at least one duty, because the view
+       * returns early with only the seed card when the role map is empty. That
+       * is left alone deliberately - the first screen should be about deciding
+       * what the job is, not about how it is evaluated - so the honest claim is
+       * that this is the way in once there is a role map, not from an empty one.
+       */ setsBlock(sets)
+    }
   `;
 }
 
@@ -258,6 +285,9 @@ async function askRelations(values) {
 }
 
 export const actions = {
+  /* Defining, editing and retiring a set are the same everywhere they appear. */
+  ...setActions,
+
   seed: async () => {
     if (await act("seed", {}, words.seededToast)) {
       refresh();

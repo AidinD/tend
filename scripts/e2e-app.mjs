@@ -6009,6 +6009,148 @@ try {
     }
   });
 
+  step("The first question set is definable from the role map");
+
+  /*
+   * The gap this closes: "Nytt frågeset..." lives in the picker that appears
+   * while recording an answer, and that picker only exists once a set does. So
+   * from a store with no sets there was no way to define one from the window at
+   * all, and recording fell back to typing the axes by hand - the thing sets
+   * exist to stop.
+   *
+   * Driven from the role map rather than through the service, which is the whole
+   * point of the step.
+   */
+  await page.click('.nav-btn[data-view="role"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=\"addSet\"]') !== null",
+    "the question sets on the role map"
+  );
+
+  const setsBefore = JSON.parse(String(await page.evaluate(`(() => {
+        const group = document.querySelector('[data-group="sets"]');
+        if (group === null) { return JSON.stringify({ found: false }); }
+        return JSON.stringify({
+          found: true,
+          text: group.textContent.replace(/\\s+/g, ' ').trim(),
+          rows: group.querySelectorAll('.row').length,
+          canAdd: group.querySelector('[data-act="addSet"]') !== null
+        });
+      })()`)));
+
+  check("the role map offers a way in even with no set defined", () => {
+    if (setsBefore.found !== true) {
+      throw new Error("no question-set group on the role map");
+    }
+    if (setsBefore.rows !== 0) {
+      throw new Error(`${setsBefore.rows} sets already exist, so the empty state was not exercised`);
+    }
+    if (setsBefore.canAdd !== true) {
+      throw new Error("the group is there with no way to add anything");
+    }
+  });
+
+  check("and says what having none costs, rather than just being empty", () => {
+    /*
+     * An absent or silent block cannot say what would put something in it, and
+     * this is the block somebody needs before they have anything at all.
+     */
+    if (!/hand|axlar/i.test(String(setsBefore.text))) {
+      throw new Error(`the empty state explains nothing: "${setsBefore.text}"`);
+    }
+  });
+
+  await page.click('[data-act="addSet"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the set dialog");
+  await page.fillDialog({
+    name: "Regirond",
+    discipline: "regissör",
+    axes: "Hantverk: Håller kvaliteten?\nSamarbete"
+  });
+  await sleep(350);
+
+  const setsAfter = JSON.parse(String(await page.evaluate(`(() => {
+        const group = document.querySelector('[data-group="sets"]');
+        const rows = [...group.querySelectorAll('.row')];
+        return JSON.stringify({
+          rows: rows.length,
+          text: rows.map((r) => r.textContent.replace(/\\s+/g, ' ').trim()),
+          canEdit: group.querySelector('[data-act="editSet"]') !== null,
+          canRetire: group.querySelector('[data-act="retireSet"]') !== null
+        });
+      })()`)));
+
+  check("a set defined here shows its axes, its discipline and how many", () => {
+    if (setsAfter.rows !== 1) {
+      throw new Error(`${setsAfter.rows} sets after defining one`);
+    }
+    const [row] = setsAfter.text;
+    for (const want of ["Regirond", "regissör", "2 axlar", "Hantverk", "Samarbete"]) {
+      if (!String(row).includes(want)) {
+        throw new Error(`the row does not say "${want}": "${row}"`);
+      }
+    }
+  });
+
+  check("and can be changed or retired from the same row", () => {
+    /*
+     * Both were in the service and reachable from nowhere. A set nobody can
+     * reword is a set that gets replaced by a second one with a similar name,
+     * which is the drift the whole feature exists to prevent.
+     */
+    if (setsAfter.canEdit !== true) {
+      throw new Error("a set cannot be changed from the role map");
+    }
+    if (setsAfter.canRetire !== true) {
+      throw new Error("a set cannot be retired from the role map");
+    }
+  });
+
+  /*
+   * Retire it again, which does two things at once.
+   *
+   * It drives the retire path end to end - the service had it and nothing could
+   * reach it - and it puts the store back to having no LIVE set, which the step
+   * further down depends on: that one checks the answer form still falls back to
+   * free text when there is nothing to pick, and defining a set here would have
+   * quietly made that check pass over a case it was no longer exercising.
+   */
+  await page.click('[data-act="retireSet"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the retire dialog");
+  await page.click(".dialog [data-confirm]");
+  await sleep(350);
+
+  const retiredSet = JSON.parse(String(await page.evaluate(`(() => {
+        const group = document.querySelector('[data-group="sets"]');
+        const rows = [...group.querySelectorAll('.row')];
+        return JSON.stringify({
+          rows: rows.length,
+          dim: rows.filter((r) => r.matches('.dim')).length,
+          canUnretire: group.querySelector('[data-act="unretireSet"]') !== null,
+          count: (group.querySelector('.group-meta') || {}).textContent.trim()
+        });
+      })()`)));
+
+  check("a retired set stays readable and can be taken back", () => {
+    /*
+     * Retired rather than deleted: an answer names its set, and a round from two
+     * years ago should still say which questions it was. The count beside the
+     * heading is of LIVE sets, so it drops while the row stays.
+     */
+    if (retiredSet.rows !== 1) {
+      throw new Error(`${retiredSet.rows} rows after retiring the only set - it was deleted`);
+    }
+    if (retiredSet.dim !== 1) {
+      throw new Error("the retired set is drawn exactly like a live one");
+    }
+    if (retiredSet.canUnretire !== true) {
+      throw new Error("a retired set cannot be taken back");
+    }
+    if (retiredSet.count !== "0") {
+      throw new Error(`the heading still counts it as live: "${retiredSet.count}"`);
+    }
+  });
+
   step("A question set, so the axes stop being retyped");
 
   /*

@@ -37,6 +37,7 @@ import { personBlocksIn } from "../../domain/halves.js";
 import { WEIGHTS } from "../../domain/assessments.js";
 import { isRunning, modelActions, modelStatus, resultFor, run, themesHtml } from "../model.js";
 import { actions as growthActions, threadsBlock } from "./growth.js";
+import { defineQuestionSet } from "./questionsets.js";
 import { actions as planActions, planBlock } from "./plan.js";
 import { actions as journalActions } from "./journal.js";
 import { actions as waitingActions, waitingBlock } from "./waiting.js";
@@ -1178,77 +1179,6 @@ export async function addPersonDialog() {
     return false;
   }
   return Boolean(await act("addPerson", values, words.addedNamed(values.name)));
-}
-
-/**
- * Define a question set, from the point where one is missing.
- *
- * Reached from the picker rather than from a settings page, because the moment
- * somebody needs a set is the moment they are holding an answer with nowhere to
- * put it - and a flow that sends them elsewhere to define structure first loses
- * the answer they came to enter.
- *
- * Returns the set as the picker would have handed it over, so the caller does not
- * care which of the two paths produced it. Null when the dialog was dismissed or
- * the service refused.
- *
- * @returns {Promise<{ id: string, name: string, axes: { axis: string, asked: string }[] } | null>}
- */
-async function defineQuestionSet() {
-  const values = await form({
-    title: words.setDefineTitle,
-    intro: words.setDefineIntro,
-    fields: [
-      { name: "name", label: words.setNameLabel, placeholder: words.setNamePlaceholder, required: true },
-      {
-        name: "discipline",
-        label: words.setDisciplineLabel,
-        placeholder: words.setDisciplinePlaceholder
-      },
-      {
-        name: "axes",
-        label: words.setAxesLabel,
-        type: "textarea",
-        hint: words.setAxesHint,
-        required: true
-      }
-    ],
-    confirm: words.setDefineConfirm
-  });
-  if (!values) {
-    return null;
-  }
-
-  /*
-   * One axis per line, with anything after a colon kept as the question or the
-   * anchors behind it. Split on the FIRST colon rather than the last: an axis
-   * label is short and the prose after it is where a colon is likely to turn up
-   * again, which is the opposite of the score parser below.
-   */
-  const axes = String(values.axes ?? "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line !== "")
-    .map((line) => {
-      const at = line.indexOf(":");
-      return at < 0
-        ? { axis: line, asked: "" }
-        : { axis: line.slice(0, at).trim(), asked: line.slice(at + 1).trim() };
-    });
-
-  const made = /** @type {any} */ (
-    await tend.invoke("addQuestionSet", {
-      name: values.name,
-      discipline: values.discipline,
-      axes
-    })
-  );
-  if (made?.error) {
-    toast(String(made.error), "bad");
-    return null;
-  }
-  toast(words.setDefinedToast);
-  return { id: String(made.id), name: String(values.name).trim(), axes };
 }
 
 export const actions = {

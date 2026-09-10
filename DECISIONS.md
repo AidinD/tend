@@ -3,6 +3,44 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-10 - Question sets are defined on the role map
+
+**Decided by him.** The role map carries a question-sets group: define, edit,
+retire, take back. `defineQuestionSet` moved out of the person page into
+`views/questionsets.js`, which both views now import - the same shape `growth.js`
+and `plan.js` already use.
+
+**The gap it closes.** "Nytt frågeset..." lived only in the picker that appears
+while recording an answer, and that picker only exists once a set does. From a
+store with no sets there was no way to define one from the window at all, and
+recording fell back to typing the axes by hand - the exact drift sets exist to
+prevent, since the aggregate groups on the raw label.
+
+**The role map and not Settings.** A set decides what a producer is asked about a
+colleague, which is a claim about how the job is evaluated - the same class of
+thing as a duty, and his. Settings is where the machinery lives; this is not
+machinery.
+
+**Editing and retiring were built and unreachable.** Both were in the service
+with no surface at all. A set nobody can reword is a set that gets replaced by a
+second one with a similar name, which is the drift again. Retiring keeps the row
+readable and takeable-back, because an answer names its set and a round from two
+years ago should still say which questions it was - the count beside the heading
+is of live sets, so it drops while the row stays.
+
+**One caveat, stated rather than papered over.** The view returns early with only
+the seed card when the role map has no duties at all, so the group appears once
+there is a role map rather than from an empty store. That early return is left
+alone deliberately: the first screen should be about deciding what the job is,
+not about how it is evaluated.
+
+**A test ordering problem worth recording.** The new step defines a set, which
+silently broke the later check that the answer form still falls back to free text
+when there is nothing to pick - it passed while no longer exercising that case.
+The step now retires its set afterwards, which drives the retire path end to end
+AND restores the precondition the later check depends on. A check that passes
+over a case it has stopped testing is worse than one that fails.
+
 ## 2026-09-10 - The scores go, the fact a round ran stays
 
 **Decided by him**, out of the three alternatives written on the epic and left

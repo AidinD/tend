@@ -445,11 +445,11 @@ block for the part the notes do not answer.
   observations was answered no on 2026-09-09. Reading how a decision has gone is
   open, and has to be. Left closed rather than settled, guarded by a name check
   and a behaviour check.
-- **Where the first question set gets defined.** A set is picked when recording
-  an answer, and "Nytt frågeset..." lives in that picker - so with no sets at all
-  there is no picker and no way in from the window. Recording still falls back to
-  free text, so nothing is blocked, but the first set has to come from somewhere.
-  A small entry point on the role map is the likely answer.
+- ~~**Where the first question set gets defined.**~~ Settled on 2026-09-10: the
+  role map, in a group of its own that also edits, retires and takes a set back.
+  A set is a claim about how the job is evaluated, which is the same class of
+  thing as a duty. It appears once the role map has any duty, since the view
+  returns early with only the seed card when it has none.
 - **Whether a family of related projects is one row each or one row with
   sub-rows.** When staffing moves between them a fixed schedule per project is
   probably wrong, and "longest untouched" is the better model.
