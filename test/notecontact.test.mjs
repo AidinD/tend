@@ -177,6 +177,7 @@ describe("a derived contact says what the note says", () => {
     const row = ok(api.person(store, who, NOW)).recentContact.find(
       (/** @type {any} */ t) => t.kind === "one-to-one"
     );
+    assert.ok(row, "the hand-logged contact is not on the page");
     assert.equal(row.note, "Mina egna ord");
     assert.equal(row.fromNote, false);
   });
