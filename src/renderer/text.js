@@ -120,6 +120,47 @@ export const T = {
      * since "Sidoordnade" alone does not say why those four share one line
      * while two people have a grid to themselves.
      */
+    /*
+     * The principles he is working on, as their own block.
+     *
+     * Its OWN block and never among the goals. Two goals is a rule with a
+     * refusal behind it - a third is turned down - and dropping the principles
+     * into the same box would put five things in flight and take the rule away
+     * without anybody deciding to.
+     *
+     * No clock anywhere in this wording. A principle graduates when it starts
+     * coming naturally, which is a judgement only he can make from the inside,
+     * and a date on internalising a habit is a date on something that does not
+     * have one. So a principle with nothing noted is not late; it is a principle
+     * with nothing noted, and the words have to leave it at that.
+     */
+    practiceHead: "Det jag övar på",
+    practiceSub:
+      "Från Nib - flaggan sätts och tas bort där. Ingenting här har en klocka; en princip är " +
+      "färdig när den kommer av sig själv.",
+    practiceNone:
+      "Ingen princip är flaggad just nu. Flagga en i Nib så dyker den upp här.",
+    /** @param {string} why */
+    practiceClosed: (why) => `Principerna gick inte att läsa: ${why}`,
+    /** @param {number} n */
+    practiceCount: (n) =>
+      n === 0 ? "inget noterat än" : `övad ${n} ${n === 1 ? "gång" : "gånger"}`,
+    /** @param {string} when */
+    practiceLast: (when) => `senast ${when}`,
+    practiceDid: "Jag övade den",
+    practiceTitle: "En gång du övade den",
+    practiceIntro:
+      "En daterad gång, inget omdöme. Det är det enda som säger om övandet faktiskt sker - " +
+      "en lista med tre rubriker varje morgon gör inte det.",
+    practiceWhenLabel: "När",
+    practiceWhyLabel: "Vad tillfället var, frivilligt",
+    practiceConfirm: "Notera det",
+    practiceToast: "Noterat.",
+    practiceRemove: "Ta bort",
+    practiceRemovedToast: "Borttaget.",
+    /** @param {number} n */
+    practiceMore: (n) => `${n} till är flaggade`,
+
     teamHead: "Mitt team",
     teamSub: "De du ansvarar för. Var var och en står, inte vad som är sent.",
     aroundHead: "Runt omkring",

@@ -301,7 +301,24 @@ export const COLLECTIONS = /** @type {const} */ ([
    * `domain/decisionmarks.js` has the rest, including why this is not a note in
    * `because`.
    */
-  "decisionMarks"
+  "decisionMarks",
+  /**
+   * One dated occasion on which he practised a principle he is working on.
+   *
+   * The principle itself lives in Nib and is never copied here - a row holds the
+   * note's id and nothing else about it, so raising and lowering the flag stays
+   * entirely Nib's. What Tend owns is the fact that an occasion happened, which
+   * Nib has nowhere to put.
+   *
+   * It exists because a block listing three titles every morning says nothing
+   * about whether the practising is happening - the same gap between "discussed"
+   * and "actually seen" that growth threads and decision marks already close.
+   *
+   * Deliberately no interval and no due date. A deadline on internalising a
+   * habit is a deadline on something that does not have one, and would turn a
+   * practice into a chore. A count is not a clock.
+   */
+  "practiceMarks"
 ]);
 
 /**

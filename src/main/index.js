@@ -178,6 +178,12 @@ const OPERATIONS = {
   markDecision: (/** @type {any} */ a) => api.markDecision(store, { ...a, now: a.now ?? Date.now() }),
   unmarkDecision: (/** @type {any} */ a) => api.unmarkDecision(store, a.id),
 
+  /* Read fresh from Nib on every call - never cached as a parallel list, which
+     would start disagreeing with the app the moment a flag is lowered there. */
+  practice: (/** @type {any} */ a) => api.practice(store, a?.now ?? Date.now()),
+  markPractice: (/** @type {any} */ a) => api.markPractice(store, { ...a, now: a.now ?? Date.now() }),
+  unmarkPractice: (/** @type {any} */ a) => api.unmarkPractice(store, a.id),
+
   questionSets: () => api.questionSets(store),
   addQuestionSet: (/** @type {any} */ a) =>
     api.addQuestionSet(store, { ...a, now: a.now ?? Date.now() }),

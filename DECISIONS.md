@@ -3,6 +3,50 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-10 - The principles he is practising are on Now, as their own block
+
+**Decided.** Now carries a block of the principles flagged open in Nib, read
+fresh on every render. It sits with his goals and his action points and is not
+part of either. A `practiceMarks` collection records dated occasions of actually
+practising one, joined onto the Nib read by note id.
+
+**This reverses a decision, and the reversal is narrower than it looks.**
+`domain/practices.js` said: "not in Now - nothing here is a deviation, and Now is
+a page where everything on it is." The premise was right and the conclusion did
+not follow. Now is the page he opens to answer where he is, and his own
+development was split across two places that did not know about each other: two
+goals in Tend, a couple of principles in Nib.
+
+What the old rule was protecting is that nothing here nags, and that is untouched
+and asserted. No interval, no due date, no severity anywhere in the block, and a
+principle with nothing noted against it is drawn exactly like one with four. A
+count is not a clock.
+
+**Its own block and never among the goals.** Two goals is a rule with a refusal
+behind it - a third is turned down. Folding the principles into that box would
+leave five things in flight with the rule gone and nobody having decided to
+remove it. The app check now asserts his three blocks form one unbroken run
+rather than that two particular ones are neighbours.
+
+**Nib owns the flag; Tend owns whether it happened.** No list is cached here. He
+raises and lowers the flag in Nib without warning, and a copy would be a second
+answer to "what am I practising" that starts disagreeing immediately - so the
+read happens per render and a lowered flag simply stops appearing, with the marks
+staying in the log for the day it is raised again.
+
+**The marks exist because the block would otherwise say nothing true.** Three
+titles every morning does not say whether the practising is happening - the same
+gap between "discussed" and "actually seen" that growth threads and decision
+marks already close, and principles had the emptier version: the note carries
+bullets under "how I practise this" and nothing counted whether one ever
+occurred.
+
+**Writing the flag BACK to Nib is not built and is a question on the card.**
+NIB-CONTRACT.md is explicit that an external write to `index.json` while the app
+is running is overwritten by the next click, so writing is a different kind of
+thing from reading rather than a bigger version of it. A test asserts Tend leaves
+the notebook byte-identical.
+
 ## 2026-09-09 - A decision can be marked kept or broken, and the two are never added
 
 **Decided.** A `decisionMarks` collection holds dated occasions on which a

@@ -97,6 +97,16 @@ export {
   updateQuestionSet
 } from "./questionsets.js";
 
+/* ------------------------------------------------------ practice -- */
+
+/*
+ * The principles he is working on. Nib owns the flag and Tend reads it on every
+ * call; what Tend owns is that an occasion of practising happened, which Nib has
+ * nowhere to put. Writing the flag BACK to Nib is a separate question and is not
+ * built - see practice.js.
+ */
+export { markPractice, practice, unmarkPractice } from "./practice.js";
+
 /* ------------------------------------------------------- signals -- */
 
 /* Moved to signals.js and re-exported, so the service surface is unchanged. */

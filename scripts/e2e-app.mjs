@@ -4936,13 +4936,26 @@ try {
      * goals were underneath all of them.
      */
     const at = (/** @type {string} */ t) => mineHalf.order.indexOf(t);
-    const aims = at(T.now.aimsHead);
-    const actions = at(T.now.myActionsHead);
-    if (aims < 0 || actions < 0) {
-      throw new Error(`his own blocks are not on the page: ${JSON.stringify(mineHalf.order)}`);
+
+    /*
+     * Every block that is about HIM, and they have to be one unbroken run.
+     *
+     * It was a pair when it was written and is three now - the principles he is
+     * practising joined them on 2026-09-10 - so the claim is contiguity rather
+     * than "these two are neighbours". Written as a set the run is read from, so
+     * a fourth one has to be added here deliberately instead of quietly
+     * splitting the run in half.
+     */
+    const his = [T.now.aimsHead, T.now.practiceHead, T.now.myActionsHead];
+    const where = his.map(at);
+    if (where.some((i) => i < 0)) {
+      throw new Error(`his own blocks are not all on the page: ${JSON.stringify(mineHalf.order)}`);
     }
-    if (actions !== aims + 1) {
-      throw new Error(`the two are not adjacent: ${JSON.stringify(mineHalf.order)}`);
+    const aims = Math.min(...where);
+    if (Math.max(...where) - aims !== his.length - 1) {
+      throw new Error(
+        `something else is drawn between his own blocks: ${JSON.stringify(mineHalf.order)}`
+      );
     }
     for (const later of [T.now.questionsGroup, T.now.nudgeGroup, T.now.proposedHead, T.now.owedHead]) {
       const i = at(later);
@@ -6872,6 +6885,80 @@ try {
     }
     if (!/Följt 1 gång, inte följt 1 gång/.test(String(bothKinds.text))) {
       throw new Error(`the counts are not both stated: "${bothKinds.text}"`);
+    }
+  });
+
+  step("The principles he is practising, on Laget");
+
+  /*
+   * His own development used to be split across two places that did not know
+   * about each other: two goals in Tend, a couple of principles flagged in Nib.
+   * Laget is the page he opens to answer where he is, so that is where they
+   * were missing.
+   *
+   * What is driven here is the part a service test cannot see: that the block
+   * exists on the page, that it is its OWN block rather than more goals - the
+   * two-goal rule has a refusal behind it and five things in one box removes it
+   * - and that nothing in it carries a clock.
+   */
+  await page.click('.nav-btn[data-view="now"]');
+  await sleep(350);
+
+  const practising = JSON.parse(String(await page.evaluate(`(() => {
+        const heads = [...document.querySelectorAll('.group-title')];
+        const head = heads.find((h) => /Det jag övar på/.test(h.textContent));
+        if (head === undefined) {
+          return JSON.stringify({ found: false, heads: heads.map((h) => h.textContent.trim()) });
+        }
+        const block = head.closest('section');
+        const aims = heads.find((h) => /Mina mål/.test(h.textContent));
+        return JSON.stringify({
+          found: true,
+          text: block.textContent.replace(/\\s+/g, ' ').trim(),
+          /* Its own section, not the goals block. */
+          separate: aims === undefined ? true : aims.closest('section') !== block,
+          rows: block.querySelectorAll('.line').length,
+          /* Nothing in it may carry a severity - that is what makes it presence
+             rather than a nag. */
+          severities: block.querySelectorAll('[class*="sev-"]').length,
+          pills: block.querySelectorAll('.pill').length
+        });
+      })()`)));
+
+  check("the principles have their own block on Laget", () => {
+    if (practising.found !== true) {
+      throw new Error(
+        `no practice block on the page. Headings seen: ${JSON.stringify(practising.heads)}`
+      );
+    }
+    if (practising.separate !== true) {
+      throw new Error("the principles were drawn inside the goals block");
+    }
+  });
+
+  check("and nothing in it is late, overdue or coloured", () => {
+    /*
+     * The part that was load-bearing in the original decision to keep these off
+     * this page. A principle graduates when it starts coming naturally, which is
+     * a judgement only he can make from the inside - so a date on it would turn
+     * a practice into a chore. Presence, not pressure.
+     */
+    if (practising.severities > 0) {
+      throw new Error(`${practising.severities} elements carry a severity class`);
+    }
+    if (/försenad|över|dagar sedan|borde/i.test(String(practising.text))) {
+      throw new Error(`the block reads as a nag: "${practising.text}"`);
+    }
+  });
+
+  check("and it says why it is empty rather than just being empty", () => {
+    /*
+     * "Nothing is flagged" and "the notebook could not be read" look identical
+     * as an empty block, and only one of them is something to do anything about.
+     * The harness points at no Nib notebook, so this is the second case.
+     */
+    if (!/Nib|princip/i.test(String(practising.text))) {
+      throw new Error(`the empty block explains nothing: "${practising.text}"`);
     }
   });
 

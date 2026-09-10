@@ -5,7 +5,12 @@
  * "this is what I am trying to emphasise at the moment", and it graduates when
  * it starts coming naturally - a judgement only he can make from the inside. A
  * date on it would turn a practice into a chore, so nothing here has an interval
- * and nothing here reaches the Now view.
+ * and nothing here is ever overdue.
+ *
+ * This header used to end "and nothing here reaches the Now view". That changed
+ * on 2026-09-10: they are on Now now, as their own block, because that is the
+ * page he opens to answer where he is. The absence of a clock is untouched and
+ * is the part that was actually load-bearing - see `domain/practices.js`.
  */
 
 import assert from "node:assert/strict";

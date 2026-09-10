@@ -422,6 +422,12 @@ block for the part the notes do not answer.
 - **The five proposed duties are still proposals.** `npm run seed` writes them;
   he accepts or declines each in the Role map view. The four judgement questions
   from the research were settled on 2026-08-23 and are recorded in DECISIONS.md.
+- **Whether Tend may ever write a principle's flag back to Nib.** It only reads
+  today, and a test holds the notebook byte-identical across a write. This is not
+  a larger version of reading: NIB-CONTRACT.md says an external write to
+  `index.json` while the app is running is overwritten by the next click, so
+  graduating a principle from Tend would need something the contract does not
+  currently offer.
 - **Whether an agent may mark a decision kept or broken.** Both are in the window
   today and neither is on MCP. A deviation is an assertion about another person -
   the same class of row as writing an assessment, and the equivalent question for

@@ -13,6 +13,7 @@ import {
   RELATION_GROUPS,
   act,
   ask,
+  asDateInput,
   esc,
   form,
   groupOf,
@@ -31,7 +32,20 @@ import { T } from "../text.js";
 const words = T.now;
 
 export async function render() {
-  const [attention, questions, roster, ledger, mine, waits, archived, map, myAims, owed, myOwn] =
+  const [
+    attention,
+    questions,
+    roster,
+    ledger,
+    mine,
+    waits,
+    archived,
+    map,
+    myAims,
+    owed,
+    myOwn,
+    practice
+  ] =
     await Promise.all([
       tend.invoke("attention"),
       tend.invoke("signals"),
@@ -43,7 +57,11 @@ export async function render() {
       tend.invoke("roleMap"),
       tend.invoke("aims"),
       tend.invoke("promises"),
-      tend.invoke("myActions")
+      tend.invoke("myActions"),
+      /* Read from Nib on every render, deliberately. The flag changes in the
+         app without warning, and a cached copy is a second answer to "what am I
+         practising" that starts disagreeing with the first. */
+      tend.invoke("practice")
     ]);
   const waitingOn = Array.isArray(waits) ? waits : [];
 
@@ -223,6 +241,7 @@ export async function render() {
       <div class="empty">${words.quietEmpty}</div>
       ${rosterBlock(roster)}
       ${aimsBlock(myAims)}
+      ${practiceBlock(practice)}
       ${myActionsBlock(myOwn)}
       ${proposedBlock(map)}
       ${
@@ -276,7 +295,7 @@ export async function render() {
        * treatment and everything about him got a grey label. That is backwards
        * from the reason the Mine slice was built.
        */
-      aimsBlock(myAims) + myActionsBlock(myOwn)
+      aimsBlock(myAims) + practiceBlock(practice) + myActionsBlock(myOwn)
     }
     ${group(words.revisitsGroup, revisitCards, revisits.length)}
     ${group(words.questionsGroup, due.map(question).join(""), due.length)}
@@ -632,6 +651,136 @@ function proposedBlock(map) {
     <p class="group-note">${words.proposedSub}</p>
     <div class="folds">${lines}</div>
     <div class="card-foot"><button class="act" data-act="openRole">${words.proposedOpen}</button></div>
+  </section>`;
+}
+
+/**
+ * The principles he is working on right now.
+ *
+ * ## Its own block, and never among the goals
+ *
+ * Two goals is a rule with a refusal behind it: a third is turned down. Putting
+ * the principles in the same box would leave five things in flight and take that
+ * rule away without anybody deciding to - so this is a separate block with its
+ * own heading, next to the goals rather than inside them.
+ *
+ * ## Read from Nib every time
+ *
+ * Nib owns the flag. He raises and lowers it there, and Tend holds no list of
+ * its own - the read happens on every render, so the block cannot drift into
+ * being a second answer to "what am I practising".
+ *
+ * ## No clock, which is the part that is easy to lose
+ *
+ * A principle graduates when it starts coming naturally, and that is a judgement
+ * only he can make from the inside. So nothing here is overdue, nothing carries
+ * a severity, and a principle with nothing noted against it is drawn exactly
+ * like one with four - it simply says which it is. A date on internalising a
+ * habit is a date on something that does not have one, and it would turn the
+ * practice into a chore. The count exists because before it there was no way at
+ * all to tell whether the practising was happening; it is a number, not a
+ * target.
+ *
+ * @param {any} practice
+ */
+function practiceBlock(practice) {
+  if (practice === null || practice === undefined) {
+    return "";
+  }
+
+  const head = `<div class="group-head">
+      <span class="group-title">${words.practiceHead}</span>
+      <span class="group-rule"></span>
+    </div>
+    <p class="group-note">${words.practiceSub}</p>`;
+
+  /*
+   * "Nothing is flagged" and "the notebook could not be read" look identical as
+   * an empty block, and only one of them is something to do anything about - so
+   * the reason travels and is printed.
+   */
+  if (practice.available !== true) {
+    return `<section class="aims-block">
+      ${head}
+      <p class="src">${esc(words.practiceClosed(String(practice.why ?? "")))}</p>
+    </section>`;
+  }
+
+  const active = Array.isArray(practice.active) ? practice.active : [];
+  if (active.length === 0) {
+    return `<section class="aims-block">
+      ${head}
+      <p class="src">${words.practiceNone}</p>
+    </section>`;
+  }
+
+  return `<section class="aims-block">
+    ${head}
+    ${active
+      .map(
+        (/** @type {any} */ p) => {
+          const count = `${esc(words.practiceCount(Number(p.practised)))}${
+            p.lastAt
+              ? ` &middot; ${esc(
+                  words.practiceLast(new Date(Number(p.lastAt)).toISOString().slice(0, 10))
+                )}`
+              : ""
+          }`;
+
+          const row = `<span class="line-text"><strong>${esc(p.title)}</strong>${
+            p.source ? `<span class="src">${esc(p.source)}</span>` : ""
+          }</span>
+          <span class="line-right">
+            <button class="act tiny" data-act="practised" data-note="${esc(p.id)}"
+              data-title="${esc(p.title)}">${words.practiceDid}</button>
+          </span>`;
+
+          const noted = Array.isArray(p.marks) ? p.marks : [];
+          /*
+           * Nothing noted yet, so there is nothing to open. A fold over an empty
+           * list is a control that does nothing, and one of those teaches
+           * somebody the others might not either.
+           */
+          if (noted.length === 0) {
+            return `<div class="line">${row}<span class="line-note">${count}</span></div>`;
+          }
+
+          /*
+           * The occasions behind the count, and the only place a mis-click can
+           * be taken back. Folded so the block stays three short lines: this is
+           * Laget, where the whole page is a scan, and a practice with four
+           * marks against it must not be four times the height of one with none.
+           */
+          return `<details class="line-fold obs-fold">
+            <summary class="line">
+              ${row.replace('<span class="line-right">', '<span class="line-note">' + count + '</span><span class="line-right">')}
+            </summary>
+            <div class="line-fold-rows">
+              ${noted
+                .map(
+                  (/** @type {any} */ m) => `<div class="line">
+                    <span class="line-when">${esc(
+                      new Date(Number(m.at)).toISOString().slice(0, 10)
+                    )}</span>
+                    <span class="line-text">${esc(m.why ?? "")}</span>
+                    <span class="line-right">
+                      <button class="act tiny danger" data-act="unpractised" data-id="${esc(
+                        m.id
+                      )}">${words.practiceRemove}</button>
+                    </span>
+                  </div>`
+                )
+                .join("")}
+            </div>
+          </details>`;
+        }
+      )
+      .join("")}
+    ${
+      Number(practice.more) > 0
+        ? `<p class="src">${esc(words.practiceMore(Number(practice.more)))}</p>`
+        : ""
+    }
   </section>`;
 }
 
@@ -1141,6 +1290,51 @@ function question(q) {
 export const actions = {
   // Chasing and closing are the same everywhere they appear.
   ...waitingActions,
+
+  /**
+   * Note one occasion of practising a principle.
+   *
+   * The date is asked for rather than assumed to be now, because the occasion is
+   * usually a conversation earlier in the day that he is writing up afterwards -
+   * the same reason every other dated thing in the app offers the field.
+   *
+   * Nothing is written to Nib. The note keeps its flag and its bullets exactly
+   * as they are; what Tend records is that this happened, which is the half Nib
+   * has nowhere to put. Whether Tend may ever write the flag back is on the card
+   * and is a much larger question - an external write to Nib's index while the
+   * app is running is overwritten by the next click.
+   *
+   * @param {Record<string, string>} d
+   */
+  practised: async (d) => {
+    const values = await form({
+      title: words.practiceTitle,
+      intro: words.practiceIntro,
+      fields: [
+        { name: "what", label: words.practiceHead, type: "note", value: d.title ?? "" },
+        { name: "at", label: words.practiceWhenLabel, type: "date", value: asDateInput(Date.now()) },
+        { name: "why", label: words.practiceWhyLabel }
+      ],
+      confirm: words.practiceConfirm,
+      attempt: async (v) => {
+        const out = /** @type {any} */ (
+          await tend.invoke("markPractice", { note: d.note, why: v.why, at: v.at })
+        );
+        return out?.error ? String(out.error) : null;
+      }
+    });
+    if (values) {
+      toast(words.practiceToast);
+      refresh();
+    }
+  },
+
+  /** @param {Record<string, string>} d */
+  unpractised: async (d) => {
+    if (await act("unmarkPractice", { id: d.id }, words.practiceRemovedToast)) {
+      refresh();
+    }
+  },
 
   /** @param {Record<string, string>} d */
   openPerson: (d) => go("people", { person: d.person }),

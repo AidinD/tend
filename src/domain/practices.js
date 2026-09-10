@@ -16,8 +16,22 @@
  * ## Where they belong
  *
  * On the card he reads before talking to somebody, because that is the moment a
- * principle about how to talk to people is actually usable. Not in Now: nothing
- * here is a deviation, and Now is a page where everything on it is.
+ * principle about how to talk to people is actually usable.
+ *
+ * And, since 2026-09-10, on Now as well - as its own block. That reverses what
+ * this paragraph used to say, so here is the reasoning it replaces: "not in Now,
+ * nothing here is a deviation, and Now is a page where everything on it is."
+ * The premise was right and the conclusion did not follow. Now is the page he
+ * opens to answer where he is, and his own development was split across two
+ * places that did not know about each other - two goals in Tend, a couple of
+ * principles in Nib. What the old rule was protecting is that nothing here nags,
+ * and that still holds exactly: the block carries no clock, no severity and no
+ * overdue, and a principle with nothing noted against it is drawn like one with
+ * four.
+ *
+ * Its own block and never among the goals. Two goals is a rule with a refusal
+ * behind it, and folding the principles into the same box would leave five
+ * things in flight with the rule gone and nobody having decided to remove it.
  *
  * ## Three at a time, and say when there are more
  *

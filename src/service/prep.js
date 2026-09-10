@@ -327,7 +327,7 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
  *
  * @param {string} [dir]
  */
-function practising(dir) {
+export function practising(dir) {
   let found;
   try {
     found = principlesInNib(dir);
