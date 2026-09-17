@@ -3,6 +3,38 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-17 - The prep card was offering the model's questions as the ones he did not ask
+
+**Found while checking somebody else's brief rather than by looking for it.**
+`unasked.js` reads the section Nib writes at the end of a summary, and its own
+header says the whole design is "format, never meaning" - it must degrade to
+empty rather than to nonsense.
+
+Nib's summariser writes TWO question sections. "Frågor jag inte ställde" is a
+record of the conversation. "Frågor modellen hade ställt" is the model saying
+what IT would have asked, which is a suggestion nobody made. The loose fallback
+matched any line starting with "Frågor", so the second one qualified.
+
+Counted against the live notebook, read-only: 146 notes, 19 carry the real
+heading, 7 carry the model's, and **8 reach the fallback**. In those the prep
+card was putting the model's suggestions under "the questions you did not ask
+last time" - a page he is meant to glance at on the way into a room, telling him
+somebody wondered something nobody wondered.
+
+**The fix is a format test, which keeps the file's line.** The loose pattern now
+matches a heading that is ONLY the word - "Frågor", "Öppna frågor", "Frågor:" -
+and not one that goes on to say whose questions they are. Trailing text is the
+tell. The one live note headed "Öppna frågor" still reads, and the twenty notes
+carrying both headings were already right because the exact match returns first.
+
+A mutation widening it back fails exactly one check, the one that names the
+model's heading.
+
+**Why this is the same fault twice in one day.** The capture cue lists claimed a
+precision nothing measured; this fallback claimed to be about format while
+matching a heading whose meaning was the opposite of what it wanted. Both passed
+their own tests. Both were only visible against real data.
+
 ## 2026-09-17 - Nothing under a sibling's tooling directory goes in the installer
 
 **Found by the packaged check refusing to start, which is the only reason it was

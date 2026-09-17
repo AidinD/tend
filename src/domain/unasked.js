@@ -37,7 +37,26 @@
  * the nonsense starts.
  */
 const EXACT = /^\s*(?:#{1,6}\s*|\*\*)?\s*fr[åa]gor\s+(?:jag\s+)?(?:inte|ej)\s+st[äa]ll[dt]?e?\b/i;
-const LOOSE = /^\s*(?:#{1,6}\s*|\*\*)?\s*(?:[öo]ppna\s+)?fr[åa]gor\b/i;
+/*
+ * The loose one matches a heading that is ONLY the word, not one that goes on
+ * to say whose questions they are.
+ *
+ * It used to match any line starting with "Frågor", and Nib's own summariser
+ * writes a second section headed "Frågor modellen hade ställt" - the questions
+ * the MODEL would have asked, which is a suggestion and not a record. Seven
+ * notes in the live notebook carry that heading and eight reach this fallback,
+ * so in every one of them Tend was putting the model's suggestions on the prep
+ * card under "the questions you did not ask last time". That is the failure this
+ * file's header says it exists to avoid, arriving through the fallback instead
+ * of through prose.
+ *
+ * Trailing text is the tell, and testing for it is a FORMAT test - the line this
+ * file does not cross. "Frågor" and "Öppna frågor" are headings; "Frågor <who>
+ * hade ställt" is a heading about somebody else's questions. Matching only the
+ * bare form keeps the hand-written case this fallback was built for, and the
+ * one live note headed "Öppna frågor" still reads.
+ */
+const LOOSE = /^\s*(?:#{1,6}\s*|\*\*)?\s*(?:[öo]ppna\s+)?fr[åa]gor\s*:?\s*(?:\*\*)?\s*$/i;
 
 /** A Markdown heading of any level, or a bolded line standing in for one. */
 const HEADING = /^\s*(?:#{1,6}\s|\*\*[^*]+\*\*\s*$)/;

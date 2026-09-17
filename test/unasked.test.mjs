@@ -253,3 +253,58 @@ test("the text the app actually has, not the Markdown it was written for", async
     assert.deepEqual(unaskedQuestions(empty), []);
   });
 });
+
+test("a heading that names somebody else's questions is not his", async (t) => {
+  /*
+   * Nib's summariser writes TWO question sections. "Frågor jag inte ställde" is
+   * a record of the conversation; "Frågor modellen hade ställt" is the model
+   * saying what it would have asked, which is a suggestion nobody made.
+   *
+   * The loose fallback matched any line STARTING with "Frågor", so the second
+   * one qualified. Seven notes in the live notebook carry that heading and eight
+   * reach the fallback, which means the prep card was offering the model's
+   * suggestions under "the questions you did not ask last time" - the exact
+   * confusion this module's header says it exists to prevent, arriving through
+   * the fallback rather than through prose.
+   */
+
+  await t.test("refuses the model's own questions", () => {
+    const note = [
+      "Frågor modellen hade ställt",
+      "- Vad hindrar er från att gå live i mars?",
+      "- Vem äger migreringen efter sommaren?"
+    ].join("\n");
+    assert.deepEqual(unaskedQuestions(note), []);
+  });
+
+  await t.test("and still reads a hand-written section that is only the word", () => {
+    /*
+     * The case the fallback was built for, plus the one live note headed "Öppna
+     * frågor". Narrowing it must not cost either.
+     */
+    for (const heading of ["Frågor", "## Frågor", "**Frågor**", "Frågor:", "Öppna frågor"]) {
+      const note = [heading, "- Hur gick det med lönesamtalet?"].join("\n");
+      assert.deepEqual(
+        unaskedQuestions(note),
+        ["Hur gick det med lönesamtalet?"],
+        `"${heading}" stopped being read`
+      );
+    }
+  });
+
+  await t.test("prefers the real section when a note carries both", () => {
+    /*
+     * Twenty of the live notes have both headings. The exact match runs first
+     * and returns, so this was already right - asserted because narrowing the
+     * loose pattern is exactly the kind of change that could reorder them.
+     */
+    const note = [
+      "Frågor jag inte ställde",
+      "- Hur ligger det till med flytten?",
+      "",
+      "Frågor modellen hade ställt",
+      "- Vad hindrar er?"
+    ].join("\n");
+    assert.deepEqual(unaskedQuestions(note), ["Hur ligger det till med flytten?"]);
+  });
+});
