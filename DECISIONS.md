@@ -3,6 +3,135 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-17 - Plain words in, and a reading he can correct in place
+
+**His report.** "Jag drar mig lite från att använda det manuellt för att jag inte
+riktigt förstår och vet vad som ska in vart och hur." From one session, all his
+own questions about an app he built: "var lägger jag in det?", "vad lägger jag in
+på de andra fälten?", "ska jag tagga den casual eller lämna den otaggad?", "ska
+den loggas någon mer stans? eller en observation?"
+
+That is worse than a usability complaint. An app only usable through the
+assistant seat has no user of its own, and then the record is the assistant's
+rather than his - one of the four reasons Helm was retired.
+
+**What was NOT the fault.** The vocabulary. `domain/contact.js` argues at length
+for why the eight kinds must stay apart, and it is right: the sideways duty
+exists because nothing in a calendar forces contact with peers, and a
+second-hand report must never reset the 1-1 cadence. Promise, commitment and duty
+differ on purpose. Collapsing any of that to make entry easier would have removed
+the blind spot the tool exists to catch and left the screen looking friendlier.
+
+**What was.** WHERE the precision is exposed. Eight contact kinds met him as the
+FIRST field of the dialog. That is the store's precision handed over as the
+user's choice. So "Vad hände?" sits in the front page's header, takes one plain
+sentence, and derives the person, the kind, the day and any promise in it.
+
+### The question I was handed, and the answer that survived being attacked
+
+A derivation that guesses a contact kind wrong resets the wrong cadence silently.
+The two ways to make that safe are confirming in the same breath and being
+trivial to undo afterwards. **Undo loses**, and not on taste: it needs him to
+NOTICE that a corridor chat was filed as the recurring 1-1, and the premise of
+the whole report is that he cannot reliably tell those two labels apart. An undo
+nobody reaches for is a line in a changelog.
+
+That much held. **What I built on it did not, and it is worth recording exactly
+how it failed**, because the mistake is more instructive than the fix.
+
+I read "confirm in the same breath" as "show facts, not fields": when the person
+and the kind had both been derived, the second step had NO input fields and
+confirming was one keystroke. It was clean, it was demonstrable, and there is an
+e2e check I wrote asserting it and a mutation proving the check bit.
+
+Then an adversarial pass over the derivation broke the regexes on five pieces of
+ordinary Swedish, in minutes:
+
+- `\b1[-:\s]?1\b` allowed a space between the digits, so it matched a bare
+  **11**. "kl 11:15 med Nina i korridoren" read as the recurring 1-1, and so did
+  any sentence carrying an ISO date in September 2026.
+- `\benligt\b` is ordinary Swedish. "vårt 1-1 med Nina igår, allt går enligt
+  plan" read as second-hand - which cost twice, because the 1-1 clock stayed
+  behind AND the blind-spot signal went quiet for somebody he had just sat down
+  with.
+- `granskade` and `påtalade` carry no subject. "Nina granskade min kod" read as
+  him observing her work, with the direction reversed.
+- The name scan took the first prose word that was a PREFIX of anyone on the
+  roster, minimum two characters. With a Viktor on the roster, "**vi** hade vårt
+  1-1 med Nina" filed against Viktor. Same shape for om/Omar, han/Hanna,
+  till/Tilde, tar/Tara.
+- "hörde från Tova att Nina är frustrerad" - the canonical second-hand sentence -
+  filed against **Tova**, the one person he demonstrably DID speak to, leaving
+  Nina's blind spot open and resetting Tova's clock instead.
+
+**Every one of those produced a fully-read sentence.** So the design taught Enter
+on the sentences it read well, and then met the ones it read badly with a screen
+holding nothing to click. A confirmation you cannot correct is not a
+confirmation, it is a wall with a button on it - and the only way out was to
+escape and reword a sentence to defeat a regex he has never seen, which is a
+worse thing to ask than the dropdown had been.
+
+The lesson, which is the part worth keeping: **the tests were written from the
+same head as the cues, so they asserted the sentences that head had already
+thought of.** The file's own header claimed "high precision, low recall" and
+nothing checked the claim. Those five sentences are now tests, verbatim.
+
+### What it does instead
+
+- **The person and the kind are selects, pre-set to what was read.** He reads a
+  claim and ignores it, or changes it in one click. An answer being SHOWN is
+  still not a question being ASKED, so "at most one question back" survives - and
+  a wrong reading is now both visible and adjacent to its correction.
+- **A kind that was not derived starts blank and refuses to submit.** It showed
+  option zero before, which is `one-to-one`, and `required` cannot fire on a
+  select that always carries a value. So the single case where the app knew it
+  had no idea was also the case where Enter silently recorded the most
+  consequential kind on the list.
+- **The evidence is shown for the person too.** It was computed and dropped,
+  which is precisely why the two worst breaks were invisible on screen: it said
+  "Om vem: Viktor", not `Läst ur "vi"`.
+- **The promise text is editable.** It goes into an append-only log and is read
+  back months later with nothing around it.
+
+### The derivation, after the cut
+
+Three rules now carry "refuse rather than guess", and each exists because
+something got through: a cue must name the OCCASION rather than a topic; a name
+must match in FULL rather than as a prefix; and two people named means no person
+derived. `feedback` and `observation` have no cues at all any more - every
+phrasing that suggests them is equally true with the colleague as the subject,
+and no narrowing supplies a missing subject.
+
+There is still no cue for a bare "pratade med", and there never will be. That
+sentence is honestly both the recurring 1-1 and two minutes by the coffee
+machine.
+
+### Smaller things, all of them found by something other than reading the code
+
+- **The day was formatted with `toISOString`**, which is UTC, while every other
+  date in the app is local. At 00:30 in Stockholm "idag" resolved to the day
+  before; at 18:00 in San Francisco it resolved to TOMORROW, `isLaterDay` refused
+  the write, and a derived date left nothing to click past it. The test pins `TZ`
+  to his own zone, because on a machine already running in UTC the two dates
+  never disagree and the check would have been theatre.
+- **`readPromise` only looked left for a comma**, so a sentence opening with the
+  commitment handed over the whole note as the promise text - verbatim the
+  failure that function's own comment claimed to prevent.
+- **The `covered` branch was unreachable.** `logTouch` returns `error` and
+  `covered` together and the renderer tested `error` first, so what he would have
+  seen is the service telling him to pass `anyway` - a flag this dialog cannot
+  send and offers no way to send, in a loop whose only exit was cancel.
+- **`survey` was on the offered list.** A survey is run, not had, so it is never
+  the answer to "vad hände".
+- **The palette still offered all eleven contact kinds** when logging against a
+  person. The person page had fixed the same bug in its own copy and this one was
+  left behind, which is what a list built twice does.
+- **The vocabulary test walked a hand-written list of four renderer files**, so
+  `capture.js` and every one of its keys was invisible to both halves of it: no
+  prose reported, and its catalogue keys counted as read by nobody. A test that
+  goes quiet exactly when new code arrives is worse than no test, because the
+  green is now evidence. It reads the directory now.
+
 ## 2026-09-10 - Question sets are defined on the role map
 
 **Decided by him.** The role map carries a question-sets group: define, edit,

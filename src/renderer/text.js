@@ -108,6 +108,10 @@ export const T = {
     title: "Läget",
     sub: "Bara det som avviker. Allt som ligger i fas håller sig ur vägen.",
 
+    /* The plain-words way in, in the header. Two words, because the whole claim
+       of the feature is that nothing has to be decided before clicking it. */
+    captureButton: "Vad hände?",
+
     /*
      * The roster as tiles, in two sections rather than one, because they
      * answer different questions. The grid is the people he is accountable for
@@ -3073,6 +3077,65 @@ export const T = {
       `${people} personer, ${projects} projekt, ${workstreams} arbetsområden tillbaka.`,
 
     checkingToast: "Checking."
+  },
+
+  /*
+   * "Vad hände?" - the plain-words way in.
+   *
+   * Every sentence here is doing one of two jobs, and it is worth knowing which
+   * while rewording them. Most of them SHOW what Tend read, and those have to be
+   * checkable at a glance or the confirmation step is just a second click. The
+   * rest TEACH the sentence that would have been read better - "skriv 'i
+   * förbifarten'" is how somebody learns the vocabulary by using it rather than
+   * by being handed a list of eight labels first.
+   */
+  capture: {
+    title: "Vad hände?",
+    intro:
+      "Skriv det i klartext, som du hade sagt det till någon. Tend läser ut vem det gäller, " +
+      "vilken sorts kontakt det var och vilken dag - och visar vad den kommit fram till innan " +
+      "något skrivs in.",
+    saidLabel: "Vad hände",
+    saidPlaceholder: "vårt 1-1 med ... igår, hen var less på bygget, jag ska kolla på det",
+    saidHint:
+      "Nämn namnet. Skriv \"igår\" eller \"i fredags\" om det inte var idag. Säger du vad för " +
+      "sorts samtal det var - \"vårt 1-1\", \"i förbifarten\", \"hörde från\" - slipper du frågan.",
+    saidConfirm: "Läs det",
+
+    confirmTitle: "Så här läser jag det",
+    confirmIntroSettled:
+      "Allt gick att läsa ur din mening, och under varje rad står orden jag läste det ur. " +
+      "Stämmer det är det bara att köra - annars ändrar du här.",
+    confirmIntroAsking: "Det mesta gick att läsa ut. Fyll i det som står tomt.",
+    confirmIt: "Skriv in det",
+
+    readLabel: "Det du skrev",
+    pick: "- välj -",
+    whoLabel: "Om vem",
+    whoHint:
+      "Namnet gick inte att läsa ut. Antingen stod det inte där, eller så nämnde du flera - och " +
+      "en rad hamnar på en person, så den är din att välja.",
+    kindLabel: "Vad det var",
+    kindHint:
+      "Den här går inte att gissa åt dig: ett samtal i förbifarten och ert återkommande 1-1 ser " +
+      "likadana ut i en mening, och bara det ena nollställer takten.",
+    dayLabel: "När",
+    dayAssumed: "Du skrev ingen dag, så jag tar idag. Skriv \"igår\" eller ett datum för en annan.",
+    /** @param {string} from */
+    readFrom: (from) => `Läst ur "${from}". Ändra om det blev fel.`,
+
+    promiseLabel: "Lägg till som ett löfte också",
+    promiseTextLabel: "Löftet",
+    promiseTextHint:
+      "Det här är vad som står om ett halvår, utan meningen omkring sig. Korta ner det om det " +
+      "inte bär sig självt.",
+
+    noRoster: "Det finns ingen på rostern än, så det finns ingen att logga det på.",
+    loggedToast: "Inskrivet.",
+    bothToast: "Inskrivet, och löftet med.",
+    coveredToast:
+      "Den dagen finns redan den kontakten från en anteckning i Nib. Öppna personen om du " +
+      "ändå vill lägga till en till."
   },
 
   /*

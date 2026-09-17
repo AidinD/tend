@@ -414,6 +414,16 @@ main {
   user-select: none;
 }
 
+/*
+ * "Vad hände?" in the header, pushed to the far end of the line.
+ *
+ * `margin-left: auto` rather than a spacer element, so the title and the date
+ * keep sitting on one baseline next to each other and only this moves.
+ */
+.head-capture {
+  margin-left: auto;
+}
+
 .view-title {
   margin: 0;
   font-size: var(--t-page);

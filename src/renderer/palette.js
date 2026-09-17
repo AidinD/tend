@@ -21,7 +21,7 @@
  * a few cents on every keystroke would be abandoned in a week.
  */
 
-import { CONTACT_KINDS, act, asDateInput, esc, form, tend, toast } from "./ui.js";
+import { act, asDateInput, esc, form, kindsFor, tend, toast } from "./ui.js";
 import { currentHalf, go, refresh } from "./app.js";
 import { modelStatus } from "./model.js";
 import { looksLikeQuestion, matchPerson, matchesWords, splitAddressed } from "../domain/parse.js";
@@ -441,7 +441,16 @@ async function logContact(person, note) {
     title: words.contactTitle(person.name),
     intro: words.contactIntro,
     fields: [
-      { name: "kind", label: words.contactKindLabel, type: "select", options: CONTACT_KINDS, value: "one-to-one" },
+      /*
+       * The PERSON kinds, not all eleven.
+       *
+       * This offered the whole list, so a contact with a colleague could be
+       * filed as "du tittade på ett projekt" - which the service refuses, so
+       * the cost was an error toast rather than a bad row. The person page fixed
+       * the same bug in its own dialog and this copy was left behind, which is
+       * what a list built twice does.
+       */
+      { name: "kind", label: words.contactKindLabel, type: "select", options: kindsFor("person"), value: "one-to-one" },
       { name: "note", label: words.contactNoteLabel, type: "textarea", value: note },
       { name: "at", label: words.when, type: "date", value: asDateInput(Date.now()) }
     ],

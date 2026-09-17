@@ -56,28 +56,43 @@ import { DAY_MS } from "./time.js";
  *
  * @type {{ value: string, label: string, subject: SubjectKind }[]}
  */
+/*
+ * A note on the LABELS, which changed on 2026-09-17 and changed for a reason.
+ *
+ * They used to lead with the store's word: "1-1 - ett samtal med dem", "Casual -
+ * ni pratade, men det var ingen 1-1". That reads as a taxonomy to learn before
+ * you can file anything, and it is how eight correct distinctions turned into
+ * "jag vet inte vad som ska in vart, så jag låter bli". They now lead with what
+ * HAPPENED, and the store's word is not in them at all.
+ *
+ * The values did not move, and neither did the rules. `second-hand` still
+ * satisfies nothing a `one-to-one` satisfies; only the sentence offering it
+ * changed. The taxonomy word is still what the service and the MCP errors speak,
+ * and those read `value`, so the two can be worded for their own readers without
+ * either drifting from the other.
+ */
 export const CONTACT_KINDS = [
-  { value: "one-to-one", label: "1-1 - ett samtal med dem", subject: "person" },
-  { value: "casual", label: "Casual - ni pratade, men det var ingen 1-1", subject: "person" },
+  { value: "one-to-one", label: "Ert samtal - ni två, det återkommande", subject: "person" },
+  { value: "casual", label: "Ni pratades vid, men det var inte det samtalet", subject: "person" },
   {
     value: "meeting",
-    label: "Möte - ett samtal med flera av er i det",
+    label: "Ett möte, med flera av er i",
     subject: "person"
   },
-  { value: "second-hand", label: "Second hand - hört om dem från någon annan", subject: "person" },
-  { value: "sideways", label: "Sideways - kontakt med en sidoordnad ledare", subject: "person" },
-  { value: "feedback", label: "Feedback - du sa något direkt till dem", subject: "person" },
-  { value: "observation", label: "Observation - du såg deras arbete", subject: "person" },
-  { value: "survey", label: "Enkätrunda", subject: "person" },
-  { value: "check-in", label: "Avstämning - du tittade på ett projekt", subject: "project" },
+  { value: "second-hand", label: "Du hörde om dem, från någon annan", subject: "person" },
+  { value: "sideways", label: "Du hade kontakt med en ledare bredvid dig", subject: "person" },
+  { value: "feedback", label: "Du sa något till dem, rakt ut", subject: "person" },
+  { value: "observation", label: "Du såg deras arbete", subject: "person" },
+  { value: "survey", label: "En enkätrunda gick ut", subject: "person" },
+  { value: "check-in", label: "Du tittade på ett projekt", subject: "project" },
   {
     value: "delegation-review",
-    label: "Delegeringsgenomgång - du tittade på hur en överlämning går",
+    label: "Du tittade på hur en överlämning går",
     subject: "workstream"
   },
   {
     value: "update",
-    label: "Uppdatering - du berättade för en stakeholder var det står",
+    label: "Du berättade för en stakeholder var det står",
     subject: "stake"
   }
 ];

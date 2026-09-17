@@ -27,6 +27,7 @@ import {
 import { dayWords } from "../../domain/time.js";
 import { go, refresh } from "../app.js";
 import { actions as waitingActions, waitingGroup } from "./waiting.js";
+import { actions as captureActions } from "../capture.js";
 import { T } from "../text.js";
 
 const words = T.now;
@@ -264,6 +265,20 @@ export async function render() {
         explaining itself. Kept as a string so putting it back is one edit.
       -->
       <span class="view-note" title="${esc(words.sub)}">?</span>
+      <!--
+        The way in that does not ask him to know the vocabulary first.
+
+        In the header of the one page opened daily, because every other entry
+        point starts on a person's page - and finding the right person is
+        already a decision, taken before the one about which of eight kinds it
+        was. "Jag vet inte vad som ska in vart" is answered by having somewhere
+        to put it that does not ask "vart" at all.
+
+        Pushed right, away from the title, so the header still reads as a
+        heading. The only button on this line by design; the focus settings sit
+        on the line below, with the focus they are about.
+      -->
+      <button class="act primary tiny head-capture" data-act="capture">${words.captureButton}</button>
     </div>
     ${focus}
     ${
@@ -1290,6 +1305,9 @@ function question(q) {
 export const actions = {
   // Chasing and closing are the same everywhere they appear.
   ...waitingActions,
+
+  /* "Vad hände?" - see src/renderer/capture.js for why it is a derivation. */
+  ...captureActions,
 
   /**
    * Note one occasion of practising a principle.

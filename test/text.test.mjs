@@ -20,8 +20,24 @@ const ROOT = new URL("../src/renderer/", import.meta.url);
 function sources() {
   /** @type {{ name: string, source: string }[]} */
   const out = [];
-  for (const name of ["app.js", "ui.js", "model.js", "palette.js"]) {
-    out.push({ name, source: readFileSync(new URL(name, ROOT), "utf8") });
+  /*
+   * Every file in the folder, minus the catalogue itself.
+   *
+   * This was a hand-written list of four names, and a hand-written list of files
+   * to check is a check that stops covering the next file somebody adds. It did:
+   * `capture.js` was written on 2026-09-17 with its own sentences in it, and
+   * both halves of this test passed over it in silence - no prose reported, and
+   * its keys in the catalogue counted as unread because nothing in the list read
+   * them. A test that goes quiet exactly when new code arrives is worse than no
+   * test, because the green is now evidence.
+   *
+   * `text.js` is excluded by name and has to be: it is the catalogue, so every
+   * sentence in the app is prose inside it.
+   */
+  for (const name of readdirSync(ROOT)) {
+    if (name.endsWith(".js") && name !== "text.js") {
+      out.push({ name, source: readFileSync(new URL(name, ROOT), "utf8") });
+    }
   }
   for (const name of readdirSync(new URL("views/", ROOT))) {
     if (name.endsWith(".js")) {

@@ -7181,6 +7181,321 @@ try {
     }
   });
 
+  step("Plain words in, and the store's vocabulary stays out of the way");
+
+  /*
+   * The card this closes: "jag vet inte vad som ska in vart, så jag låter bli".
+   *
+   * Logging a conversation used to open a dialog whose FIRST field was a list of
+   * eight contact kinds. The kinds are right and they stay - see
+   * domain/contact.js - but meeting them at the moment of entry is the store's
+   * precision handed over as the user's choice, and the man who built the app
+   * was navigating it by asking what went where.
+   *
+   * Driven from the window, and from the front page, because "somewhere to put
+   * it that does not first ask where" is the whole claim.
+   */
+  await page.click('.nav-btn[data-view="now"]');
+  await page.waitFor(
+    "document.querySelector('[data-act=capture]') !== null",
+    "the capture button on the front page"
+  );
+
+  await page.click('[data-act="capture"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the capture box");
+
+  const captureBox = JSON.parse(String(await page.evaluate(`(() => {
+        const body = document.querySelector('.dialog-body');
+        return JSON.stringify({
+          fields: body.querySelectorAll('.field').length,
+          selects: body.querySelectorAll('select').length
+        });
+      })()`)));
+
+  check("the way in is one box, not a taxonomy", () => {
+    /*
+     * One field, and it is free text. A select here - any select - would be the
+     * old dialog with a friendlier title, and the eight kinds would be back in
+     * front of him before he had written anything down.
+     */
+    if (captureBox.fields !== 1) {
+      throw new Error(`the box asks ${captureBox.fields} things before he has typed anything`);
+    }
+    if (captureBox.selects !== 0) {
+      throw new Error("the box still opens with a list to choose from");
+    }
+  });
+
+  await page.fillDialog({ said: "vårt 1-1 med Testperson igår, hen var nöjd med releasen" });
+  await page.waitFor("document.querySelector('.dialog') !== null", "the reading");
+
+  const readOut = JSON.parse(String(await page.evaluate(`(() => {
+        const body = document.querySelector('.dialog-body');
+        const at = (name) => {
+          const el = body.querySelector('[name="' + name + '"]');
+          const field = el === null ? null : el.closest('.field');
+          return {
+            there: el !== null,
+            value: el === null ? null : el.value,
+            hint: field === null ? '' : (field.querySelector('.field-hint') || {}).textContent || ''
+          };
+        };
+        return JSON.stringify({
+          who: at('subject'),
+          kind: at('kind'),
+          text: body.textContent.replace(/\\s+/g, ' ').trim()
+        });
+      })()`)));
+
+  check("everything it read is answered already, and none of it is blank", () => {
+    /*
+     * A sentence carrying its own evidence leaves nothing to fill in. This is
+     * what "at most one question back" means in practice: the fields are there,
+     * and they are all already answered.
+     */
+    if (readOut.who.value === "" || readOut.kind.value === "") {
+      throw new Error(`a field is blank after a sentence that said everything: ${JSON.stringify(readOut)}`);
+    }
+  });
+
+  check("and every one of them can be corrected without leaving the dialog", () => {
+    /*
+     * THE check of this step, and it replaced its own opposite.
+     *
+     * The first version drew a fully-read sentence as read-only facts, on the
+     * argument that confirming beats undoing. That argument holds; the design
+     * built on it did not. An adversarial pass broke the derivation on five
+     * pieces of ordinary Swedish, and every break produced a fully-read
+     * sentence - so the flow taught Enter on the sentences it read well, then
+     * met the ones it read badly with a screen holding nothing to click. A
+     * confirmation you cannot correct is a wall with a button on it.
+     */
+    if (readOut.who.there !== true || readOut.kind.there !== true) {
+      throw new Error("what was read is shown as a fact with no way to change it");
+    }
+  });
+
+  check("and it shows the words it read each thing out of", () => {
+    /*
+     * The person's evidence is not decoration. Two of the three worst
+     * derivation breaks were only ever visible here - a roster holding a Viktor
+     * turned "VI hade vårt 1-1" into a 1-1 with Viktor, and the screen said his
+     * name with nothing to say why.
+     */
+    if (!/Läst ur/.test(String(readOut.who.hint))) {
+      throw new Error(`the person is asserted with no evidence: "${readOut.who.hint}"`);
+    }
+    if (!/Läst ur/.test(String(readOut.kind.hint))) {
+      throw new Error(`the kind is asserted with no evidence: "${readOut.kind.hint}"`);
+    }
+  });
+
+  await page.click(".dialog [data-confirm]");
+  await sleep(500);
+
+  /* ------------------------------------------------- the one question -- */
+
+  await page.click('[data-act="capture"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the capture box");
+  await page.fillDialog({ said: "pratade med Testperson om bygget" });
+  await page.waitFor("document.querySelector('.dialog') !== null", "the reading");
+
+  const asking = JSON.parse(String(await page.evaluate(`(() => {
+        const body = document.querySelector('.dialog-body');
+        const kind = body.querySelector('[name="kind"]');
+        return JSON.stringify({
+          value: kind === null ? null : kind.value,
+          who: (body.querySelector('[name="subject"]') || {}).value,
+          options: kind === null ? [] : [...kind.options].map((o) => o.textContent.trim()),
+          values: kind === null ? [] : [...kind.options].map((o) => o.value)
+        });
+      })()`)));
+
+  check("a sentence that could be either leaves the kind blank", () => {
+    /*
+     * "Pratade med" is true of the recurring 1-1 AND of two minutes by the
+     * coffee machine, and only one of them resets that cadence.
+     *
+     * Blank, and not "the first option". A select always has a value, so
+     * `required` in ui.js can never fire on one - which meant the single case
+     * where the app knew it had no idea was also the case where Enter silently
+     * recorded `one-to-one`, the most consequential kind on the list, on the
+     * exact keystroke the settled path had just taught.
+     */
+    if (asking.value !== "") {
+      throw new Error(`the kind pre-answered itself as "${asking.value}" with nothing to go on`);
+    }
+    if (asking.values[0] !== "") {
+      throw new Error("there is no blank option, so the first kind is chosen by default");
+    }
+  });
+
+  check("while the person, which WAS read, stays answered", () => {
+    if (!asking.who) {
+      throw new Error("a name it could read was thrown away with the kind");
+    }
+  });
+
+  /*
+   * Press the button with the kind still blank. This is the exact gesture the
+   * settled path trains, so it is the one that has to be safe.
+   */
+  await page.click(".dialog [data-confirm]");
+  await sleep(300);
+
+  const stillBlank = JSON.parse(String(await page.evaluate(`(() => {
+        const dialog = document.querySelector('.dialog');
+        const err = dialog === null ? null : dialog.querySelector('.dialog-error');
+        return JSON.stringify({
+          open: dialog !== null,
+          said: err === null || err.hidden ? '' : err.textContent.trim()
+        });
+      })()`)));
+
+  check("and it refuses to be submitted while that blank is still blank", () => {
+    if (stillBlank.open !== true) {
+      throw new Error("pressing the button on a blank kind wrote something anyway");
+    }
+    if (stillBlank.said === "") {
+      throw new Error("it refused silently, which reads as a dead button");
+    }
+  });
+
+  check("wording the answers as what happened, not as the store's nouns", () => {
+    /*
+     * The labels used to lead with the word from the store - "1-1 - ett samtal
+     * med dem", "Casual - ni pratade, men det var ingen 1-1". That reads as a
+     * vocabulary to learn before anything can be filed. They lead with the event
+     * now, and the value behind each one did not move.
+     */
+    const joined = asking.options.join(" | ");
+    if (/Casual|Second hand|Sideways/.test(joined)) {
+      throw new Error(`the answers still name the store's kinds: ${joined}`);
+    }
+    if (!/förbifarten|pratades vid/i.test(joined)) {
+      throw new Error(`the answers do not describe what happened: ${joined}`);
+    }
+  });
+
+  check("and a survey round is not among them", () => {
+    /*
+     * A survey is run, not had, so it is never the answer to "vad hände" - and
+     * leaving it on the list meant "pratade med X om enkäten" could plausibly be
+     * answered with it, putting a survey-round contact on one person.
+     */
+    if (/enkätrunda/i.test(asking.options.join(" | "))) {
+      throw new Error("a survey round is offered as something that just happened");
+    }
+  });
+
+  await page.fillDialog({ kind: "casual" });
+  await sleep(500);
+
+  /* --------------------------------------------- two records, one line -- */
+
+  await page.click('[data-act="capture"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the capture box");
+  await page.fillDialog({
+    said: "vårt 1-1 med Testperson, jag ska boka om designgenomgången"
+  });
+  await page.waitFor("document.querySelector('.dialog') !== null", "the reading");
+
+  const bothRecords = JSON.parse(String(await page.evaluate(`(() => {
+        const body = document.querySelector('.dialog-body');
+        const box = body.querySelector('[name="alsoPromise"]');
+        const text = body.querySelector('[name="promiseText"]');
+        return JSON.stringify({
+          offersPromise: box !== null,
+          ticked: box === null ? false : box.checked,
+          promiseText: text === null ? null : text.value,
+          editable: text !== null && text.tagName === 'INPUT'
+        });
+      })()`)));
+
+  check("one sentence that is both a conversation and a commitment produces both", () => {
+    /*
+     * Straight out of one of his own questions: "ska den loggas någon mer
+     * stans?" If the answer is still "you work that out yourself", the box has
+     * not replaced anything.
+     */
+    if (bothRecords.offersPromise !== true) {
+      throw new Error("no promise came out of a sentence saying jag ska");
+    }
+    if (bothRecords.ticked !== true) {
+      throw new Error("the promise is offered but not taken by default");
+    }
+  });
+
+  check("with only the commitment in it, and that text editable", () => {
+    /*
+     * The clause is cut out by a regex working on punctuation, that cut had a
+     * bug which handed over the whole note as the promise, and what lands there
+     * goes into an append-only log to be read months later with nothing around
+     * it. Being able to fix it is cheaper than the regex being right.
+     */
+    if (/nöjd|releasen/.test(String(bothRecords.promiseText))) {
+      throw new Error(`the promise swallowed the rest of the note: "${bothRecords.promiseText}"`);
+    }
+    if (!String(bothRecords.promiseText).includes("boka om")) {
+      throw new Error(`the promise lost what was promised: "${bothRecords.promiseText}"`);
+    }
+    if (bothRecords.editable !== true) {
+      throw new Error("the promise text cannot be corrected before it is written");
+    }
+  });
+
+  await page.click(".dialog [data-confirm]");
+  await sleep(600);
+
+  /* -------------------------------------------------- what got written -- */
+
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor("document.querySelector('.line') !== null", "the person page");
+
+  const written = JSON.parse(String(await page.evaluate(`(() => {
+        for (const fold of document.querySelectorAll('details')) { fold.open = true; }
+        const seen = document.body.textContent.replace(/\\s+/g, ' ');
+        return JSON.stringify({
+          casual: /casual/i.test(seen),
+          oneToOne: /one-to-one/i.test(seen),
+          promise: seen.includes('boka om designgenomgången'),
+          said: seen.includes('nöjd med releasen')
+        });
+      })()`)));
+
+  check("the kind that was asked for is the kind that landed", () => {
+    /*
+     * The reading is only worth a keystroke if agreeing with it writes what it
+     * said. Checked on the page rather than on the toast, because the toast says
+     * the same thing whatever went into the store.
+     */
+    if (written.casual !== true) {
+      throw new Error("the chat answered as casual is not on the page as one");
+    }
+    if (written.oneToOne !== true) {
+      throw new Error("the conversation read as a 1-1 is not on the page as one");
+    }
+  });
+
+  check("his own sentence is what the row says, word for word", () => {
+    /*
+     * The note is what gets read back in six months and nothing recomputes it. A
+     * capture flow that summarised, trimmed or reworded it would be the one
+     * place in the app where his own words do not survive.
+     */
+    if (written.said !== true) {
+      throw new Error("what he wrote is not what the contact row says");
+    }
+  });
+
+  check("and the promise out of the same sentence is in the ledger", () => {
+    if (written.promise !== true) {
+      throw new Error("the promise was offered, ticked, and never written");
+    }
+  });
+
   step("Finishing up");
 
   /*

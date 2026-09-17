@@ -419,6 +419,27 @@ block for the part the notes do not answer.
 
 ## Open questions
 
+- **How much of the entry surface the derivation should eventually cover.**
+  Settled on 2026-09-17 for CONTACTS and for a promise inside the same sentence:
+  "Vad hände?" on the front page reads one plain sentence and confirms what it
+  read. Not settled for the rest, and each is a separate judgement rather than
+  one rollout:
+  - An **observation for an assessment** needs an area, the axis groups on it,
+    and an area cannot be read out of a sentence. Deriving it would file
+    evidence under a plausible heading, which is worse than none.
+  - A **growth thread** has thirteen fields and is a claim about where somebody
+    is going, not a record of what happened. It is closer to a duty than to a
+    contact, so the accept-in-the-UI rule points away from deriving it at all.
+  - A **decision** has four states and a revisit clock that starts when it is
+    recorded. The same reasoning that keeps agents from recording one applies to
+    a regex.
+- **Whether the cue lists should ever grow from his own writing.** They are
+  hand-written high-precision Swedish today and will miss things he says
+  regularly. The obvious next move - widen them until they hit more often - is
+  the wrong one: recall bought by lowering precision is paid for in silently
+  wrong cadences. The honest version is to look at what he actually typed that
+  fell through to the question, and add only cues that are unambiguous. That
+  needs the feature to have been used for a while first.
 - **The five proposed duties are still proposals.** `npm run seed` writes them;
   he accepts or declines each in the Role map view. The four judgement questions
   from the research were settled on 2026-08-23 and are recorded in DECISIONS.md.

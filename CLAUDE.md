@@ -86,6 +86,23 @@ reach, pin it AFTER the spread - `{ ...args, tell: undefined, now }` - the way
 fails when a tool passes a field its schema does not declare, and its allow list
 wants a reason per entry.
 
+**A heuristic's own tests are written by the head that wrote the heuristic**, so
+they assert the inputs that head already thought of. `src/domain/capture.js`
+shipped its first version with a header claiming its cue lists were "high
+precision, low recall" and a passing test file agreeing; an adversarial pass
+broke it on five pieces of ordinary Swedish in minutes, including a pattern that
+matched the bare number 11 and a name scan that turned the word "vi" into a
+colleague called Viktor. Anything in here that reads free text or guesses a
+category gets attacked with input somebody else chose, and every sentence that
+broke it becomes a test verbatim. The regression block at the bottom of
+`test/capture.test.mjs` is the shape.
+
+And the corollary that cost more than the regexes did: **a derivation that cannot
+be corrected on the screen that shows it is worse than no derivation.** The same
+file's dialog rendered a fully-read sentence as read-only facts, which was
+defensible right up until the readings were wrong - and then it was a wall with a
+button on it, in a flow that had spent the good cases teaching the Enter key.
+
 **Agents propose decisions; they never record one.** `tend_propose_decision`
 forces `status: "proposed"` inside the tool rather than trusting the caller, and
 there is deliberately no MCP tool that records or accepts one - a test asserts
