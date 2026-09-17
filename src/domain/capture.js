@@ -41,12 +41,12 @@
  * - `granskade` and `påtalade` carry no subject. "Nina granskade min kod" read
  *   as HIM observing HER work, with the direction reversed.
  * - The name scan took the first prose word that was a PREFIX of anybody on the
- *   roster, minimum two characters. With a Viktor on the roster, "**vi** hade
- *   vårt 1-1 med Nina" filed against Viktor. Same shape for om/Omar, han/Hanna,
- *   till/Tilde, tar/Tara.
- * - "hörde från Tova att Nina är frustrerad" filed the second-hand touch against
- *   **Tova** - the one person in the sentence he actually spoke to - leaving
- *   Nina's blind spot open and resetting Tova's clock instead.
+ *   roster, minimum two characters. With a Vikarie on the roster, "**vi** hade
+ *   vårt 1-1 med Nina" filed against Vikarie. Same shape for om/Omvärld, han/Handbok,
+ *   till/Tillbud, tar/Tariff.
+ * - "hörde från Tolka att Nina är frustrerad" filed the second-hand touch against
+ *   **Tolka** - the one person in the sentence he actually spoke to - leaving
+ *   Nina's blind spot open and resetting Tolka's clock instead.
  *
  * Every one of those produced a `settled` reading, which in the first design
  * meant a confirmation with no fields on it and an Enter key. That combination
@@ -84,7 +84,7 @@
  *
  * That applies to the PERSON too. The first version computed `personFrom` and
  * then never displayed it, which is precisely why the two worst breaks above
- * were invisible on screen: it said "Om vem: Viktor", not `Läst ur "vi"`.
+ * were invisible on screen: it said "Om vem: Vikarie", not `Läst ur "vi"`.
  */
 
 import { DAY_MS, middayOn } from "./time.js";
@@ -345,19 +345,19 @@ export function readPromise(text) {
  *
  * ## Two people named means nobody derived
  *
- * "hörde från Tova att Nina är frustrerad" is the canonical second-hand
- * sentence, and first-match-wins filed it against Tova - the one person he
+ * "hörde från Tolka att Nina är frustrerad" is the canonical second-hand
+ * sentence, and first-match-wins filed it against Tolka - the one person he
  * demonstrably DID speak to - leaving Nina's blind spot open. Nothing in the
  * words says which of the two the row is about; that is his to say. Same for
- * "mötet med Nina och Tova", where the honest answer is that a meeting is
+ * "mötet med Nina och Tolka", where the honest answer is that a meeting is
  * contact with everybody in it and this flow records one subject.
  *
  * ## Genitives
  *
  * "granskade Ninas PR" named nobody, and the genitive is exactly how a sentence
  * about somebody's work gets written. A trailing "s" is stripped only when the
- * unstripped form matched nobody, so a colleague actually called Hans is found
- * before "hans" is tried as a genitive of "Han".
+ * unstripped form matched nobody, so a colleague actually called Hangar is found
+ * before "hans" is tried as a genitive of "Hang".
  *
  * @param {Named[]} roster
  * @param {string} said

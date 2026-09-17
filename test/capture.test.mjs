@@ -42,8 +42,8 @@ const NOW = new Date("2026-09-17T10:00:00Z").getTime();
 
 const ROSTER = [
   { id: "p1", name: "Nina" },
-  { id: "p2", name: "Oskar Vind" },
-  { id: "p3", name: "Tova" }
+  { id: "p2", name: "Oktav Provsson" },
+  { id: "p3", name: "Tolka" }
 ];
 
 /** @param {number | string} at */
@@ -58,7 +58,7 @@ describe("the kind is read from evidence, or not at all", () => {
      */
     assert.equal(readKind("pratade med Nina om bygget"), null);
     assert.equal(readKind("hade ett samtal med Nina"), null);
-    assert.equal(readKind("snackade med Oskar"), null);
+    assert.equal(readKind("snackade med Oktav"), null);
   });
 
   it("reads the recurring conversation only when it is named", () => {
@@ -69,11 +69,11 @@ describe("the kind is read from evidence, or not at all", () => {
 
   it("reads a chat as casual only when it is placed somewhere incidental", () => {
     assert.equal(readKind("pratade med Nina i förbifarten")?.value, "casual");
-    assert.equal(readKind("stötte på Oskar vid kaffemaskinen")?.value, "casual");
+    assert.equal(readKind("stötte på Oktav vid kaffemaskinen")?.value, "casual");
   });
 
   it("reads second hand, and does not let it near the 1-1", () => {
-    const heard = readKind("hörde från Tova att Nina är frustrerad");
+    const heard = readKind("hörde från Tolka att Nina är frustrerad");
     assert.equal(heard?.value, "second-hand");
     assert.notEqual(heard?.value, "one-to-one");
   });
@@ -200,29 +200,29 @@ describe("who the sentence is about", () => {
   });
 
   it("finds a full name typed out", () => {
-    assert.equal(readPerson(ROSTER, "vårt 1-1 med Oskar Vind")?.person.id, "p2");
+    assert.equal(readPerson(ROSTER, "vårt 1-1 med Oktav Provsson")?.person.id, "p2");
   });
 
   it("finds one by a first name alone", () => {
-    assert.equal(readPerson(ROSTER, "vårt 1-1 med Oskar")?.person.id, "p2");
+    assert.equal(readPerson(ROSTER, "vårt 1-1 med Oktav")?.person.id, "p2");
   });
 
   it("matches a whole name part, never a prefix of one", () => {
     /*
      * THE break that mattered most. `parse.js` matches by prefix, which is right
      * for the palette where somebody is typing a name on purpose. Scanning prose
-     * it made every short function word a candidate: with a Viktor on the
-     * roster, "VI hade vårt 1-1 med Nina" filed against Viktor - and the reading
+     * it made every short function word a candidate: with a Vikarie on the
+     * roster, "VI hade vårt 1-1 med Nina" filed against Vikarie - and the reading
      * came back settled, so the dialog had nothing on it to correct.
      */
-    const withViktor = [{ id: "v", name: "Viktor" }, { id: "n", name: "Nina" }];
-    assert.equal(readPerson(withViktor, "vi hade vårt 1-1 med Nina igår")?.person.id, "n");
+    const withVikarie = [{ id: "v", name: "Vikarie" }, { id: "n", name: "Nina" }];
+    assert.equal(readPerson(withVikarie, "vi hade vårt 1-1 med Nina igår")?.person.id, "n");
 
     const others = [
-      { roster: [{ id: "o", name: "Omar" }], said: "pratade om bygget" },
-      { roster: [{ id: "h", name: "Hanna" }], said: "han var inte där" },
-      { roster: [{ id: "t", name: "Tara" }], said: "jag tar det imorgon" },
-      { roster: [{ id: "i", name: "Isabelle" }], said: "det är klart nu" }
+      { roster: [{ id: "o", name: "Omvärld" }], said: "pratade om bygget" },
+      { roster: [{ id: "h", name: "Handbok" }], said: "han var inte där" },
+      { roster: [{ id: "t", name: "Tariff" }], said: "jag tar det imorgon" },
+      { roster: [{ id: "i", name: "Isbjörn" }], said: "det är klart nu" }
     ];
     for (const { roster, said } of others) {
       assert.equal(readPerson(roster, said), null, `"${said}" named ${roster[0].name}`);
@@ -232,12 +232,12 @@ describe("who the sentence is about", () => {
   it("refuses when two people are named", () => {
     /*
      * The canonical second-hand sentence. First-match-wins filed it against
-     * Tova - the one person he demonstrably DID speak to - which left Nina's
-     * blind spot open and reset Tova's clock instead. Nothing in the words says
+     * Tolka - the one person he demonstrably DID speak to - which left Nina's
+     * blind spot open and reset Tolka's clock instead. Nothing in the words says
      * which of the two the row is about.
      */
-    assert.equal(readPerson(ROSTER, "hörde från Tova att Nina är frustrerad"), null);
-    assert.equal(readPerson(ROSTER, "mötet med Nina och Tova igår"), null);
+    assert.equal(readPerson(ROSTER, "hörde från Tolka att Nina är frustrerad"), null);
+    assert.equal(readPerson(ROSTER, "mötet med Nina och Tolka igår"), null);
   });
 
   it("refuses a first name two people on the roster share", () => {
@@ -254,11 +254,11 @@ describe("who the sentence is about", () => {
 
   it("prefers a real name over reading it as somebody else's genitive", () => {
     /*
-     * A colleague actually called Hans matches "hans" outright, so the genitive
+     * A colleague actually called Hangar matches "hangar" outright, so the genitive
      * pass - which would turn it into "Han" - never runs.
      */
-    const withHans = [{ id: "h", name: "Hans" }, { id: "x", name: "Han" }];
-    assert.equal(readPerson(withHans, "det var hans förslag")?.person.id, "h");
+    const withHans = [{ id: "h", name: "Hangar" }, { id: "x", name: "Hang" }];
+    assert.equal(readPerson(withHans, "det var hangar förslag")?.person.id, "h");
   });
 
   it("says which words named them", () => {
@@ -356,11 +356,11 @@ describe("the sentences an adversarial pass broke the first version with", () =>
   });
 
   it("and a whole broken sentence comes back unsettled rather than wrong", () => {
-    const withViktor = [{ id: "v", name: "Viktor" }, { id: "n", name: "Nina" }];
-    const got = read("vi hade vårt 1-1 med Nina", withViktor, NOW);
+    const withVikarie = [{ id: "v", name: "Vikarie" }, { id: "n", name: "Nina" }];
+    const got = read("vi hade vårt 1-1 med Nina", withVikarie, NOW);
     assert.equal(got.person?.id, "n");
 
-    const heard = read("hörde från Tova att Nina är frustrerad", ROSTER, NOW);
+    const heard = read("hörde från Tolka att Nina är frustrerad", ROSTER, NOW);
     assert.equal(heard.person, null);
     assert.equal(heard.settled, false);
   });

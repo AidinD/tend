@@ -45,7 +45,7 @@
  *   consequential kind in the list.
  * - **The evidence is shown for the person too.** It was computed and dropped,
  *   which is exactly why the two worst derivation breaks were invisible here:
- *   the screen said "Om vem: Viktor" rather than `Läst ur "vi"`.
+ *   the screen said "Om vem: Vikarie" rather than `Läst ur "vi"`.
  * - **The promise text is editable**, because it goes into an append-only log
  *   and is read back months later with no context around it.
  *
@@ -177,8 +177,8 @@ async function confirmStep(reading, roster) {
       /*
        * The words that named them, and this hint is not decoration. Two of the
        * three worst breaks in the derivation were only ever visible here - a
-       * roster holding a Viktor turned "vi hade vårt 1-1" into a 1-1 with
-       * Viktor, and the screen said his name with nothing to say why.
+       * roster holding a Vikarie turned "vi hade vårt 1-1" into a 1-1 with
+       * Vikarie, and the screen said his name with nothing to say why.
        */
       hint: reading.personFrom === null ? words.whoHint : words.readFrom(reading.personFrom)
     },
