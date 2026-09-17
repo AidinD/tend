@@ -12,6 +12,21 @@ files:
   - package.json
   - "!src/**/*.test.mjs"
 
+  # keel is a SYMLINK to a sibling checkout, so whatever is sitting in that
+  # working tree at build time gets packed - including things that have nothing
+  # to do with the dependency. On 2026-09-17 that was another session's live git
+  # worktree under `.claude/worktrees/`, half a megabyte of it, and the asar came
+  # out CORRUPT: reading `package.json` back out of the archive returned the tail
+  # of a zod source file, and the packaged app died before Electron started with
+  # no output at all. Files whose size changes while the archive is being written
+  # leave every offset after them pointing at the wrong bytes.
+  #
+  # Two reasons to keep this, not one. The corruption is the loud failure; the
+  # quiet one is that an agent worktree can hold anything, and this installer is
+  # published. Nothing under a sibling's tooling directory belongs in it.
+  - "!node_modules/*/.claude/**"
+  - "!node_modules/*/.git/**"
+
 win:
   target:
     - nsis

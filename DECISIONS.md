@@ -3,6 +3,57 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-17 - Nothing under a sibling's tooling directory goes in the installer
+
+**Found by the packaged check refusing to start, which is the only reason it was
+found at all.** `npm run test:app -- --packaged` reported "the app exited before
+the renderer appeared (exit code 1)" with no output. Electron on Windows is a GUI
+subsystem binary, so it writes nothing to a console and `--enable-logging=file`
+produced an empty file: it was dying before Chromium started.
+
+`ELECTRON_RUN_AS_NODE=1` on the packaged binary got the error out:
+
+```
+ERR_INVALID_PACKAGE_CONFIG  Invalid package config .../app.asar/package.json
+Unexpected token '.', ".js";
+impo"... is not valid JSON
+```
+
+**The `package.json` inside the archive was the tail of a zod source file.** The
+repository's own copy was valid at that moment and `npm run package` had
+succeeded, so this was not a bad input - the asar's offsets were pointing at the
+wrong bytes.
+
+**The cause.** `node_modules/keel` is a SYMLINK to the sibling checkout, so
+whatever is sitting in that working tree at build time gets packed. That day it
+held another session's live git worktree under `.claude/worktrees/`, half a
+megabyte of it, being written to while electron-builder was reading. A file whose
+size changes between the header being computed and the content being written
+leaves every offset after it wrong, and the archive still LISTS correctly - which
+is why `asar list` looked fine and reading a file did not.
+
+`!node_modules/*/.claude/**` and `!node_modules/*/.git/**` now keep both out.
+
+**Two reasons for the rule, and the quiet one matters more.** The corruption is
+the loud failure and it stopped the release. The other is that an agent worktree
+can hold anything at all, this installer is published, and this repository
+already has a rule about what may reach a public artefact. Nothing under a
+sibling's tooling directory belongs in a build.
+
+**What it says about the check.** `npm run test:app -- --packaged` is in CLAUDE.md
+as the thing that proves a packaged build works, and this is the first time it
+has caught something that every other suite passed: 1255 unit checks, 308 app
+checks in development and the MCP end-to-end run were all green against an
+installer that could not open a window. The reason it can catch that class of
+fault is that it drives the real binary rather than the source.
+
+**And a mistake worth recording so it is not repeated.** `asar extract-file`
+writes the extracted file into the CURRENT directory under its own basename, so
+running it on `package.json` from the repository root overwrites the
+repository's `package.json` with the corrupt bytes. It is `git checkout` away
+from harmless, and it is one command away from looking exactly like the bug being
+investigated.
+
 ## 2026-09-17 - The growth thread's fields were measured before they were fixed
 
 **The ask.** "Fixa utvecklingstrådens fält också" - the other half of the entry
