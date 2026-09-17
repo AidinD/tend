@@ -71,27 +71,42 @@ import { daysBetween } from "./time.js";
  * `unknown` is a first-class answer rather than a missing one. Not knowing is
  * the usual state before the first conversation, and pretending otherwise is how
  * a manager ends up writing somebody else's ambitions for them.
+ *
+ * ## Only `unknown` carries an `asks`, and that is the fix rather than the gap
+ *
+ * All three used to, with a comment claiming the question was "asked in the form
+ * rather than left as advice in a conversation somewhere". It was asked in
+ * neither: nothing read the field. `questionsFor` wrote its own questions and
+ * never looked here, so three written sentences sat in the domain being true and
+ * unreachable, and a test could not have caught it because nothing asserts a
+ * constant is used.
+ *
+ * Two of them had genuinely been superseded. `wants` asked for the person's own
+ * words, which `questionsFor` asks better and at the right moment; `needs` asked
+ * two things in one sentence, which it splits into the two field-level questions
+ * that name what is missing. Those two are deleted rather than wired, because
+ * wiring them would have put the same question on the card twice.
+ *
+ * `unknown` was never superseded. It was simply never asked - so the one state
+ * this file calls "the normal state before you have asked" was the only state
+ * that produced no prompt to go and ask, and a thread parked there stayed parked
+ * in silence. Two of the four real threads were sitting in exactly that.
  */
 export const DRIVERS = /** @type {const} */ ({
   wants: {
     label: "De vill det",
-    means: "Deras ambition. Ditt jobb är skydd och möjligheter, inte övertalning.",
-    /**
-     * The question this driver has to answer before anything else, asked in the
-     * form rather than left as advice in a conversation somewhere.
-     */
-    asks: "Vad har de sagt att de vill, i sina egna ord?"
+    means: "Deras ambition. Ditt jobb är skydd och möjligheter, inte övertalning."
   },
   needs: {
     label: "Jobbet behöver det",
     means:
       "Ett krav, inte en förhoppning. Säg 'behöver'-delen en gång, rakt ut, och coacha varje " +
-      "steg efter det: tydlighet om huruvida, uppmuntran om hur.",
-    asks: "Vems behov är det, och vad händer om inget ändras?"
+      "steg efter det: tydlighet om huruvida, uppmuntran om hur."
   },
   unknown: {
     label: "Jag vet inte än",
     means: "Det normala läget innan du frågat. Nästa steg är en fråga, inte en plan.",
+    /** Read by `questionsFor`. The only one of the three that still exists. */
     asks: "Vad kommer du att fråga dem, och när?"
   }
 });
@@ -596,6 +611,19 @@ export function missing(row) {
   if (driver === "") {
     prepare.push("Vill de det här, eller behöver jobbet det?");
   }
+  if (driver === "unknown") {
+    /*
+     * The question that closes the loop, and it was never asked.
+     *
+     * "Jag vet inte än" is a first-class answer here AND the value the form
+     * pre-selects, so it is both the honest state before a conversation and the
+     * state somebody lands in by pressing past a question they did not follow.
+     * Either way the next move is to go and ask - and nothing said so, so a
+     * thread could sit at "I do not know" indefinitely while the page stayed
+     * quiet about it. Two of the four real threads were doing that.
+     */
+    prepare.push(DRIVERS.unknown.asks);
+  }
   if (driver === "needs") {
     if (blank(row.need)) {
       prepare.push("Vems behov är det? Namnge det konkret.");
@@ -618,7 +646,16 @@ export function missing(row) {
     prepare.push("Vad har du redan sett som stödjer det? Tomt är i sig fyndet.");
   }
   if (blank(row.offering)) {
-    prepare.push("Vad lägger du in - skydd, ett rum, arbete du slutar göra själv?");
+    /*
+     * Said as things, not as a metaphor. This asked for "ett rum att bli
+     * insläppt i", and his reply was "jag vet helle rinte vad ett rum betyder" -
+     * which is the correct reading of it. A field whose help has to be
+     * interpreted is a field that gets left empty.
+     */
+    prepare.push(
+      "Vad lägger du in? Ett möte de får gå på i ditt ställe, ett arbete du slutar göra själv, " +
+        "en risk du tar åt dem."
+    );
   }
 
   if (blank(row.theirWords)) {

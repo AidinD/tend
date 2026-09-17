@@ -320,10 +320,61 @@ describe("the option lists", () => {
     );
   });
 
-  it("gives every driver something the form can ask about it", () => {
+  it("gives every driver something to say about what it means", () => {
     for (const [key, driver] of Object.entries(DRIVERS)) {
       assert.ok(driver.means.trim().length > 0, `${key} says nothing about what it means`);
-      assert.ok(driver.asks.trim().length > 0, `${key} asks nothing`);
+    }
+  });
+
+  it("actually ASKS the question a driver declares, rather than merely holding one", () => {
+    /*
+     * This check replaced its own weaker ancestor, and the difference is the
+     * whole lesson.
+     *
+     * The old one asserted that every driver HAD a non-empty `asks`. All three
+     * did, and it passed for months while `questionsFor` wrote its own questions
+     * and never read the field - so three sentences sat in the domain being true
+     * and unreachable, under a comment claiming the form asked them. A test that
+     * asserts a constant exists proves nothing about whether anybody sees it.
+     *
+     * The cost was not theoretical. `unknown` is both the honest state before a
+     * conversation AND the value the form pre-selects, so it is where a thread
+     * lands when somebody presses past a question they did not follow - and it
+     * was the one driver that produced no prompt at all. Two of the four real
+     * threads had been parked there in silence.
+     */
+    const asked = missing({
+      id: "g1",
+      person: "p1",
+      aim: "Leder designgenomgången",
+      driver: "unknown",
+      status: "open"
+    }).prepare;
+
+    assert.ok(
+      asked.includes(DRIVERS.unknown.asks),
+      `a thread at "jag vet inte än" is asked nothing about it: ${JSON.stringify(asked)}`
+    );
+  });
+
+  it("and no driver declares a question that nothing reads", () => {
+    /*
+     * The other half, and the one that keeps this honest as drivers are added.
+     * `wants` and `needs` had `asks` too; both had been superseded by better
+     * field-level questions, so they were deleted rather than wired - wiring
+     * them would have put the same question on the card twice.
+     */
+    const reachable = new Set(
+      ["", "wants", "needs", "unknown"].flatMap(
+        (driver) =>
+          missing({ id: "g1", person: "p1", aim: "En riktning", driver, status: "open" }).prepare
+      )
+    );
+    for (const [key, driver] of Object.entries(DRIVERS)) {
+      const asks = /** @type {{ asks?: string }} */ (driver).asks;
+      if (asks !== undefined) {
+        assert.ok(reachable.has(asks), `${key} declares a question nothing ever asks: "${asks}"`);
+      }
     }
   });
 });

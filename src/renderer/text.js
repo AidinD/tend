@@ -1419,9 +1419,12 @@ export const T = {
       "Bara det som hänt. Tomt är i sig fyndet: inget underlag under riktningen.",
     fOffering: "Vad lägger du in?",
     fOfferingPlaceholder: "Arkitekturgenomgången, och jag slutar skriva migreringsplanen själv",
+    /* Things, not a metaphor. This said "ett rum att bli insläppt i", and his
+       answer was "jag vet helle rinte vad ett rum betyder" - which is the right
+       reading of it. A field whose help has to be interpreted stays empty. */
     fOfferingHint:
-      'Skydd, ett rum att bli insläppt i, arbete du slutar göra själv. Skriv det som gjort ' +
-      'eller daterat - "jag skulle kunna" är inget du lägger in.',
+      'Ett möte de får gå på i ditt ställe, ett arbete du slutar göra själv, en risk du tar ' +
+      'åt dem. Skriv det som gjort eller daterat - "jag skulle kunna" är inget du lägger in.',
 
     /* Stage B: what the conversation returned. */
     fTheirWords: "Vad de sa att de vill, i deras ord",

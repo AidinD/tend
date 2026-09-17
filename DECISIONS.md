@@ -3,6 +3,91 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-17 - The growth thread's fields were measured before they were fixed
+
+**The ask.** "Fixa utvecklingstrådens fält också" - the other half of the entry
+card, after the capture work landed. The brief handed over with it said `need`
+and `ifNothingChanges` were filled in 1 of 5 threads, and that `aim` and
+`hypothesis` held identical text in 2 of 5, so the fields were being used three
+different ways.
+
+**Both findings dissolve on inspection, and the measurement is why.** Reducing
+the live event log read-only:
+
+- There are **four** threads, not five. `rows()` filters tombstones; the fifth is
+  deleted.
+- `need` and `ifNothingChanges` are filled in **1 of 1**. They are gated on
+  `driver === "needs"` by a `showIf` the form already implements correctly, and
+  exactly one thread has that driver. They are never filled under another
+  answer. That is a conditional field working perfectly, counted against the
+  wrong denominator.
+- `aim` and `hypothesis` are identical **by construction**:
+  `views/growth.js` passes `hypothesis: values.aim` when a thread is opened. The
+  two that match are threads whose aim was never later revised; the two that
+  differ are threads where it was, with the hypothesis correctly preserved as
+  what he thought before asking. The card already hides the hypothesis when the
+  two are equal. That is the designed behaviour, observed accurately and
+  diagnosed backwards.
+- `theirWords`, `alreadySeen` and `offering` are **4 of 4**. They are not thin.
+  The one thread missing `assignment` and `marker` is the one that was declined
+  and dropped, where both would be homework for a conversation that is not going
+  to happen.
+
+So nothing was deleted, and the "thin fields" were not the fault. Writing this
+down because the instruction was specific and confident and the data said
+otherwise, and the next person to read the brief deserves to know which one won.
+
+### What the measurement DID find
+
+**Two of the four threads sit at `driver: "unknown"`, and the app never asks them
+anything about it.** `DRIVERS` declares an `asks` for each driver, under a
+comment saying the question is "asked in the form rather than left as advice in a
+conversation somewhere". Nothing read the field. `questionsFor` wrote its own
+questions and never looked at it, so all three sentences sat in the domain being
+true and unreachable.
+
+For `wants` and `needs` that cost nothing: both had been superseded by better
+field-level questions, which is presumably why nobody noticed. For `unknown` it
+cost the whole loop. That value is both the honest state before a first
+conversation AND the value the form pre-selects, so it is where a thread lands
+when somebody presses past a question they did not follow - and it was the one
+driver producing no prompt at all. A thread could sit at "I do not know yet"
+indefinitely while the page stayed quiet about it. Two were.
+
+`unknown.asks` is now wired. `wants.asks` and `needs.asks` are deleted rather
+than wired, because wiring them would print the same question on the card twice.
+
+**The test that should have caught this asserted that every driver HAD a
+non-empty `asks`.** All three did. It passed for months. A check that a constant
+exists proves nothing about whether anybody ever sees it - the same shape as the
+capture cue lists earlier today, where a test written from the head that wrote
+the code asserted only what that head had thought of. It is replaced by two: one
+driving `missing()` and asserting the question comes out, and one asserting that
+no driver declares a question nothing reads. A mutation removing the fix fails
+both, and fails the e2e.
+
+**And the metaphor is gone.** The help for `offering` read "Skydd, ett rum att
+bli insläppt i, arbete du slutar göra själv". His reply was "jag vet helle rinte
+vad ett rum betyder", which is the correct reading of it. It now names things: a
+meeting they go to in his place, work he stops doing himself, a risk he carries
+for them. Both copies - the form's hint and the question on the card - were
+saying it, and both changed.
+
+### What was NOT built, and why it is a question rather than an omission
+
+The brief's direction was the capture treatment: a plain paragraph in, fields
+derived and correctable. That is not obviously right here and the measurement is
+why - the fields are being filled, so there is no derivation problem to solve,
+and the failure was a question that never got asked rather than a form that was
+too long.
+
+Its better half stands and is left open: a thread is not one moment, and some of
+these fields only become answerable after a conversation that has not happened.
+The dialog is already staged for that (opening asks one thing; prepare and asked
+are separate sittings). Whether the unanswered fields should surface as the thing
+to raise in the next 1-1 is a real question, and `missing()` already computes
+exactly that list - so it may be a presentation change rather than a new dialog.
+
 ## 2026-09-17 - Plain words in, and a reading he can correct in place
 
 **His report.** "Jag drar mig lite från att använda det manuellt för att jag inte

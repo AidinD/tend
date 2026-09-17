@@ -7496,6 +7496,101 @@ try {
     }
   });
 
+  step("A thread parked at 'I do not know yet' is still asked something");
+
+  /*
+   * `DRIVERS.unknown.asks` had been written, documented as "asked in the form
+   * rather than left as advice in a conversation somewhere", and read by
+   * nothing. `questionsFor` wrote its own questions and never looked at the
+   * field, so the one state the domain calls normal-before-you-have-asked was
+   * the only state producing no prompt at all.
+   *
+   * That is not theoretical. "Jag vet inte än" is also the value the form
+   * PRE-SELECTS, so it is where a thread lands when somebody presses past a
+   * question they did not follow - and two of the four real threads in his own
+   * store were sitting there in silence.
+   *
+   * The unit test that should have caught it asserted the constant was
+   * non-empty. It passed for months.
+   */
+  await page.click('.nav-btn[data-view="people"]');
+  await page.waitFor("document.querySelector('.row-name') !== null", "the roster");
+  await page.click('[data-act="open"]');
+  await page.waitFor("document.querySelector('[data-act=\"openThread\"]') !== null", "the person");
+
+  await page.click('[data-act="openThread"]');
+  await page.fillDialog({ aim: "Tar över kapacitetsplaneringen till våren" });
+  await page.waitFor(
+    "document.body.textContent.includes('kapacitetsplaneringen')",
+    "the new thread"
+  );
+
+  const bareThread = String(await page.evaluate("document.body.textContent.replace(/\\s+/g, ' ')"));
+
+  check("a thread nobody has prepared already says what is still to prepare", () => {
+    if (!/Kvar att förbereda/.test(bareThread)) {
+      throw new Error("a bare thread asks nothing of him at all");
+    }
+  });
+
+  check("and the help for what he puts in names things rather than a metaphor", () => {
+    /*
+     * It said "ett rum att bli insläppt i". His answer was "jag vet helle rinte
+     * vad ett rum betyder", which is the correct reading of it. A field whose
+     * help has to be interpreted is a field that stays empty.
+     */
+    if (/ett rum att bli insläppt/.test(bareThread)) {
+      throw new Error("the metaphor is back in what he is asked to put in");
+    }
+    if (!/slutar göra själv/.test(bareThread)) {
+      throw new Error(`what he puts in is not described in things: "${bare.slice(0, 400)}"`);
+    }
+  });
+
+  /*
+   * Open the prepare dialog and confirm it WITHOUT touching the driver, which
+   * leaves the pre-selected "jag vet inte än" exactly as somebody pressing past
+   * it would.
+   */
+  const threadCards = await page.evaluate(
+    "document.querySelectorAll('[data-act=\"threadPrepare\"]').length"
+  );
+  check("the new thread offers to be prepared", () => {
+    if (Number(threadCards) < 1) {
+      throw new Error("there is no way to prepare the thread that was just opened");
+    }
+  });
+
+  await page.click('[data-act="threadPrepare"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the prepare dialog");
+
+  const preSelected = await page.evaluate(
+    "document.querySelector('.dialog [name=\"driver\"]').value"
+  );
+  check("the driver arrives pre-answered as 'I do not know yet'", () => {
+    /*
+     * Asserted rather than assumed, because the whole point below depends on it:
+     * this is a defensible default - not knowing IS the usual state before the
+     * first conversation - but a default that silently ends the exchange is not.
+     */
+    if (preSelected !== "unknown") {
+      throw new Error(`the driver pre-answers as "${preSelected}", so this check tests nothing`);
+    }
+  });
+
+  await page.click(".dialog [data-confirm]");
+  await sleep(500);
+
+  const parked = String(await page.evaluate("document.body.textContent.replace(/\\s+/g, ' ')"));
+
+  check("and leaving it there is answered with the question that moves it on", () => {
+    if (!/Vad kommer du att fråga dem/.test(parked)) {
+      throw new Error(
+        'a thread at "jag vet inte än" is never asked what he will ask them, or when'
+      );
+    }
+  });
+
   step("Finishing up");
 
   /*
