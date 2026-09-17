@@ -194,9 +194,14 @@ blank window:
 npm run test:app -- --packaged
 ```
 
-**Never kill Electron by name.** `scripts/stop-running-build.mjs` matches on the
-executable path so only a Tend from this `dist/` is stopped. Other Electron apps
-are often running, and a broad kill closes whatever someone is working in.
+**Never kill Electron by name.** `stopRunningBuild` from `keel/release` matches on
+the executable path so only a Tend from this `dist/` is stopped. Other Electron
+apps are often running, and a broad kill closes whatever someone is working in.
+`scripts/package.mjs` and `scripts/release.mjs` both call it before packaging.
+
+This used to be a local `scripts/stop-running-build.mjs`. It moved into keel with
+the rest of the release guards, and this paragraph kept naming the old path for
+three weeks after the file was gone.
 
 ## Storage
 
