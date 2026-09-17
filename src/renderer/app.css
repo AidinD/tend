@@ -1936,6 +1936,34 @@ button.row:hover {
  * closer to each other than to the next item. Said explicitly so the two
  * numbers cannot drift apart again.
  */
+/*
+ * The action points offered from the last note.
+ *
+ * No bullet: each row starts with the button that takes it, and a marker beside
+ * a button reads as two controls. The row wraps rather than truncating - these
+ * come out of a summary and the median one is ninety characters, so cutting
+ * them off would hide the half that says what was actually promised.
+ */
+.point-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.point-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-label);
+  flex-wrap: wrap;
+}
+
+.point-list li > .act {
+  flex: none;
+}
+
+.point-text {
+  flex: 1 1 12ch;
+}
+
 .prep-list li > .src {
   margin-top: var(--sp-sub);
 }

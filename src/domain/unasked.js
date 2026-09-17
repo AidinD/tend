@@ -27,6 +27,8 @@
  * Read-only, like every other path into Nib. Nib owns the notes.
  */
 
+import { startsSection } from "./notesections.js";
+
 /**
  * Headings that mean "the questions I did not get to".
  *
@@ -98,7 +100,7 @@ export function unaskedQuestions(body) {
      * it as questions. The position rule exists for text where the markers are
      * gone, not instead of this.
      */
-    if (HEADING.test(line)) {
+    if (HEADING.test(line) || startsSection(line)) {
       break;
     }
 

@@ -45,6 +45,8 @@ import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
 import { noteBody, notesIn, principlesInNib, readNibIndex } from "./nib.js";
 import { unaskedQuestions } from "../domain/unasked.js";
+import { actionPoints } from "../domain/theirpoints.js";
+import { openWaits } from "../domain/waiting.js";
 import { forCard } from "../domain/practices.js";
 
 /**
@@ -164,6 +166,27 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
      * drift, so before this they could only earn a card through role-map
      * topics - and there are none, on anybody.
      */
+    /*
+     * What this person owes HIM, which is a `waiting` row.
+     *
+     * The record already existed and nothing put it in front of him here. His
+     * own words on 2026-09-17: "Jag höll på att missa vad vi sagt sen tidigare
+     * som punkter att ta upp nästa gång... i tend såg jag inget. Jag kollade
+     * förra gångens 1-1 och hittade där men det är inte säkert jag lyckas nästa
+     * gång." He had 22 promises and zero waits - a door nobody found rather than
+     * a concept nobody needed.
+     *
+     * Read through the domain, so the severity and chase reading are the same
+     * ones the Waiting view uses. What this card does NOT do is show them: see
+     * the mapping below.
+     */
+    const theyOweRows = openWaits({
+      waiting: /** @type {any[]} */ (store.rows("waiting")),
+      chases: /** @type {any[]} */ (store.rows("chases")),
+      now,
+      person: id
+    });
+
     const written = lastNote(nib, bindings, id);
     const toFindOut =
       written === null || nibDir === undefined
@@ -175,7 +198,8 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
       theirPromises.length === 0 &&
       worthRaising.length === 0 &&
       growing.length === 0 &&
-      toFindOut.length === 0
+      toFindOut.length === 0 &&
+      theyOweRows.length === 0
     ) {
       continue;
     }
@@ -233,6 +257,60 @@ export function prep(store, now, { jotDir, nibDir } = {}) {
         openFor: humanDays(x.status.ageDays),
         urgency: x.status.severity
       })),
+
+      /*
+       * What to follow up, and the wording is the design rather than a label.
+       *
+       * "Waiting" describes his posture; he asked for a list he can act from,
+       * so the card calls it what to pick up. Same rows, different sentence.
+       *
+       * Nothing about age, urgency or chase count reaches this card, and that is
+       * deliberate twice over. `domain/waiting.js` argues it first - escalating
+       * somebody else's silence "would be measuring them and blaming you" - and
+       * the second reason is the whole of card f558b0df: everything this app
+       * counts is a deficit, and a list of what a colleague has not done yet is
+       * the most tempting counter in it. The Waiting view keeps the severity and
+       * the chase reading, which is where he goes to decide whether to chase.
+       * This is the list he reads walking into a room.
+       */
+      theyOwe: theyOweRows.map((w) => ({
+        id: String(w.id),
+        what: String(w.what ?? ""),
+        why: String(w.why ?? ""),
+        since: agoWords(w.daysWaiting)
+      })),
+
+      /*
+       * The way in, and it has to be here or the list above stays empty forever.
+       *
+       * He had 22 promises and zero waits. The record was well built and the
+       * only door to it was a view he never opened, so the door goes where he
+       * already is: the action points written at the end of the last
+       * conversation, offered one click each.
+       *
+       * ## Why every point is offered rather than the ones that look like theirs
+       *
+       * The section mixes his work and theirs and nothing in the words reliably
+       * says which - see `domain/theirpoints.js`. Guessing generously puts
+       * somebody else's name on his own commitment. He picks.
+       *
+       * ## Already-promoted points drop out
+       *
+       * Matched on the text, which is crude and is the right kind of crude: the
+       * alternative is writing a pointer back into a Nib note, and Nib owns the
+       * notes. The cost of the crude version is that editing the wait's wording
+       * makes the point offerable again, which is visible and harmless. The cost
+       * of the other version is writing into somebody else's store.
+       */
+      pointsFromNote: (() => {
+        const already = new Set(
+          theyOweRows.map((w) => String(w.what ?? "").trim().toLowerCase())
+        );
+        return readPoints(written, nibDir)
+          .filter((point) => !already.has(point.text.toLowerCase()))
+          .slice(0, 8)
+          .map((point) => ({ text: point.text, inferred: point.inferred }));
+      })(),
 
       theyOwn: owned.map((w) => {
         const level = String(w.level ?? "");
@@ -485,4 +563,28 @@ function lastNote(nib, bindings, personId) {
   // The id as well as the title: it is what a model pass over the note's own
   // text needs, and it is the only handle on a note that Tend ever holds.
   return { id: newest.id, title: newest.title, edited: newest.edited };
+}
+
+/**
+ * The action points written at the end of the last conversation.
+ *
+ * Mirrors `readUnasked` exactly, including the reason: `noteBody` answers
+ * `{ available, text | why }` rather than a string, and an unavailable note is
+ * not an empty one. Reading it as a string would put the word "undefined"
+ * through the parser.
+ *
+ * @param {{ id: string } | null} written
+ * @param {string} [dir]
+ * @returns {{ text: string, inferred: boolean }[]}
+ */
+function readPoints(written, dir) {
+  if (written === null) {
+    return [];
+  }
+  try {
+    const body = noteBody(String(written.id), dir);
+    return body.available === true ? actionPoints(body.text) : [];
+  } catch {
+    return [];
+  }
 }

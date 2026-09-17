@@ -659,6 +659,36 @@ export const T = {
     promisedTitle: "Du lovade dem",
     /** @param {string} openFor */
     promisedOpen: (openFor) => `öppet ${openFor}`,
+    /*
+     * What to follow up, and the heading is the design rather than a label.
+     *
+     * "Väntar på" describes his posture; he asked for a list he can act from, so
+     * this says what to pick up. Nothing here counts, ages or colours anything -
+     * see the block in views/prep.js for why that restraint is load-bearing.
+     */
+    theyOweTitle: "Att följa upp med hen",
+    /** @param {string} since */
+    theyOweSince: (since) => `sagt ${since}`,
+
+    /* The way in. Offered from the last note, one click each. */
+    pointsTitle: "Stod i förra anteckningen",
+    pointsNote:
+      "Klicka på det som är HENS att göra, så hamnar det i listan ovanför. Dina egna rader " +
+      "hör hemma bland löftena i stället.",
+    pointsTake: "Följ upp",
+    pointsInferred: "modellens tolkning",
+    pointsInferredWhy:
+      "Sammanfattningen skrev den här själv, ingen sa den. Läs den en gång till innan du " +
+      "följer upp den på någon.",
+    pointTitle: "Följ upp det här",
+    pointIntro:
+      "Det här blir en rad om vad hen är skyldig dig. Den bockas av när HEN har gjort det, " +
+      "inte när du har slutat tänka på den.",
+    pointWhatLabel: "Vad hen ska göra",
+    pointWhyLabel: "Vad det blockerar",
+    pointConfirm: "Lägg till",
+    pointAddedToast: "Tillagt att följa upp.",
+
     theyOwnTitle: "De äger",
     /** @param {string} mandate @param {string} reviewed */
     theyOwnMeta: (mandate, reviewed) => `${mandate} &middot; genomgånget ${reviewed}`,

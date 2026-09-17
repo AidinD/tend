@@ -682,6 +682,16 @@ function writeNibFixture() {
       html:
         "<p>Vi pratade om renderingen. Jag sa att jag skulle kolla med Nina om konferensen.</p>" +
         "<p>Hann vi prata om tidplanen? Kommer inte ihåg.</p>" +
+        /*
+         * The action points, in the shape Nib writes them - including one the
+         * summariser inferred and marked as its own. A third of the lines in
+         * the real notebook carry that marker, and one of them was a suggestion
+         * nobody made, so the fixture has to hold both kinds or the check that
+         * they are told apart is testing nothing.
+         */
+        "<h2>Åtgärdspunkter</h2>" +
+        "<ul><li>Han skickar underlaget innan fredag</li>" +
+        "<li>Jag bokar om designgenomgången (underförstått)</li></ul>" +
         "<h2>Frågor jag inte ställde</h2>" +
         "<ul><li>Hur känner han inför att äga migreringen själv?</li>" +
         "<li>Vad hindrar honom från att säga nej till fler uppdrag?</li></ul>"
@@ -3216,6 +3226,159 @@ try {
     }
   });
 
+
+  step("What they owe him reaches the card he opens before a 1-1");
+
+  /*
+   * His words, 2026-09-17: "Jag höll på att missa vad vi sagt sen tidigare som
+   * punkter att ta upp nästa gång. Action points... i tend såg jag inget. Jag
+   * kollade förra gångens 1-1 och hittade där men det är inte säkert jag lyckas
+   * nästa gång."
+   *
+   * The record already existed. `domain/waiting.js` opens by calling itself the
+   * mirror of a promise, and its `answered` state means THEY answered rather
+   * than that he stopped caring - the lifecycle separation he said `alerts`
+   * collapsed. What was missing was a surface at the moment he needs it and a
+   * door into it: his live store had 22 promises and zero waits.
+   */
+  await page.click('.nav-btn[data-view="prep"]');
+  await page.waitFor("document.querySelector('.view-title') !== null", "the prep view");
+
+  const owe = JSON.parse(String(await page.evaluate(`(() => {
+        const block = document.querySelector('[data-block="owe"]');
+        if (block === null) { return JSON.stringify({ found: false }); }
+        const offered = [...block.querySelectorAll('.point-list li')];
+        return JSON.stringify({
+          found: true,
+          text: block.textContent.replace(/\\s+/g, ' ').trim(),
+          offered: offered.length,
+          marked: offered.filter((li) => li.querySelector('.pill')).length,
+          takeable: block.querySelectorAll('[data-act="takePoint"]').length
+        });
+      })()`)));
+
+  check("the last note's action points are offered on the card", () => {
+    /*
+     * The way in, and it has to be here or the list stays empty forever - which
+     * is exactly where it sat for months.
+     */
+    if (owe.found !== true) {
+      throw new Error("there is no follow-up block on the prep card at all");
+    }
+    if (owe.offered !== 2) {
+      throw new Error(`${owe.offered} points offered from a note that lists two`);
+    }
+    if (owe.takeable !== 2) {
+      throw new Error("the points are shown with no way to act on any of them");
+    }
+  });
+
+  check("including his own, because whose point it is is his to say", () => {
+    /*
+     * The section mixes his work and theirs and nothing in the words reliably
+     * says which. Filtering to the ones that look like theirs would put somebody
+     * else's name on his own commitment, so both are offered and he picks.
+     */
+    if (!/skickar underlaget/.test(owe.text)) {
+      throw new Error("the point that is theirs was not offered");
+    }
+    if (!/bokar om designgenomg/.test(owe.text)) {
+      throw new Error("a point was filtered out by guessing whose it was");
+    }
+  });
+
+  check("and the one the summariser inferred is marked as its own", () => {
+    /*
+     * A third of the action-point lines in the live notebook carry
+     * "(underförstått)", and one of them was a suggestion nobody made at all.
+     * Promoting one silently would put a thing nobody committed to into a list
+     * of what somebody owes him.
+     */
+    if (owe.marked !== 1) {
+      throw new Error(`${owe.marked} points marked as the model's, of one inferred`);
+    }
+  });
+
+  check("with the marker itself kept out of the text", () => {
+    if (owe.found !== true) {
+      throw new Error("no block, so this check was passing over an absent feature");
+    }
+    /*
+     * It is provenance, not part of the sentence. Left in, it would sit inside
+     * the row he is chasing somebody about six months later.
+     */
+    if (/underförstått\)/.test(owe.text) && !/modellens tolkning/.test(owe.text)) {
+      throw new Error(`the raw marker is in the offered text: "${owe.text}"`);
+    }
+  });
+
+  check("and nothing in the block counts, ages or colours anybody", () => {
+    if (owe.found !== true) {
+      throw new Error("no block, so this check was passing over an absent feature");
+    }
+    /*
+     * Two reasons stacked. `waiting.js` argues that escalating somebody else's
+     * silence "would be measuring them and blaming you", and card f558b0df is
+     * about everything this app counts being a deficit - a list of what a
+     * colleague has not done yet being the most tempting counter of the lot.
+     */
+    if (/sev-critical|sev-warn/.test(String(owe.text))) {
+      throw new Error("the block carries a severity");
+    }
+  });
+
+  /* Take the one that is theirs. */
+  await page.click('.point-list [data-act="takePoint"]');
+  await page.waitFor("document.querySelector('.dialog') !== null", "the follow-up dialog");
+
+  const carried = await page.evaluate(
+    "document.querySelector('.dialog [name=\"what\"]').value"
+  );
+  check("taking one carries its text into the dialog rather than an empty box", () => {
+    if (!/skickar underlaget/.test(String(carried))) {
+      throw new Error(`the point's text did not arrive: "${carried}"`);
+    }
+  });
+
+  await page.fillDialog({ what: "Han skickar underlaget innan fredag", why: "Blockerar min plan" });
+  await sleep(600);
+
+  const after = JSON.parse(String(await page.evaluate(`(() => {
+        const block = document.querySelector('[data-block="owe"]');
+        return JSON.stringify({
+          text: block === null ? '' : block.textContent.replace(/\\s+/g, ' ').trim(),
+          offered: block === null ? 0 : block.querySelectorAll('.point-list li').length
+        });
+      })()`)));
+
+  check("and it becomes a row of what to follow up", () => {
+    if (!/skickar underlaget/.test(after.text)) {
+      throw new Error(`the promoted point is not in the follow-up list: "${after.text}"`);
+    }
+    if (!/Blockerar min plan/.test(after.text)) {
+      throw new Error("what it blocks was thrown away");
+    }
+  });
+
+  check("stops being offered a second time", () => {
+    /*
+     * Matched on the text, which is the crude version on purpose: the precise
+     * one writes a pointer back into the Nib note, and Nib owns the notes.
+     */
+    if (after.offered !== 1) {
+      throw new Error(`${after.offered} points still offered after taking one of two`);
+    }
+  });
+
+  check("and the heading says what to do with it, not what he is doing", () => {
+    /*
+     * "Väntar på" describes his posture. He asked for a list he can act from,
+     * and the wording is the part of this that is not cosmetic.
+     */
+    if (!/följa upp/i.test(after.text)) {
+      throw new Error(`the block reads as a waiting list: "${after.text}"`);
+    }
+  });
 
   step("One note, several people in it");
 

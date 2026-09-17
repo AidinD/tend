@@ -3,6 +3,71 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-17 - What they owe him reaches the card he opens before a 1-1
+
+**His report.** "Jag höll på att missa vad vi sagt sen tidigare som punkter att
+ta upp nästa gång. Action points. Jag behöver ha ett enkelt sätt att se dem för
+att kunna följa upp. i tend såg jag inget. Jag kollade förra gångens 1-1 och
+hittade där men det är inte säkert jag lyckas nästa gång."
+
+**Nothing new was named, and that was the finding.** The brief that reached me
+said the mirror of a promise was missing from the store, having checked promises,
+commitments and `theyOwn`. It is `domain/waiting.js`, whose header opens with the
+words "The mirror of a promise" - with `person`, `what`, `why`, chases, and a
+`state` whose `answered` means THEY answered rather than that he stopped caring.
+That last part is exactly the lifecycle separation he objected to `alerts`
+collapsing, and it was already built.
+
+What was missing was a surface and a door. **His live store held 22 promises and
+zero waits.** Months of a well-built feature nobody could find, which is the same
+diagnosis as the capture card rather than a second concept.
+
+**Two halves, and either alone is useless.** A surface with no rows shows
+nothing; rows with no way in is exactly where this sat.
+
+- **The surface** is a block on the prep card, per person, drawn only when it has
+  something in it.
+- **The way in** is the action points from the last note, offered one click each,
+  because that is the document he was already opening by hand.
+
+**It does not decide whose point it is.** The obvious version filters to the ones
+the colleague owns, and it cannot be done honestly - the section mixes his work
+and theirs and nothing in the words says which. Guessing generously puts somebody
+else's name on his own commitment. Both are offered and he picks, which was the
+asked-for click count anyway.
+
+**Provenance, which was the part most likely to go wrong.** Nib's summariser
+writes some action points itself and marks them "(underförstått)". Measured
+read-only across the live notebook: 71 action-point lines in 24 notes, **24 of
+them inferred**. A third. One, in a real note, suggested he build a better system
+for tracking action points, which nobody said at all. Those are marked on the
+card with the reason on hover, and the marker is stripped from the text because
+it is provenance rather than part of the sentence - keeping it would put
+"(underförstått)" inside a row he chases somebody about six months later.
+
+**Wording, which is not cosmetic here.** "Väntar på" describes his posture; he
+asked for a list he can act from, so the heading says what to follow up. Nothing
+in the block counts, ages, colours or badges anything. Two reasons and they
+stack: `waiting.js` argues that escalating somebody else's silence "would be
+measuring them and blaming you", and card f558b0df is about everything this app
+counts being a deficit - a list of what a colleague has not done yet being the
+most tempting counter of the lot. The Waiting view keeps severity and the chase
+reading, which is where he goes to decide whether to chase.
+
+**A third reader, and the shared boundary it forced.** `theirpoints.js` walks a
+note section the same way `unasked.js` does, and building it surfaced a hole in
+both: an EMPTY section followed by a heading whose markers did not survive the
+HTML conversion let the next section's list walk in. "Frågor jag inte ställde"
+with nothing under it, then "Nästa steg", read "Boka ett nytt möte" as a question
+he did not ask.
+
+There was already a test for that case. It used `##` markers - in a file that
+carries a block titled "the text the app actually has, not the Markdown it was
+written for", which exists because seventeen earlier tests had passed on Markdown
+the app never sees. **The same mistake, in the neighbouring test, about the same
+file.** `notesections.js` now holds the section names Nib actually writes,
+counted from the notebook, and both readers stop at them.
+
 ## 2026-09-17 - The prep card was offering the model's questions as the ones he did not ask
 
 **Found while checking somebody else's brief rather than by looking for it.**

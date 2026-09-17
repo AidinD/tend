@@ -9,8 +9,8 @@
  * or is owed, and when nothing has, the page is empty on purpose.
  */
 
-import { esc, tend } from "../ui.js";
-import { go } from "../app.js";
+import { act, esc, form, tend } from "../ui.js";
+import { go, refresh } from "../app.js";
 import { T } from "../text.js";
 import { actions as growthActions, growingBlock } from "./growth.js";
 import {
@@ -187,6 +187,29 @@ function card(c, model) {
 
       ${raising(c)}
 
+      ${
+        /*
+         * What this person owes HIM, and the way to put something in it.
+         *
+         * The record is a `waiting` row and has been since long before this
+         * block: `domain/waiting.js` opens by calling itself the mirror of a
+         * promise, and its `answered` state means THEY answered rather than that
+         * he stopped caring - which is exactly the lifecycle separation he said
+         * `alerts` collapsed. What was missing was any surface at the moment he
+         * needs it. He had 22 promises and zero waits.
+         *
+         * Nothing here is coloured, aged into a badge or counted. Two reasons
+         * and they stack: `waiting.js` argues that escalating somebody else's
+         * silence "would be measuring them and blaming you", and card f558b0df
+         * is about everything this app counts being a deficit - a list of what a
+         * colleague has not done yet being the most tempting counter of the lot.
+         * The Waiting view keeps severity and the chase reading, which is where
+         * he goes to decide whether to chase. This is what he reads on the way
+         * into the room.
+         */
+        oweBlock(c)
+      }
+
       ${section(words.theyOwnTitle, c.theyOwn, (/** @type {any} */ w) => `${esc(w.name)} <span class="src">${words.theyOwnMeta(esc(w.mandate), esc(w.lastReviewed))}</span>`)}
 
       ${
@@ -300,6 +323,68 @@ function raising(c) {
 }
 
 /**
+ * What to follow up with this person, and the points that could become one.
+ *
+ * Drawn only when there is something in it. An empty block on a card he opens
+ * before every conversation is a row of furniture, and the prep card already
+ * carries seven blocks - but the block is not merely absent either, because
+ * "nothing to follow up" and "nothing was ever written down" are different and
+ * the second one has a fix. When the rows are empty and the last note had
+ * points, what shows is the way in.
+ *
+ * @param {any} c
+ */
+function oweBlock(c) {
+  const rows = Array.isArray(c.theyOwe) ? c.theyOwe : [];
+  const points = Array.isArray(c.pointsFromNote) ? c.pointsFromNote : [];
+  if (rows.length === 0 && points.length === 0) {
+    return "";
+  }
+
+  const owed = rows
+    .map(
+      (/** @type {any} */ w) =>
+        `<li>${esc(w.what)}${w.why ? ` <span class="src">${esc(w.why)}</span>` : ""}
+          <span class="src">${esc(words.theyOweSince(w.since))}</span></li>`
+    )
+    .join("");
+
+  /*
+   * A point the summariser inferred is marked, and the mark carries its reason
+   * as a tooltip rather than another line of prose.
+   *
+   * A third of the action-point lines in the live notebook are the model's own
+   * reading - one of them, in a real note, suggested he build a better system
+   * for tracking action points, which nobody said. Promoting one of those
+   * silently would put a thing nobody committed to in a list of what somebody
+   * owes him. Every point needs the same single click; the marked ones just say
+   * what they are before he makes it.
+   */
+  const offer = points
+    .map(
+      (/** @type {any} */ p, /** @type {number} */ i) =>
+        `<li>
+          <button class="act tiny" data-act="takePoint" data-person="${esc(c.person)}" data-i="${i}">${words.pointsTake}</button>
+          <span class="point-text">${esc(p.text)}</span>
+          ${p.inferred ? `<span class="pill plain" title="${esc(words.pointsInferredWhy)}">${words.pointsInferred}</span>` : ""}
+        </li>`
+    )
+    .join("");
+
+  return `
+    <div class="prep-block" data-block="owe">
+      ${rows.length > 0 ? `<h3 class="prep-head">${esc(words.theyOweTitle)}</h3><ul class="prep-list">${owed}</ul>` : ""}
+      ${
+        points.length > 0
+          ? `<h3 class="prep-head">${esc(words.pointsTitle)}</h3>
+             <ul class="prep-list point-list">${offer}</ul>
+             <p class="group-note">${esc(words.pointsNote)}</p>`
+          : ""
+      }
+    </div>`;
+}
+
+/**
  * A labelled block, or nothing at all.
  *
  * Nothing, rather than a heading with "none" under it: a card that lists four
@@ -381,6 +466,47 @@ export const actions = {
   // The same dialogs the person's page uses. Logging that a direction came up is
   // most likely to happen right here, minutes after the conversation.
   ...growthActions,
+
+  /**
+   * Promote one of the last note's action points into something to follow up.
+   *
+   * A dialog rather than a silent write, and it is one click to open plus one to
+   * confirm. That is not the friction it looks like: the text comes out of a
+   * summary and lands in a row he will read months later with nothing around it,
+   * some of those lines are the model's own reading, and the dialog is where he
+   * says what it blocks - the field that turns "skicka underlaget" into
+   * something he can act on.
+   *
+   * The text is read off the DOM rather than passed in a data attribute. An
+   * action point is a sentence with quotes and apostrophes in it, and threading
+   * that through an attribute is how a row silently loses half its text.
+   *
+   * @param {Record<string, string>} d
+   */
+  takePoint: async (d) => {
+    const row = document.querySelector(
+      `[data-act="takePoint"][data-person="${d.person}"][data-i="${d.i}"]`
+    )?.closest("li");
+    const text = row?.querySelector(".point-text")?.textContent?.trim() ?? "";
+    if (text === "") {
+      return;
+    }
+    const values = await form({
+      title: words.pointTitle,
+      intro: words.pointIntro,
+      fields: [
+        { name: "what", label: words.pointWhatLabel, type: "textarea", required: true, value: text },
+        { name: "why", label: words.pointWhyLabel, type: "text" }
+      ],
+      confirm: words.pointConfirm
+    });
+    if (!values) {
+      return;
+    }
+    if (await act("waitFor", { person: d.person, ...values }, words.pointAddedToast)) {
+      refresh();
+    }
+  },
 
   /** @param {Record<string, string>} d */
   openPerson: (d) => go("people", { person: d.person }),

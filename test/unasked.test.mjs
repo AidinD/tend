@@ -308,3 +308,68 @@ test("a heading that names somebody else's questions is not his", async (t) => {
     assert.deepEqual(unaskedQuestions(note), ["Hur ligger det till med flytten?"]);
   });
 });
+
+test("the next section ends this one even with its markers gone", async (t) => {
+  /*
+   * The hole this closes, and how it survived.
+   *
+   * An EMPTY questions section followed by "Nästa steg" and a list read "Boka
+   * ett nytt möte" as a question he did not ask. The position rule allowed a
+   * couple of plain lines as the section's own opening sentence, and with the
+   * heading markers gone "Nästa steg" is exactly such a line - so the next
+   * section's list walked straight in.
+   *
+   * There was already a test for this case. It used "## Nästa steg", where the
+   * break is unambiguous, in a file that carries a block titled "the text the
+   * app actually has, not the Markdown it was written for" - which exists
+   * because seventeen earlier tests had passed on Markdown the app never sees.
+   * The same mistake, in the neighbouring test, about the same file.
+   */
+
+  await t.test("an empty section does not absorb the list below it", () => {
+    const converted = [
+      "Frågor jag inte ställde",
+      "",
+      "Nästa steg",
+      "",
+      "- Boka ett nytt möte"
+    ].join("\n");
+    assert.deepEqual(unaskedQuestions(converted), []);
+  });
+
+  await t.test("and neither does one that had questions of its own", () => {
+    const converted = [
+      "Frågor jag inte ställde",
+      "",
+      "- Hur går det med flytten?",
+      "",
+      "Åtgärdspunkter",
+      "",
+      "- Skicka underlaget"
+    ].join("\n");
+    assert.deepEqual(unaskedQuestions(converted), ["Hur går det med flytten?"]);
+  });
+
+  await t.test("a list item is content even when it names a section", () => {
+    /*
+     * "- Beslut om lönerevisionen?" is a question about a decision, not the
+     * Beslut heading. The boundary must look at plain lines only.
+     */
+    const converted = ["Frågor jag inte ställde", "- Beslut om lönerevisionen?"].join("\n");
+    assert.deepEqual(unaskedQuestions(converted), ["Beslut om lönerevisionen?"]);
+  });
+
+  await t.test("the section's own opening sentence still survives", () => {
+    /*
+     * The position rule is not replaced, only preceded. "Hann inte med allt." is
+     * prose that opens the section and must not end it.
+     */
+    const converted = [
+      "Frågor jag inte ställde",
+      "",
+      "Hann inte med allt.",
+      "- Vad tänker han om teamet?"
+    ].join("\n");
+    assert.deepEqual(unaskedQuestions(converted), ["Vad tänker han om teamet?"]);
+  });
+});
