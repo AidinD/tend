@@ -30,8 +30,9 @@
  * ## Inferred points are marked, never promoted quietly
  *
  * Nib's summariser writes some of these itself and marks them
- * "(underförstått)". Measured across the live notebook: 71 action-point lines in
- * 24 notes, and 24 of them inferred. A third.
+ * "(underförstått)", inside an `<em>` in the marked paragraph. Measured across
+ * the live notebook on 2026-09-30: 90 points in 29 notes, and 35 of them
+ * inferred. More than a third.
  *
  * Those are the model's reading of what was implied, not something either party
  * said - and one of them, in a real note, was a suggestion that he build a
@@ -49,8 +50,56 @@
  * ## Format, never meaning
  *
  * Same rule as `unasked.js`, and for the same reason: a note is full of lines
- * that look like commitments. Everything here is driven by a heading and the
- * list under it, and a note without that section yields nothing at all.
+ * that look like commitments. A line is a point only when its format says so,
+ * and there are exactly two formats that do:
+ *
+ * - **Marked.** Nib's summariser writes each point as `<p data-action="1">`,
+ *   and Nib itself finds them by that attribute, never by position (its
+ *   DECISIONS.md: "The lines it acts on are marked, not inferred"). The marker
+ *   is read out of the HTML by `markedActions` in `service/nib.js`, because
+ *   only that file knows Nib's markup; this file takes the lines it found.
+ * - **Listed.** A list under one of the `HEADINGS` below, which is what a note
+ *   written by hand uses, and what Nib's summariser wrote before it moved to
+ *   marked paragraphs.
+ *
+ * Both are read, because both occur in one note: measured 2026-09-30, all 29
+ * notes with the section use the marker (90 points, 35 inferred), and one of
+ * them carries an empty marked line followed by a hand-typed list of ten. A
+ * reader that let the marker win would have dropped those ten.
+ *
+ * ## A bare line is still never a point
+ *
+ * The rule survives the new format, on purpose. The marker is evidence a
+ * paragraph is a point; a bare paragraph under the heading carries none - Nib
+ * says a line typed in among the marked ones is "left alone in both
+ * directions", and the same section holds the "Flagga alla N som
+ * åtgärdspunkter" control, which is UI rather than content.
+ *
+ * ## Rejected
+ *
+ * **Taking bare lines under the heading.** It is the obvious repair once the
+ * points stopped being list items, and it would have worked on the day it was
+ * written. It is a guess from position, which is exactly what Nib rejected for
+ * the same lines, and it would take the control paragraph and anything typed
+ * in between as a commitment.
+ *
+ * **Turning marked paragraphs into list items in `htmlToText`.** One line of
+ * change, and every other reader of the text would see a list. But the list
+ * path ends the section at the first bare line after a point, so a single line
+ * typed between two marked ones would silently drop every point below it.
+ *
+ * ## How this failed, silently
+ *
+ * The first version read only the list, and shipped on 2026-09-17 - eighteen
+ * days after Nib's summariser had moved from list items to marked paragraphs
+ * (Nib 161fa92, 2026-08-30). Its header said "71 action-point lines in 24
+ * notes", which counted lines in the notebook rather than what this function
+ * returned for them, and its fixtures were typed in the list shape rather than
+ * copied from a real note. So the count and the tests both agreed, and the prep
+ * card showed an empty list for every summarised note - which looks exactly
+ * like a note without action points. The fixtures in
+ * `test/theirpoints.test.mjs` now start from Nib's markup for that reason, and
+ * the counts above are what the reader returned.
  */
 
 import { startsSection } from "./notesections.js";
@@ -93,13 +142,41 @@ const INFERRED = /\(\s*underf[öo]rst[åa]tt\s*\)/i;
  */
 
 /**
- * Every action point the note lists.
+ * Every action point the note carries: the marked lines first, then the listed
+ * ones, with a listed line that repeats a marked one dropped.
  *
- * @param {string} body The note's plain text.
- * @returns {Point[]} In the order written. Empty when there is no such section,
- *   which is the common case and not a failure.
+ * @param {string} body The note's plain text, with the marked lines and Nib's
+ *   control paragraph already taken out - `markedActions` in `service/nib.js`
+ *   hands back both halves.
+ * @param {string[]} [marked] The text of each line Nib marked as a point.
+ * @returns {Point[]} Empty when there is no such section, which is the common
+ *   case and not a failure.
  */
-export function actionPoints(body) {
+export function actionPoints(body, marked = []) {
+  /** @type {Point[]} */
+  const out = [];
+  for (const line of marked) {
+    const point = read(line);
+    if (point !== null) {
+      out.push(point);
+    }
+  }
+  const seen = new Set(out.map((p) => p.text.toLowerCase()));
+  for (const point of listedPoints(body)) {
+    if (!seen.has(point.text.toLowerCase())) {
+      out.push(point);
+    }
+  }
+  return out;
+}
+
+/**
+ * The points written as a list under an action-point heading.
+ *
+ * @param {string} body
+ * @returns {Point[]} In the order written.
+ */
+function listedPoints(body) {
   const lines = String(body ?? "").split(/\r?\n/);
   const start = lines.findIndex((l) => HEADINGS.test(l));
   if (start < 0) {
@@ -144,7 +221,8 @@ export function actionPoints(body) {
      * There is no equivalent here of that file's question-mark test. A question
      * mark is evidence a line is a question; nothing in a sentence's shape is
      * evidence that it is a commitment, so a bare line is never taken as a
-     * point. The list is the format, and the format is all this reads.
+     * point. The list is the format here, and Nib's marker is the only other -
+     * see the header.
      */
     if (out.length > 0 || preamble >= PREAMBLE_MAX) {
       break;

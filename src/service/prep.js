@@ -43,7 +43,7 @@ import { threadsFor } from "../domain/growth.js";
 import { topicsFor } from "../domain/topics.js";
 import { LEVELS, isLevel, reviewInterval } from "../domain/workstreams.js";
 import { jotDataDir, readBoard, workFor } from "./jot.js";
-import { noteBody, notesIn, principlesInNib, readNibIndex } from "./nib.js";
+import { markedActions, noteBody, noteHtml, notesIn, principlesInNib, readNibIndex } from "./nib.js";
 import { unaskedQuestions } from "../domain/unasked.js";
 import { actionPoints } from "../domain/theirpoints.js";
 import { openWaits } from "../domain/waiting.js";
@@ -568,10 +568,15 @@ function lastNote(nib, bindings, personId) {
 /**
  * The action points written at the end of the last conversation.
  *
- * Mirrors `readUnasked` exactly, including the reason: `noteBody` answers
- * `{ available, text | why }` rather than a string, and an unavailable note is
- * not an empty one. Reading it as a string would put the word "undefined"
- * through the parser.
+ * Mirrors `readUnasked`, including the reason: the reader answers
+ * `{ available, html | why }` rather than a string, and an unavailable note is
+ * not an empty one.
+ *
+ * The one difference is that this reads the HTML rather than the text. Nib
+ * marks each point it writes with an attribute, and the text conversion throws
+ * attributes away - reading the text is how this returned an empty list for
+ * every note once the summariser stopped writing list items. See
+ * `domain/theirpoints.js`.
  *
  * @param {{ id: string } | null} written
  * @param {string} [dir]
@@ -582,8 +587,12 @@ function readPoints(written, dir) {
     return [];
   }
   try {
-    const body = noteBody(String(written.id), dir);
-    return body.available === true ? actionPoints(body.text) : [];
+    const note = noteHtml(String(written.id), dir);
+    if (note.available !== true) {
+      return [];
+    }
+    const { marked, rest } = markedActions(note.html);
+    return actionPoints(rest, marked);
   } catch {
     return [];
   }

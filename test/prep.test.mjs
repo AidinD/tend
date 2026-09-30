@@ -8,7 +8,7 @@
  */
 
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
@@ -248,5 +248,77 @@ describe("workFor", () => {
 
   it("returns nothing when there is no board, rather than throwing", () => {
     assert.deepEqual(workFor({ board: null, name: "Nina Berg", areas: ["Northwind"] }), []);
+  });
+});
+
+describe("the action points from the last note", () => {
+  /** @type {string} */
+  let nibDir;
+
+  /** One bound folder holding one note, whose HTML is written as Nib writes it. */
+  const writeNote = (/** @type {string} */ html) => {
+    nibDir = mkdtempSync(join(tmpdir(), "tend-prep-nib-"));
+    mkdirSync(join(nibDir, "notes"), { recursive: true });
+    writeFileSync(
+      join(nibDir, "index.json"),
+      JSON.stringify({
+        version: 2,
+        tags: [],
+        categories: [
+          {
+            id: "cat-nina",
+            name: "Nina",
+            scope: "W",
+            subs: [],
+            notes: [{ id: "note-1", categoryId: "cat-nina", subId: null, title: "1-1", created: daysAgo(2), edited: daysAgo(2), alerts: [], tags: [] }]
+          }
+        ]
+      }),
+      "utf8"
+    );
+    writeFileSync(join(nibDir, "notes", "note-1.json"), JSON.stringify({ id: "note-1", html }), "utf8");
+    store.create("sources", { people: ["p-nina"], categoryId: "cat-nina", subId: null, label: "Nina", rules: [] });
+    store.create("touches", { id: "t-1", subject: "p-nina", kind: "one-to-one", at: daysAgo(40) });
+  };
+
+  afterEach(() => {
+    if (nibDir) {
+      rmSync(nibDir, { recursive: true, force: true });
+    }
+  });
+
+  it("reaches the card from the paragraphs Nib's summariser marks", () => {
+    /*
+     * The shape every summarised note in the live notebook has. Reading the
+     * note's text instead of its markup returned an empty list here for every
+     * one of them, and an empty list on a card looks exactly like a note with
+     * nothing to follow up.
+     */
+    writeNote(
+      [
+        "<h2>Åtgärdspunkter</h2>",
+        '<p data-action="1" data-alert="done" data-alert-id="alert-1">Hen skickar underlaget.</p>',
+        '<p data-action="1">Jag bokar om genomgången <em>(underförstått)</em></p>',
+        '<p data-action="1">Vi stämmer av på måndag.</p>',
+        '<p data-flag-all="1">Flagga alla 3 som åtgärdspunkter</p>',
+        "<h2>Frågor du inte ställde</h2>",
+        "<ul><li>Hur går det?</li></ul>"
+      ].join("")
+    );
+
+    const [card] = prep(store, NOW, { jotDir, nibDir }).cards;
+    assert.deepEqual(card.pointsFromNote, [
+      { text: "Hen skickar underlaget.", inferred: false },
+      { text: "Jag bokar om genomgången", inferred: true },
+      { text: "Vi stämmer av på måndag.", inferred: false }
+    ]);
+  });
+
+  it("drops a point already promoted to something they owe", () => {
+    writeNote('<h2>Åtgärdspunkter</h2><p data-action="1">Hen skickar underlaget.</p><p data-action="1">Vi stämmer av.</p>');
+    store.create("waiting", { id: "w-1", person: "p-nina", what: "Hen skickar underlaget.", since: daysAgo(1), status: "open" });
+
+    const [card] = prep(store, NOW, { jotDir, nibDir }).cards;
+    assert.deepEqual(card.pointsFromNote.map((/** @type {any} */ p) => p.text), ["Vi stämmer av."]);
   });
 });

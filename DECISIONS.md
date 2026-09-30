@@ -3,6 +3,32 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-09-30 - Action points are read from Nib's marker, not from the text
+
+**What was wrong.** The prep card's `pointsFromNote` was empty for every
+summarised note. Nib's summariser writes each action point as
+`<p data-action="1">`, and has since 2026-08-30 - before the entry below shipped.
+Tend read the note as plain text, where those paragraphs are bare lines, and its
+parser takes only list items. Nothing failed: an empty list reads as a note with
+nothing to follow up.
+
+**Decided.** The contract between the two apps is the attribute. `service/nib.js`
+splits a note into the marked lines and the rest (`markedActions`), and
+`domain/theirpoints.js` reads the marked lines plus any list under the heading.
+Both, because the live notebook has a note with an emptied marked line and a
+hand-typed list of ten under it.
+
+**Rejected:** taking bare lines under the heading (a guess from position, which
+Nib rejected for the same lines, and it would take the "Flagga alla" control as a
+point), and rendering marked paragraphs as list items in `htmlToText` (one line
+typed between two marked ones would end the section and drop the rest). The
+reasoning is in `theirpoints.js`'s header.
+
+**The lesson that generalises.** The earlier count ("71 lines in 24 notes")
+measured the notebook, not the reader, and the fixtures were typed rather than
+copied from real markup. A measurement of the input is not evidence the parser
+reads it.
+
 ## 2026-09-17 - What they owe him reaches the card he opens before a 1-1
 
 **His report.** "Jag höll på att missa vad vi sagt sen tidigare som punkter att

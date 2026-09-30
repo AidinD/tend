@@ -6,9 +6,11 @@
  * bodies - so the routine path costs one small file read and never opens a note
  * about a colleague.
  *
- * `noteBody` at the bottom is the single exception and the only function here
- * that reads what you actually wrote. Nothing automatic calls it: it exists for
- * a model call the user asked for by name, and the boundary is worth keeping
+ * `noteBody` and `noteHtml` at the bottom are the exception and the only
+ * functions here that read what you actually wrote. Nothing on a timer or in
+ * indexing calls them: they exist for a model call the user asked for by name,
+ * and for the prep card, which reads the sections at the end of the newest
+ * note about the person on it when he opens it. The boundary is worth keeping
  * that sharp, because "Tend read my 1-1 notes" should never be a surprise.
  *
  * Which notes belong to whom is not guessed from names or enforced by a naming
@@ -1178,6 +1180,23 @@ export function principleTagId(tags) {
  * @returns {{ available: true, text: string } | { available: false, why: string }}
  */
 export function noteBody(noteId, dir = nibDataDir()) {
+  const note = noteHtml(noteId, dir);
+  return note.available ? { available: true, text: htmlToText(note.html) } : note;
+}
+
+/**
+ * The HTML of one note, as Nib stored it.
+ *
+ * For a reader that needs Nib's own markers, which `htmlToText` throws away -
+ * today only the prep card's action points, through `markedActions`. The same
+ * boundary as `noteBody` applies: it is read when he opens a view that shows
+ * something from the note, never on a timer or while indexing.
+ *
+ * @param {string} noteId
+ * @param {string} [dir] Nib data directory.
+ * @returns {{ available: true, html: string } | { available: false, why: string }}
+ */
+export function noteHtml(noteId, dir = nibDataDir()) {
   const path = join(dir, "notes", `${noteId}.json`);
   /** @type {string} */
   let raw;
@@ -1193,7 +1212,7 @@ export function noteBody(noteId, dir = nibDataDir()) {
 
   try {
     const parsed = JSON.parse(raw);
-    return { available: true, text: htmlToText(String(parsed?.html ?? "")) };
+    return { available: true, html: String(parsed?.html ?? "") };
   } catch {
     return { available: false, why: `Anteckningsfilen för ${noteId} kunde inte tolkas.` };
   }
@@ -1227,6 +1246,36 @@ export function htmlToText(html) {
     .map((line) => line.trim())
     .join("\n")
     .trim();
+}
+
+/**
+ * A paragraph Nib's summariser marked as an action point. Matched on the
+ * attribute's presence, the way Nib's own `p[data-action]` selector finds them,
+ * so a value other than "1" or an attribute beside it (`data-alert` once the
+ * line is flagged) changes nothing.
+ */
+const MARKED = /<p\b[^>]*\sdata-action(?=[\s=>\/])[^>]*>([\s\S]*?)<\/p\s*>/gi;
+
+/** The "Flagga alla N som åtgärdspunkter" control. UI, not something written. */
+const FLAG_ALL = /<p\b[^>]*\sdata-flag-all(?=[\s=>\/])[^>]*>[\s\S]*?<\/p\s*>/gi;
+
+/**
+ * The action points Nib marked in a note, and the text of everything else.
+ *
+ * Split rather than returned side by side, so each line is read by exactly one
+ * reader: the marked ones here, and the rest by the list rule in
+ * `domain/theirpoints.js`, which would otherwise see every marked line again as
+ * a bare line under the heading. Why both are needed is in that file's header.
+ *
+ * @param {string} html
+ * @returns {{ marked: string[], rest: string }} `marked` in document order, each
+ *   as plain text with the inferred marker still in it.
+ */
+export function markedActions(html) {
+  const source = String(html ?? "");
+  const marked = [...source.matchAll(MARKED)].map((m) => htmlToText(m[1]).replace(/\s+/g, " ").trim());
+  const rest = htmlToText(source.replace(MARKED, "").replace(FLAG_ALL, ""));
+  return { marked, rest };
 }
 
 /**
