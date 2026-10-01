@@ -47,7 +47,7 @@ import {
 } from "../src/service/api.js";
 
 import { openStore } from "../src/storage/store.js";
-import { MODE_ENV, MODE_FILE, readMode, windowTitle, writeMode } from "../src/main/mode.js";
+import { MODE_ENV, MODE_FILE, readMode, serverMode, windowTitle, writeMode } from "../src/main/mode.js";
 import { checkOwnPart } from "../src/service/model.js";
 import { failed, ok } from "./helpers.mjs";
 
@@ -164,6 +164,26 @@ describe("remembering the choice", () => {
     writeFileSync(join(configDir, MODE_FILE), JSON.stringify({ mode: "private" }), "utf8");
     assert.equal(readMode(configDir, { [MODE_ENV]: "family" }), "private");
     assert.equal(readMode(configDir, { [MODE_ENV]: "  " }), "private");
+  });
+
+  it("gives an MCP server the work half unless it was configured for private", () => {
+    assert.deepEqual(serverMode({}), { mode: "work", ignored: null });
+    assert.deepEqual(serverMode({ [MODE_ENV]: "  " }), { mode: "work", ignored: null });
+    assert.deepEqual(serverMode({ [MODE_ENV]: "private" }), { mode: "private", ignored: null });
+    assert.deepEqual(serverMode({ [MODE_ENV]: " work " }), { mode: "work", ignored: null });
+  });
+
+  it("never lets a server inherit the half the window was left in", () => {
+    // The user-wide server is visible to every session on the machine. Reading
+    // the remembered choice would hand them the private store the day the window
+    // was last closed in private mode.
+    writeFileSync(join(configDir, MODE_FILE), JSON.stringify({ mode: "private" }), "utf8");
+    assert.deepEqual(serverMode({}), { mode: "work", ignored: null });
+  });
+
+  it("serves work for a value that is not a mode, and hands the value back to report", () => {
+    assert.deepEqual(serverMode({ [MODE_ENV]: "family" }), { mode: "work", ignored: "family" });
+    assert.deepEqual(serverMode({ [MODE_ENV]: "Private" }), { mode: "work", ignored: "Private" });
   });
 
   it("writes nothing when the environment decided, so it cannot leave a mode behind", () => {

@@ -84,6 +84,31 @@ export function readMode(configDir, env = process.env) {
 }
 
 /**
+ * The half an MCP server process serves.
+ *
+ * The environment only, never the remembered file. The file records which half
+ * the window was last in, and a server configured once, user-wide, must not
+ * start serving the private store because the window happened to be left there.
+ * A server reaches the private half only by being configured for it.
+ *
+ * An unrecognised value resolves to work, under the same rule as `readMode`:
+ * every way of not understanding the answer resolves to the half that cannot
+ * leak. It comes back as `ignored` so the server can say so on stderr - a server
+ * has no window title, and a private server quietly serving the work half would
+ * otherwise just look like nobody is there.
+ *
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {{ mode: import("../domain/paths.js").Mode, ignored: string | null }}
+ */
+export function serverMode(env = process.env) {
+  const value = env[MODE_ENV]?.trim() ?? "";
+  if (value === "") {
+    return { mode: "work", ignored: null };
+  }
+  return isMode(value) ? { mode: value, ignored: null } : { mode: "work", ignored: value };
+}
+
+/**
  * Remember a mode, and say plainly when it could not be remembered.
  *
  * A failure here is not fatal - the window can still be switched, it just will

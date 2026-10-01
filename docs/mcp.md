@@ -27,6 +27,32 @@ location Electron would, so both find the same folder either way.
 
 Diagnostics go to stderr. Anything on stdout is protocol.
 
+### The private half
+
+One server serves one half. Set `TEND_MODE` to `private` and the same server
+serves the private store instead, opened as that half:
+
+```json
+{
+  "mcpServers": {
+    "tend-private": {
+      "command": "node",
+      "args": ["D:/Repo/Tools/tend/src/mcp/server.js"],
+      "env": { "TEND_MODE": "private" }
+    }
+  }
+}
+```
+
+**Configure this in a project scope, never user-wide.** A user-wide server is
+visible to every session on the machine, including sessions working in other
+people's repositories. The work server is the one that belongs there.
+
+The server never reads the window's remembered mode, so the work server cannot
+drift into the private store because the window was last left there. A value
+that is not a mode falls back to work and says so on stderr. The first stderr
+line names the half and the directory either way.
+
 ## Reading
 
 | Tool | Answers |

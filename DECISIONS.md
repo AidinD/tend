@@ -3,6 +3,27 @@
 Newest first. Each entry: the date, what was decided, what else was considered,
 and why this won.
 
+## 2026-10-01 - The private half gets its own MCP server, by configuration
+
+**What was missing.** The MCP server resolved the work directory only, so the
+private half was invisible to every agent. Nothing recorded whether that was a
+boundary or an oversight, and an agent asking `tend_people` about someone who
+lives in the private half concluded they were not in Tend at all.
+
+**Decided.** One half per process. `TEND_MODE=private` makes the same server
+serve the private store, opened with `half: "private"` so everything downstream
+behaves as that half. Directory and half come from one value. Without the
+variable nothing changes. A private server is meant to be configured in a
+project scope only.
+
+**Rejected:** a mode argument on each tool (every session with the server would
+reach the private store with one parameter); reading the window's remembered
+mode (the user-wide work server would start serving private the day the window
+was left there); and refusing to start on an unrecognised value. The last one
+lost to the rule `readMode` already follows - every way of not understanding the
+answer resolves to the half that cannot leak - with the value reported on
+stderr, because a server has no window title to show which half it is in.
+
 ## 2026-09-30 - Action points are read from Nib's marker, not from the text
 
 **What was wrong.** The prep card's `pointsFromNote` was empty for every
